@@ -4,7 +4,8 @@ import {
   FileText,
   MessageSquare,
   Image as ImageIcon,
-  Grid
+  Grid,
+  Music
 } from 'lucide-react';
 
 import { createGeminiService } from './services/geminiService';
@@ -15,6 +16,11 @@ import { normalizeForGrid } from './utils/wordsearchGenerator';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { ActivityArea } from './components/ActivityArea';
+import { QuizEditorModal } from './components/QuizEditorModal';
+import { DrackerEditorModal } from './components/DrackerEditorModal';
+import { VoiceSettingsModal } from './components/VoiceSettingsModal';
+import { SaveLoadModal } from './components/SaveLoadModal';
+import { MusicEditorModal } from './components/MusicEditorModal';
 
 export default function App() {
   // --- STATE MANAGEMENT ---
@@ -44,6 +50,24 @@ export default function App() {
   const [error, setError] = useState('');
   const [systemStatus, setSystemStatus] = useState(null); // { type: 'retry' | 'rate-limit' | 'fallback', message: '', details: {} }
 
+  // Persistence State
+  const [savedActivities, setSavedActivities] = useState(() => {
+    try {
+      const saved = localStorage.getItem('adapters_saved_activities');
+      if (!saved || saved === 'undefined' || saved === 'null') return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.error("Error loading saved activities", e);
+      return [];
+    }
+  });
+  const [showSaveLoad, setShowSaveLoad] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('adapters_saved_activities', JSON.stringify(savedActivities));
+  }, [savedActivities]);
+
   // Audio State
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
@@ -52,6 +76,12 @@ export default function App() {
   const audioRef = useRef(null);
   const [speechChunks, setSpeechChunks] = useState([]);
   const [chunkIndex, setChunkIndex] = useState(0);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [speechSettings, setSpeechSettings] = useState({
+    voiceURI: '',
+    rate: 1.1,
+    pitch: 1.0
+  });
 
   // Wordsearch State
   const [foundWords, setFoundWords] = useState([]);           // Palavras encontradas no texto gerado
@@ -59,9 +89,24 @@ export default function App() {
   const [showAnswers, setShowAnswers] = useState(false);
   const [wordsearchTrigger, setWordsearchTrigger] = useState(0);
   const [wordsearchTitle, setWordsearchTitle] = useState('');
-  const [directions, setDirections] = useState(['horizontal', 'vertical', 'diagonal']);
+  const [directions, setDirections] = useState({ horizontal: true, vertical: true, diagonal: true, reverse: false });
   const [wordsearchHideText, setWordsearchHideText] = useState(false); // Esconder texto
   const [wordsearchHideGrid, setWordsearchHideGrid] = useState(false); // Esconder grid
+
+  // Quiz Editor State
+  const [showQuizEditor, setShowQuizEditor] = useState(false);
+  const [quizEditorData, setQuizEditorData] = useState(null);
+  const [currentQuizData, setCurrentQuizData] = useState(null); // Store current structured data for re-editing
+
+  // Dracker Editor State
+  const [showDrackerEditor, setShowDrackerEditor] = useState(false);
+  const [drackerEditorData, setDrackerEditorData] = useState(null);
+  const [currentDrackerData, setCurrentDrackerData] = useState(null);
+
+  // Music Editor State
+  const [showMusicEditor, setShowMusicEditor] = useState(false);
+  const [musicEditorData, setMusicEditorData] = useState(null);
+  const [currentMusicData, setCurrentMusicData] = useState(null);
 
   const activityAreaRef = useRef(null);
 
@@ -69,15 +114,15 @@ export default function App() {
   const activityOptions = useMemo(() => [
     { id: 'quiz', label: 'Quiz / Questões', icon: <FileText className="w-4 h-4" /> },
     { id: 'wordsearch', label: 'Caça-Palavras', icon: <Grid className="w-4 h-4" /> },
-    { id: 'summary', label: 'Resumo Explicativo', icon: <MessageSquare className="w-4 h-4" /> },
-    { id: 'simplify', label: 'Texto Simplificado', icon: <Brain className="w-4 h-4" /> },
+    { id: 'summary', label: 'Aprenda com o Drácker', icon: <MessageSquare className="w-4 h-4" /> },
+    { id: 'simplify', label: 'Música do Drácker', icon: <Music className="w-4 h-4" /> },
     { id: 'image_ai', label: 'Imagem (IA)', icon: <ImageIcon className="w-4 h-4" /> },
   ], []);
 
   const difficultyOptions = useMemo(() => [
-    { id: 'easy', label: 'Fácil' },
-    { id: 'medium', label: 'Médio' },
-    { id: 'hard', label: 'Difícil' },
+    { id: 'easy', label: 'Leve e Simples' },
+    { id: 'medium', label: 'Padrão e Claro' },
+    { id: 'hard', label: 'Avançado e Rico' },
   ], []);
 
   const modelOptions = useMemo(() => [
@@ -210,10 +255,54 @@ FORMATAÇÃO:
 - Não use blocos de código.`;
           break;
         case 'summary':
-          prompt = `Crie um resumo explicativo sobre "${topic}". Nível ${level}. ${context}. Use linguagem clara, tópicos e formatação Markdown leve.`;
+          prompt = `Crie uma história educativa sobre "${topic}" com o personagem Drácker.
+          
+          CONTEXTO:
+          Drácker é um dragãozinho camarada que mora numa floresta encantada. Ele está aprendendo sobre o tema "${topic}" junto com seus amigos da floresta.
+          
+          Nível: ${level}. ${context}.
+
+          RETORNE APENAS UM JSON VÁLIDO com a seguinte estrutura:
+          {
+            "story": "Texto da história onde Drácker aprende sobre o tema...",
+            "activities": [
+              "Atividade prática 1 relacionada ao tema...",
+              "Atividade prática 2...",
+              "Atividade prática 3...",
+              "Atividade prática 4...",
+              "Atividade prática 5..."
+            ]
+          }
+          
+          REQUISITOS:
+          - A história deve ser lúdica e envolvente.
+          - Liste EXATAMENTE 5 atividades práticas que as crianças possam fazer para reforçar o aprendizado.
+          - Retorne APENAS o JSON.`;
           break;
         case 'simplify':
-          prompt = `Reescreva e simplifique o seguinte tema/texto para torná-lo acessível para nível ${level}: "${topic}". ${context}. Use frases curtas e diretas.`;
+          prompt = `Crie a letra de uma música infantil sobre "${topic}" com o personagem Drácker (um dragãozinho camarada da floresta encantada).
+          
+          ESTILO: Balão Mágico / Música Infantil Anos 80 / Pop Feliz.
+          NÍVEL: ${level}.
+          CONTEXTO: ${context}.
+
+          RETORNE APENAS UM JSON VÁLIDO com a seguinte estrutura:
+          {
+            "lyrics": "[Instrumental Intro]\\n[Verse 1]\\n(Letra sobre o Drácker aprendendo sobre ${topic})...",
+            "questions": [
+               "Pergunta de interpretação 1 sobre a música/tema?",
+               "Pergunta 2?",
+               "Pergunta 3?",
+               "Pergunta 4?"
+            ]
+          }
+
+          REQUISITOS:
+          - A letra deve mencionar o Drácker e a floresta encantada.
+          - Estrutura clara: [Verse 1], [Chorus], [Verse 2], [Chorus], [Bridge], [Outro].
+          - Letra rimada e rítmica.
+          - Crie 4 perguntas de interpretação de texto baseadas na letra criada.
+          - Retorne APENAS o JSON.`;
           break;
         case 'image_ai':
           // Handled separately
@@ -223,8 +312,7 @@ FORMATAÇÃO:
       }
 
       if (activityType !== 'image_ai') {
-        // Se for QUIZ, pedimos JSON para processamento local
-        // Isso garante aleatoriedade real e formato completo
+        // Se for QUIZ ou DRACKER (Summary), pedimos JSON para processamento local
         if (activityType === 'quiz') {
           prompt = `Crie uma atividade de Quiz sobre "${topic}".
            
@@ -244,9 +332,9 @@ FORMATAÇÃO:
            }
            
            REQUISITOS:
-           - 10 Questões no total (4 Fáceis, 4 Médias, 2 Difíceis - misturadas).
+           - 5 Questões no total (2 Fáceis, 2 Médias, 1 Difícil - misturadas).
            - O texto introdutório deve ajudar a criança a entender o tema.
-           - Retorne APENAS o JSON puro.`;
+           - Retorne APENAS o JSON puro. SEM MARKDOWN. SEM TEXTO ANTES OU DEPOIS.`;
         }
 
         let text = await geminiService.generateText(prompt, {
@@ -257,45 +345,39 @@ FORMATAÇÃO:
         });
 
         // PROCESSAMENTO DO QUIZ (JSON -> Markdown Formatado)
-        if (activityType === 'quiz') {
+
+
+        if (activityType === 'quiz' || activityType === 'summary' || activityType === 'simplify') {
           try {
-            // Limpeza básica de blocos de código se a IA mandar ```json
-            const cleanJson = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-            const quizData = JSON.parse(cleanJson);
+            // Limpeza e Extração de JSON (Busca o primeiro { e o último })
+            const firstBrace = text.indexOf('{');
+            const lastBrace = text.lastIndexOf('}');
 
-            let formattedOutput = `${quizData.intro_text || `Aqui está um quiz sobre ${topic}!`}\n\n`;
-            let gabaritoOutput = `\n\n### Gabarito\n`;
-            const letters = ['a', 'b', 'c', 'd', 'e'];
+            if (firstBrace === -1 || lastBrace === -1) {
+              throw new Error("JSON structure not found in response");
+            }
 
-            quizData.questions.forEach((q, index) => {
-              // Combina certa + erradas
-              // Garante que temos distractors suficientes (se faltar, usa o que tem)
-              const options = [q.correct_answer, ...(q.distractors || [])].slice(0, 5);
+            const cleanJson = text.substring(firstBrace, lastBrace + 1);
+            const parsedData = JSON.parse(cleanJson);
 
-              // Embaralha client-side (Fisher-Yates simplificado)
-              const shuffled = options.sort(() => Math.random() - 0.5);
+            if (activityType === 'quiz') {
+              setQuizEditorData(parsedData);
+              setShowQuizEditor(true);
+            } else if (activityType === 'summary') {
+              setDrackerEditorData(parsedData);
+              setShowDrackerEditor(true);
+            } else if (activityType === 'simplify') {
+              setMusicEditorData(parsedData);
+              setShowMusicEditor(true);
+            }
 
-              // Constrói Pergunta
-              formattedOutput += `${index + 1}. ${q.statement}\n`;
-
-              // Constrói Alternativas
-              shuffled.forEach((opt, idx) => {
-                formattedOutput += `${letters[idx]}) ${opt}\n`;
-
-                // Verifica se é a correta para o gabarito
-                if (opt === q.correct_answer) {
-                  gabaritoOutput += `${index + 1}. ${letters[idx]}) ${opt}\n`;
-                }
-              });
-              formattedOutput += `\n`; // Espaço entre questões
-            });
-
-            text = formattedOutput + gabaritoOutput;
+            // We return here to wait for user interaction in Modal
+            setIsLoading(false);
+            return;
 
           } catch (e) {
-            console.error("Erro ao processar JSON do Quiz:", e);
-            // Fallback: se falhar o parse, usa o texto original da IA (provavelmente veio texto em vez de JSON)
-            // Adicionamos um aviso sutil
+            console.error("Erro ao processar JSON:", e);
+            // Fallback: se falhar o parse, usa o texto original da IA
             text = `(Nota: O formato gerado diferiu do esperado, exibindo original)\n\n${text}`;
           }
         }
@@ -306,12 +388,126 @@ FORMATAÇÃO:
         generateAudio(text);
       }
 
+
     } catch (err) {
       console.error(err);
       setError(`Erro ao gerar: ${err.message}`);
     } finally {
-      setIsLoading(false);
+      if (activityType !== 'quiz') {
+        setIsLoading(false);
+      }
       setSystemStatus(null);
+    }
+  };
+
+  const handleQuizConfirm = (editedData) => {
+    let text = '';
+    const topicTitle = topic; // use current scope topic or maybe we should store it in quizData if needed? 
+    // simplified: defaults to current topic state which is fine as modal is modal.
+
+    try {
+      let formattedOutput = `${editedData.intro_text || `Aqui está um quiz sobre ${topicTitle}!`}\n\n`;
+      let gabaritoOutput = `\n\n### Gabarito\n`;
+      const letters = ['a', 'b', 'c', 'd', 'e'];
+
+      editedData.questions.forEach((q, index) => {
+        let optionsToDisplay;
+
+        if (q.ordered_options && q.ordered_options.length > 0) {
+          // Use the order defined in the editor
+          optionsToDisplay = q.ordered_options.slice(0, 5);
+        } else {
+          // Fallback: Combine and Shuffle
+          const options = [q.correct_answer, ...(q.distractors || [])].slice(0, 5);
+          optionsToDisplay = options.sort(() => Math.random() - 0.5);
+        }
+
+        formattedOutput += `${index + 1}. ${q.statement}\n`;
+
+        optionsToDisplay.forEach((opt, idx) => {
+          formattedOutput += `${letters[idx]}) ${opt}\n`;
+          if (opt === q.correct_answer) {
+            gabaritoOutput += `${index + 1}. ${letters[idx]}) ${opt}\n`;
+          }
+        });
+        formattedOutput += `\n`;
+      });
+
+      text = formattedOutput + gabaritoOutput;
+      setGeneratedContent(text);
+      setCurrentQuizData(editedData); // Save for future editing
+      generateAudio(text); // Auto audio
+    } catch (e) {
+      console.error("Error formatting quiz", e);
+      setError("Erro ao formatar quiz editado.");
+    }
+    setShowQuizEditor(false);
+    setIsLoading(false);
+  };
+
+  const handleEditQuiz = () => {
+    if (currentQuizData) {
+      setQuizEditorData(currentQuizData);
+      setShowQuizEditor(true);
+    }
+  };
+
+  const handleDrackerConfirm = (editedData) => {
+    try {
+      let formattedOutput = `## Aprenda com o Drácker: ${topic}\n\n`;
+      formattedOutput += `${editedData.story}\n\n`;
+      formattedOutput += `### 🐉 Atividades Práticas na Floresta\n\n`;
+
+      editedData.activities.forEach((act, index) => {
+        formattedOutput += `${index + 1}. ${act}\n`;
+      });
+
+      setGeneratedContent(formattedOutput);
+      setCurrentDrackerData(editedData); // Save for re-editing
+      generateAudio(editedData.story); // Generate audio only for the story part ideally, or all? Let's do story.
+      // Or if we want full text: generateAudio(formattedOutput); 
+      // User probably wants to listen to the story.
+    } catch (e) {
+      console.error("Error formatting Dracker activity", e);
+      setError("Erro ao formatar atividade Drácker.");
+    }
+    setShowDrackerEditor(false);
+    setIsLoading(false);
+  };
+
+  const handleEditDracker = () => {
+    if (currentDrackerData) {
+      setDrackerEditorData(currentDrackerData);
+      setShowDrackerEditor(true);
+    }
+  };
+
+  const handleMusicConfirm = (editedData) => {
+    try {
+      let formattedOutput = `# 🎵 Música do Drácker: ${topic}\n\n`;
+
+      formattedOutput += `${editedData.lyrics}\n\n`;
+      formattedOutput += `\n---\n**📝 Perguntas de Interpretação:**\n\n`;
+
+      editedData.questions.forEach((q, index) => {
+        formattedOutput += `${index + 1}. ${q}\n`;
+      });
+
+      setGeneratedContent(formattedOutput);
+      setCurrentMusicData(editedData);
+      generateAudio(editedData.lyrics);
+    } catch (e) {
+      console.error("Error formatting music", e);
+      setError("Erro ao formatar música.");
+    }
+    setShowMusicEditor(false);
+    setIsLoading(false);
+  };
+
+  const handleEditMusic = () => {
+    if (currentMusicData) {
+      setMusicEditorData(currentMusicData);
+      setShowMusicEditor(true);
     }
   };
 
@@ -380,48 +576,70 @@ FORMATAÇÃO:
     // Or we can try to pre-buffer. For now, we set chunks.
   };
 
-  const playChunk = async (index) => {
-    if (!geminiService || index < 0 || index >= speechChunks.length) return;
+  const playChunk = (index) => {
+    if (index < 0 || index >= speechChunks.length) return;
 
-    try {
-      setIsGeneratingAudio(true);
-      const chunkText = speechChunks[index];
-      const audioBase64 = await geminiService.generateSpeech(chunkText);
-      const blobUrl = geminiService.pcmToWav(audioBase64);
+    // Use Browser Native TTS
+    const chunkText = speechChunks[index];
 
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+    // Stop any current
+    window.speechSynthesis.cancel();
 
-      const audio = new Audio(blobUrl);
-      audioRef.current = audio;
+    const utterance = new SpeechSynthesisUtterance(chunkText);
+    utterance.lang = 'pt-BR';
 
-      audio.onended = () => {
-        setIsSpeaking(false);
-        // Auto-play next?
-        if (index < speechChunks.length - 1) {
-          setChunkIndex(index + 1);
-          // Optional: auto play next
-          // playChunk(index + 1); 
-        }
-      };
+    // Voice Selection from State or Default
+    if (speechSettings && speechSettings.voiceURI) {
+      const voices = window.speechSynthesis.getVoices();
+      const selected = voices.find(v => v.voiceURI === speechSettings.voiceURI);
+      if (selected) utterance.voice = selected;
+    } else {
+      // Fallback default logic
+      const voices = window.speechSynthesis.getVoices();
+      const brVoices = voices.filter(v => v.lang.includes('pt-BR') || v.lang.includes('pt_BR'));
+      const preferredVoice = brVoices.find(v =>
+        v.name.includes('Google') ||
+        v.name.includes('Francisca') ||
+        v.name.includes('Luciana') ||
+        v.name.toLowerCase().includes('female')
+      ) || brVoices[0];
+      if (preferredVoice) utterance.voice = preferredVoice;
+    }
 
-      audio.play();
+    utterance.rate = speechSettings ? speechSettings.rate : 1.0;
+    utterance.pitch = speechSettings ? speechSettings.pitch : 1.2;
+
+    utterance.onstart = () => {
       setIsSpeaking(true);
       setIsPaused(false);
-    } catch (e) {
-      console.error("Audio error", e);
-    } finally {
       setIsGeneratingAudio(false);
-    }
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      // Auto-play next logic
+      if (index < speechChunks.length - 1) {
+        setChunkIndex(index + 1);
+        playChunk(index + 1); // Recursive next
+      }
+    };
+
+    utterance.onerror = (e) => {
+      console.error("Browser TTS Error", e);
+      setIsGeneratingAudio(false);
+      setIsSpeaking(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
+    // Store utterance reference if needed for detailed control, but cancelling window.speechSynthesis usually enough
   };
 
   const handleSpeak = () => {
     if (isSpeaking && !isPaused) {
-      audioRef.current?.pause();
+      window.speechSynthesis.pause();
       setIsPaused(true);
-    } else if (isPaused && audioRef.current) {
-      audioRef.current.play();
+    } else if (isPaused) {
+      window.speechSynthesis.resume();
       setIsPaused(false);
     } else {
       // Start playing current chunk
@@ -477,6 +695,64 @@ FORMATAÇÃO:
     ExportService.exportToPDF(activityAreaRef.current, wordsearchTitle || topic || 'Atividade');
   };
 
+  // --- PERSISTENCE LOGIC ---
+  const handleSaveActivity = (name) => {
+    const newActivity = {
+      id: Date.now().toString(),
+      name,
+      date: new Date().toISOString(),
+      type: activityType,
+      topic,
+      lessonDetails,
+      difficulty,
+      generatedContent,
+      quizData: currentQuizData,
+      drackerData: currentDrackerData,
+      wordsearchData: {
+        words: foundWords,
+        placements: foundPlacements,
+        title: wordsearchTitle,
+        hideText: wordsearchHideText,
+        hideGrid: wordsearchHideGrid
+      }
+    };
+
+    setSavedActivities(prev => [newActivity, ...prev]);
+    alert('Atividade salva com sucesso!');
+  };
+
+  const handleLoadActivity = (activity) => {
+    setActivityType(activity.type);
+    setTopic(activity.topic);
+    setLessonDetails(activity.lessonDetails || '');
+    setDifficulty(activity.difficulty || 'medium');
+    setGeneratedContent(activity.generatedContent || '');
+
+    // Restore specific data
+    if (activity.type === 'quiz' && activity.quizData) {
+      setCurrentQuizData(activity.quizData);
+      setQuizEditorData(activity.quizData);
+    }
+    if (activity.type === 'summary' && activity.drackerData) {
+      setCurrentDrackerData(activity.drackerData);
+      setDrackerEditorData(activity.drackerData);
+    }
+    if (activity.type === 'wordsearch' && activity.wordsearchData) {
+      setFoundWords(activity.wordsearchData.words || []);
+      setFoundPlacements(activity.wordsearchData.placements || []);
+      setWordsearchTitle(activity.wordsearchData.title || '');
+      setWordsearchHideText(activity.wordsearchData.hideText || false);
+      setWordsearchHideGrid(activity.wordsearchData.hideGrid || false);
+    }
+
+    setShowSaveLoad(false);
+  };
+
+  const handleDeleteActivity = (id) => {
+    setSavedActivities(prev => prev.filter(a => a.id !== id));
+  };
+
+
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900">
       <Header
@@ -485,6 +761,7 @@ FORMATAÇÃO:
         isGeneratingAudio={isGeneratingAudio}
         isSpeaking={isSpeaking}
         isPaused={isPaused}
+        openVoiceSettings={() => setShowVoiceSettings(true)}
         speakPrev={speakPrev}
         speakNext={speakNext}
         speechChunks={speechChunks}
@@ -531,6 +808,7 @@ FORMATAÇÃO:
           handleGenerate={handleGenerate}
           systemStatus={systemStatus}
           error={error}
+          openSaveLoad={() => setShowSaveLoad(true)}
         />
 
         <ActivityArea
@@ -552,6 +830,45 @@ FORMATAÇÃO:
           foundPlacements={foundPlacements}
           isLoading={isLoading}
           isGeneratingAudio={isGeneratingAudio}
+          onEdit={activityType === 'quiz' ? handleEditQuiz : activityType === 'summary' ? handleEditDracker : activityType === 'simplify' ? handleEditMusic : undefined}
+          musicData={currentMusicData}
+        />
+
+        <QuizEditorModal
+          isOpen={showQuizEditor}
+          onClose={() => setShowQuizEditor(false)}
+          onSave={handleQuizConfirm}
+          initialData={quizEditorData}
+        />
+
+        <DrackerEditorModal
+          isOpen={showDrackerEditor}
+          onClose={() => setShowDrackerEditor(false)}
+          onSave={handleDrackerConfirm}
+          initialData={drackerEditorData}
+        />
+
+        <VoiceSettingsModal
+          isOpen={showVoiceSettings}
+          onClose={() => setShowVoiceSettings(false)}
+          currentSettings={speechSettings}
+          onSave={setSpeechSettings}
+        />
+
+        <MusicEditorModal
+          isOpen={showMusicEditor}
+          onClose={() => setShowMusicEditor(false)}
+          onSave={handleMusicConfirm}
+          initialData={musicEditorData}
+        />
+
+        <SaveLoadModal
+          isOpen={showSaveLoad}
+          onClose={() => setShowSaveLoad(false)}
+          savedActivities={savedActivities}
+          onSaveCurrent={handleSaveActivity}
+          onLoad={handleLoadActivity}
+          onDelete={handleDeleteActivity}
         />
       </main>
     </div>

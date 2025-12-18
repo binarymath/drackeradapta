@@ -1,5 +1,5 @@
 import React from 'react';
-import { Copy, FileText, Download, Brain } from 'lucide-react';
+import { Copy, FileText, Download, Brain, Pencil } from 'lucide-react';
 import RichTextRenderer from './RichTextRenderer';
 
 export const ActivityArea = ({
@@ -20,7 +20,9 @@ export const ActivityArea = ({
     setWordsearchHideGrid,
     foundPlacements,
     isLoading,
-    isGeneratingAudio
+    isGeneratingAudio,
+    onEdit,
+    musicData
 }) => {
     return (
         <div className="lg:col-span-8">
@@ -36,6 +38,15 @@ export const ActivityArea = ({
                     <div className="flex gap-2">
                         {generatedContent && (
                             <>
+                                {(activityType === 'quiz' || activityType === 'summary') && (
+                                    <button
+                                        onClick={onEdit}
+                                        className="px-3 py-2 rounded text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold flex items-center gap-2"
+                                        title="Editar Estrutura"
+                                    >
+                                        <Pencil className="w-4 h-4" /> {activityType === 'quiz' ? 'Quiz' : 'Editar'}
+                                    </button>
+                                )}
                                 {activityType === 'wordsearch' && foundWords.length > 0 && (
                                     <button
                                         onClick={() => setShowAnswers(!showAnswers)}
@@ -102,14 +113,58 @@ export const ActivityArea = ({
                                     </div>
                                 </div>
                             )}
-                            <RichTextRenderer
-                                content={generatedContent}
-                                showAnswers={showAnswers}
-                                foundWords={foundWords}
-                                foundPlacements={foundPlacements}
-                                hideText={activityType === 'wordsearch' && wordsearchHideText}
-                                hideGrid={activityType === 'wordsearch' && wordsearchHideGrid}
-                            />
+
+                            {activityType === 'simplify' && musicData ? (
+                                <div className="space-y-6">
+                                    {/* Card 1: Music Lyrics */}
+                                    <div className="bg-white border rounded-lg shadow-sm p-6 relative group">
+                                        <div className="absolute top-0 right-0 p-2 opacity-10">
+                                            <span className="text-6xl">🎵</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-b pb-2 mb-4">
+                                            <h2 className="text-xl font-bold text-blue-900">Música do Drácker</h2>
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(musicData.lyrics);
+                                                    alert('Letra copiada!');
+                                                }}
+                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors flex items-center gap-1 text-sm font-semibold z-10"
+                                                title="Copiar apenas a letra"
+                                            >
+                                                <Copy className="w-4 h-4" /> Copiar Letra
+                                            </button>
+                                        </div>
+                                        <div className="whitespace-pre-wrap font-sans text-slate-700 text-lg leading-relaxed">
+                                            {musicData.lyrics}
+                                        </div>
+                                    </div>
+
+                                    {/* Card 2: Questions */}
+                                    <div className="bg-white border rounded-lg shadow-sm p-6 relative">
+                                        <div className="absolute top-0 right-0 p-2 opacity-10">
+                                            <span className="text-6xl">📝</span>
+                                        </div>
+                                        <h2 className="text-xl font-bold text-blue-700 mb-4 border-b pb-2">Perguntas de Interpretação</h2>
+                                        <ol className="list-decimal list-inside space-y-4">
+                                            {musicData.questions.map((q, idx) => (
+                                                <li key={idx} className="text-slate-800 font-medium">
+                                                    {q}
+                                                    <div className="mt-2 h-8 border-b border-dotted border-slate-300 w-full"></div>
+                                                </li>
+                                            ))}
+                                        </ol>
+                                    </div>
+                                </div>
+                            ) : (
+                                <RichTextRenderer
+                                    content={generatedContent}
+                                    showAnswers={showAnswers}
+                                    foundWords={foundWords}
+                                    foundPlacements={foundPlacements}
+                                    hideText={activityType === 'wordsearch' && wordsearchHideText}
+                                    hideGrid={activityType === 'wordsearch' && wordsearchHideGrid}
+                                />
+                            )}
                         </>
                     ) : (
                         <div className="h-full flex flex-col items-center justify-center text-slate-300">

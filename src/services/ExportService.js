@@ -133,48 +133,130 @@ export class ExportService {
      * @param {string} title - O título da atividade
      */
     static exportToDOCX(element, title = 'Atividade') {
-        if (!element) return;
+        if (!element) {
+            alert('Erro: Nenhum conteúdo encontrado para exportar. Tente novamente.');
+            return;
+        }
 
-        const contentDiv = document.createElement('div');
-        contentDiv.innerHTML = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head>
-        <meta charset='utf-8'>
-        <title>${title}</title>
-      </head>
-      <body>
-      </body>
-      </html>
-    `;
+        try {
 
-        // Clone o conteúdo visível
-        const clone = element.cloneNode(true);
+            const contentDiv = document.createElement('div');
 
-        // 1. Limpeza Estrutural
-        clone.className = '';
-        clone.style.cssText = 'overflow: visible; height: auto; display: block; background-color: white; color: black; font-family: Arial, sans-serif;';
+            // Clone o conteúdo visível
+            const clone = element.cloneNode(true);
 
-        // Remove elementos de interface que não devem sair na impressão
-        clone.querySelectorAll('.no-print, button, .wordsearch-controls').forEach(el => el.remove());
+            // 1. Limpeza Estrutural
+            clone.className = '';
+            clone.style.cssText = 'overflow: visible; height: auto; display: block; background-color: white; color: black; font-family: Arial, sans-serif;';
 
-        // Remove o seletor de input do título se existir, deixa só o texto se tiver
-        clone.querySelectorAll('input').forEach(input => {
-            // Se for input de título, transformamos em h1? Não, geralmente o input está na área de controle que removemos.
-            // Mas o renderizador pode ter inputs? Não, o renderer usa divs.
-            // Garante remoção de qualquer input residual.
-            input.remove();
-        });
+            // Remove elementos de interface que não devem sair na impressão
+            clone.querySelectorAll('.no-print, button, .wordsearch-controls').forEach(el => el.remove());
 
-        // 2. Injeção de Estilos Inline (Crítico para Word)
-        const allElements = clone.querySelectorAll('*');
-        allElements.forEach(el => {
+            // Remove o seletor de input do título se existir
+            clone.querySelectorAll('input').forEach(input => input.remove());
+
+            // 2. Injeção de Estilos Inline & Conversão de Grid com Tratamento de Erro Robusto
+            const allElements = clone.querySelectorAll('*');
+            allElements.forEach(el => {
+                ExportService._processElementForDoc(el);
+            });
+
+            // Insere Título Principal no DOC se não existir no clone
+            const titleEl = document.createElement('h1');
+            titleEl.innerText = title;
+            titleEl.style.fontSize = '26pt';
+            titleEl.style.textAlign = 'center';
+            titleEl.style.marginBottom = '30px';
+            clone.insertBefore(titleEl, clone.firstChild);
+
+            // Adiciona ao wrapper
+            contentDiv.appendChild(clone);
+
+            // Monta o cabeçalho específico para Word
+            const header = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head>
+                    <meta charset='utf-8'>
+                    <title>${title}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; }
+                    </style>
+                </head>
+                <body>
+            `;
+            const footer = `</body></html>`;
+
+            // Cria Blob e Download com o cabeçalho e rodapé
+            const blob = new Blob(['\ufeff', header, contentDiv.innerHTML, footer], {
+                type: 'application/msword'
+            });
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${title || 'atividade'}.doc`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Mais tempo para garantir o download
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 2000);
+
+        } catch (err) {
+            console.error(err);
+            alert(`Ocorreu um erro ao gerar o arquivo DOC: ${err.message}`);
+        }
+    }
+
+    // Helper seguro para processar cada elemento individualmente
+    static _processElementForDoc(el) {
+        try {
             el.style.color = '#000000';
 
-            // Estilos para Grades/Tabelas (usados no caça-palavras)
+            // TENTATIVA DE CONVERSÃO CSS GRID -> TABLE 
             if (el.classList.contains('grid')) {
-                el.style.display = 'grid'; // Word suporta grids básicos ou vira tabela no importa
-                // Melhor converter grids complexos se precisar, mas vamos tentar manter simples.
-                // Word interpreta melhor tabelas.
+                const style = el.getAttribute('style') || '';
+                const match = style.match(/repeat\((\d+)/);
+
+                if (match && match[1]) {
+                    const cols = parseInt(match[1]);
+                    const children = Array.from(el.children);
+
+                    // Verifica se elemento ainda é válido e tem pai
+                    if (children.length > 0 && el.parentNode) {
+                        const table = document.createElement('table');
+                        table.style.borderCollapse = 'collapse';
+                        table.style.margin = '0 auto';
+                        table.setAttribute('align', 'center');
+
+                        let tr = document.createElement('tr');
+                        children.forEach((child, index) => {
+                            const td = document.createElement('td');
+                            td.style.border = '1px solid #000';
+                            td.style.width = '30px';
+                            td.style.height = '30px';
+                            td.style.textAlign = 'center';
+                            td.style.verticalAlign = 'middle';
+                            td.style.fontSize = '14pt';
+                            td.style.fontWeight = 'bold';
+                            td.innerText = child.innerText;
+
+                            if (child.classList.contains('bg-green-300')) {
+                                td.style.backgroundColor = '#86efac';
+                            }
+                            tr.appendChild(td);
+                            if ((index + 1) % cols === 0) {
+                                table.appendChild(tr);
+                                tr = document.createElement('tr');
+                            }
+                        });
+                        if (tr.children.length > 0) table.appendChild(tr);
+                        el.parentNode.replaceChild(table, el);
+                        return;
+                    }
+                }
             }
 
             // Cards e Parágrafos
@@ -186,7 +268,14 @@ export class ExportService {
                 el.style.borderRadius = '8px';
             }
 
-            // Títulos
+            // Container de lista de palavras (flex-wrap)
+            if (el.classList.contains('flex-wrap')) {
+                el.style.display = 'block';
+                el.style.textAlign = 'center';
+                el.style.marginBottom = '20px';
+            }
+
+            // Títulos e Textos
             if (el.tagName === 'H1') {
                 el.style.fontSize = '24pt';
                 el.style.textAlign = 'center';
@@ -207,45 +296,21 @@ export class ExportService {
                 el.style.textAlign = 'justify';
             }
 
-            // Grid cells (letras)
-            if (el.classList.contains('font-mono') && el.innerText.length === 1) {
-                el.style.border = '1px solid #eee';
-                el.style.width = '30px';
-                el.style.height = '30px';
-                el.style.textAlign = 'center';
-                el.style.display = 'inline-block'; // Word prefere isso que flex/grid as vezes
-                el.style.lineHeight = '30px';
-                el.style.margin = '1px';
+            // Pills
+            if (el.classList.contains('bg-amber-100')) {
+                el.style.backgroundColor = '#fef3c7';
+                el.style.border = '1px solid #fde68a';
+                el.style.color = '#78350f';
+                el.style.padding = '6px 12px';
+                el.style.borderRadius = '20px';
+                el.style.margin = '4px';
+                el.style.display = 'inline-block';
+                el.style.fontWeight = 'bold';
+                el.style.whiteSpace = 'nowrap';
+                el.style.textTransform = 'uppercase';
             }
-        });
-
-        // Insere Título Principal no DOC se não existir no clone (ex: se estava na UI control)
-        const titleEl = document.createElement('h1');
-        titleEl.innerText = title;
-        titleEl.style.fontSize = '26pt';
-        titleEl.style.textAlign = 'center';
-        titleEl.style.marginBottom = '30px';
-        clone.insertBefore(titleEl, clone.firstChild);
-
-        // Adiciona ao wrapper
-        contentDiv.querySelector('body').appendChild(clone);
-
-        // Cria Blob e Download
-        const blob = new Blob(['\ufeff', contentDiv.innerHTML], {
-            type: 'application/msword'
-        });
-
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${title || 'atividade'}.doc`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Small delay to ensure browser has time to register the download
-        setTimeout(() => {
-            URL.revokeObjectURL(url);
-        }, 100);
+        } catch (e) {
+            console.warn('Erro processando elemento individual no DOC:', e);
+        }
     }
 }

@@ -290,6 +290,7 @@ class GeminiService {
       .replace(/\\div/g, ' dividido por ')
       .replace(/\$/g, '')
       .replace(/\\/g, '')
+      .replace(/(\d+)\.(\d+)/g, '$1,$2') // Standardize decimals (1.5 -> 1,5)
       .replace(/\s+/g, ' ')
       .trim();
   }

@@ -38,7 +38,8 @@ export const Sidebar = ({
     wordsearchTrigger,
     handleGenerate,
     systemStatus,
-    error
+    error,
+    openSaveLoad
 }) => {
     return (
         <div className="lg:col-span-4 space-y-6 no-print">
@@ -95,7 +96,15 @@ export const Sidebar = ({
             )}
 
             <div className="bg-white p-6 rounded-lg shadow-lg">
-                <h2 className="text-lg font-bold mb-6">Nova Atividade</h2>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-bold">Nova Atividade</h2>
+                    <button
+                        onClick={openSaveLoad}
+                        className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-full font-bold transition-colors flex items-center gap-1"
+                    >
+                        📂 Minhas Atividades
+                    </button>
+                </div>
 
                 <div className="space-y-4">
                     <div>
@@ -120,7 +129,7 @@ export const Sidebar = ({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold mb-2">Dificuldade</label>
+                        <label className="block text-sm font-semibold mb-2">Escolha a linguagem dos textos das atividades</label>
                         <div className="flex gap-2">
                             {difficultyOptions.map((opt) => (
                                 <button

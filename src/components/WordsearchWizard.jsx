@@ -25,8 +25,8 @@ export default function WordsearchWizard({
   const [editableText, setEditableText] = useState('');
   const [availableWords, setAvailableWords] = useState([]);
   const [selectedWords, setSelectedWords] = useState([]);
-  const [rows, setRows] = useState(15);
-  const [cols, setCols] = useState(15);
+  const [rows, setRows] = useState(16);
+  const [cols, setCols] = useState(16);
 
   const steps = [
     { id: 1, label: 'História', icon: <FileText className="w-4 h-4" /> },
@@ -35,9 +35,11 @@ export default function WordsearchWizard({
   ];
 
   // Inicia quando o botão Gerar é pressionado (triggerStart muda)
+  // Inicia quando o botão Gerar é pressionado (triggerStart muda)
   React.useEffect(() => {
-    if (triggerStart && step === 0 && !isLoading) {
-      handleStartWordsearch();
+    // Agora apenas ABRE o modal, mas não inicia a geração
+    if (triggerStart && step === 0) {
+      setStep('INTRO');
     }
   }, [triggerStart]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -51,6 +53,7 @@ export default function WordsearchWizard({
       return;
     }
 
+    setStep('LOADING');
     setIsLoading(true);
 
     try {
@@ -175,8 +178,8 @@ Texto divertido: `;
     setIsLoading(false);
   };
 
-  // Se não estiver ativo (step 0 e não carregando), não renderiza nada
-  if (step === 0 && !isLoading) return null;
+  // Se não estiver ativo (step 0), não renderiza nada
+  if (step === 0) return null;
 
   // --- RENDER MODAL ---
   return (
@@ -186,8 +189,8 @@ Texto divertido: `;
         {/* Header do Modal */}
         <div className="bg-slate-50 border-b border-slate-100 p-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            {step === 0 ? <Loader2 className="w-5 h-5 animate-spin text-blue-600" /> : null}
-            {step === 1 ? '✏️ Ajustar História' : step === 2 ? '⚙️ Configurar Jogo' : step === 3 ? '🎉 Sucesso!' : 'Criando...'}
+            {step === 'LOADING' ? <Loader2 className="w-5 h-5 animate-spin text-blue-600" /> : null}
+            {step === 'INTRO' ? '✨ Nova História' : step === 1 ? '✏️ Ajustar História' : step === 2 ? '⚙️ Configurar Jogo' : step === 3 ? '🎉 Sucesso!' : 'Criando...'}
           </h2>
           <button onClick={handleClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
             <X className="w-5 h-5 text-slate-500" />
@@ -197,8 +200,36 @@ Texto divertido: `;
         {/* Corpo do Modal (Scrollável) */}
         <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
 
+          {/* INTRO: Confirmação Inicial */}
+          {step === 'INTRO' && (
+            <div className="flex flex-col items-center justify-center py-8 space-y-6 text-center">
+              <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-2 animate-bounce">
+                <div className="text-4xl">🔮</div>
+              </div>
+              <div className="space-y-3 max-w-md">
+                <h3 className="text-2xl font-black text-slate-800">Vamos criar uma história?</h3>
+                <p className="text-slate-600 text-lg">
+                  O tema será: <span className="font-bold text-blue-600">"{topic}"</span>
+                </p>
+                {lessonDetails && (
+                  <p className="text-sm text-slate-500 bg-white p-3 rounded-lg border border-slate-200 mx-auto italic">
+                    "{lessonDetails.slice(0, 100)}{lessonDetails.length > 100 ? '...' : ''}"
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={() => handleStartWordsearch()}
+                className="px-8 py-4 bg-blue-600 text-white text-lg font-bold rounded-xl shadow-xl shadow-blue-200 hover:bg-blue-700 hover:scale-105 transition-all flex items-center gap-3"
+              >
+                <Play className="w-6 h-6 fill-current" />
+                Criar História Mágica
+              </button>
+            </div>
+          )}
+
           {/* Loading Inicial */}
-          {step === 0 && (
+          {(step === 'LOADING' || (step === 0 && isLoading)) && (
             <div className="flex flex-col items-center justify-center py-12 space-y-6">
               <div className="relative">
                 <div className="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-75"></div>

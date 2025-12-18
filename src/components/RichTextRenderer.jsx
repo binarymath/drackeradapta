@@ -188,7 +188,8 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
 
         // --- DETECÇÃO DE QUESTÕES ---
         const isQuestionStart = /^\d+\.\s/.test(trimmedLine);
-        const isAlternative = /^[a-e]\)\s/i.test(trimmedLine);
+        // Permite "a)" seguido de espaço OU fim de linha (caso de opção vazia)
+        const isAlternative = /^[a-e]\)(\s|$)/i.test(trimmedLine);
 
         if (isQuestionStart) {
             flushList(); flushGrid(); flushColumn(); flushQuestion();
@@ -228,36 +229,64 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
             }
         }
 
-        // Check List (Pipe or Hyphen)
+        // Check List (Pipe, Hyphen or Bullet)
         const hasPipe = line.includes('|');
+        const hasBullet = line.includes('•');
         const hasHyphenList = /^[A-ZÀ-Ú\s]+(-[A-ZÀ-Ú\s]+)+$/.test(trimmedLine);
 
-        if (hasPipe || hasHyphenList) {
+        if (hasPipe || hasHyphenList || hasBullet) {
             isListRow = true;
-            listSeparator = hasPipe ? '|' : '-';
+            if (hasPipe) listSeparator = '|';
+            else if (hasBullet) listSeparator = '•';
+            else listSeparator = '-';
+
             listParts = line.split(listSeparator);
         }
 
         isStructure = isGridRow || isListRow;
 
-        // Atualiza Estado: detecta se passamos da lista de palavras
+        // CORREÇÃO: Se estamos na seção de Lista de Palavras, NÃO pode ser grid.
+        // Isso evita que palavras curtas (ex: "PEGA") ou espaçadas (ex: "P E G A") sejam confundidas com o grid.
+        if (inWordListSection && isGridRow) {
+            isGridRow = false; // Desativa detecção de grid
+
+            // Força detecção como lista se parecer palavras (maíusculas)
+            if (!isListRow && /[A-ZÀ-Ú]/.test(trimmedLine)) {
+                isListRow = true;
+                // Tenta dividir por espaços duplos se houver, senão pega a linha toda
+                if (trimmedLine.includes('  ')) {
+                    listParts = trimmedLine.split(/\s{2,}/);
+                } else {
+                    listParts = [trimmedLine];
+                }
+            }
+            isStructure = isListRow;
+        } else if (inWordListSection && !isListRow && !isWordListHeader && trimmedLine.length > 0) {
+            // Fallback para linhas que não parecem grid mas estão na seção (ex: palavras soltas sem bullet)
+            if (/^[A-ZÀ-Ú\s]+$/.test(trimmedLine) && trimmedLine.length < 50) {
+                isListRow = true;
+                if (trimmedLine.includes('  ')) {
+                    listParts = trimmedLine.split(/\s{2,}/);
+                } else {
+                    listParts = [trimmedLine];
+                }
+                isStructure = true;
+            }
+        }
+
+        // Atualiza Estado
         if (inWordListSection) {
-            // Se estamos na seção, e encontramos algo que NÃO é estrutura, NEM é vazio, NEM é cabeçalho repetido
-            // Então acabou a lista, entramos no texto pós-lista
             if (!isStructure && !isEmpty && !isWordListHeader) {
                 inWordListSection = false;
                 pastWordList = true;
             }
         } else if (isWordListHeader) {
-            // Entrou na seção
             inWordListSection = true;
         }
 
-        // BLOQUEIO TOTAL: Esconder Texto ignora tudo após a lista
         if (hideText && pastWordList) {
             return;
         }
-
 
         // --- RENDERIZAÇÃO ---
 
@@ -270,19 +299,23 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
             flushGrid();
         }
 
-        if (isListRow && listParts.length >= 2 && listParts[0].trim() && listParts[1].trim()) {
+        if (isListRow && listParts.length >= 1) {
             flushList();
             flushGrid();
 
-            if (hasPipe) {
+            if (hasPipe && listParts.length >= 2) {
                 columnBuffer.push({ left: listParts[0].trim(), right: listParts[1].trim() });
-            } else {
-                // Lista com hifen
+            } else if (!hasPipe) {
+                // Renderização Estilizada para Lista de Palavras (com Bolinha ou Hifen ou Únicas)
                 if (!hideGrid) {
                     elements.push(
-                        <p key={`wl-${index}`} className="mb-2 text-center font-bold text-slate-800 tracking-wide">
-                            {trimmedLine}
-                        </p>
+                        <div key={`wl-${index}`} className="flex flex-wrap justify-center gap-3 my-2 px-4">
+                            {listParts.map((part, pIdx) => (
+                                <span key={pIdx} className="bg-amber-100 text-amber-900 px-3 py-1 rounded-full text-sm font-bold border border-amber-200 shadow-sm uppercase tracking-wider">
+                                    {part.trim()}
+                                </span>
+                            ))}
+                        </div>
                     );
                 }
                 return;
@@ -292,9 +325,9 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
             flushColumn();
         }
 
-        // Filtro de Texto (para linhas que não entraram no Bloqueio Total acima, ex: introdução antes do grid)
+        // Filtro de Texto
         if (hideText) {
-            const isStruct = /^[A-Z\s]{3,}$/.test(trimmedLine) || /\d+\.\s/.test(trimmedLine);
+            const isStruct = /^[A-Z\s]{3,}$/.test(trimmedLine) || /\d+\.\s/.test(trimmedLine) || isListRow;
             if (!isWordListHeader && !isStruct && trimmedLine.length > 5) {
                 return;
             }
