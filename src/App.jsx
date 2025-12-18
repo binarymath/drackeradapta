@@ -40,7 +40,7 @@ const SortableTab = ({ tab, activeTabId, setActiveTabId, closeTab, getTabLabel }
       {...attributes}
       {...listeners}
       onClick={() => setActiveTabId(tab.id)}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-colors border select-none ${activeTabId === tab.id ? 'bg-blue-100 border-blue-300 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-colors border select-none ${activeTabId === tab.id ? 'bg-amber-100 border-amber-300 text-amber-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
     >
       <span className="text-sm max-w-[120px] truncate" title={tab.title}>
         {getTabLabel(tab)}
@@ -249,7 +249,6 @@ export default function App() {
     { id: 'wordsearch', label: 'Caça-Palavras', icon: <Grid className="w-4 h-4" /> },
     { id: 'summary', label: 'Aprenda com o Drácker', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'simplify', label: 'Música do Drácker', icon: <Music className="w-4 h-4" /> },
-    { id: 'image_ai', label: 'Imagem (IA)', icon: <ImageIcon className="w-4 h-4" /> },
   ], []);
 
   const difficultyOptions = useMemo(() => [
@@ -438,17 +437,13 @@ FORMATAÇÃO:
           - Crie 4 perguntas de interpretação de texto baseadas na letra criada.
           - Retorne APENAS o JSON.`;
           break;
-        case 'image_ai':
-          // Handled separately
-          break;
-        default:
           prompt = `Crie uma atividade educativa sobre "${topic}".`;
       }
 
-      if (activityType !== 'image_ai') {
-        // Se for QUIZ ou DRACKER (Summary), pedimos JSON para processamento local
-        if (activityType === 'quiz') {
-          prompt = `Crie uma atividade de Quiz sobre "${topic}".
+
+      // Se for QUIZ ou DRACKER (Summary), pedimos JSON para processamento local
+      if (activityType === 'quiz') {
+        prompt = `Crie uma atividade de Quiz sobre "${topic}".
            
            Nível: ${difficulty === 'hard' ? 'Difícil' : difficulty === 'easy' ? 'Fácil/Infantil' : 'Médio'}.
            Detalhes: ${lessonDetails || 'Sem detalhes'}.
@@ -469,75 +464,75 @@ FORMATAÇÃO:
            - 5 Questões no total (2 Fáceis, 2 Médias, 1 Difícil - misturadas).
            - O texto introdutório deve ajudar a criança a entender o tema.
            - Retorne APENAS o JSON puro. SEM MARKDOWN. SEM TEXTO ANTES OU DEPOIS.`;
-        }
-
-        let text = await geminiService.generateText(prompt, {
-          model: selectedModel,
-          fallbackModel: selectedModel === 'gemini-1.5-pro' ? 'gemini-2.0-flash' : 'gemini-1.5-flash',
-          // Aumentamos o limite de tokens para garantir JSON completo
-          maxOutputTokens: 4000
-        });
-
-        // PROCESSAMENTO DO QUIZ (JSON -> Markdown Formatado)
-
-
-        if (activityType === 'quiz' || activityType === 'summary' || activityType === 'simplify') {
-          try {
-            // Limpeza e Extração de JSON (Busca o primeiro { e o último })
-            const firstBrace = text.indexOf('{');
-            const lastBrace = text.lastIndexOf('}');
-
-            if (firstBrace === -1 || lastBrace === -1) {
-              throw new Error("JSON structure not found in response");
-            }
-
-            const cleanJson = text.substring(firstBrace, lastBrace + 1);
-            const parsedData = JSON.parse(cleanJson);
-
-            if (activityType === 'quiz') {
-              setQuizEditorData(parsedData);
-              setShowQuizEditor(true);
-              // Store tentative data to add tab later if confirmed? 
-              // Actually we open editor first. On confirm we add tab.
-              // We need to pass a callback to editor to "create new tab" instead of update current.
-              // Let's modify handleQuizConfirm to create tab if activeTab doesn't exist?
-              // The flow is: Generate -> Editor -> Confirm -> Tab Created.
-              // So here we DO NOT create tab yet.
-              setCurrentQuizData(parsedData); // Temporary storage
-            } else if (activityType === 'summary') {
-              setDrackerEditorData(parsedData);
-              setShowDrackerEditor(true);
-              setCurrentDrackerData(parsedData);
-            } else if (activityType === 'simplify') {
-              setMusicEditorData(parsedData);
-              setShowMusicEditor(true);
-              setCurrentMusicData(parsedData);
-            }
-
-            // We return here to wait for user interaction in Modal
-            setIsLoading(false);
-            return;
-
-          } catch (e) {
-            console.error("Erro ao processar JSON:", e);
-            // Fallback: se falhar o parse, usa o texto original da IA
-            text = `(Nota: O formato gerado diferiu do esperado, exibindo original)\n\n${text}`;
-          }
-        }
-
-        addActivityTab({
-          title: topic || "Atividade",
-          type: activityType,
-          content: text,
-          quizData: null,
-          drackerData: null,
-          musicData: null,
-          wordsearchData: null
-        });
-
-        // Auto-generate audio if content is reasonable size
-        generateAudio(text);
       }
+
+      let text = await geminiService.generateText(prompt, {
+        model: selectedModel,
+        fallbackModel: selectedModel === 'gemini-1.5-pro' ? 'gemini-2.0-flash' : 'gemini-1.5-flash',
+        // Aumentamos o limite de tokens para garantir JSON completo
+        maxOutputTokens: 4000
+      });
+
+      // PROCESSAMENTO DO QUIZ (JSON -> Markdown Formatado)
+
+
+      if (activityType === 'quiz' || activityType === 'summary' || activityType === 'simplify') {
+        try {
+          // Limpeza e Extração de JSON (Busca o primeiro { e o último })
+          const firstBrace = text.indexOf('{');
+          const lastBrace = text.lastIndexOf('}');
+
+          if (firstBrace === -1 || lastBrace === -1) {
+            throw new Error("JSON structure not found in response");
+          }
+
+          const cleanJson = text.substring(firstBrace, lastBrace + 1);
+          const parsedData = JSON.parse(cleanJson);
+
+          if (activityType === 'quiz') {
+            setQuizEditorData(parsedData);
+            setShowQuizEditor(true);
+            // Store tentative data to add tab later if confirmed? 
+            // Actually we open editor first. On confirm we add tab.
+            // We need to pass a callback to editor to "create new tab" instead of update current.
+            // Let's modify handleQuizConfirm to create tab if activeTab doesn't exist?
+            // The flow is: Generate -> Editor -> Confirm -> Tab Created.
+            // So here we DO NOT create tab yet.
+            setCurrentQuizData(parsedData); // Temporary storage
+          } else if (activityType === 'summary') {
+            setDrackerEditorData(parsedData);
+            setShowDrackerEditor(true);
+            setCurrentDrackerData(parsedData);
+          } else if (activityType === 'simplify') {
+            setMusicEditorData(parsedData);
+            setShowMusicEditor(true);
+            setCurrentMusicData(parsedData);
+          }
+
+          // We return here to wait for user interaction in Modal
+          setIsLoading(false);
+          return;
+
+        } catch (e) {
+          console.error("Erro ao processar JSON:", e);
+          // Fallback: se falhar o parse, usa o texto original da IA
+          text = `(Nota: O formato gerado diferiu do esperado, exibindo original)\n\n${text}`;
+        }
+      }
+
+      addActivityTab({
+        title: topic || "Atividade",
+        type: activityType,
+        content: text,
+        quizData: null,
+        drackerData: null,
+        musicData: null,
+        wordsearchData: null
+      });
+
+      // Auto-generate audio if content is reasonable size
+      generateAudio(text);
+
     } catch (err) {
       console.error(err);
       setError(`Erro ao gerar: ${err.message}`);
@@ -708,43 +703,7 @@ FORMATAÇÃO:
     }
   };
 
-  const handleGenerateImage = async () => {
-    if (!apiKey || !geminiService) return;
-    setIsLoading(true);
-    setError('');
-    setImagePng('');
 
-    try {
-      // Note: The original implementation used a specific image generation logic
-      // Since GeminiService in this refactor focuses on Text/Audio, and the original App.jsx 
-      // seemingly had inline fetch logic for Imagen or expected Gemini to return images (which some models do),
-      // we will adapt.
-      // HOWEVER, standard Gemini Pro/Flash API returns text unless specifically using Imagen endpoint.
-      // Assuming the previous code managed this or we simply simulate/placeholder if implementation is missing.
-      // Let's implement a text-based generation request that asks for image description or handle it if GeminiService supports it.
-      // Checking GeminiService... it doesn't have explicit image gen.
-      // I will implement a basic placeholder or alert for now as strictly requested "Refactor".
-      // BUT, looking at Sidebar variables, it seems the user WANTS image generation.
-      // I will try to generate a description instead if real generation isn't available in service.
-
-      // ... reviewing original App.jsx code for image ... 
-      // Logic was likely separate or hacked into generateText maybe? 
-      // Ah, typically Imagen is a separate API call. 
-      // Let's assume we maintain the state but maybe fail gracefully or just alert "Not Implemented in Refactor yet"
-      // actually better:
-
-      const text = await geminiService.generateText(`(Simulação de Imagem) Descreva uma imagem no estilo ${imageStyle} sobre: ${imagePrompt || topic}.`, { model: selectedModel });
-      // Setting generated Content to text description as workaround since we don't have real image gen code in GeminiService
-      setGeneratedContent(`[Descrição de Imagem Gerada]\n\n${text}`);
-      // In a real app, calls to Imagen via Vertex AI or similar would go here.
-
-    } catch (err) {
-      setError("Erro ao gerar imagem: " + err.message);
-    } finally {
-      setIsLoading(false);
-      setSystemStatus(null);
-    }
-  };
 
   const handleDownloadGeneratedPng = () => {
     // Implementation depends on actual image blob
@@ -954,7 +913,7 @@ FORMATAÇÃO:
           setImageStyle={setImageStyle}
           imageSize={imageSize}
           setImageSize={setImageSize}
-          handleGenerateImage={handleGenerateImage}
+
           isLoading={isLoading}
           geminiService={geminiService}
           directions={directions}
@@ -1029,6 +988,7 @@ FORMATAÇÃO:
                     undefined
             }
             musicData={activeActivity?.musicData}
+            drackerData={activeActivity?.drackerData}
           />
         </div>
 

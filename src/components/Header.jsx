@@ -29,12 +29,12 @@ export const Header = ({
     return (
         <header className="bg-white shadow border-b border-slate-200 sticky top-0 z-20 no-print">
             <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-blue-700">
-                    <Brain className="w-8 h-8" />
-                    <h1 className="text-xl font-bold">AdaptAI</h1>
+                <div className="flex items-center gap-2 text-amber-700">
+                    <img src="/dracker.png" alt="Drácker Logo" className="w-10 h-10 object-contain hover:scale-110 transition-transform" />
+                    <h1 className="text-xl font-bold">Dracker AdaptAI</h1>
 
                     {apiKeyStatus === 'valid' && (
-                        <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full flex items-center gap-1">
+                        <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full flex items-center gap-1">
                             <CheckCircle className="w-3 h-3" /> API OK
                         </span>
                     )}
@@ -75,9 +75,9 @@ export const Header = ({
                         )}
                     </div>
                     {isGeneratingAudio ? (
-                        <div className="flex items-center gap-2 px-2 py-1 bg-blue-50 rounded hidden sm:flex">
-                            <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
-                            <span className="text-xs text-blue-700 font-medium">Gerando áudio...</span>
+                        <div className="flex items-center gap-2 px-2 py-1 bg-amber-50 rounded hidden sm:flex">
+                            <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+                            <span className="text-xs text-amber-700 font-medium">Gerando áudio...</span>
                         </div>
                     ) : (
                         <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700 hidden sm:inline">
@@ -87,7 +87,7 @@ export const Header = ({
                     <div className="flex items-center gap-2 border-l pl-2 ml-2 border-slate-200">
                         <button
                             onClick={onBackup}
-                            className="bg-green-100 text-green-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-green-200 transition-colors"
+                            className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-200 transition-colors"
                             title="Fazer backup de tudo"
                         >
                             Backup

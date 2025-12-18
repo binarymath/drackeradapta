@@ -44,9 +44,9 @@ export const Sidebar = ({
     return (
         <div className="lg:col-span-4 space-y-6 no-print">
             {showSettings && (
-                <div className="bg-white p-6 rounded-lg shadow border border-blue-200 space-y-4">
+                <div className="bg-white p-6 rounded-lg shadow border border-amber-200 space-y-4">
                     <div>
-                        <h2 className="text-sm font-bold text-blue-900 mb-3">🔑 Chave Gemini API</h2>
+                        <h2 className="text-sm font-bold text-amber-900 mb-3">🔑 Chave Gemini API</h2>
                         <input
                             type="password"
                             value={apiKey}
@@ -55,7 +55,7 @@ export const Sidebar = ({
                             className="w-full p-3 bg-slate-50 border border-slate-200 rounded text-sm font-mono"
                         />
                         <p className="text-xs text-slate-600 mt-2">
-                            Não tem? <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline font-bold">Obter chave grátis</a>
+                            Não tem? <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:underline font-bold">Obter chave grátis</a>
                         </p>
                         {apiKey && (
                             <button onClick={clearApiKey} className="w-full mt-2 py-2 bg-red-100 text-red-700 rounded text-sm font-semibold hover:bg-red-200">
@@ -88,7 +88,7 @@ export const Sidebar = ({
                         <div className="mt-6">
                             <img src={imagePng} alt="Imagem gerada por IA" className="max-w-full border rounded" />
                             <div className="mt-3">
-                                <button onClick={handleDownloadGeneratedPng} className="px-3 py-2 rounded text-sm bg-green-100 hover:bg-green-200">Baixar PNG</button>
+                                <button onClick={handleDownloadGeneratedPng} className="px-3 py-2 rounded text-sm bg-blue-100 hover:bg-blue-200">Baixar PNG</button>
                             </div>
                         </div>
                     )}
@@ -130,7 +130,7 @@ export const Sidebar = ({
                                 <button
                                     key={opt.id}
                                     onClick={() => setDifficulty(opt.id)}
-                                    className={`flex-1 py-2 rounded text-sm ${difficulty === opt.id ? 'bg-blue-600 text-white' : 'bg-slate-100'}`}
+                                    className={`flex-1 py-2 rounded text-sm ${difficulty === opt.id ? 'bg-amber-600 text-white' : 'bg-slate-100'}`}
                                 >
                                     {opt.label}
                                 </button>
@@ -145,7 +145,7 @@ export const Sidebar = ({
                                 <button
                                     key={opt.id}
                                     onClick={() => setActivityType(opt.id)}
-                                    className={`w-full px-3 py-2 rounded text-left text-sm ${activityType === opt.id ? 'bg-blue-100 border border-blue-500' : 'bg-slate-50 hover:bg-slate-100'}`}
+                                    className={`w-full px-3 py-2 rounded text-left text-sm ${activityType === opt.id ? 'bg-amber-100 border border-amber-500' : 'bg-slate-50 hover:bg-slate-100'}`}
                                 >
                                     {opt.icon} {opt.label}
                                 </button>
@@ -192,7 +192,7 @@ export const Sidebar = ({
                                 <div className="mt-4">
                                     <img src={imagePng} alt="Desenho gerado por IA" className="max-w-full border rounded" />
                                     <div className="mt-3">
-                                        <button onClick={handleDownloadGeneratedPng} className="px-3 py-2 rounded text-sm bg-green-100 hover:bg-green-200">Baixar PNG</button>
+                                        <button onClick={handleDownloadGeneratedPng} className="px-3 py-2 rounded text-sm bg-blue-100 hover:bg-blue-200">Baixar PNG</button>
                                     </div>
                                 </div>
                             )}
@@ -204,7 +204,7 @@ export const Sidebar = ({
                     <button
                         onClick={handleGenerate}
                         disabled={isLoading}
-                        className={`w-full py-3 rounded font-bold text-white flex items-center justify-center gap-2 ${isLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+                        className={`w-full py-3 rounded font-bold text-white flex items-center justify-center gap-2 ${isLoading ? 'bg-amber-400' : 'bg-amber-600 hover:bg-amber-700'
                             }`}
                     >
                         {isLoading ? (
@@ -215,14 +215,14 @@ export const Sidebar = ({
                     </button>
 
                     {isLoading && (
-                        <div className="mt-3 p-4 rounded-lg bg-blue-50 border border-blue-200 space-y-2">
-                            <div className="flex items-center gap-2 text-blue-800">
+                        <div className="mt-3 p-4 rounded-lg bg-amber-50 border border-amber-200 space-y-2">
+                            <div className="flex items-center gap-2 text-amber-800">
                                 <Loader2 className="w-5 h-5 animate-spin" />
                                 <span className="font-semibold">
                                     {activityType === 'wordsearch' ? '🔄 Gerando Caça-Palavras...' : '📝 Criando Atividade...'}
                                 </span>
                             </div>
-                            <p className="text-xs text-blue-700">
+                            <p className="text-xs text-amber-700">
                                 {activityType === 'wordsearch'
                                     ? 'Gerando texto educativo, criando grade, selecionando palavras e configurando desafio...'
                                     : 'Processando sua solicitação...'}
@@ -249,7 +249,7 @@ export const Sidebar = ({
                     {systemStatus && (
                         <div className={`mt-2 p-3 rounded-lg text-sm ${systemStatus.type === 'rate-limit' ? 'bg-yellow-50 border border-yellow-200 text-yellow-800' :
                             systemStatus.type === 'retry' ? 'bg-orange-50 border border-orange-200 text-orange-800' :
-                                systemStatus.type === 'fallback' ? 'bg-blue-50 border border-blue-200 text-blue-800' :
+                                systemStatus.type === 'fallback' ? 'bg-amber-50 border border-amber-200 text-amber-800' :
                                     'bg-slate-50 border border-slate-200 text-slate-800'
                             }`}>
                             <div className="flex items-center gap-2">
