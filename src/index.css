@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+@media print {
+  @page {
+    margin: 1cm;
+    size: auto;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  /* Exibe apenas a área de atividade */
+  #activity-area-print,
+  #activity-area-print * {
+    visibility: visible;
+  }
+
+  #activity-area-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: white;
+    color: black !important;
+  }
+
+  /* Garante que textos sejam pretos e fundos brancos */
+  #activity-area-print * {
+    color: black !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Mantém bordas essenciais para cartas/cards */
+  #activity-area-print .shadow-sm,
+  #activity-area-print .rounded-xl,
+  #activity-area-print .border {
+    border: 1px solid #ddd !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
