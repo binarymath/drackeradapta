@@ -79,8 +79,13 @@ class GeminiService {
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
+        // Determine API version based on model name or option
+        // gemini-2.5-flash-tts often requires v1alpha, while others use v1beta
+        const apiVersion = options.apiVersion || (model.includes('gemini-2.5') ? 'v1alpha' : 'v1beta');
+        const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent?key=${this.apiKey}`;
+
         const response = await fetch(
-          `${this.baseUrl}/${model}:generateContent?key=${this.apiKey}`,
+          url,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

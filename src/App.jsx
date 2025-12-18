@@ -21,6 +21,39 @@ import { DrackerEditorModal } from './components/DrackerEditorModal';
 import { VoiceSettingsModal } from './components/VoiceSettingsModal';
 import { SaveLoadModal } from './components/SaveLoadModal';
 import { MusicEditorModal } from './components/MusicEditorModal';
+import { CSS } from '@dnd-kit/utilities';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import RichTextRenderer from './components/RichTextRenderer';
+
+const SortableTab = ({ tab, activeTabId, setActiveTabId, closeTab, getTabLabel }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: tab.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      onClick={() => setActiveTabId(tab.id)}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-colors border select-none ${activeTabId === tab.id ? 'bg-blue-100 border-blue-300 text-blue-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+    >
+      <span className="text-sm max-w-[120px] truncate" title={tab.title}>
+        {getTabLabel(tab)}
+      </span>
+      <button
+        onClick={(e) => closeTab(tab.id, e)}
+        className="text-slate-400 hover:text-red-500 transition-colors"
+      >
+        ×
+      </button>
+    </div>
+  );
+};
 
 export default function App() {
   // --- STATE MANAGEMENT ---
@@ -50,23 +83,84 @@ export default function App() {
   const [error, setError] = useState('');
   const [systemStatus, setSystemStatus] = useState(null); // { type: 'retry' | 'rate-limit' | 'fallback', message: '', details: {} }
 
-  // Persistence State
-  const [savedActivities, setSavedActivities] = useState(() => {
-    try {
-      const saved = localStorage.getItem('adapters_saved_activities');
-      if (!saved || saved === 'undefined' || saved === 'null') return [];
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      console.error("Error loading saved activities", e);
-      return [];
-    }
-  });
-  const [showSaveLoad, setShowSaveLoad] = useState(false);
+  // TABS & SYSTEM STATE
+  const [tabs, setTabs] = useState([]);
+  const [activeTabId, setActiveTabId] = useState(null);
 
+  // Backup / Restore System
+  const exportSystemState = () => {
+    const state = {
+      date: new Date().toISOString(),
+      tabs: tabs
+    };
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `backup_atividades_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const importSystemState = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const state = JSON.parse(event.target.result);
+        if (state.tabs && Array.isArray(state.tabs)) {
+          setTabs(state.tabs);
+          if (state.tabs.length > 0) {
+            setActiveTabId(state.tabs[0].id);
+          }
+          alert('Sistema restaurado com sucesso!');
+        } else {
+          alert('Arquivo de backup inválido.');
+        }
+      } catch (err) {
+        console.error("Erro ao importar", err);
+        alert('Erro ao ler arquivo.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Helper to add new activity tab
+  const addActivityTab = (activityData) => {
+    const newTab = {
+      id: Date.now().toString(),
+      ...activityData
+    };
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabId(newTab.id);
+  };
+
+  const closeTab = (id, e) => {
+    e.stopPropagation();
+    const newTabs = tabs.filter(t => t.id !== id);
+    setTabs(newTabs);
+    if (activeTabId === id && newTabs.length > 0) {
+      setActiveTabId(newTabs[newTabs.length - 1].id);
+    } else if (newTabs.length === 0) {
+      setActiveTabId(null);
+    }
+  };
+
+  const activeActivity = useMemo(() => {
+    return tabs.find(t => t.id === activeTabId) || null;
+  }, [tabs, activeTabId]);
+
+  // Sync active activity state to global editors/viewers
   useEffect(() => {
-    localStorage.setItem('adapters_saved_activities', JSON.stringify(savedActivities));
-  }, [savedActivities]);
+    if (activeActivity) {
+      // Sync local states if necessary for editing
+      // However, ideally editors should open with activeActivity data
+      // For simplicity, we just ensure ActivityArea receives activeActivity props
+    }
+  }, [activeActivity]);
 
   // Audio State
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -108,7 +202,46 @@ export default function App() {
   const [musicEditorData, setMusicEditorData] = useState(null);
   const [currentMusicData, setCurrentMusicData] = useState(null);
 
+
+
+  // Editor Mode State (New vs Edit)
+  const [isEditing, setIsEditing] = useState(false);
+
   const activityAreaRef = useRef(null);
+
+  // DND SENSORS
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const handleTabDragEnd = (event) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      setTabs((items) => {
+        const oldIndex = items.findIndex(t => t.id === active.id);
+        const newIndex = items.findIndex(t => t.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const getTabLabel = (tab) => {
+    let typeLabel = '';
+    switch (tab.type) {
+      case 'quiz': typeLabel = 'Quiz'; break;
+      case 'summary': typeLabel = 'Drácker'; break;
+      case 'simplify': typeLabel = 'Música'; break;
+      case 'wordsearch': typeLabel = 'Caça-P.'; break;
+      default: typeLabel = 'Ativ.';
+    }
+
+    const title = tab.title || 'Sem título';
+    const shortTitle = title.length > 15 ? title.substring(0, 15) + '...' : title;
+
+    return `${typeLabel}: ${shortTitle}`;
+  };
+
+
 
   // --- MEMOIZED OPTIONS ---
   const activityOptions = useMemo(() => [
@@ -227,6 +360,7 @@ export default function App() {
     }
     setIsSpeaking(false);
     setIsPaused(false);
+    setIsEditing(false); // Default to new activity generation
 
     try {
       let prompt = '';
@@ -363,12 +497,21 @@ FORMATAÇÃO:
             if (activityType === 'quiz') {
               setQuizEditorData(parsedData);
               setShowQuizEditor(true);
+              // Store tentative data to add tab later if confirmed? 
+              // Actually we open editor first. On confirm we add tab.
+              // We need to pass a callback to editor to "create new tab" instead of update current.
+              // Let's modify handleQuizConfirm to create tab if activeTab doesn't exist?
+              // The flow is: Generate -> Editor -> Confirm -> Tab Created.
+              // So here we DO NOT create tab yet.
+              setCurrentQuizData(parsedData); // Temporary storage
             } else if (activityType === 'summary') {
               setDrackerEditorData(parsedData);
               setShowDrackerEditor(true);
+              setCurrentDrackerData(parsedData);
             } else if (activityType === 'simplify') {
               setMusicEditorData(parsedData);
               setShowMusicEditor(true);
+              setCurrentMusicData(parsedData);
             }
 
             // We return here to wait for user interaction in Modal
@@ -382,13 +525,19 @@ FORMATAÇÃO:
           }
         }
 
-        setGeneratedContent(text);
+        addActivityTab({
+          title: topic || "Atividade",
+          type: activityType,
+          content: text,
+          quizData: null,
+          drackerData: null,
+          musicData: null,
+          wordsearchData: null
+        });
 
         // Auto-generate audio if content is reasonable size
         generateAudio(text);
       }
-
-
     } catch (err) {
       console.error(err);
       setError(`Erro ao gerar: ${err.message}`);
@@ -434,8 +583,27 @@ FORMATAÇÃO:
       });
 
       text = formattedOutput + gabaritoOutput;
-      setGeneratedContent(text);
-      setCurrentQuizData(editedData); // Save for future editing
+      text = formattedOutput + gabaritoOutput;
+
+
+      if (isEditing) {
+        // Update Tab Content
+        setTabs(prev => prev.map(t => {
+          if (t.id === activeTabId) {
+            return { ...t, content: text, quizData: editedData };
+          }
+          return t;
+        }));
+      } else {
+        // Create New Tab
+        addActivityTab({
+          title: topic || "Quiz",
+          type: 'quiz',
+          content: text, // This is the formatted text
+          quizData: editedData
+        });
+      }
+
       generateAudio(text); // Auto audio
     } catch (e) {
       console.error("Error formatting quiz", e);
@@ -446,8 +614,9 @@ FORMATAÇÃO:
   };
 
   const handleEditQuiz = () => {
-    if (currentQuizData) {
-      setQuizEditorData(currentQuizData);
+    if (activeActivity && activeActivity.quizData) {
+      setIsEditing(true);
+      setQuizEditorData(activeActivity.quizData);
       setShowQuizEditor(true);
     }
   };
@@ -462,11 +631,23 @@ FORMATAÇÃO:
         formattedOutput += `${index + 1}. ${act}\n`;
       });
 
-      setGeneratedContent(formattedOutput);
-      setCurrentDrackerData(editedData); // Save for re-editing
-      generateAudio(editedData.story); // Generate audio only for the story part ideally, or all? Let's do story.
-      // Or if we want full text: generateAudio(formattedOutput); 
-      // User probably wants to listen to the story.
+      if (isEditing) {
+        setTabs(prev => prev.map(t => {
+          if (t.id === activeTabId) {
+            return { ...t, content: formattedOutput, drackerData: editedData };
+          }
+          return t;
+        }));
+      } else {
+        addActivityTab({
+          title: topic || "Aprenda com o Drácker",
+          type: 'summary',
+          content: formattedOutput,
+          drackerData: editedData
+        });
+      }
+
+      generateAudio(editedData.story);
     } catch (e) {
       console.error("Error formatting Dracker activity", e);
       setError("Erro ao formatar atividade Drácker.");
@@ -476,8 +657,9 @@ FORMATAÇÃO:
   };
 
   const handleEditDracker = () => {
-    if (currentDrackerData) {
-      setDrackerEditorData(currentDrackerData);
+    if (activeActivity && activeActivity.drackerData) {
+      setIsEditing(true);
+      setDrackerEditorData(activeActivity.drackerData);
       setShowDrackerEditor(true);
     }
   };
@@ -493,8 +675,22 @@ FORMATAÇÃO:
         formattedOutput += `${index + 1}. ${q}\n`;
       });
 
-      setGeneratedContent(formattedOutput);
-      setCurrentMusicData(editedData);
+      if (isEditing) {
+        setTabs(prev => prev.map(t => {
+          if (t.id === activeTabId) {
+            return { ...t, content: formattedOutput, musicData: editedData };
+          }
+          return t;
+        }));
+      } else {
+        addActivityTab({
+          title: topic || "Música do Drácker",
+          type: 'simplify',
+          content: formattedOutput,
+          musicData: editedData
+        });
+      }
+
       generateAudio(editedData.lyrics);
     } catch (e) {
       console.error("Error formatting music", e);
@@ -505,8 +701,9 @@ FORMATAÇÃO:
   };
 
   const handleEditMusic = () => {
-    if (currentMusicData) {
-      setMusicEditorData(currentMusicData);
+    if (activeActivity && activeActivity.musicData) {
+      setIsEditing(true);
+      setMusicEditorData(activeActivity.musicData);
       setShowMusicEditor(true);
     }
   };
@@ -565,6 +762,7 @@ FORMATAÇÃO:
     if (!text || !geminiService) return;
     setIsGeneratingAudio(true);
 
+    // Clean text
     // Clean text
     const clean = geminiService.cleanTextForSpeech(text);
     const chunks = geminiService.sliceIntoChunks(clean, 300); // 300 chars limit per chunk
@@ -665,10 +863,20 @@ FORMATAÇÃO:
 
   // --- WORDSEARCH CALLBACKS ---
   const handleWordsearchComplete = (content, words, placements, title) => {
-    setGeneratedContent(content);
-    setFoundWords(words);
-    setFoundPlacements(placements);
-    setWordsearchTitle(title || topic || "Caça-Palavras");
+    addActivityTab({
+      title: title || topic || "Caça-Palavras",
+      type: 'wordsearch',
+      content: content,
+      wordsearchData: {
+        words: words,
+        placements: placements,
+        title: title,
+        hideText: false,
+        hideGrid: false
+      }
+    });
+    // setGeneratedContent(content); // REMOVED
+    // setFoundWords(words); // MOVED TO TAB DATA
     setIsLoading(false);
     setSystemStatus(null);
   };
@@ -681,7 +889,8 @@ FORMATAÇÃO:
   };
 
   const handleCopy = () => {
-    const cleanText = generatedContent.replace(/\*\*/g, '').replace(/#/g, '').trim();
+    if (!activeActivity) return;
+    const cleanText = activeActivity.content.replace(/\*\*/g, '').replace(/#/g, '').trim();
     navigator.clipboard.writeText(cleanText).then(() => {
       alert("Copiado!");
     });
@@ -696,61 +905,7 @@ FORMATAÇÃO:
   };
 
   // --- PERSISTENCE LOGIC ---
-  const handleSaveActivity = (name) => {
-    const newActivity = {
-      id: Date.now().toString(),
-      name,
-      date: new Date().toISOString(),
-      type: activityType,
-      topic,
-      lessonDetails,
-      difficulty,
-      generatedContent,
-      quizData: currentQuizData,
-      drackerData: currentDrackerData,
-      wordsearchData: {
-        words: foundWords,
-        placements: foundPlacements,
-        title: wordsearchTitle,
-        hideText: wordsearchHideText,
-        hideGrid: wordsearchHideGrid
-      }
-    };
 
-    setSavedActivities(prev => [newActivity, ...prev]);
-    alert('Atividade salva com sucesso!');
-  };
-
-  const handleLoadActivity = (activity) => {
-    setActivityType(activity.type);
-    setTopic(activity.topic);
-    setLessonDetails(activity.lessonDetails || '');
-    setDifficulty(activity.difficulty || 'medium');
-    setGeneratedContent(activity.generatedContent || '');
-
-    // Restore specific data
-    if (activity.type === 'quiz' && activity.quizData) {
-      setCurrentQuizData(activity.quizData);
-      setQuizEditorData(activity.quizData);
-    }
-    if (activity.type === 'summary' && activity.drackerData) {
-      setCurrentDrackerData(activity.drackerData);
-      setDrackerEditorData(activity.drackerData);
-    }
-    if (activity.type === 'wordsearch' && activity.wordsearchData) {
-      setFoundWords(activity.wordsearchData.words || []);
-      setFoundPlacements(activity.wordsearchData.placements || []);
-      setWordsearchTitle(activity.wordsearchData.title || '');
-      setWordsearchHideText(activity.wordsearchData.hideText || false);
-      setWordsearchHideGrid(activity.wordsearchData.hideGrid || false);
-    }
-
-    setShowSaveLoad(false);
-  };
-
-  const handleDeleteActivity = (id) => {
-    setSavedActivities(prev => prev.filter(a => a.id !== id));
-  };
 
 
   return (
@@ -768,6 +923,8 @@ FORMATAÇÃO:
         chunkIndex={chunkIndex}
         showSettings={showSettings}
         setShowSettings={setShowSettings}
+        onBackup={exportSystemState}
+        onRestore={importSystemState}
       />
 
       <main className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -808,31 +965,72 @@ FORMATAÇÃO:
           handleGenerate={handleGenerate}
           systemStatus={systemStatus}
           error={error}
-          openSaveLoad={() => setShowSaveLoad(true)}
+
+        // openSaveLoad={() => setShowSaveLoad(true)} // Removed
         />
 
-        <ActivityArea
-          generatedContent={generatedContent}
-          activityType={activityType}
-          foundWords={foundWords}
-          showAnswers={showAnswers}
-          setShowAnswers={setShowAnswers}
-          handleCopy={handleCopy}
-          handleDownloadDoc={handleDownloadDoc}
-          handleDownloadPdf={handleDownloadPdf}
-          activityAreaRef={activityAreaRef}
-          wordsearchTitle={wordsearchTitle}
-          setWordsearchTitle={setWordsearchTitle}
-          wordsearchHideText={wordsearchHideText}
-          setWordsearchHideText={setWordsearchHideText}
-          wordsearchHideGrid={wordsearchHideGrid}
-          setWordsearchHideGrid={setWordsearchHideGrid}
-          foundPlacements={foundPlacements}
-          isLoading={isLoading}
-          isGeneratingAudio={isGeneratingAudio}
-          onEdit={activityType === 'quiz' ? handleEditQuiz : activityType === 'summary' ? handleEditDracker : activityType === 'simplify' ? handleEditMusic : undefined}
-          musicData={currentMusicData}
-        />
+        <div className="lg:col-span-8 flex flex-col gap-4">
+          {/* TABS HEADER */}
+          <div className="flex flex-col gap-2 bg-white p-2 rounded-lg shadow-sm border border-slate-200">
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTabDragEnd}>
+              <SortableContext items={tabs.map(t => t.id)} strategy={horizontalListSortingStrategy}>
+                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                  {tabs.map(tab => (
+                    <SortableTab
+                      key={tab.id}
+                      tab={tab}
+                      activeTabId={activeTabId}
+                      setActiveTabId={setActiveTabId}
+                      closeTab={closeTab}
+                      getTabLabel={getTabLabel}
+                    />
+                  ))}
+                  {tabs.length === 0 && <span className="text-sm text-slate-400 italic px-4 py-2">Nenhuma atividade gerada ainda...</span>}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </div>
+
+          {/* ACTIVE ACTIVITY AREA */}
+          <ActivityArea
+            generatedContent={activeActivity ? activeActivity.content : ''}
+            activityType={activeActivity ? activeActivity.type : activityType}
+
+            // WORDSEARCH PROPS (Read from Tab if available, else state)
+            foundWords={activeActivity?.wordsearchData?.words || foundWords}
+            foundPlacements={activeActivity?.wordsearchData?.placements || foundPlacements}
+            wordsearchTitle={activeActivity?.wordsearchData?.title || wordsearchTitle}
+
+            // UI State (Still somewhat local unless we move all to tab)
+            showAnswers={showAnswers}
+            setShowAnswers={setShowAnswers}
+
+            // Actions
+            handleCopy={handleCopy}
+            handleDownloadDoc={handleDownloadDoc}
+            handleDownloadPdf={handleDownloadPdf}
+            activityAreaRef={activityAreaRef}
+
+            // Setters (Might need to update tab data instead of local state eventually, but for now updates visual)
+            setWordsearchTitle={setWordsearchTitle}
+            wordsearchHideText={wordsearchHideText}
+            setWordsearchHideText={setWordsearchHideText}
+            wordsearchHideGrid={wordsearchHideGrid}
+            setWordsearchHideGrid={setWordsearchHideGrid}
+
+            isLoading={isLoading}
+            isGeneratingAudio={isGeneratingAudio}
+
+            // EDIT HANDLERS (Context aware)
+            onEdit={
+              activeActivity?.type === 'quiz' ? handleEditQuiz :
+                activeActivity?.type === 'summary' ? handleEditDracker :
+                  activeActivity?.type === 'simplify' ? handleEditMusic :
+                    undefined
+            }
+            musicData={activeActivity?.musicData}
+          />
+        </div>
 
         <QuizEditorModal
           isOpen={showQuizEditor}
@@ -848,6 +1046,11 @@ FORMATAÇÃO:
           initialData={drackerEditorData}
         />
 
+
+
+
+
+
         <VoiceSettingsModal
           isOpen={showVoiceSettings}
           onClose={() => setShowVoiceSettings(false)}
@@ -862,15 +1065,8 @@ FORMATAÇÃO:
           initialData={musicEditorData}
         />
 
-        <SaveLoadModal
-          isOpen={showSaveLoad}
-          onClose={() => setShowSaveLoad(false)}
-          savedActivities={savedActivities}
-          onSaveCurrent={handleSaveActivity}
-          onLoad={handleLoadActivity}
-          onDelete={handleDeleteActivity}
-        />
-      </main>
-    </div>
+
+      </main >
+    </div >
   );
 }

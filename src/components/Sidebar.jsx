@@ -98,12 +98,7 @@ export const Sidebar = ({
             <div className="bg-white p-6 rounded-lg shadow-lg">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-lg font-bold">Nova Atividade</h2>
-                    <button
-                        onClick={openSaveLoad}
-                        className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-full font-bold transition-colors flex items-center gap-1"
-                    >
-                        📂 Minhas Atividades
-                    </button>
+
                 </div>
 
                 <div className="space-y-4">

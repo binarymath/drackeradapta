@@ -22,7 +22,9 @@ export const Header = ({
     chunkIndex,
     showSettings,
     setShowSettings,
-    openVoiceSettings
+    openVoiceSettings,
+    onBackup,
+    onRestore
 }) => {
     return (
         <header className="bg-white shadow border-b border-slate-200 sticky top-0 z-20 no-print">
@@ -55,6 +57,8 @@ export const Header = ({
                     >
                         <SlidersHorizontal className="w-4 h-4" />
                     </button>
+
+
                     <button
                         onClick={handleSpeak}
                         disabled={isGeneratingAudio}
@@ -80,6 +84,19 @@ export const Header = ({
                             {isSpeaking ? (isPaused ? 'Pausado' : 'Tocando') : 'Parado'}
                         </span>
                     )}
+                    <div className="flex items-center gap-2 border-l pl-2 ml-2 border-slate-200">
+                        <button
+                            onClick={onBackup}
+                            className="bg-green-100 text-green-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-green-200 transition-colors"
+                            title="Fazer backup de tudo"
+                        >
+                            Backup
+                        </button>
+                        <label className="bg-amber-100 text-amber-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-amber-200 cursor-pointer transition-colors">
+                            Restaurar
+                            <input type="file" accept=".json" onChange={onRestore} className="hidden" />
+                        </label>
+                    </div>
                     <button onClick={() => setShowSettings(!showSettings)} className="p-2 hover:bg-slate-100 rounded">
                         <Settings className="w-5 h-5" />
                     </button>

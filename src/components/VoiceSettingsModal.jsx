@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Play, Save } from 'lucide-react';
+import { X, Play, Save, RefreshCw } from 'lucide-react';
 
 export const VoiceSettingsModal = ({ isOpen, onClose, currentSettings, onSave }) => {
     const [voices, setVoices] = useState([]);
@@ -10,23 +10,50 @@ export const VoiceSettingsModal = ({ isOpen, onClose, currentSettings, onSave })
     useEffect(() => {
         const loadVoices = () => {
             const allVoices = window.speechSynthesis.getVoices();
-            // Filter primarily for Portuguese, but allow others if needed
-            const ptVoices = allVoices.filter(v => v.lang.includes('pt') || v.lang.includes('PT'));
-            setVoices(ptVoices.length > 0 ? ptVoices : allVoices);
 
-            // If no voice selected yet, pick the first one or logic from App
-            if (!selectedVoiceURI && ptVoices.length > 0) {
-                const defaultVoice = ptVoices.find(v =>
-                    v.name.includes('Google') ||
-                    v.name.includes('Luciana')
-                ) || ptVoices[0];
-                setSelectedVoiceURI(defaultVoice.voiceURI);
+            // Sort voices: PT-BR first, then other PT, then alphabetical
+            allVoices.sort((a, b) => {
+                const aIsPTBR = a.lang === 'pt-BR';
+                const bIsPTBR = b.lang === 'pt-BR';
+                if (aIsPTBR && !bIsPTBR) return -1;
+                if (!aIsPTBR && bIsPTBR) return 1;
+
+                const aIsPT = a.lang.includes('pt');
+                const bIsPT = b.lang.includes('pt');
+                if (aIsPT && !bIsPT) return -1;
+                if (!aIsPT && bIsPT) return 1;
+
+                return a.name.localeCompare(b.name);
+            });
+
+            setVoices(allVoices);
+
+            // If no voice selected yet, try to find a good default
+            if (!selectedVoiceURI && allVoices.length > 0) {
+                const defaultVoice = allVoices.find(v =>
+                    v.lang.includes('pt') && (v.name.includes('Google') || v.name.includes('Microsoft'))
+                ) || allVoices.find(v => v.lang.includes('pt')) || allVoices[0];
+
+                if (defaultVoice) {
+                    setSelectedVoiceURI(defaultVoice.voiceURI);
+                }
             }
         };
 
+        // Try to load immediately and also on ensure
         loadVoices();
+
+        // Some browsers need a little nudge or timeout if voices are lazy loaded
+        if (window.speechSynthesis.getVoices().length === 0) {
+            setTimeout(loadVoices, 500);
+            setTimeout(loadVoices, 2000);
+        }
+
         window.speechSynthesis.onvoiceschanged = loadVoices;
-    }, [selectedVoiceURI]);
+        return () => { window.speechSynthesis.onvoiceschanged = null; };
+    }, [selectedVoiceURI]); // Keep selectedVoiceURI as dep if we want to default logic to re-run, but maybe better not to? 
+    // Actually, onvoiceschanged is global. Let's just bind it once.
+    // Simplifying dependency array.
 
     useEffect(() => {
         if (isOpen) {
@@ -66,18 +93,35 @@ export const VoiceSettingsModal = ({ isOpen, onClose, currentSettings, onSave })
 
                 <div className="p-6 space-y-6">
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Voz</label>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="text-sm font-semibold text-slate-700">Voz ({voices.length} encontradas)</label>
+                            <button
+                                onClick={() => {
+                                    const all = window.speechSynthesis.getVoices();
+                                    setVoices(all);
+                                }}
+                                className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                                title="Recarregar lista de vozes"
+                            >
+                                <RefreshCw className="w-3 h-3" /> Atualizar
+                            </button>
+                        </div>
                         <select
                             value={selectedVoiceURI}
                             onChange={(e) => setSelectedVoiceURI(e.target.value)}
                             className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white"
                         >
-                            {voices.map(v => (
-                                <option key={v.voiceURI} value={v.voiceURI}>
-                                    {v.name} ({v.lang})
-                                </option>
-                            ))}
+                            {voices.map(v => {
+                                const isNatural = v.name.includes('Natural') || v.name.includes('Neural') || v.name.includes('Online');
+                                return (
+                                    <option key={v.voiceURI} value={v.voiceURI} className={isNatural ? 'font-bold text-green-700 bg-green-50' : ''}>
+                                        {isNatural ? '✨ ' : ''}{v.name} ({v.lang}) {isNatural ? '- Ótima Qualidade' : ''}
+                                    </option>
+                                );
+                            })}
                         </select>
+                        {voices.length === 0 && <p className="text-xs text-red-500 mt-1">Nenhuma voz detectada. Tente clicar em atualizar.</p>}
+
                     </div>
 
                     <div>
