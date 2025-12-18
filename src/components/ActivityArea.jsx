@@ -145,7 +145,16 @@ export const ActivityArea = ({
                                         <div className="prose prose-lg max-w-none text-slate-800 leading-loose mb-10 font-serif">
                                             {drackerData.story.split('\n\n').map((paragraph, index) => (
                                                 <p key={index} className="indent-8 mb-6 text-justify">
-                                                    {paragraph}
+                                                    {paragraph.split(/(\*\*.*?\*\*)/g).map((part, i) => {
+                                                        if (part.startsWith('**') && part.endsWith('**')) {
+                                                            return (
+                                                                <strong key={i} className="text-amber-700 font-extrabold">
+                                                                    {part.slice(2, -2)}
+                                                                </strong>
+                                                            );
+                                                        }
+                                                        return part;
+                                                    })}
                                                 </p>
                                             ))}
                                         </div>
@@ -159,7 +168,16 @@ export const ActivityArea = ({
                                             <ol className="list-decimal list-outside ml-5 space-y-4">
                                                 {drackerData.activities.map((act, idx) => (
                                                     <li key={idx} className="text-slate-700 font-medium pl-2">
-                                                        {act}
+                                                        {act.split(/(\*\*.*?\*\*)/g).map((part, i) => {
+                                                            if (part.startsWith('**') && part.endsWith('**')) {
+                                                                return (
+                                                                    <strong key={i} className="text-amber-700 font-extrabold">
+                                                                        {part.slice(2, -2)}
+                                                                    </strong>
+                                                                );
+                                                            }
+                                                            return part;
+                                                        })}
                                                     </li>
                                                 ))}
                                             </ol>
