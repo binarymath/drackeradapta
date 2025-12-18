@@ -1,93 +1,95 @@
-# 🐉 Dracker AdaptAI
+<div align="center">
+  <img src="public/dracker.png" alt="Dracker Logo" width="120" />
+  <h1>Dracker AdaptAI</h1>
+  
+  <p>
+    <strong>A Inteligência Artificial a serviço da Educação Inclusiva e Criativa.</strong>
+  </p>
 
-**Dracker AdaptAI** é uma ferramenta pedagógica inteligente projetada para auxiliar professores na adaptação e criação de materiais didáticos inclusivos e envolventes. Utilizando o poder da **Inteligência Artificial (Google Gemini)**, o sistema gera atividades personalizadas, simplifica textos e cria recursos visuais e lúdicos em instantes.
+  ![Status](https://img.shields.io/badge/Status-Em_Desenvolvimento-amber?style=flat-square&logo=git)
+  ![License](https://img.shields.io/badge/Licenca-MIT-blue?style=flat-square)
+  ![React](https://img.shields.io/badge/Front-React-61DAFB?style=flat-square&logo=react)
+  ![Gemini](https://img.shields.io/badge/AI-Google_Gemini-8E75B2?style=flat-square&logo=google-bard)
+</div>
 
-![Status do Projeto](https://img.shields.io/badge/Status-Em_Desenvolvimento-amber)
-![License](https://img.shields.io/badge/Licenca-MIT-blue)
+<br />
 
-## ✨ Principais Funcionalidades
-
-### 1. 📝 Criação de Atividades
-Gere automaticamente diferentes tipos de atividades baseadas em qualquer tema ou conteúdo:
-*   **Quiz Educativo**: Perguntas de múltipla escolha com gabarito.
-*   **Resumo com Drácker**: Uma história envolvente narrada pelo mascote Drácker, com atividades de fixação integradas em um design lúdico.
-*   **Simplificação de Texto**: Transforma textos complexos em versões mais acessíveis, incluindo letras de músicas e perguntas de interpretação.
-*   **Caça-Palavras Interativo**: Criação completa de caça-palavras com níveis de dificuldade, temas personalizados e opção de ocultar o banco de palavras.
-
-### 2. 🎨 Geração de Imagens
-Crie ilustrações personalizadas para acompanhar as atividades (sujeito à disponibilidade da API de imagem). Estilos variados como:
-*   Infantil/Cartoon
-*   Aquarela
-*   Flat Design
-
-### 3. 🔊 Acessibilidade e Áudio
-*   **Leitura em Voz Alta (TTS)**: Sistema integrado para leitura dos textos gerados, facilitando a acessibilidade para alunos com dificuldades de leitura ou deficiência visual.
-*   Controles de velocidade e seleção de vozes do sistema.
-
-### 4. 🖨️ Exportação e Organização
-*   **Abas Múltiplas**: Gerencie várias atividades simultaneamente com sistema de abas "drag-and-drop".
-*   **Exportação**: Baixe as atividades em **DOCX** (Word) ou **PDF** pronto para impressão.
-*   **Backup e Restauração**: Salve todo o seu trabalho (abas e configurações) em um arquivo `.json` e restaure quando quiser.
-
-## 🛠️ Tecnologias Utilizadas
-
-Este projeto foi construído com uma stack moderna e robusta:
-
-*   **Frontend**: [React](https://react.dev/) + [Vite](https://vitejs.dev/)
-*   **Estilização**: [TailwindCSS](https://tailwindcss.com/)
-*   **Ícones**: [Lucide React](https://lucide.dev/)
-*   **IA Generativa**: [Google Gemini API](https://ai.google.dev/)
-*   **Gerenciamento de Estado/Drag-n-Drop**: `@dnd-kit`
-
-## 🚀 Como Rodar o Projeto
-
-### Pré-requisitos
-*   [Node.js](https://nodejs.org/) instalado (versão 18 ou superior recomendada).
-*   Uma chave de API do Google Gemini (Google AI Studio).
-
-### Passos
-
-1.  **Clone o repositório** (ou baixe os arquivos):
-    ```bash
-    git clone https://github.com/seu-usuario/dracker-adaptai.git
-    cd dracker-adaptai
-    ```
-
-2.  **Instale as dependências**:
-    ```bash
-    npm install
-    ```
-
-3.  **Inicie o servidor de desenvolvimento**:
-    ```bash
-    npm run dev
-    ```
-    Isso iniciará tanto o servidor frontend (Vite) quanto o backend proxy local necessário para algumas operações.
-
-4.  **Acesse o sistema**:
-    Abra seu navegador em `http://localhost:5173` (ou a porta indicada no terminal).
-
-5.  **Configure a API**:
-    No painel lateral, insira sua **Chave Gemini API** para começar a gerar atividades.
-
-## 📁 Estrutura do Projeto
-
-```
-/src
-  ├── /components       # Componentes React (Header, Sidebar, ActivityArea, etc.)
-  ├── /services         # Serviços de integração (Gemini API, Exportação)
-  ├── /utils            # Funções utilitárias e helpers
-  ├── App.jsx           # Componente principal e gerenciamento de estado
-  └── main.jsx          # Ponto de entrada
-/server.js              # Servidor proxy simples (Node/Express)
-```
-
-## 🎨 Identidade Visual
-
-O sistema utiliza uma paleta de cores acolhedora e temática:
-*   **Âmbar/Marrom**: Cor primária, remetendo a livros antigos e aventura (Drácker).
-*   **Azul**: Cor de ação e sucesso.
-*   **Mascote**: O dragãozinho **Drácker** guia os alunos nas atividades de resumo.
+**Dracker AdaptAI** é uma plataforma pedagógica inovadora que utiliza Inteligência Artificial Generativa para empoderar professores. Com o auxílio do mascote **Drácker**, o sistema cria materiais didáticos adaptados, lúdicos e interativos em segundos, permitindo que educadores foquem no que realmente importa: seus alunos.
 
 ---
-Desenvolvido com 💙 e ☕ para a educação inovadora.
+
+## ✨ Funcionalidades Principais
+
+<table>
+  <tr>
+    <td width="50%">
+      <h3>📝 Criação Inteligente</h3>
+      <ul>
+        <li><strong>Quiz Educativo:</strong> Geração instantânea de perguntas de múltipla escolha com gabarito automático e distribuição aleatória de respostas.</li>
+        <li><strong>Aprenda com o Drácker:</strong> Histórias narrativas personalizadas onde o dragão Drácker ensina o conteúdo, acompanhadas de atividades de fixação.</li>
+        <li><strong>Música do Drácker:</strong> Transformação de conteúdos em músicas paródicas (estilo infantil anos 80) para facilitar a memorização, com exercícios de interpretação.</li>
+        <li><strong>Caça-Palavras Master:</strong> Ferramenta completa para gerar caça-palavras temáticos com controle de direção, dificuldade e gabarito visual.</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>�️ Ferramentas & Acessibilidade</h3>
+      <ul>
+        <li><strong>Leitura em Voz Alta (TTS):</strong> Todo conteúdo gerado pode ser narrado, apoiando alunos não-leitores ou com deficiência visual.</li>
+        <li><strong>Sistema de Abas:</strong> Trabalhe em múltiplas atividades simultaneamente sem perder o contexto.</li>
+        <li><strong>Editor Visual:</strong> Refine o conteúdo gerado antes de finalizar.</li>
+        <li><strong>Exportação Profissional:</strong> Baixe suas atividades em <strong>DOCX (Word)</strong> ou <strong>PDF</strong> formatado.</li>
+        <li><strong>Backup Completo:</strong> Salve e restaure seu progresso via arquivo JSON.</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+## 🎨 Identidade & Design
+
+O projeto adota uma identidade visual acolhedora e estimulante, fugindo dos padrões corporativos frios:
+
+*   🟤 **Âmbar/Marrom (Terra):** Traz a sensação de livros clássicos, aventura e natureza, conectada ao personagem Drácker.
+*   🔵 **Azul (Céu):** Representa clareza, ação e confiabilidade.
+*   🐉 **Mascote Drácker:** Um guia amigável que torna a interface humanizada e divertida para crianças.
+
+## 🚀 Como Executar
+
+### Pré-requisitos
+*   [Node.js](https://nodejs.org/) (v18+)
+*   Chave de API do [Google AI Studio (Gemini)](https://aistudio.google.com/)
+
+### Instalação
+
+```bash
+# 1. Clone o repositório
+git clone https://github.com/binarymath/drackeradapta.git
+cd drackeradapta
+
+# 2. Instale as dependências
+npm install
+
+# 3. Inicie a aplicação
+npm run dev
+```
+
+O sistema estará acessível em `http://localhost:5173`.
+
+> **Nota:** Ao iniciar, acesse as configurações (ícone de engrenagem ou sidebar) e insira sua chave da API Gemini para habilitar as funções de IA.
+
+## �️ Stack Tecnológica
+
+*   **Core:** React 18, Vite
+*   **Styling:** Tailwind CSS
+*   **AI Integration:** Google Generative AI SDK (Gemini 2.5/2.0/1.5)
+*   **State & Drag-n-Drop:** @dnd-kit
+*   **Icons:** Lucide React
+*   **Audio:** Web Speech API & Gemini Sound generation (experimental)
+
+## 📄 Licença
+
+Distribuído sob a licença MIT. Veja `LICENSE` para mais informações.
+
+---
+<div align="center">
+  <sub>Desenvolvido com 💙 para a educação do futuro.</sub>
+</div>
