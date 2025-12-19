@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palavras Cruzadas & Caça Palavras Creator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        .cell-input:focus {
+            outline: none;
+            background-color: #f0f9ff;
+        }
+
+        .cell-input.correct {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .cell-input.incorrect {
+            color: #ef4444;
+        }
+
+        .cell-input.revealed {
+            color: #6366f1;
+            font-weight: bold;
+            background-color: #f5f3ff;
+        }
+
+        .grid-container {
+            display: grid;
+            /* Grid dinÃ¢mico configurado via JS ou padrÃ£o */
+            width: fit-content;
+            margin: 0 auto;
+        }
+
+        .active-cell {
+            background-color: white;
+            border: 1px solid #9ca3af;
+        }
+
+        .empty-cell {
+            background-color: transparent;
+        }
+
+        /* Estilo para modo Caça Palavras (opcional) */
+        .word-search-cell {
+            background-color: #031528;
+            border: 1px solid #282829;
+        }
+
+        @media (max-width: 640px) {
+            .input-cell {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-100 min-h-screen p-4 font-sans text-slate-800">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 text-center relative">
+            <h1 class="text-4xl font-extrabold text-slate-800 tracking-tight">Desafio de Palavras</h1>
+            <p class="text-slate-500 mt-2">Resolva o desafio abaixo ou crie o seu próprio!</p>
+
+            <button onclick="openModal()"
+                class="md:absolute right-0 top-0 mt-4 md:mt-0 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg shadow flex items-center gap-2 mx-auto md:mx-0">
+                <i class="fas fa-edit"></i> Editar Jogo
+            </button>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+            <!-- Grelha -->
+            <div
+                class="lg:col-span-7 flex flex-col items-center bg-white p-6 rounded-3xl shadow-lg border border-slate-200">
+                <div id="crossword-grid" class="grid-container shadow-sm p-2 bg-slate-50 rounded-xl">
+                    <!-- Gerado por JS -->
+                </div>
+
+                <div class="mt-8 flex flex-wrap justify-center gap-3">
+                    <button onclick="checkAnswers()"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full font-bold shadow-md transition-transform hover:scale-105">
+                        <i class="fas fa-check mr-2"></i>Verificar
+                    </button>
+                    <button onclick="revealAnswers()"
+                        class="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-full font-bold shadow-md transition-transform hover:scale-105">
+                        <i class="fas fa-eye mr-2"></i>Soluções
+                    </button>
+                    <button onclick="resetGame()"
+                        class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-2 rounded-full font-bold transition-transform hover:scale-105">
+                        <i class="fas fa-eraser mr-2"></i>Limpar
+                    </button>
+                </div>
+                <div id="message-box" class="mt-4 min-h-[24px] text-center font-bold"></div>
+            </div>
+
+            <!-- Pistas -->
+            <div class="lg:col-span-5 space-y-6">
+                <!-- Horizontais -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border-l-8 border-blue-500">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
+                        <i class="fas fa-arrows-left-right text-blue-500"></i> Horizontais (6 Questões)
+                    </h3>
+                    <ul id="across-clues" class="space-y-3 text-slate-600"></ul>
+                </div>
+                <!-- Verticais -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border-l-8 border-emerald-500">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2 border-b pb-2">
+                        <i class="fas fa-arrows-up-down text-emerald-500"></i> Verticais (6 Questões)
+                    </h3>
+                    <ul id="down-clues" class="space-y-3 text-slate-600"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE EDIÇÃO -->
+    <div id="editor-modal"
+        class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+        <div
+            class="bg-white w-full max-w-4xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-up">
+
+            <!-- Header do Modal -->
+            <div class="bg-slate-800 text-white p-4 flex justify-between items-center">
+                <h2 class="text-xl font-bold"><i class="fas fa-cogs mr-2"></i>Editor de Palavras</h2>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- Corpo do Modal -->
+            <div class="flex-1 overflow-y-auto p-6 bg-slate-50">
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Formulário de Adição -->
+                    <div class="md:col-span-1 bg-white p-5 rounded-xl shadow-sm h-fit">
+                        <h3 class="font-bold text-lg mb-4 text-slate-700">Adicionar/Editar</h3>
+                        <form id="word-form" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                            <input type="hidden" id="edit-index">
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Palavra</label>
+                                <input type="text" id="input-word"
+                                    class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none uppercase"
+                                    required placeholder="EX: COMPUTADOR">
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-xs font-bold text-slate-500 uppercase mb-1">Dica/Questão</label>
+                                <textarea id="input-clue" rows="2"
+                                    class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                    required placeholder="Máquina eletrônica..."></textarea>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Pos X
+                                        (Col)</label>
+                                    <input type="number" id="input-x" min="0" max="19"
+                                        class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                        required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Pos Y
+                                        (Lin)</label>
+                                    <input type="number" id="input-y" min="0" max="19"
+                                        class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                        required>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Direção</label>
+                                <select id="input-dir"
+                                    class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="H">Horizontal</option>
+                                    <option value="V">Vertical</option>
+                                </select>
+                            </div>
+
+                            <div class="flex gap-2 pt-2">
+                                <button type="submit"
+                                    class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded font-bold shadow-sm">
+                                    <i class="fas fa-save mr-1"></i> Salvar
+                                </button>
+                                <button type="button" onclick="clearForm()"
+                                    class="px-3 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded font-bold">
+                                    Novo
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Lista de Palavras -->
+                    <div class="md:col-span-2">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-lg text-slate-700">Palavras Atuais</h3>
+                            <span id="word-count"
+                                class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">0 Palavras</span>
+                        </div>
+
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden border">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-slate-100 text-slate-600 uppercase text-xs">
+                                    <tr>
+                                        <th class="p-3">Palavra</th>
+                                        <th class="p-3">Pos</th>
+                                        <th class="p-3">Dir</th>
+                                        <th class="p-3">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="words-table-body" class="divide-y divide-slate-100">
+                                    <!-- Renderizado via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 border-t pt-6">
+                    <h3 class="font-bold text-lg mb-4 text-slate-700">Configurações da Grelha</h3>
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <div>
+                            <label class="font-bold text-sm text-slate-600 mr-2">Tamanho:</label>
+                            <input type="number" id="grid-size" value="15" min="5" max="25"
+                                onchange="GRID_SIZE = parseInt(this.value); setupGame();"
+                                class="w-20 p-2 border rounded text-center">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="fill-blanks" onchange="FILL_BLANKS = this.checked; setupGame();"
+                                class="w-5 h-5 text-blue-600 rounded">
+                            <label for="fill-blanks" class="text-sm font-bold text-slate-700 cursor-pointer">Preencher
+                                vazios (Estilo Caça Palavras)</label>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-slate-100 p-4 border-t flex justify-end">
+                <button onclick="closeModal(); setupGame();"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold shadow-sm">
+                    Fechar e Atualizar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DADOS INICIAIS (Exemplo para 6H e 6V) ---
+        let wordsData = [
+            // Horizontais
+            { word: 'PROCESSADOR', clue: 'O "cérebro" do computador.', x: 1, y: 1, dir: 'H' },
+            { word: 'MOUSE', clue: 'Dispositivo apontador.', x: 1, y: 3, dir: 'H' },
+            { word: 'TECLADO', clue: 'Usado para digitação.', x: 2, y: 5, dir: 'H' },
+            { word: 'MONITOR', clue: 'Exibe a imagem.', x: 0, y: 7, dir: 'H' },
+            { word: 'USB', clue: 'Conexão universal.', x: 8, y: 7, dir: 'H' },
+            { word: 'JAVA', clue: 'Linguagem de programação popular.', x: 1, y: 9, dir: 'H' },
+
+            // Verticais
+            { word: 'PYTHON', clue: 'Linguagem conhecida pela simplicidade.', x: 1, y: 1, dir: 'V' },
+            { word: 'RAM', clue: 'Memória de acesso aleatório.', x: 11, y: 1, dir: 'V' },
+            { word: 'SSD', clue: 'Armazenamento rápido.', x: 3, y: 1, dir: 'V' },
+            { word: 'HTML', clue: 'Linguagem de marcação para web.', x: 5, y: 3, dir: 'V' },
+            { word: 'INTERNET', clue: 'Rede mundial de computadores.', x: 8, y: 5, dir: 'V' },
+            { word: 'DADOS', clue: 'Informações processadas.', x: 13, y: 0, dir: 'V' },
+        ];
+
+        let GRID_SIZE = 15;
+        let FILL_BLANKS = false; // Se true, preenche espaços vazios com letras aleatórias
+        let gridState = [];
+
+        // --- LÓGICA DO JOGO ---
+
+        function setupGame() {
+            // Reiniciar estado da grelha
+            gridState = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+
+            // Layout da Grelha CSS
+            const gridEl = document.getElementById('crossword-grid');
+            gridEl.innerHTML = '';
+            gridEl.style.gridTemplateColumns = `repeat(${GRID_SIZE}, minmax(28px, 40px))`;
+            gridEl.style.gridTemplateRows = `repeat(${GRID_SIZE}, minmax(28px, 40px))`;
+
+            // Numeração das palavras
+            let counter = 1;
+            wordsData.forEach(w => w.num = counter++);
+
+            // Colocar palavras na matriz
+            wordsData.forEach(w => {
+                for (let i = 0; i < w.word.length; i++) {
+                    let cx = w.dir === 'H' ? w.x + i : w.x;
+                    let cy = w.dir === 'V' ? w.y + i : w.y;
+
+                    if (cx < GRID_SIZE && cy < GRID_SIZE) {
+                        if (!gridState[cy][cx]) {
+                            gridState[cy][cx] = { char: w.word[i], num: null, input: '' };
+                        }
+                        // Se for a primeira letra, adiciona o número (prioriza se já não tiver)
+                        if (i === 0) {
+                            gridState[cy][cx].num = w.num; // Pode sobrescrever, ok para cruzadas
+                        } else if (gridState[cy][cx].char !== w.word[i]) {
+                            // Conflito detectado (opcional: avisar no console)
+                            console.warn(`Conflito em [${cx},${cy}]: ${gridState[cy][cx].char} vs ${w.word[i]}`);
+                            gridState[cy][cx].char = w.word[i]; // Último vence
+                        }
+                    }
+                }
+            });
+
+            // Renderizar Células
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = gridState[y][x];
+                    const div = document.createElement('div');
+
+                    if (cell) {
+                        div.className = 'active-cell relative aspect-square';
+                        // Número da questão
+                        if (cell.num) {
+                            div.innerHTML = `<span class="absolute top-[1px] left-[2px] text-[9px] font-bold text-slate-500 leading-none z-10 pointer-events-none">${cell.num}</span>`;
+                        }
+                        // Input
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.maxLength = 1;
+                        input.className = 'cell-input w-full h-full text-center uppercase text-base sm:text-lg font-bold bg-transparent border-none cursor-pointer caret-transparent p-0';
+                        input.dataset.x = x;
+                        input.dataset.y = y;
+                        input.value = cell.input || ''; // Preservar se já digitado (num reload simples)
+
+                        // Eventos
+                        input.addEventListener('input', e => handleInput(e, x, y));
+                        input.addEventListener('keydown', e => handleKey(e, x, y));
+                        input.addEventListener('focus', () => highlightClue(x, y));
+
+                        div.appendChild(input);
+                    } else {
+                        // Célula vazia ou preenchida aleatoriamente
+                        div.className = 'empty-cell aspect-square flex items-center justify-center';
+                        if (FILL_BLANKS) {
+                            div.classList.add('word-search-cell');
+                            const randomChar = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+                            div.innerText = randomChar;
+                            div.className += ' text-slate-400 font-medium select-none';
+                        }
+                    }
+                    gridEl.appendChild(div);
+                }
+            }
+
+            // Renderizar Pistas
+            renderClues();
+        }
+
+        function renderClues() {
+            const hClues = document.getElementById('across-clues');
+            const vClues = document.getElementById('down-clues');
+            hClues.innerHTML = '';
+            vClues.innerHTML = '';
+
+            const hWords = wordsData.filter(w => w.dir === 'H').sort((a, b) => a.num - b.num);
+            const vWords = wordsData.filter(w => w.dir === 'V').sort((a, b) => a.num - b.num);
+
+            // Garantir que temos 6 de cada se possível na visualização, senão mostra o que tem
+            // O usuário pediu 6 e 6, mas aqui mostramos o que está na lista.
+
+            hWords.forEach(w => {
+                const li = document.createElement('li');
+                li.className = "flex items-start gap-2 bg-slate-50 p-2 rounded hover:bg-blue-50 transition-colors cursor-pointer group";
+                li.innerHTML = `<span class="font-bold text-blue-600 min-w-[20px]">${w.num}.</span> <span class="text-slate-700 group-hover:text-blue-800">${w.clue}</span>`;
+                hClues.appendChild(li);
+            });
+
+            vWords.forEach(w => {
+                const li = document.createElement('li');
+                li.className = "flex items-start gap-2 bg-slate-50 p-2 rounded hover:bg-emerald-50 transition-colors cursor-pointer group";
+                li.innerHTML = `<span class="font-bold text-emerald-600 min-w-[20px]">${w.num}.</span> <span class="text-slate-700 group-hover:text-emerald-800">${w.clue}</span>`;
+                vClues.appendChild(li);
+            });
+        }
+
+        // --- INTERAÇÕES DO JOGO ---
+
+        function handleInput(e, x, y) {
+            const val = e.target.value.toUpperCase();
+            e.target.value = val;
+            if (gridState[y][x]) gridState[y][x].input = val;
+
+            if (val) {
+                // Tentar mover para o próximo na direção da palavra atual (heurística simples)
+                // Se horizontal, vai para direita. Se vertical, vai para baixo.
+                // Aqui simplificamos: prioriza Horizontal se houver letra à direita.
+                moveFocus(x, y, 1, 0) || moveFocus(x, y, 0, 1);
+            }
+        }
+
+        function handleKey(e, x, y) {
+            if (e.key === 'Backspace') {
+                if (!e.target.value) {
+                    moveFocus(x, y, -1, 0) || moveFocus(x, y, 0, -1);
+                } else {
+                    e.target.value = '';
+                    gridState[y][x].input = '';
+                }
+            }
+            else if (e.key === 'ArrowRight') moveFocus(x, y, 1, 0);
+            else if (e.key === 'ArrowLeft') moveFocus(x, y, -1, 0);
+            else if (e.key === 'ArrowUp') moveFocus(x, y, 0, -1);
+            else if (e.key === 'ArrowDown') moveFocus(x, y, 0, 1);
+        }
+
+        function moveFocus(x, y, dx, dy) {
+            let nx = x + dx, ny = y + dy;
+            if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+                const el = document.querySelector(`input[data-x="${nx}"][data-y="${ny}"]`);
+                if (el) { el.focus(); el.select(); return true; }
+            }
+            return false;
+        }
+
+        function checkAnswers() {
+            let correct = true, filled = false;
+            let inputs = document.querySelectorAll('.cell-input');
+
+            inputs.forEach(input => {
+                const x = parseInt(input.dataset.x);
+                const y = parseInt(input.dataset.y);
+                const cell = gridState[y][x];
+
+                input.classList.remove('correct', 'incorrect');
+
+                if (cell.input) {
+                    filled = true;
+                    if (cell.input === cell.char) {
+                        input.classList.add('correct');
+                    } else {
+                        input.classList.add('incorrect');
+                        correct = false;
+                    }
+                } else {
+                    correct = false; // Se tiver vazio, não está completo
+                }
+            });
+
+            const msg = document.getElementById('message-box');
+            if (!filled) {
+                msg.innerText = "Comece a preencher a grelha!";
+                msg.className = "mt-4 text-center font-bold text-slate-500";
+            } else if (correct && filled && inputs.length > 0) {
+                msg.innerHTML = "<span class='text-2xl'>🎉</span> Parabéns! Você completou todas as palavras!";
+                msg.className = "mt-4 text-center font-bold text-emerald-600 text-lg animate-bounce";
+            } else {
+                msg.innerText = "Ainda há erros ou campos vazios. Continue tentando!";
+                msg.className = "mt-4 text-center font-bold text-orange-500";
+            }
+        }
+
+        function revealAnswers() {
+            document.querySelectorAll('.cell-input').forEach(input => {
+                const cell = gridState[input.dataset.y][input.dataset.x];
+                cell.input = cell.char;
+                input.value = cell.char;
+                input.classList.remove('correct', 'incorrect');
+                input.classList.add('revealed');
+            });
+            document.getElementById('message-box').innerText = "Respostas reveladas.";
+        }
+
+        function resetGame() {
+            document.querySelectorAll('.cell-input').forEach(input => {
+                gridState[input.dataset.y][input.dataset.x].input = '';
+                input.value = '';
+                input.classList.remove('correct', 'incorrect', 'revealed');
+            });
+            checkAnswers(); // Limpa mensagens
+        }
+
+        function highlightClue(x, y) {
+            // Opcional: destacar a pista correspondente quando focar
+        }
+
+        // --- LÓGICA DO MODAL ---
+
+        function openModal() {
+            document.getElementById('editor-modal').classList.remove('hidden');
+            renderEditorList();
+            clearForm();
+        }
+
+        function closeModal() {
+            document.getElementById('editor-modal').classList.add('hidden');
+        }
+
+        function renderEditorList() {
+            const tbody = document.getElementById('words-table-body');
+            tbody.innerHTML = '';
+            document.getElementById('word-count').innerText = `${wordsData.length} Palavras`;
+
+            wordsData.forEach((w, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 border-b";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-slate-700">${w.word}</td>
+                    <td class="p-3 text-slate-500 text-xs">X:${w.x}, Y:${w.y}</td>
+                    <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${w.dir === 'H' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}">${w.dir === 'H' ? 'HOR' : 'VER'}</span></td>
+                    <td class="p-3 flex gap-2">
+                        <button onclick="editWord(${index})" class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteWord(${index})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const word = document.getElementById('input-word').value.toUpperCase().trim();
+            const clue = document.getElementById('input-clue').value.trim();
+            const x = parseInt(document.getElementById('input-x').value);
+            const y = parseInt(document.getElementById('input-y').value);
+            const dir = document.getElementById('input-dir').value;
+            const indexStr = document.getElementById('edit-index').value;
+
+            if (!word || !clue) return;
+
+            const newObj = { word, clue, x, y, dir };
+
+            if (indexStr !== '') {
+                // Editar
+                wordsData[parseInt(indexStr)] = newObj;
+            } else {
+                // Adicionar
+                wordsData.push(newObj);
+            }
+
+            renderEditorList();
+            clearForm();
+        }
+
+        function editWord(index) {
+            const w = wordsData[index];
+            document.getElementById('input-word').value = w.word;
+            document.getElementById('input-clue').value = w.clue;
+            document.getElementById('input-x').value = w.x;
+            document.getElementById('input-y').value = w.y;
+            document.getElementById('input-dir').value = w.dir;
+            document.getElementById('edit-index').value = index;
+            // Destaque visual
+            document.getElementById('word-form').classList.add('ring-2', 'ring-blue-100');
+        }
+
+        function deleteWord(index) {
+            if (confirm('Remover esta palavra?')) {
+                wordsData.splice(index, 1);
+                renderEditorList();
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('word-form').reset();
+            document.getElementById('edit-index').value = '';
+            document.getElementById('word-form').classList.remove('ring-2', 'ring-blue-100');
+        }
+
+        // --- INICIALIZAÇÃO ---
+        window.onload = setupGame;
+
+    </script>
+</body>
+
+</html>

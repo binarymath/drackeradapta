@@ -21,6 +21,7 @@ import { DrackerEditorModal } from './components/DrackerEditorModal';
 import { VoiceSettingsModal } from './components/VoiceSettingsModal';
 import { SaveLoadModal } from './components/SaveLoadModal';
 import { MusicEditorModal } from './components/MusicEditorModal';
+import { CrosswordListEditor } from './components/CrosswordListEditor'; // Integrated
 import { CSS } from '@dnd-kit/utilities';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -197,7 +198,12 @@ export default function App() {
   const [drackerEditorData, setDrackerEditorData] = useState(null);
   const [currentDrackerData, setCurrentDrackerData] = useState(null);
 
+  // Crossword Editor State (Pre-generation)
+  const [showCrosswordEditor, setShowCrosswordEditor] = useState(false);
+  const [crosswordEditorData, setCrosswordEditorData] = useState(null);
+
   // Music Editor State
+
   const [showMusicEditor, setShowMusicEditor] = useState(false);
   const [musicEditorData, setMusicEditorData] = useState(null);
   const [currentMusicData, setCurrentMusicData] = useState(null);
@@ -247,9 +253,11 @@ export default function App() {
   const activityOptions = useMemo(() => [
     { id: 'quiz', label: 'Quiz / Questões', icon: <FileText className="w-4 h-4" /> },
     { id: 'wordsearch', label: 'Caça-Palavras', icon: <Grid className="w-4 h-4" /> },
+    { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-4 h-4" /> },
     { id: 'summary', label: 'Aprenda com o Drácker', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'simplify', label: 'Música do Drácker', icon: <Music className="w-4 h-4" /> },
   ], []);
+
 
   const difficultyOptions = useMemo(() => [
     { id: 'easy', label: 'Leve e Simples' },
@@ -387,6 +395,26 @@ FORMATAÇÃO:
 - Use "a) Alternativa" para as respostas.
 - Não use blocos de código.`;
           break;
+        case 'crossword':
+          prompt = `Crie uma lista de palavras e dicas para um jogo de Palavras Cruzadas sobre o tema "${topic}".
+              
+              Nível: ${level}.
+              Contexto: ${context}.
+
+              RETORNE APENAS UM JSON VÁLIDO com a seguinte estrutura:
+              {
+                "words": [
+                   { "word": "PALAVRA1", "clue": "Dica da palavra 1..." },
+                   { "word": "PALAVRA2", "clue": "Dica da palavra 2..." }
+                ]
+              }
+
+              REQUISITOS:
+              - Gere entre 10 e 15 palavras relacionadas ao tema.
+              - As palavras devem estar em formato string simples (sem acentos preferencialmente, mas o sistema normaliza).
+              - As dicas devem ser claras e adequadas ao nível solicitado.
+              - RETORNE APENAS O JSON.`;
+          break;
         case 'summary':
           prompt = `Crie uma história educativa sobre "${topic}" com o personagem Drácker.
           
@@ -476,6 +504,32 @@ FORMATAÇÃO:
       // PROCESSAMENTO DO QUIZ (JSON -> Markdown Formatado)
 
 
+      if (activityType === 'crossword') {
+        try {
+          const firstBrace = text.indexOf('{');
+          const lastBrace = text.lastIndexOf('}');
+          if (firstBrace === -1 || lastBrace === -1) {
+            throw new Error("JSON não encontrado na resposta.");
+          }
+          const cleanJson = text.substring(firstBrace, lastBrace + 1);
+          const parsedData = JSON.parse(cleanJson);
+
+          // Open Editor instead of generating immediately
+          setCrosswordEditorData(parsedData);
+          setShowCrosswordEditor(true);
+
+          setIsLoading(false);
+          return;
+
+        } catch (e) {
+          console.error("Erro cruzadinhas:", e);
+          setError("Erro ao gerar palavras cruzadas: " + e.message);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+
       if (activityType === 'quiz' || activityType === 'summary' || activityType === 'simplify') {
         try {
           // Limpeza e Extração de JSON (Busca o primeiro { e o último })
@@ -541,6 +595,54 @@ FORMATAÇÃO:
         setIsLoading(false);
       }
       setSystemStatus(null);
+    }
+  };
+
+  const handleCrosswordConfirm = async (editedData) => {
+    try {
+      const { generateCrossword } = await import('./utils/crosswordGenerator');
+
+      // Generate Layout with edited words
+      const layout = generateCrossword(editedData.words, 15);
+
+      if (layout.words.length === 0) {
+        // Try larger grid if failed
+        const layout2 = generateCrossword(editedData.words, 20);
+        if (layout2.words.length === 0) {
+          alert("Não foi possível encaixar todas as palavras. Tente remover algumas ou simplificar.");
+          return; // Stay in editor
+        }
+        // Used larger grid
+        addActivityTab({
+          title: editedData.topic || topic || "Palavras Cruzadas",
+          type: 'crossword',
+          content: '',
+          data: {
+            words: layout2.words.map((w, i) => ({ ...w, num: i + 1 })),
+            gridSize: 20,
+            fillBlanks: false
+          }
+        });
+      } else {
+        // Success regular grid
+        addActivityTab({
+          title: editedData.topic || topic || "Palavras Cruzadas",
+          type: 'crossword',
+          content: '',
+          data: {
+            words: layout.words.map((w, i) => ({ ...w, num: i + 1 })),
+            gridSize: 15,
+            fillBlanks: false
+          }
+        });
+      }
+
+      setShowCrosswordEditor(false);
+      setCrosswordEditorData(null);
+
+    } catch (e) {
+      console.error("Erro ao gerar grid final:", e);
+      alert("Erro ao criar layout: " + e.message);
     }
   };
 
@@ -989,6 +1091,15 @@ FORMATAÇÃO:
             }
             musicData={activeActivity?.musicData}
             drackerData={activeActivity?.drackerData}
+            crosswordData={activeActivity?.data}
+            onCrosswordUpdate={(newData) => {
+              setTabs(prev => prev.map(t => {
+                if (t.id === activeTabId) {
+                  return { ...t, data: newData };
+                }
+                return t;
+              }));
+            }}
           />
         </div>
 
@@ -1024,6 +1135,15 @@ FORMATAÇÃO:
           onSave={handleMusicConfirm}
           initialData={musicEditorData}
         />
+
+        {showCrosswordEditor && crosswordEditorData && (
+          <CrosswordListEditor
+            initialData={crosswordEditorData}
+            topic={topic}
+            onConfirm={handleCrosswordConfirm}
+            onCancel={() => setShowCrosswordEditor(false)}
+          />
+        )}
 
 
       </main >

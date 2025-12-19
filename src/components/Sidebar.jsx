@@ -142,13 +142,25 @@ export const Sidebar = ({
                         <label className="block text-sm font-semibold mb-2">Tipo</label>
                         <div className="space-y-2 max-h-40 overflow-y-auto">
                             {activityOptions.map((opt) => (
-                                <button
-                                    key={opt.id}
-                                    onClick={() => setActivityType(opt.id)}
-                                    className={`w-full px-3 py-2 rounded text-left text-sm ${activityType === opt.id ? 'bg-amber-100 border border-amber-500' : 'bg-slate-50 hover:bg-slate-100'}`}
-                                >
-                                    {opt.icon} {opt.label}
-                                </button>
+                                opt.url ? (
+                                    <a
+                                        key={opt.id}
+                                        href={opt.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full px-3 py-2 rounded text-left text-sm flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700"
+                                    >
+                                        {opt.icon} {opt.label}
+                                    </a>
+                                ) : (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => setActivityType(opt.id)}
+                                        className={`w-full px-3 py-2 rounded text-left text-sm flex items-center gap-2 ${activityType === opt.id ? 'bg-amber-100 border border-amber-500' : 'bg-slate-50 hover:bg-slate-100'}`}
+                                    >
+                                        {opt.icon} {opt.label}
+                                    </button>
+                                )
                             ))}
                         </div>
                     </div>

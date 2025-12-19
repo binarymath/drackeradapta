@@ -1,6 +1,7 @@
 import React from 'react';
 import { Copy, FileText, Download, Brain, Pencil } from 'lucide-react';
 import RichTextRenderer from './RichTextRenderer';
+import { CrosswordActivity } from './CrosswordActivity'; // Import
 
 export const ActivityArea = ({
     generatedContent,
@@ -24,21 +25,25 @@ export const ActivityArea = ({
     onEdit,
 
     musicData,
-    drackerData
+    drackerData,
+    crosswordData, // New Prop
+    onCrosswordUpdate // New Prop
 }) => {
+    const hasContent = generatedContent || (activityType === 'crossword' && crosswordData);
+
     return (
         <div className="lg:col-span-8">
             <div className="bg-white rounded-lg shadow-xl border border-slate-200 min-h-96 flex flex-col">
                 <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 no-print">
                     <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${generatedContent ? 'bg-blue-500' : 'bg-slate-300'}`}></span>
+                        <span className={`w-2 h-2 rounded-full ${hasContent ? 'bg-blue-500' : 'bg-slate-300'}`}></span>
                         <span className="text-xs font-bold text-slate-500">
-                            {generatedContent ? 'PRONTO' : 'AGUARDANDO'}
+                            {hasContent ? 'PRONTO' : 'AGUARDANDO'}
                         </span>
                     </div>
 
                     <div className="flex gap-2">
-                        {generatedContent && (
+                        {hasContent && (
                             <>
                                 {(activityType === 'quiz' || activityType === 'summary') && (
                                     <button
@@ -73,7 +78,7 @@ export const ActivityArea = ({
                 </div>
 
                 <div className="flex-1 p-8 overflow-y-auto" ref={activityAreaRef} id="activity-area-print">
-                    {generatedContent ? (
+                    {hasContent ? (
                         <>
                             {activityType === 'wordsearch' && (
                                 <div className="wordsearch-controls mb-6 space-y-3 bg-amber-50 p-4 rounded-lg border border-amber-200 no-print">
@@ -184,6 +189,11 @@ export const ActivityArea = ({
                                         </div>
                                     </div>
                                 </div>
+                            ) : activityType === 'crossword' && crosswordData ? (
+                                <CrosswordActivity
+                                    data={crosswordData}
+                                    onUpdate={onCrosswordUpdate}
+                                />
                             ) : activityType === 'simplify' && musicData ? (
                                 <div className="space-y-6">
                                     {/* Card 1: Music Lyrics */}
@@ -254,9 +264,10 @@ export const ActivityArea = ({
                                 </>
                             )}
                         </div>
-                    )}
-                </div>
-            </div>
-        </div>
+                    )
+                    }
+                </div >
+            </div >
+        </div >
     );
 };
