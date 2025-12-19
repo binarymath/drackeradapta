@@ -2,6 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateCrossword } from '../utils/crosswordGenerator';
 import { Edit2, Sparkles, Trash2, Save, X, Plus, RefreshCw, Eye, Eraser, Check } from 'lucide-react';
 
+// UI Components
+import { Button } from './ui/Button';
+import { Badge } from './ui/Badge';
+import { Card } from './ui/Card';
+import { Input, Select } from './ui/Input';
+import { Modal } from './ui/Modal';
+
 export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
     // --- STATE ---
     const [words, setWords] = useState(data?.words || []); // {word, clue, x, y, dir, num}
@@ -207,32 +214,29 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
         <div className="flex flex-col gap-6 p-4 max-w-6xl mx-auto">
 
             {/* Toolbar */}
-            <div className="flex flex-wrap justify-between items-center bg-white p-4 rounded-xl shadow-sm border">
+            <Card className="flex flex-wrap justify-between items-center p-4">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <Sparkles className="text-amber-500" />
+                    <h2 className="text-xl font-bold text-brown-900 flex items-center gap-2">
+                        <Sparkles className="text-brown-500" />
                         {topic || "Palavras Cruzadas"}
                     </h2>
-                    <span className="text-xs font-mono bg-slate-100 px-2 py-1 rounded text-slate-500">
+                    <Badge variant="outline">
                         {words.length} Palavras
-                    </span>
+                    </Badge>
                 </div>
 
                 <div className="flex gap-2">
-                    <button
-                        onClick={() => setShowEditor(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors text-sm font-bold"
-                    >
-                        <Edit2 className="w-4 h-4" /> Editar / Adicionar
-                    </button>
+                    <Button onClick={() => setShowEditor(true)} icon={Edit2}>
+                        Editar / Adicionar
+                    </Button>
                 </div>
-            </div>
+            </Card>
 
             {/* Main Layout - Column for better print/PDF flow */}
             <div className="flex flex-col gap-8">
 
                 {/* Grid Area - Centered */}
-                <div className="w-full bg-white p-6 rounded-2xl shadow-lg border border-slate-200 flex flex-col items-center print:shadow-none print:border-none">
+                <Card className="w-full flex flex-col items-center print:shadow-none print:border-none">
 
                     {/* The Grid */}
                     <div
@@ -248,7 +252,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
                                 if (!cell) {
                                     // Use 'invisible' to keep size but hide content. 
                                     // ensure it doesn't take up ink. 
-                                    return <div key={`${x}-${y}`} className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 print:invisible print:border-none" />;
+                                    return <div key={`${x}-${y}`} className="w-8 h-8 sm:w-10 sm:h-10 bg-brown-50/30 print:invisible print:border-none" />;
                                 } // Vazio
 
                                 const isFiller = cell.isFiller;
@@ -258,8 +262,8 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
                                         className={`
                                             relative w-8 h-8 sm:w-10 sm:h-10 
                                             flex items-center justify-center 
-                                            ${isFiller ? 'bg-slate-100 print:bg-white' : 'bg-white'} 
-                                            border border-black
+                                            ${isFiller ? 'bg-brown-50 print:bg-white' : 'bg-white'} 
+                                            border border-brown-900
                                             print:!border print:!border-black print:z-10
                                         `}
                                         style={{
@@ -268,19 +272,19 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
                                         }}
                                     >
                                         {cell.num && (
-                                            <span className="absolute top-0.5 left-0.5 text-[10px] font-black text-slate-500 leading-none pointer-events-none print:text-black z-20">
+                                            <span className="absolute top-0.5 left-0.5 text-[10px] font-black text-brown-800 leading-none pointer-events-none print:text-black z-20">
                                                 {cell.num}
                                             </span>
                                         )}
                                         {isFiller ? (
-                                            <span className="text-slate-300 font-sans select-none print:text-slate-200">{cell.char}</span>
+                                            <span className="text-brown-300 font-sans select-none print:text-slate-200">{cell.char}</span>
                                         ) : (
                                             <input
                                                 id={`cell-${x}-${y}`}
                                                 type="text"
                                                 maxLength={1}
-                                                className={`w-full h-full text-center font-bold uppercase outline-none focus:bg-blue-50 cursor-pointer text-lg bg-transparent
-                                                    ${cell.status === 'correct' ? 'text-emerald-600' : cell.status === 'incorrect' ? 'text-red-500' : cell.status === 'revealed' ? 'text-indigo-600' : 'text-slate-800'}
+                                                className={`w-full h-full text-center font-bold uppercase outline-none focus:bg-brown-100 cursor-pointer text-lg bg-transparent
+                                                    ${cell.status === 'correct' ? 'text-green-700' : cell.status === 'incorrect' ? 'text-red-600' : cell.status === 'revealed' ? 'text-blue-700' : 'text-brown-900'}
                                                     print:text-black print:font-extrabold
                                                 `}
                                                 value={cell.input}
@@ -296,154 +300,150 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
 
                     {/* Game Controls - Hide on Print */}
                     <div className="mt-8 flex gap-3 no-print print:hidden">
-                        <button onClick={checkAnswers} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2 rounded-full font-bold shadow hover:bg-emerald-700 hover:scale-105 transition-all">
-                            <Check className="w-4 h-4" /> Verificar
-                        </button>
-                        <button onClick={revealAnswers} className="flex items-center gap-2 bg-amber-500 text-white px-5 py-2 rounded-full font-bold shadow hover:bg-amber-600 hover:scale-105 transition-all">
-                            <Eye className="w-4 h-4" /> Soluções
-                        </button>
-                        <button onClick={clearGrid} className="flex items-center gap-2 bg-slate-200 text-slate-700 px-5 py-2 rounded-full font-bold hover:bg-slate-300 hover:scale-105 transition-all">
-                            <Eraser className="w-4 h-4" /> Limpar
-                        </button>
+                        <Button onClick={checkAnswers} variant="primary" className="bg-green-600 hover:bg-green-700 text-white" icon={Check}>
+                            Verificar
+                        </Button>
+                        <Button onClick={revealAnswers} variant="secondary" className="bg-yellow-500 hover:bg-yellow-400 text-brown-900 border-none" icon={Eye}>
+                            Soluções
+                        </Button>
+                        <Button onClick={clearGrid} variant="ghost" className="bg-brown-100 text-brown-800 hover:bg-brown-200" icon={Eraser}>
+                            Limpar
+                        </Button>
                     </div>
 
-                </div>
+                </Card>
 
                 {/* Clues Area - Bottom, 2 Columns */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                     {/* Horizontal */}
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 print:shadow-none print:border">
-                        <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2 text-lg border-b pb-2">
-                            <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">HORIZONTAIS</span>
+                    <Card className="print:shadow-none print:border">
+                        <h3 className="font-bold text-brown-900 mb-4 flex items-center gap-2 text-lg border-b border-brown-100 pb-2">
+                            <Badge variant="secondary">HORIZONTAIS</Badge>
                         </h3>
                         <ul className="space-y-3 text-sm">
                             {words.filter(w => w.dir === 'H').sort((a, b) => a.num - b.num).map(w => (
                                 <li key={w.num} className="flex items-start gap-3">
-                                    <span className="font-black text-blue-600 min-w-[1.5rem] text-right">{w.num}.</span>
-                                    <span className="text-slate-700 font-medium flex-1 whitespace-normal break-normal hyphens-none">{w.clue}</span>
+                                    <span className="font-black text-brown-600 min-w-[1.5rem] text-right">{w.num}.</span>
+                                    <span className="text-brown-700 font-medium flex-1 whitespace-normal break-normal hyphens-none">{w.clue}</span>
                                 </li>
                             ))}
                         </ul>
-                    </div>
+                    </Card>
 
                     {/* Vertical */}
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 print:shadow-none print:border">
-                        <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2 text-lg border-b pb-2">
-                            <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs">VERTICAIS</span>
+                    <Card className="print:shadow-none print:border">
+                        <h3 className="font-bold text-brown-900 mb-4 flex items-center gap-2 text-lg border-b border-brown-100 pb-2">
+                            <Badge className="bg-brown-800 text-white border-none">VERTICAIS</Badge>
                         </h3>
                         <ul className="space-y-3 text-sm">
                             {words.filter(w => w.dir === 'V').sort((a, b) => a.num - b.num).map(w => (
                                 <li key={w.num} className="flex items-start gap-3">
-                                    <span className="font-black text-emerald-600 min-w-[1.5rem] text-right">{w.num}.</span>
-                                    <span className="text-slate-700 font-medium flex-1 whitespace-normal break-normal hyphens-none">{w.clue}</span>
+                                    <span className="font-black text-brown-800 min-w-[1.5rem] text-right">{w.num}.</span>
+                                    <span className="text-brown-700 font-medium flex-1 whitespace-normal break-normal hyphens-none">{w.clue}</span>
                                 </li>
                             ))}
                         </ul>
-                    </div>
+                    </Card>
                 </div>
 
             </div>
 
             {/* EDITOR MODAL */}
             {showEditor && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="bg-slate-800 px-6 py-4 flex justify-between items-center text-white">
-                            <h3 className="text-lg font-bold flex items-center gap-2">
-                                <Edit2 className="w-4 h-4" /> Editor de Palavras
-                            </h3>
-                            <button onClick={() => setShowEditor(false)} className="hover:text-red-400">
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
-
-                        <div className="p-6 overflow-y-auto bg-slate-50 flex-1">
-
-                            {/* Add New */}
-                            <form
-                                className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-slate-200"
-                                onSubmit={(e) => {
-                                    e.preventDefault();
-                                    const w = e.target.word.value.trim().toUpperCase();
-                                    const c = e.target.clue.value.trim();
-                                    if (w && c) {
-                                        addWord({ word: w, clue: c });
-                                        e.target.reset();
-                                    }
-                                }}
-                            >
-                                <h4 className="font-bold text-sm text-slate-500 uppercase mb-3">Adicionar Nova Palavra</h4>
-                                <div className="flex gap-3">
-                                    <input name="word" placeholder="PALAVRA" className="flex-1 p-2 border rounded font-bold uppercase text-sm" required />
-                                    <input name="clue" placeholder="Dica..." className="flex-[2] p-2 border rounded text-sm" required />
-                                    <button type="submit" className="bg-emerald-600 text-white px-4 rounded hover:bg-emerald-700">
-                                        <Plus className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </form>
-
-                            {/* List */}
-                            <div className="space-y-2">
-                                {words.map((w, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 bg-white border rounded-lg group hover:border-blue-300 transition-colors">
-                                        <div>
-                                            <div className="font-bold text-slate-800">{w.word}</div>
-                                            <div className="text-xs text-slate-500">{w.clue}</div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            {/* (Edit logic omitted for brevity, can just remove and add) */}
-                                            <button onClick={() => removeWord(idx)} className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                                {words.length === 0 && (
-                                    <p className="text-center text-slate-400 italic py-4">Nenhuma palavra adicionada ainda.</p>
-                                )}
-                            </div>
-
-                            {/* Configs */}
-                            <div className="mt-6 pt-6 border-t grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tamanho da Grade</label>
-                                    <select
-                                        value={gridSize}
-                                        onChange={(e) => { setGridSize(parseInt(e.target.value)); regenerateLayout(); }}
-                                        className="w-full p-2 border rounded"
-                                    >
-                                        <option value="10">10x10</option>
-                                        <option value="15">15x15 (Padrão)</option>
-                                        <option value="20">20x20</option>
-                                        <option value="25">25x25 (Grande)</option>
-                                    </select>
-                                </div>
-                                <div className="flex items-center gap-2 pt-5">
-                                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                                        <input
-                                            type="checkbox"
-                                            checked={fillBlanks}
-                                            onChange={(e) => { setFillBlanks(e.target.checked); regenerateLayout(); }}
-                                            className="w-4 h-4 text-blue-600 rounded"
-                                        />
-                                        <span className="text-sm font-bold text-slate-700">Estilo Caça-Palavras</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div className="mt-4 p-3 bg-blue-50 text-blue-800 text-xs rounded">
-                                <b>Nota:</b> Ao adicionar ou remover palavras, o layout da grade será recalculado automaticamente para encontrar a melhor posição de encaixe.
-                            </div>
-
-                        </div>
-
-                        <div className="bg-slate-100 p-4 flex justify-end">
-                            <button onClick={() => setShowEditor(false)} className="px-6 py-2 bg-slate-800 text-white font-bold rounded-lg shadow hover:bg-slate-900">
+                <Modal
+                    isOpen={showEditor}
+                    onClose={() => setShowEditor(false)}
+                    title="Editor de Palavras"
+                    icon={Edit2}
+                    size="lg"
+                    footer={
+                        <div className="flex justify-end w-full">
+                            <Button onClick={() => setShowEditor(false)} icon={Check}>
                                 Concluir Edição
-                            </button>
+                            </Button>
                         </div>
+                    }
+                >
+                    <div className="flex-1">
+                        {/* Add New */}
+                        <form
+                            className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-brown-200"
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                const w = e.target.word.value.trim().toUpperCase();
+                                const c = e.target.clue.value.trim();
+                                if (w && c) {
+                                    addWord({ word: w, clue: c });
+                                    e.target.reset();
+                                }
+                            }}
+                        >
+                            <h4 className="font-bold text-sm text-brown-500 uppercase mb-3">Adicionar Nova Palavra</h4>
+                            <div className="flex gap-3">
+                                <Input name="word" placeholder="PALAVRA" className="flex-1 font-bold uppercase" required />
+                                <Input name="clue" placeholder="Dica..." className="flex-[2]" required />
+                                <Button type="submit" className="h-auto py-2">
+                                    <Plus className="w-5 h-5" />
+                                </Button>
+                            </div>
+                        </form>
+
+                        {/* List */}
+                        <div className="space-y-2">
+                            {words.map((w, idx) => (
+                                <Card key={idx} className="flex items-center justify-between p-3 group hover:border-brown-300 shadow-sm">
+                                    <div>
+                                        <div className="font-bold text-brown-800">{w.word}</div>
+                                        <div className="text-xs text-brown-500">{w.clue}</div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Button
+                                            onClick={() => removeWord(idx)}
+                                            variant="ghost"
+                                            className="text-brown-300 hover:text-red-500 opacity-0 group-hover:opacity-100"
+                                            icon={Trash2}
+                                        />
+                                    </div>
+                                </Card>
+                            ))}
+                            {words.length === 0 && (
+                                <p className="text-center text-brown-400 italic py-4">Nenhuma palavra adicionada ainda.</p>
+                            )}
+                        </div>
+
+                        {/* Configs */}
+                        <div className="mt-6 pt-6 border-t border-brown-200 grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-brown-500 uppercase mb-1">Tamanho da Grade</label>
+                                <Select
+                                    value={gridSize}
+                                    onChange={(e) => { setGridSize(parseInt(e.target.value)); regenerateLayout(); }}
+                                >
+                                    <option value="10">10x10</option>
+                                    <option value="15">15x15 (Padrão)</option>
+                                    <option value="20">20x20</option>
+                                    <option value="25">25x25 (Grande)</option>
+                                </Select>
+                            </div>
+                            <div className="flex items-center gap-2 pt-5">
+                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={fillBlanks}
+                                        onChange={(e) => { setFillBlanks(e.target.checked); regenerateLayout(); }}
+                                        className="w-4 h-4 text-brown-600 rounded focus:ring-brown-500 accent-brown-600"
+                                    />
+                                    <span className="text-sm font-bold text-brown-700">Estilo Caça-Palavras</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="mt-4 p-3 bg-brown-100 text-brown-800 text-xs rounded-lg border border-brown-200">
+                            <b>Nota:</b> Ao adicionar ou remover palavras, o layout da grade será recalculado automaticamente para encontrar a melhor posição de encaixe.
+                        </div>
+
                     </div>
-                </div>
+                </Modal>
             )}
 
         </div>

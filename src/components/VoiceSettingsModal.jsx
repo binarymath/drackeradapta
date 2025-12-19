@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { X, Play, Save, RefreshCw } from 'lucide-react';
+import { X, Play, Save, RefreshCw, Volume2 } from 'lucide-react';
+
+// UI Components
+import { Modal } from './ui/Modal';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Card } from './ui/Card';
+import { Badge } from './ui/Badge';
+import { Select } from './ui/Input';
 
 export const VoiceSettingsModal = ({ isOpen, onClose, currentSettings, onSave }) => {
     const [voices, setVoices] = useState([]);
@@ -51,9 +59,7 @@ export const VoiceSettingsModal = ({ isOpen, onClose, currentSettings, onSave })
 
         window.speechSynthesis.onvoiceschanged = loadVoices;
         return () => { window.speechSynthesis.onvoiceschanged = null; };
-    }, [selectedVoiceURI]); // Keep selectedVoiceURI as dep if we want to default logic to re-run, but maybe better not to? 
-    // Actually, onvoiceschanged is global. Let's just bind it once.
-    // Simplifying dependency array.
+    }, [selectedVoiceURI]);
 
     useEffect(() => {
         if (isOpen) {
@@ -79,99 +85,102 @@ export const VoiceSettingsModal = ({ isOpen, onClose, currentSettings, onSave })
         onClose();
     };
 
+    const footer = (
+        <div className="flex gap-3 w-full">
+            <Button
+                onClick={handleTest}
+                variant="outline"
+                className="flex-1"
+                icon={Play}
+            >
+                Testar
+            </Button>
+            <Button
+                onClick={handleSaveLocal}
+                className="flex-1"
+                icon={Save}
+            >
+                Salvar
+            </Button>
+        </div>
+    );
+
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md  animate-in zoom-in-95 duration-200">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-xl">
-                    <h2 className="text-lg font-bold text-slate-800">Configurar Narrador</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-500">
-                        <X className="w-5 h-5" />
-                    </button>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Configurar Narrador"
+            icon={Volume2}
+            size="sm"
+            footer={footer}
+        >
+            <div className="space-y-6">
+                <div>
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="text-sm font-semibold text-brown-700">Voz ({voices.length} encontradas)</label>
+                        <Button
+                            onClick={() => {
+                                const all = window.speechSynthesis.getVoices();
+                                setVoices(all);
+                            }}
+                            variant="ghost"
+                            className="text-xs h-auto py-1 px-2"
+                            icon={RefreshCw}
+                        >
+                            Atualizar
+                        </Button>
+                    </div>
+                    <select // Using native select for efficiency with large lists, could standardise later
+                        value={selectedVoiceURI}
+                        onChange={(e) => setSelectedVoiceURI(e.target.value)}
+                        className="w-full p-2 border border-brown-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brown-500 focus:border-transparent"
+                    >
+                        {voices.map(v => {
+                            const isNatural = v.name.includes('Natural') || v.name.includes('Neural') || v.name.includes('Online');
+                            return (
+                                <option key={v.voiceURI} value={v.voiceURI} className={isNatural ? 'font-bold text-green-700 bg-green-50' : ''}>
+                                    {isNatural ? '✨ ' : ''}{v.name} ({v.lang}) {isNatural ? '- Ótima Qualidade' : ''}
+                                </option>
+                            );
+                        })}
+                    </select>
+                    {voices.length === 0 && <p className="text-xs text-red-500 mt-1">Nenhuma voz detectada. Tente clicar em atualizar.</p>}
                 </div>
 
-                <div className="p-6 space-y-6">
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="text-sm font-semibold text-slate-700">Voz ({voices.length} encontradas)</label>
-                            <button
-                                onClick={() => {
-                                    const all = window.speechSynthesis.getVoices();
-                                    setVoices(all);
-                                }}
-                                className="text-xs flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                                title="Recarregar lista de vozes"
-                            >
-                                <RefreshCw className="w-3 h-3" /> Atualizar
-                            </button>
-                        </div>
-                        <select
-                            value={selectedVoiceURI}
-                            onChange={(e) => setSelectedVoiceURI(e.target.value)}
-                            className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white"
-                        >
-                            {voices.map(v => {
-                                const isNatural = v.name.includes('Natural') || v.name.includes('Neural') || v.name.includes('Online');
-                                return (
-                                    <option key={v.voiceURI} value={v.voiceURI} className={isNatural ? 'font-bold text-green-700 bg-green-50' : ''}>
-                                        {isNatural ? '✨ ' : ''}{v.name} ({v.lang}) {isNatural ? '- Ótima Qualidade' : ''}
-                                    </option>
-                                );
-                            })}
-                        </select>
-                        {voices.length === 0 && <p className="text-xs text-red-500 mt-1">Nenhuma voz detectada. Tente clicar em atualizar.</p>}
-
+                <div>
+                    <div className="flex justify-between mb-2">
+                        <label className="text-sm font-semibold text-brown-700">Velocidade</label>
+                        <span className="text-xs text-brown-500">{rate}x</span>
                     </div>
+                    <input
+                        type="range"
+                        min="0.5"
+                        max="2"
+                        step="0.1"
+                        value={rate}
+                        onChange={(e) => setRate(parseFloat(e.target.value))}
+                        className="w-full h-2 bg-brown-200 rounded-lg appearance-none cursor-pointer accent-brown-600"
+                    />
+                </div>
 
-                    <div>
-                        <div className="flex justify-between mb-2">
-                            <label className="text-sm font-semibold text-slate-700">Velocidade</label>
-                            <span className="text-xs text-slate-500">{rate}x</span>
-                        </div>
-                        <input
-                            type="range"
-                            min="0.5"
-                            max="2"
-                            step="0.1"
-                            value={rate}
-                            onChange={(e) => setRate(parseFloat(e.target.value))}
-                            className="w-full"
-                        />
+                <div>
+                    <div className="flex justify-between mb-2">
+                        <label className="text-sm font-semibold text-brown-700">Tom (Agudo/Grave)</label>
+                        <span className="text-xs text-brown-500">{pitch}</span>
                     </div>
-
-                    <div>
-                        <div className="flex justify-between mb-2">
-                            <label className="text-sm font-semibold text-slate-700">Tom (Agudo/Grave)</label>
-                            <span className="text-xs text-slate-500">{pitch}</span>
-                        </div>
-                        <input
-                            type="range"
-                            min="0.5"
-                            max="2"
-                            step="0.1"
-                            value={pitch}
-                            onChange={(e) => setPitch(parseFloat(e.target.value))}
-                            className="w-full"
-                        />
-                    </div>
-
-                    <div className="pt-2 flex gap-3">
-                        <button
-                            onClick={handleTest}
-                            className="flex-1 py-2 rounded-lg border border-blue-200 text-blue-700 font-semibold hover:bg-blue-50 flex items-center justify-center gap-2"
-                        >
-                            <Play className="w-4 h-4" /> Testar
-                        </button>
-                        <button
-                            onClick={handleSaveLocal}
-                            className="flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center justify-center gap-2"
-                        >
-                            <Save className="w-4 h-4" /> Salvar
-                        </button>
-                    </div>
+                    <input
+                        type="range"
+                        min="0.5"
+                        max="2"
+                        step="0.1"
+                        value={pitch}
+                        onChange={(e) => setPitch(parseFloat(e.target.value))}
+                        className="w-full h-2 bg-brown-200 rounded-lg appearance-none cursor-pointer accent-brown-600"
+                    />
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 };

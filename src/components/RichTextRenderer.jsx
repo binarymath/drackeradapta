@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Key } from 'lucide-react';
 
+// UI Components
+import { Card } from './ui/Card';
+import { Badge } from './ui/Badge';
+
 const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], foundPlacements = [], hideText = false, hideGrid = false, title = null }) => {
     if (!content) return null;
 
@@ -9,7 +13,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         const parts = cleanText.split(/(\*\*.*?\*\*)/g);
         return parts.map((part, index) => {
             if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={index} className="text-amber-700 font-extrabold">{part.slice(2, -2)}</strong>;
+                return <strong key={index} className="text-brown-700 font-extrabold">{part.slice(2, -2)}</strong>;
             }
             return part;
         });
@@ -101,7 +105,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
 
                     cardContent.push(
                         <div key="grid-content" className="flex justify-center mb-6">
-                            <div className="inline-block p-4 bg-slate-50 rounded-lg border border-slate-200 shadow-inner">
+                            <div className="inline-block p-4 bg-brown-50 rounded-lg border border-brown-200 shadow-inner">
                                 <div
                                     className="grid"
                                     style={{ gridTemplateColumns: `repeat(${cols}, auto)`, gap: '0px' }}
@@ -112,7 +116,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                                             return (
                                                 <div
                                                     key={`${rowIndex}-${colIndex}`}
-                                                    className={`flex items-center justify-center font-mono text-sm font-bold transition-colors cursor-pointer border border-slate-100/50 ${isHighlighted ? 'bg-green-400 text-white shadow-sm scale-110 z-10 rounded' : 'text-slate-800 bg-white hover:bg-yellow-200'
+                                                    className={`flex items-center justify-center font-mono text-sm font-bold transition-colors cursor-pointer border border-brown-100/50 ${isHighlighted ? 'bg-brown-500 text-white shadow-sm scale-110 z-10 rounded' : 'text-brown-900 bg-white hover:bg-brown-200'
                                                         }`}
                                                     style={{ width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' }}
                                                 >
@@ -131,13 +135,13 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
             // 2. RENDER WORD LIST
             if (wordListBuffer.length > 0) {
                 cardContent.push(
-                    <div key="word-list-content" className="mt-4 pt-4 border-t-2 border-dashed border-slate-200">
-                        <h4 className="text-center text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Palavras para Encontrar</h4>
+                    <div key="word-list-content" className="mt-4 pt-4 border-t-2 border-dashed border-brown-200">
+                        <h4 className="text-center text-sm font-bold text-brown-500 uppercase tracking-widest mb-4">Palavras para Encontrar</h4>
                         <div className="flex flex-wrap justify-center gap-3 px-4">
                             {wordListBuffer.map((part, pIdx) => (
-                                <span key={pIdx} className="bg-white text-slate-700 px-4 py-1.5 rounded-full text-sm font-bold border-2 border-slate-100 shadow-sm uppercase tracking-wider hover:border-amber-300 hover:text-amber-800 transition-colors cursor-help">
+                                <Badge key={pIdx} variant="outline" className="text-sm font-bold uppercase tracking-wider cursor-help">
                                     {part.trim()}
-                                </span>
+                                </Badge>
                             ))}
                         </div>
                     </div>
@@ -146,9 +150,9 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
 
             // Wrapper Card
             elements.push(
-                <div key={`game-card-${elements.length}`} className="bg-white p-6 rounded-xl shadow-lg border-2 border-slate-100 my-8 print:shadow-none print:border-slate-300">
+                <Card key={`game-card-${elements.length}`} className="my-8 print:shadow-none print:border-brown-300">
                     {cardContent}
-                </div>
+                </Card>
             );
 
             gridBuffer = [];
@@ -179,16 +183,16 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
     const flushQuestion = () => {
         if (questionBuffer.length > 0) {
             elements.push(
-                <div key={`q-${elements.length}`} className="mb-4 bg-white p-5 rounded-xl border border-blue-100 shadow-sm hover:border-blue-300 transition-colors">
+                <Card key={`q-${elements.length}`} className="mb-4 hover:border-brown-300 transition-colors">
                     {questionBuffer.map((qLine, qIdx) => {
                         const isEnunciado = /^\d+\./.test(qLine);
                         return (
-                            <div key={qIdx} className={`${isEnunciado ? 'font-bold text-slate-800 text-lg mb-3' : 'ml-0 pl-4 py-1 text-slate-700 hover:bg-slate-50 rounded flex items-center'}`}>
+                            <div key={qIdx} className={`${isEnunciado ? 'font-bold text-brown-900 text-lg mb-3' : 'ml-0 pl-4 py-1 text-brown-700 hover:bg-brown-50 rounded flex items-center'}`}>
                                 {isEnunciado ? renderInlineStyles(qLine) : <span className="w-full">{renderInlineStyles(qLine)}</span>}
                             </div>
                         );
                     })}
-                </div>
+                </Card>
             );
             questionBuffer = [];
         }
@@ -197,24 +201,24 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
     const flushStory = () => {
         if (storyBuffer.length > 0) {
             elements.push(
-                <div key={`story-${elements.length}`} className="bg-white border rounded-lg shadow-sm p-8 relative mb-6 overflow-hidden">
+                <Card key={`story-${elements.length}`} className="relative mb-6 overflow-hidden">
 
                     {/* Title inside Card (only for the first story block) */}
                     {title && !hideText && !titleRendered && (
-                        <div className="border-b border-amber-100 pb-4 mb-6">
-                            <h2 className="text-2xl font-bold text-amber-900 mb-1">{title}</h2>
+                        <div className="border-b border-brown-100 pb-4 mb-6">
+                            <h2 className="text-2xl font-bold text-brown-900 mb-1">{title}</h2>
                         </div>
                     )}
 
                     {/* Story Content */}
-                    <div className="prose prose-lg max-w-none text-slate-800 leading-loose font-serif">
+                    <div className="prose prose-lg max-w-none text-brown-900 leading-loose font-serif">
                         {storyBuffer.map((line, idx) => (
                             <p key={idx} className="indent-8 mb-6 text-justify">
                                 {renderInlineStyles(line)}
                             </p>
                         ))}
                     </div>
-                </div>
+                </Card>
             );
             storyBuffer = [];
             if (title) titleRendered = true;
@@ -397,9 +401,9 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                     elements.push(
                         <div key={`wl-${index}`} className="flex flex-wrap justify-center gap-3 my-2 px-4">
                             {listParts.map((part, pIdx) => (
-                                <span key={pIdx} className="bg-amber-100 text-amber-900 px-3 py-1 rounded-full text-sm font-bold border border-amber-200 shadow-sm uppercase tracking-wider">
+                                <Badge key={pIdx} variant="secondary" className="px-3 py-1 text-sm font-bold shadow-sm uppercase tracking-wider">
                                     {part.trim()}
-                                </span>
+                                </Badge>
                             ))}
                         </div>
                     );
@@ -459,10 +463,10 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
             const t = trimmedLine.replace('[[TITULO]]', '').trim();
             elements.push(
                 <div key={index} className="relative mt-8 mb-6 text-center">
-                    <h1 className="text-3xl font-black text-indigo-900 tracking-tight uppercase relative z-10 inline-block px-4 bg-slate-100/50 rounded-lg">
+                    <h1 className="text-3xl font-black text-brown-900 tracking-tight uppercase relative z-10 inline-block px-4 bg-brown-50 rounded-lg">
                         {t}
                     </h1>
-                    <div className="absolute top-1/2 left-0 w-full h-1 bg-indigo-100 -z-0"></div>
+                    <div className="absolute top-1/2 left-0 w-full h-1 bg-brown-100 -z-0"></div>
                 </div>
             );
             return;
@@ -470,15 +474,15 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         if (trimmedLine.startsWith('### ')) {
             flushStory();
             textStarted = true;
-            elements.push(<h3 key={index} className="text-xl font-bold text-indigo-700 mt-8 mb-3 flex items-center gap-2"><div className="w-2 h-6 bg-indigo-400 rounded-full"></div>{trimmedLine.slice(4)}</h3>);
+            elements.push(<h3 key={index} className="text-xl font-bold text-brown-700 mt-8 mb-3 flex items-center gap-2"><div className="w-2 h-6 bg-brown-400 rounded-full"></div>{trimmedLine.slice(4)}</h3>);
         } else if (trimmedLine.startsWith('## ')) {
             flushStory();
             textStarted = true;
-            elements.push(<h2 key={index} className="text-2xl font-bold text-slate-800 mt-10 mb-4 pb-2 border-b-2 border-indigo-100">{trimmedLine.slice(3)}</h2>);
+            elements.push(<h2 key={index} className="text-2xl font-bold text-brown-800 mt-10 mb-4 pb-2 border-b-2 border-brown-100">{trimmedLine.slice(3)}</h2>);
         } else if (trimmedLine.startsWith('# ')) {
             flushStory();
             textStarted = true;
-            elements.push(<h1 key={index} className="text-3xl font-extrabold text-slate-900 mt-6 mb-6 text-center">{trimmedLine.slice(2)}</h1>);
+            elements.push(<h1 key={index} className="text-3xl font-extrabold text-brown-900 mt-6 mb-6 text-center">{trimmedLine.slice(2)}</h1>);
         } else if (trimmedLine === '') {
             // Linha vazia na história pode ser só espaço. Não flusha, só ignora ou adiciona <br/> se quiser.
             // Para Wordsearch, quebras de linha duplas marcam parágrafos.
@@ -512,46 +516,46 @@ const AnswerKeyCard = ({ lines, renderInlineStyles }) => {
     // garantindo que não saia no cloneNode do ExportService.
 
     return (
-        <div className="mt-8 mb-4 border-t-2 border-slate-100 pt-6 no-break">
+        <Card className="mt-8 mb-4 pt-6 no-break">
             <div
                 onClick={() => setIsVisible(!isVisible)}
-                className="flex items-center justify-between cursor-pointer bg-green-50 hover:bg-green-100 p-4 rounded-xl transition-colors border border-green-200"
+                className="flex items-center justify-between cursor-pointer bg-brown-50 hover:bg-brown-100 p-4 rounded-xl transition-colors border border-brown-200"
             >
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center text-green-700">
+                    <div className="w-10 h-10 rounded-full bg-brown-200 flex items-center justify-center text-brown-700">
                         <Key className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-green-900">Gabarito da Atividade</h3>
-                        <p className="text-xs text-green-700">Clique para mostrar/ocultar as respostas</p>
+                        <h3 className="text-lg font-bold text-brown-900">Gabarito da Atividade</h3>
+                        <p className="text-xs text-brown-700">Clique para mostrar/ocultar as respostas</p>
                     </div>
                 </div>
-                {isVisible ? <ChevronUp className="text-green-600" /> : <ChevronDown className="text-green-600" />}
+                {isVisible ? <ChevronUp className="text-brown-600" /> : <ChevronDown className="text-brown-600" />}
             </div>
 
             {isVisible && (
-                <div className="mt-3 p-5 bg-white border-2 border-green-100 rounded-xl shadow-sm">
+                <div className="mt-3 p-5 bg-white border-2 border-brown-100 rounded-xl shadow-sm">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {lines.map((line, idx) => {
                             // Tenta formatar bonito se for "1. a"
                             const match = line.match(/^(\d+)[.)]\s*([a-eA-E].*)/);
                             if (match) {
                                 return (
-                                    <div key={idx} className="flex items-center gap-2 p-2 border-b border-slate-50">
-                                        <span className="font-bold text-green-700 w-8">{match[1]}.</span>
-                                        <span className="font-medium text-slate-700">{match[2]}</span>
+                                    <div key={idx} className="flex items-center gap-2 p-2 border-b border-brown-50">
+                                        <span className="font-bold text-brown-700 w-8">{match[1]}.</span>
+                                        <span className="font-medium text-brown-700">{match[2]}</span>
                                     </div>
                                 );
                             }
                             // Exclui o titulo se acabou entrando no buffer
                             if (/gabarito/i.test(line)) return null;
 
-                            return <p key={idx} className="text-slate-700 border-b border-slate-50 py-1">{renderInlineStyles(line)}</p>;
+                            return <p key={idx} className="text-brown-700 border-b border-brown-50 py-1">{renderInlineStyles(line)}</p>;
                         })}
                     </div>
                 </div>
             )}
-        </div>
+        </Card>
     );
 };
 

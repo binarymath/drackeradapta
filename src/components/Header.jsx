@@ -10,6 +10,10 @@ import {
     SlidersHorizontal
 } from 'lucide-react';
 
+import { theme } from '../styles/theme';
+import { Button } from './ui/Button';
+import { Badge } from './ui/Badge';
+
 export const Header = ({
     apiKeyStatus,
     handleSpeak,
@@ -27,79 +31,81 @@ export const Header = ({
     onRestore
 }) => {
     return (
-        <header className="bg-white shadow border-b border-slate-200 sticky top-0 z-20 no-print">
-            <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-amber-700">
+        <header className={theme.layout.header}>
+            <div className={theme.layout.headerContainer}>
+                <div className="flex items-center gap-2 text-brown-900">
                     <img src="/dracker.png" alt="Drácker Logo" className="w-10 h-10 object-contain hover:scale-110 transition-transform" />
-                    <h1 className="text-xl font-bold">Dracker AdaptAI</h1>
+                    <h1 className="text-xl font-bold tracking-tight">Dracker AdaptAI</h1>
 
                     {apiKeyStatus === 'valid' && (
-                        <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full flex items-center gap-1">
+                        <Badge variant="success">
                             <CheckCircle className="w-3 h-3" /> API OK
-                        </span>
+                        </Badge>
                     )}
                     {apiKeyStatus === 'validating' && (
-                        <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full flex items-center gap-1">
+                        <Badge variant="warning">
                             <Loader2 className="w-3 h-3 animate-spin" /> Verificando...
-                        </span>
+                        </Badge>
                     )}
                     {apiKeyStatus === 'invalid' && (
-                        <span className="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full flex items-center gap-1">
+                        <Badge variant="error">
                             <AlertCircle className="w-3 h-3" /> Chave Inválida
-                        </span>
+                        </Badge>
                     )}
                 </div>
                 <div className="flex items-center gap-2">
-                    <button
+                    <Button
+                        variant="icon"
                         onClick={openVoiceSettings}
-                        className="p-2 rounded bg-slate-100 hover:bg-slate-200 text-slate-600"
                         title="Configurar Voz do Narrador"
                     >
                         <SlidersHorizontal className="w-4 h-4" />
-                    </button>
+                    </Button>
 
 
-                    <button
+                    <Button
                         onClick={handleSpeak}
                         disabled={isGeneratingAudio}
-                        className={`p-2 rounded ${isSpeaking ? 'bg-red-100 hover:bg-red-200' : 'bg-slate-100 hover:bg-slate-200'}`}
+                        variant={isSpeaking ? "danger" : "icon"}
+                        className={isSpeaking ? '' : 'text-brown-800'}
                         title={isSpeaking && !isPaused ? 'Pausar narração' : isPaused ? 'Retomar narração' : 'Ouvir narração'}
                     >
                         {isSpeaking && !isPaused ? <Pause className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                    </button>
+                    </Button>
                     <div className="flex items-center gap-1">
-                        <button onClick={speakPrev} className="px-2 py-1 text-xs bg-slate-100 rounded hover:bg-slate-200" disabled={!speechChunks.length || chunkIndex === 0}>Anterior</button>
-                        <button onClick={speakNext} className="px-2 py-1 text-xs bg-slate-100 rounded hover:bg-slate-200" disabled={!speechChunks.length || chunkIndex >= speechChunks.length - 1}>Próximo</button>
+                        <Button variant="ghost" className="px-2 py-1 text-xs" onClick={speakPrev} disabled={!speechChunks.length || chunkIndex === 0}>Anterior</Button>
+                        <Button variant="ghost" className="px-2 py-1 text-xs" onClick={speakNext} disabled={!speechChunks.length || chunkIndex >= speechChunks.length - 1}>Próximo</Button>
                         {speechChunks.length > 0 && (
-                            <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700 hidden sm:inline">{chunkIndex + 1}/{speechChunks.length}</span>
+                            <span className="text-xs px-2 py-1 rounded bg-brown-50 text-brown-700 hidden sm:inline font-mono border border-brown-100">{chunkIndex + 1}/{speechChunks.length}</span>
                         )}
                     </div>
                     {isGeneratingAudio ? (
-                        <div className="flex items-center gap-2 px-2 py-1 bg-amber-50 rounded hidden sm:flex">
-                            <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
-                            <span className="text-xs text-amber-700 font-medium">Gerando áudio...</span>
+                        <div className="flex items-center gap-2 px-2 py-1 bg-brown-50 rounded-lg hidden sm:flex border border-brown-100">
+                            <Loader2 className="w-3 h-3 animate-spin text-brown-600" />
+                            <span className="text-xs text-brown-700 font-medium">Gerando áudio...</span>
                         </div>
                     ) : (
-                        <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700 hidden sm:inline">
+                        <span className="text-xs px-2 py-1 rounded-lg bg-brown-50 text-brown-700 hidden sm:inline border border-brown-100">
                             {isSpeaking ? (isPaused ? 'Pausado' : 'Tocando') : 'Parado'}
                         </span>
                     )}
-                    <div className="flex items-center gap-2 border-l pl-2 ml-2 border-slate-200">
-                        <button
+                    <div className="flex items-center gap-2 border-l pl-2 ml-2 border-brown-200">
+                        <Button
                             onClick={onBackup}
-                            className="bg-blue-100 text-blue-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-200 transition-colors"
+                            variant="secondary"
+                            className="px-3 py-1.5 text-xs font-bold"
                             title="Fazer backup de tudo"
                         >
                             Backup
-                        </button>
-                        <label className="bg-amber-100 text-amber-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-amber-200 cursor-pointer transition-colors">
+                        </Button>
+                        <label className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${theme.button.primary}`}>
                             Restaurar
                             <input type="file" accept=".json" onChange={onRestore} className="hidden" />
                         </label>
                     </div>
-                    <button onClick={() => setShowSettings(!showSettings)} className="p-2 hover:bg-slate-100 rounded">
+                    <Button variant="icon" onClick={() => setShowSettings(!showSettings)}>
                         <Settings className="w-5 h-5" />
-                    </button>
+                    </Button>
                 </div>
             </div>
         </header>

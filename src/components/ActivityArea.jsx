@@ -1,7 +1,13 @@
 import React from 'react';
-import { Copy, FileText, Download, Brain, Pencil } from 'lucide-react';
+import { Copy, FileText, Download, Sparkles, Check, Pencil } from 'lucide-react';
 import RichTextRenderer from './RichTextRenderer';
-import { CrosswordActivity } from './CrosswordActivity'; // Import
+import { CrosswordActivity } from './CrosswordActivity';
+
+// UI Components
+import { Button } from './ui/Button';
+import { Badge } from './ui/Badge';
+import { Card } from './ui/Card';
+import { Input } from './ui/Input';
 
 export const ActivityArea = ({
     generatedContent,
@@ -26,52 +32,48 @@ export const ActivityArea = ({
 
     musicData,
     drackerData,
-    crosswordData, // New Prop
-    onCrosswordUpdate // New Prop
+    crosswordData,
+    onCrosswordUpdate
 }) => {
     const hasContent = generatedContent || (activityType === 'crossword' && crosswordData);
 
     return (
         <div className="lg:col-span-8">
-            <div className="bg-white rounded-lg shadow-xl border border-slate-200 min-h-96 flex flex-col">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 no-print">
+            <div className="bg-white rounded-2xl shadow-xl border border-brown-200 min-h-96 flex flex-col transition-all">
+                <div className="p-4 border-b border-brown-100 flex items-center justify-between bg-brown-50/50 no-print rounded-t-2xl">
                     <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${hasContent ? 'bg-blue-500' : 'bg-slate-300'}`}></span>
-                        <span className="text-xs font-bold text-slate-500">
-                            {hasContent ? 'PRONTO' : 'AGUARDANDO'}
+                        <span className={`w-2 h-2 rounded-full ${hasContent ? 'bg-green-500' : 'bg-brown-300'}`}></span>
+                        <span className="text-xs font-bold text-brown-500 uppercase">
+                            {hasContent ? 'Pronto' : 'Aguardando'}
                         </span>
                     </div>
 
                     <div className="flex gap-2">
                         {hasContent && (
                             <>
-                                {(activityType === 'quiz' || activityType === 'summary') && (
-                                    <button
+                                {(activityType === 'quiz' || activityType === 'summary' || activityType === 'simplify') && (
+                                    <Button
                                         onClick={onEdit}
-                                        className="px-3 py-2 rounded text-sm bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold flex items-center gap-2"
-                                        title="Editar Estrutura"
+                                        variant="secondary"
+                                        className="h-8 text-sm px-3"
+                                        icon={Pencil}
                                     >
-                                        <Pencil className="w-4 h-4" /> {activityType === 'quiz' ? 'Quiz' : 'Editar'}
-                                    </button>
+                                        {activityType === 'quiz' ? 'Quiz' : 'Editar'}
+                                    </Button>
                                 )}
                                 {activityType === 'wordsearch' && foundWords.length > 0 && (
-                                    <button
+                                    <Button
                                         onClick={() => setShowAnswers(!showAnswers)}
-                                        className={`px-3 py-2 rounded text-sm font-bold ${showAnswers ? 'bg-blue-500 text-white' : 'bg-slate-100 hover:bg-slate-200'}`}
-                                        title={showAnswers ? 'Ocultar respostas' : 'Mostrar respostas'}
+                                        variant={showAnswers ? "primary" : "secondary"}
+                                        className={`h-8 text-sm px-3 ${showAnswers ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+                                        icon={showAnswers ? Check : undefined}
                                     >
-                                        {showAnswers ? '✓ Respostas' : 'Respostas'}
-                                    </button>
+                                        {showAnswers ? 'Respostas' : 'Respostas'}
+                                    </Button>
                                 )}
-                                <button onClick={handleCopy} className="px-3 py-2 rounded text-sm bg-slate-100 hover:bg-slate-200">
-                                    <Copy className="w-4 h-4" />
-                                </button>
-                                <button onClick={handleDownloadDoc} className="px-3 py-2 rounded text-sm bg-slate-100 hover:bg-slate-200" title="Baixar como DOCX">
-                                    <FileText className="w-4 h-4" />
-                                </button>
-                                <button onClick={handleDownloadPdf} className="px-3 py-2 rounded text-sm bg-slate-100 hover:bg-slate-200" title="Imprimir como PDF">
-                                    <Download className="w-4 h-4" />
-                                </button>
+                                <Button onClick={handleCopy} variant="ghost" className="h-8 w-8 p-0" icon={Copy} title="Copiar" />
+                                <Button onClick={handleDownloadDoc} variant="ghost" className="h-8 w-8 p-0" icon={FileText} title="Baixar DOCX" />
+                                <Button onClick={handleDownloadPdf} variant="ghost" className="h-8 w-8 p-0" icon={Download} title="Imprimir PDF" />
                             </>
                         )}
                     </div>
@@ -81,29 +83,25 @@ export const ActivityArea = ({
                     {hasContent ? (
                         <>
                             {activityType === 'wordsearch' && (
-                                <div className="wordsearch-controls mb-6 space-y-3 bg-amber-50 p-4 rounded-lg border border-amber-200 no-print">
-                                    <div>
-                                        <label className="text-xs font-bold text-amber-700 uppercase tracking-wide">Nome da Atividade</label>
-                                        <input
-                                            type="text"
-                                            value={wordsearchTitle}
-                                            onChange={(e) => setWordsearchTitle(e.target.value)}
-                                            className="w-full mt-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                            placeholder="Digite o título da atividade"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
+                                <Card className="mb-6 bg-brown-50 no-print">
+                                    <Input
+                                        label="Nome da Atividade"
+                                        value={wordsearchTitle}
+                                        onChange={(e) => setWordsearchTitle(e.target.value)}
+                                        placeholder="Digite o título da atividade"
+                                    />
+                                    <div className="flex flex-col gap-2 mt-4">
                                         <label className="flex items-center gap-2 cursor-pointer">
                                             <input
                                                 type="checkbox"
                                                 checked={wordsearchHideText}
                                                 onChange={(e) => {
                                                     setWordsearchHideText(e.target.checked);
-                                                    if (e.target.checked) setWordsearchHideGrid(false); // Alterna
+                                                    if (e.target.checked) setWordsearchHideGrid(false);
                                                 }}
-                                                className="w-4 h-4 rounded"
+                                                className="w-4 h-4 rounded text-brown-600 focus:ring-brown-500 accent-brown-600"
                                             />
-                                            <span className="text-xs font-bold text-slate-700">Esconder a História (Só o Jogo)</span>
+                                            <span className="text-xs font-bold text-brown-700">Esconder a História (Só o Jogo)</span>
                                         </label>
                                         <label className="flex items-center gap-2 cursor-pointer">
                                             <input
@@ -111,49 +109,50 @@ export const ActivityArea = ({
                                                 checked={wordsearchHideGrid}
                                                 onChange={(e) => {
                                                     setWordsearchHideGrid(e.target.checked);
-                                                    if (e.target.checked) setWordsearchHideText(false); // Alterna
+                                                    if (e.target.checked) setWordsearchHideText(false);
                                                 }}
-                                                className="w-4 h-4 rounded"
+                                                className="w-4 h-4 rounded text-brown-600 focus:ring-brown-500 accent-brown-600"
                                             />
-                                            <span className="text-xs font-bold text-slate-700">Esconder o Jogo (Só a História)</span>
+                                            <span className="text-xs font-bold text-brown-700">Esconder o Jogo (Só a História)</span>
                                         </label>
                                     </div>
-                                </div>
+                                </Card>
                             )}
 
                             {activityType === 'summary' && drackerData ? (
                                 <div className="space-y-6">
-                                    <div className="bg-white border rounded-lg shadow-sm p-8 relative group overflow-hidden">
+                                    <Card className="p-8 relative group overflow-hidden border border-brown-100 shadow-sm">
                                         <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none" style={{ filter: 'sepia(100%) saturate(300%) hue-rotate(315deg) brightness(70%)' }}>
                                             <img src="/dracker.png" alt="Drácker" className="w-32 h-32 object-contain opacity-50" />
                                         </div>
 
                                         {/* HEADER */}
-                                        <div className="border-b border-amber-100 pb-4 mb-6 flex justify-between items-start">
+                                        <div className="border-b border-brown-100 pb-4 mb-6 flex justify-between items-start">
                                             <div>
-                                                <h2 className="text-2xl font-bold text-amber-900 mb-1">Aprenda com o Drácker</h2>
-                                                <p className="text-amber-700 font-medium opacity-75">Uma história interativa para a turma</p>
+                                                <h2 className="text-2xl font-bold text-brown-900 mb-1">Aprenda com o Drácker</h2>
+                                                <p className="text-brown-600 font-medium opacity-75">Uma história interativa para a turma</p>
                                             </div>
-                                            <button
+                                            <Button
                                                 onClick={() => {
                                                     navigator.clipboard.writeText(drackerData.story);
                                                     alert('História copiada!');
                                                 }}
-                                                className="p-2 text-amber-700 hover:bg-amber-50 rounded transition-colors flex items-center gap-1 text-sm font-semibold"
-                                                title="Copiar apenas a história"
+                                                variant="secondary"
+                                                className="text-xs"
+                                                icon={Copy}
                                             >
-                                                <Copy className="w-4 h-4" /> Copiar Texto
-                                            </button>
+                                                Copiar Texto
+                                            </Button>
                                         </div>
 
                                         {/* STORY CONTENT */}
-                                        <div className="prose prose-lg max-w-none text-slate-800 leading-loose mb-10 font-serif">
+                                        <div className="prose prose-lg max-w-none text-brown-900 leading-loose mb-10 font-serif">
                                             {drackerData.story.split('\n\n').map((paragraph, index) => (
                                                 <p key={index} className="indent-8 mb-6 text-justify">
                                                     {paragraph.split(/(\*\*.*?\*\*)/g).map((part, i) => {
                                                         if (part.startsWith('**') && part.endsWith('**')) {
                                                             return (
-                                                                <strong key={i} className="text-amber-700 font-extrabold">
+                                                                <strong key={i} className="text-brown-800 font-extrabold">
                                                                     {part.slice(2, -2)}
                                                                 </strong>
                                                             );
@@ -165,18 +164,18 @@ export const ActivityArea = ({
                                         </div>
 
                                         {/* ACTIVITIES CONTENT */}
-                                        <div className="bg-white rounded-xl p-6 border-2 border-dashed border-amber-200">
-                                            <h3 className="text-lg font-bold text-amber-800 mb-6 flex items-center gap-2">
+                                        <Card className="bg-white/50 border-2 border-dashed border-brown-200">
+                                            <h3 className="text-lg font-bold text-brown-800 mb-6 flex items-center gap-2">
                                                 <img src="/dracker.png" alt="Brain" className="w-6 h-6 object-contain" />
                                                 Atividades Práticas
                                             </h3>
                                             <ol className="list-decimal list-outside ml-5 space-y-4">
                                                 {drackerData.activities.map((act, idx) => (
-                                                    <li key={idx} className="text-slate-700 font-medium pl-2">
+                                                    <li key={idx} className="text-brown-700 font-medium pl-2">
                                                         {act.split(/(\*\*.*?\*\*)/g).map((part, i) => {
                                                             if (part.startsWith('**') && part.endsWith('**')) {
                                                                 return (
-                                                                    <strong key={i} className="text-amber-700 font-extrabold">
+                                                                    <strong key={i} className="text-brown-800 font-extrabold">
                                                                         {part.slice(2, -2)}
                                                                     </strong>
                                                                 );
@@ -186,8 +185,8 @@ export const ActivityArea = ({
                                                     </li>
                                                 ))}
                                             </ol>
-                                        </div>
-                                    </div>
+                                        </Card>
+                                    </Card>
                                 </div>
                             ) : activityType === 'crossword' && crosswordData ? (
                                 <CrosswordActivity
@@ -197,43 +196,44 @@ export const ActivityArea = ({
                             ) : activityType === 'simplify' && musicData ? (
                                 <div className="space-y-6">
                                     {/* Card 1: Music Lyrics */}
-                                    <div className="bg-white border rounded-lg shadow-sm p-6 relative group">
+                                    <Card className="p-6 relative group">
                                         <div className="absolute top-0 right-0 p-2 opacity-10">
                                             <span className="text-6xl">🎵</span>
                                         </div>
-                                        <div className="flex justify-between items-center border-b pb-2 mb-4">
-                                            <h2 className="text-xl font-bold text-amber-900">Música do Drácker</h2>
-                                            <button
+                                        <div className="flex justify-between items-center border-b border-brown-100 pb-2 mb-4">
+                                            <h2 className="text-xl font-bold text-brown-900">Música do Drácker</h2>
+                                            <Button
                                                 onClick={() => {
                                                     navigator.clipboard.writeText(musicData.lyrics);
                                                     alert('Letra copiada!');
                                                 }}
-                                                className="p-2 text-amber-600 hover:bg-amber-50 rounded transition-colors flex items-center gap-1 text-sm font-semibold z-10"
-                                                title="Copiar apenas a letra"
+                                                variant="secondary"
+                                                className="text-xs z-10"
+                                                icon={Copy}
                                             >
-                                                <Copy className="w-4 h-4" /> Copiar Letra
-                                            </button>
+                                                Copiar Letra
+                                            </Button>
                                         </div>
-                                        <div className="whitespace-pre-wrap font-sans text-slate-700 text-lg leading-relaxed">
+                                        <div className="whitespace-pre-wrap font-sans text-brown-700 text-lg leading-relaxed">
                                             {musicData.lyrics}
                                         </div>
-                                    </div>
+                                    </Card>
 
                                     {/* Card 2: Questions */}
-                                    <div className="bg-white border rounded-lg shadow-sm p-6 relative">
+                                    <Card className="p-6 relative">
                                         <div className="absolute top-0 right-0 p-2 opacity-10">
                                             <span className="text-6xl">📝</span>
                                         </div>
-                                        <h2 className="text-xl font-bold text-amber-700 mb-4 border-b pb-2">Perguntas de Interpretação</h2>
+                                        <h2 className="text-xl font-bold text-brown-800 mb-4 border-b border-brown-100 pb-2">Perguntas de Interpretação</h2>
                                         <ol className="list-decimal list-inside space-y-4">
                                             {musicData.questions.map((q, idx) => (
-                                                <li key={idx} className="text-slate-800 font-medium">
+                                                <li key={idx} className="text-brown-900 font-medium">
                                                     {q}
-                                                    <div className="mt-2 h-8 border-b border-dotted border-slate-300 w-full"></div>
+                                                    <div className="mt-2 h-8 border-b border-dotted border-brown-300 w-full"></div>
                                                 </li>
                                             ))}
                                         </ol>
-                                    </div>
+                                    </Card>
                                 </div>
                             ) : (
                                 <RichTextRenderer
@@ -248,18 +248,18 @@ export const ActivityArea = ({
                             )}
                         </>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-300">
+                        <div className="h-full flex flex-col items-center justify-center text-brown-300">
                             {isLoading ? (
                                 <div className="flex flex-col items-center gap-4">
                                     <img src="/dracker.png" alt="Loading" className="w-16 h-16 animate-bounce" />
-                                    <p className="text-slate-500">Criando...</p>
+                                    <p className="text-brown-500">Criando...</p>
                                 </div>
                             ) : (
                                 <>
                                     <FileText className="w-12 h-12 mb-4" />
-                                    <p className="text-slate-500">Área de Atividades</p>
+                                    <p className="text-brown-400">Área de Atividades</p>
                                     {isGeneratingAudio && (
-                                        <p className="text-xs mt-2 text-amber-400">Processando áudio em background...</p>
+                                        <p className="text-xs mt-2 text-brown-400">Processando áudio em background...</p>
                                     )}
                                 </>
                             )}

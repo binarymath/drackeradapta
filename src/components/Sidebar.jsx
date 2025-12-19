@@ -1,6 +1,11 @@
 import React from 'react';
 import { Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import WordsearchWizard from './WordsearchWizard';
+import { theme } from '../styles/theme';
+import { Button } from './ui/Button';
+import { Input, TextArea, Select } from './ui/Input';
+import { Card } from './ui/Card';
+import { Badge } from './ui/Badge';
 
 export const Sidebar = ({
     showSettings,
@@ -42,43 +47,42 @@ export const Sidebar = ({
     openSaveLoad
 }) => {
     return (
-        <div className="lg:col-span-4 space-y-6 no-print">
+        <div className={theme.layout.sidebar}>
             {showSettings && (
-                <div className="bg-white p-6 rounded-lg shadow border border-amber-200 space-y-4">
+                <Card className="space-y-4">
                     <div>
-                        <h2 className="text-sm font-bold text-amber-900 mb-3">🔑 Chave Gemini API</h2>
-                        <input
+                        <h2 className={theme.text.title.replace('text-lg', 'text-sm')}>🔑 Chave Gemini API</h2>
+                        <Input
                             type="password"
                             value={apiKey}
                             onChange={handleApiKeyChange}
                             placeholder="Cole sua chave aqui..."
-                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded text-sm font-mono"
                         />
-                        <p className="text-xs text-slate-600 mt-2">
-                            Não tem? <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-amber-500 hover:underline font-bold">Obter chave grátis</a>
+                        <p className={`${theme.text.small} mt-2`}>
+                            Não tem? <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className={theme.text.link}>Obter chave grátis</a>
                         </p>
                         {apiKey && (
-                            <button onClick={clearApiKey} className="w-full mt-2 py-2 bg-red-100 text-red-700 rounded text-sm font-semibold hover:bg-red-200">
+                            <Button onClick={clearApiKey} variant="danger" className="w-full mt-2 py-2 text-sm">
                                 Limpar Chave
-                            </button>
+                            </Button>
                         )}
                     </div>
 
                     {apiKey && (
                         <div>
-                            <h3 className="text-sm font-bold text-slate-700 mb-2">⚡ Modelo de IA</h3>
+                            <h3 className={theme.text.subtitle}>⚡ Modelo de IA</h3>
                             <div className="space-y-2">
                                 {modelOptions.map((model) => (
-                                    <label key={model.id} className="flex items-center gap-2 p-2 rounded hover:bg-slate-50 cursor-pointer">
+                                    <label key={model.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-brown-50 cursor-pointer transition-colors">
                                         <input
                                             type="radio"
                                             name="model"
                                             value={model.id}
                                             checked={selectedModel === model.id}
                                             onChange={(e) => setSelectedModel(e.target.value)}
-                                            className="rounded"
+                                            className={theme.input.checkbox}
                                         />
-                                        <span className="text-xs text-slate-700">{model.label}</span>
+                                        <span className="text-xs text-brown-700">{model.label}</span>
                                     </label>
                                 ))}
                             </div>
@@ -86,61 +90,55 @@ export const Sidebar = ({
                     )}
                     {imagePng && (
                         <div className="mt-6">
-                            <img src={imagePng} alt="Imagem gerada por IA" className="max-w-full border rounded" />
+                            <img src={imagePng} alt="Imagem gerada por IA" className="max-w-full border border-brown-200 rounded-lg shadow-sm" />
                             <div className="mt-3">
-                                <button onClick={handleDownloadGeneratedPng} className="px-3 py-2 rounded text-sm bg-blue-100 hover:bg-blue-200">Baixar PNG</button>
+                                <Button onClick={handleDownloadGeneratedPng} variant="secondary" className="px-3 py-2 text-sm">Baixar PNG</Button>
                             </div>
                         </div>
                     )}
-                </div>
+                </Card>
             )}
 
-            <div className="bg-white p-6 rounded-lg shadow-lg">
+            <Card>
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-bold">Nova Atividade</h2>
-
+                    <h2 className={theme.text.title}>Nova Atividade</h2>
                 </div>
 
                 <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-semibold mb-2">Tema</label>
-                        <input
-                            type="text"
-                            value={topic}
-                            onChange={(e) => setTopic(e.target.value)}
-                            placeholder="Ex: Cores primárias..."
-                            className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm"
-                        />
-                    </div>
+                    <Input
+                        label="Tema"
+                        type="text"
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        placeholder="Ex: Cores primárias..."
+                    />
+
+                    <TextArea
+                        label="Detalhes"
+                        value={lessonDetails}
+                        onChange={(e) => setLessonDetails(e.target.value)}
+                        placeholder="Detalhes..."
+                    />
 
                     <div>
-                        <label className="block text-sm font-semibold mb-2">Detalhes</label>
-                        <textarea
-                            value={lessonDetails}
-                            onChange={(e) => setLessonDetails(e.target.value)}
-                            placeholder="Detalhes..."
-                            className="w-full p-2 bg-slate-50 border border-slate-200 rounded text-sm h-16 resize-none"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-semibold mb-2">Escolha a linguagem dos textos das atividades</label>
+                        <label className={theme.text.label}>Dificuldade / Linguagem</label>
                         <div className="flex gap-2">
                             {difficultyOptions.map((opt) => (
-                                <button
+                                <Button
                                     key={opt.id}
                                     onClick={() => setDifficulty(opt.id)}
-                                    className={`flex-1 py-2 rounded text-sm ${difficulty === opt.id ? 'bg-amber-600 text-white' : 'bg-slate-100'}`}
+                                    variant={difficulty === opt.id ? 'primary' : 'ghost'}
+                                    className={`flex-1 py-2 text-sm ${difficulty === opt.id ? '' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'}`}
                                 >
                                     {opt.label}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold mb-2">Tipo</label>
-                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                        <label className={theme.text.label}>Tipo</label>
+                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent">
                             {activityOptions.map((opt) => (
                                 opt.url ? (
                                     <a
@@ -148,7 +146,7 @@ export const Sidebar = ({
                                         href={opt.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="w-full px-3 py-2 rounded text-left text-sm flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700"
+                                        className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 bg-brown-50 hover:bg-brown-100 text-brown-800 transition-colors"
                                     >
                                         {opt.icon} {opt.label}
                                     </a>
@@ -156,7 +154,7 @@ export const Sidebar = ({
                                     <button
                                         key={opt.id}
                                         onClick={() => setActivityType(opt.id)}
-                                        className={`w-full px-3 py-2 rounded text-left text-sm flex items-center gap-2 ${activityType === opt.id ? 'bg-amber-100 border border-amber-500' : 'bg-slate-50 hover:bg-slate-100'}`}
+                                        className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all ${activityType === opt.id ? 'bg-brown-100 border border-brown-400 text-brown-900 font-medium' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'}`}
                                     >
                                         {opt.icon} {opt.label}
                                     </button>
@@ -166,45 +164,49 @@ export const Sidebar = ({
                     </div>
 
                     {activityType === 'image_ai' && (
-                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 space-y-3 mt-4">
-                            <label className="block text-sm font-semibold mb-2 text-purple-900">🖼️ Prompt da Imagem (IA)</label>
-                            <textarea
-                                className="w-full border rounded p-2"
+                        <div className="bg-brown-50 p-4 rounded-lg border border-brown-200 space-y-3 mt-4">
+                            <TextArea
+                                label="🖼️ Prompt da Imagem (IA)"
                                 rows={3}
                                 value={imagePrompt}
                                 onChange={(e) => setImagePrompt(e.target.value)}
-                                placeholder="Descreva o desenho (ex.: um dragãozinho camarada na floresta encantada)"
+                                placeholder="Descreva o desenho..."
+                                className="bg-white"
                             />
                             <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-xs font-semibold mb-1 text-purple-900">Estilo</label>
-                                    <select className="w-full border rounded p-2 text-sm" value={imageStyle} onChange={(e) => setImageStyle(e.target.value)}>
-                                        <option value="infantil-desenho">Infantil (desenho/cartoon)</option>
-                                        <option value="aquarela">Aquarela suave</option>
-                                        <option value="flat">Flat minimalista</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold mb-1 text-purple-900">Resolução</label>
-                                    <select className="w-full border rounded p-2 text-sm" value={imageSize} onChange={(e) => setImageSize(e.target.value)}>
-                                        <option value="1K">1K (rápida)</option>
-                                        <option value="2K">2K (nítida)</option>
-                                        <option value="4K">4K (detalhada)</option>
-                                    </select>
-                                </div>
+                                <Select
+                                    label="Estilo"
+                                    value={imageStyle}
+                                    onChange={(e) => setImageStyle(e.target.value)}
+                                    options={[
+                                        { value: 'infantil-desenho', label: 'Infantil' },
+                                        { value: 'aquarela', label: 'Aquarela' },
+                                        { value: 'flat', label: 'Flat' }
+                                    ]}
+                                />
+                                <Select
+                                    label="Resolução"
+                                    value={imageSize}
+                                    onChange={(e) => setImageSize(e.target.value)}
+                                    options={[
+                                        { value: '1K', label: '1K' },
+                                        { value: '2K', label: '2K' },
+                                        { value: '4K', label: '4K' }
+                                    ]}
+                                />
                             </div>
-                            <button
+                            <Button
                                 onClick={handleGenerateImage}
-                                disabled={isLoading}
-                                className={`w-full py-2 rounded font-bold text-white ${isLoading ? 'bg-purple-400' : 'bg-purple-600 hover:bg-purple-700'}`}
+                                isLoading={isLoading}
+                                className="w-full py-2"
                             >
                                 Gerar Desenho
-                            </button>
+                            </Button>
                             {imagePng && (
                                 <div className="mt-4">
-                                    <img src={imagePng} alt="Desenho gerado por IA" className="max-w-full border rounded" />
+                                    <img src={imagePng} alt="Desenho gerado" className="max-w-full border border-brown-200 rounded-lg shadow-sm" />
                                     <div className="mt-3">
-                                        <button onClick={handleDownloadGeneratedPng} className="px-3 py-2 rounded text-sm bg-blue-100 hover:bg-blue-200">Baixar PNG</button>
+                                        <Button onClick={handleDownloadGeneratedPng} variant="secondary" className="px-3 py-2 text-sm">Baixar PNG</Button>
                                     </div>
                                 </div>
                             )}
@@ -213,30 +215,26 @@ export const Sidebar = ({
 
 
 
-                    <button
+                    <Button
                         onClick={handleGenerate}
-                        disabled={isLoading}
-                        className={`w-full py-3 rounded font-bold text-white flex items-center justify-center gap-2 ${isLoading ? 'bg-amber-400' : 'bg-amber-600 hover:bg-amber-700'
-                            }`}
+                        isLoading={isLoading}
+                        icon={!isLoading ? Sparkles : undefined}
+                        className="w-full py-3 text-white shadow-md hover:-translate-y-0.5"
                     >
-                        {isLoading ? (
-                            <><Loader2 className="w-4 h-4 animate-spin" /> Criando...</>
-                        ) : (
-                            <><Sparkles className="w-5 h-5" /> Gerar</>
-                        )}
-                    </button>
+                        {isLoading ? 'Criando...' : 'Gerar'}
+                    </Button>
 
                     {isLoading && (
-                        <div className="mt-3 p-4 rounded-lg bg-amber-50 border border-amber-200 space-y-2">
-                            <div className="flex items-center gap-2 text-amber-800">
+                        <div className="mt-3 p-4 rounded-lg bg-brown-50 border border-brown-200 space-y-2 animate-pulse">
+                            <div className="flex items-center gap-2 text-brown-800">
                                 <Loader2 className="w-5 h-5 animate-spin" />
                                 <span className="font-semibold">
                                     {activityType === 'wordsearch' ? '🔄 Gerando Caça-Palavras...' : '📝 Criando Atividade...'}
                                 </span>
                             </div>
-                            <p className="text-xs text-amber-700">
+                            <p className={theme.text.small}>
                                 {activityType === 'wordsearch'
-                                    ? 'Gerando texto educativo, criando grade, selecionando palavras e configurando desafio...'
+                                    ? 'Gerando texto educativo...'
                                     : 'Processando sua solicitação...'}
                             </p>
                         </div>
@@ -259,17 +257,17 @@ export const Sidebar = ({
                     )}
 
                     {systemStatus && (
-                        <div className={`mt-2 p-3 rounded-lg text-sm ${systemStatus.type === 'rate-limit' ? 'bg-yellow-50 border border-yellow-200 text-yellow-800' :
-                            systemStatus.type === 'retry' ? 'bg-orange-50 border border-orange-200 text-orange-800' :
-                                systemStatus.type === 'fallback' ? 'bg-amber-50 border border-amber-200 text-amber-800' :
-                                    'bg-slate-50 border border-slate-200 text-slate-800'
+                        <div className={`mt-2 p-3 rounded-lg text-sm ${systemStatus.type === 'rate-limit' ? theme.status.warning :
+                            systemStatus.type === 'retry' ? theme.status.warning.replace('yellow', 'orange') :
+                                systemStatus.type === 'fallback' ? theme.status.info :
+                                    theme.status.info
                             }`}>
                             <div className="flex items-center gap-2">
                                 {systemStatus.type === 'retry' && <Loader2 className="w-4 h-4 animate-spin" />}
                                 {systemStatus.type === 'rate-limit' && <AlertCircle className="w-4 h-4" />}
                                 <span className="font-semibold">
-                                    {systemStatus.type === 'rate-limit' ? '⏳ Aguardando Vaga (Limite de Taxa)' :
-                                        systemStatus.type === 'retry' ? '🔄 Tentando Conectar (Sobrecarga detectada)' :
+                                    {systemStatus.type === 'rate-limit' ? '⏳ Aguardando Vaga' :
+                                        systemStatus.type === 'retry' ? '🔄 Tentando Conectar' :
                                             systemStatus.type === 'fallback' ? '🔀 Mudança de Modelo' :
                                                 'ℹ️ Sistema'}
                                 </span>
@@ -284,12 +282,12 @@ export const Sidebar = ({
                     )}
 
                     {error && (
-                        <div className="p-3 bg-red-50 text-red-600 text-xs rounded border border-red-100 flex items-start gap-2">
+                        <div className={`p-3 text-xs rounded border flex items-start gap-2 ${theme.status.error}`}>
                             <AlertCircle className="w-4 h-4 mt-0.5" /> {error}
                         </div>
                     )}
                 </div>
-            </div>
+            </Card>
         </div>
     );
 };

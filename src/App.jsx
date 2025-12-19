@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Brain,
   FileText,
   MessageSquare,
-  Image as ImageIcon,
   Grid,
-  Music
+  Music,
+  X
 } from 'lucide-react';
 
 import { createGeminiService } from './services/geminiService';
 import { ExportService } from './services/ExportService';
-import { normalizeForGrid } from './utils/wordsearchGenerator';
 
 // Components
 import { Header } from './components/Header';
@@ -19,7 +17,6 @@ import { ActivityArea } from './components/ActivityArea';
 import { QuizEditorModal } from './components/QuizEditorModal';
 import { DrackerEditorModal } from './components/DrackerEditorModal';
 import { VoiceSettingsModal } from './components/VoiceSettingsModal';
-import { SaveLoadModal } from './components/SaveLoadModal';
 import { MusicEditorModal } from './components/MusicEditorModal';
 import { CrosswordListEditor } from './components/CrosswordListEditor'; // Integrated
 import { CSS } from '@dnd-kit/utilities';
@@ -34,6 +31,8 @@ const SortableTab = ({ tab, activeTabId, setActiveTabId, closeTab, getTabLabel }
     transition,
   };
 
+  const isActive = activeTabId === tab.id;
+
   return (
     <div
       ref={setNodeRef}
@@ -41,16 +40,16 @@ const SortableTab = ({ tab, activeTabId, setActiveTabId, closeTab, getTabLabel }
       {...attributes}
       {...listeners}
       onClick={() => setActiveTabId(tab.id)}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-colors border select-none ${activeTabId === tab.id ? 'bg-amber-100 border-amber-300 text-amber-700 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-colors border select-none ${isActive ? 'bg-brown-100 border-brown-300 text-brown-800 font-bold shadow-sm' : 'bg-brown-50 border-brown-100 text-brown-600 hover:bg-brown-100'}`}
     >
       <span className="text-sm max-w-[120px] truncate" title={tab.title}>
         {getTabLabel(tab)}
       </span>
       <button
         onClick={(e) => closeTab(tab.id, e)}
-        className="text-slate-400 hover:text-red-500 transition-colors"
+        className="text-brown-400 hover:text-red-500 transition-colors ml-1 p-0.5 rounded-full hover:bg-brown-200/50"
       >
-        ×
+        <X className="w-3 h-3" />
       </button>
     </div>
   );
@@ -970,7 +969,7 @@ FORMATAÇÃO:
 
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans text-slate-900">
+    <div className="min-h-screen bg-brown-50 font-sans text-brown-900">
       <Header
         apiKeyStatus={apiKeyStatus}
         handleSpeak={handleSpeak}
@@ -1032,7 +1031,7 @@ FORMATAÇÃO:
 
         <div className="lg:col-span-8 flex flex-col gap-4">
           {/* TABS HEADER */}
-          <div className="flex flex-col gap-2 bg-white p-2 rounded-lg shadow-sm border border-slate-200">
+          <div className="flex flex-col gap-2 bg-white p-2 rounded-xl shadow-sm border border-brown-200">
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTabDragEnd}>
               <SortableContext items={tabs.map(t => t.id)} strategy={horizontalListSortingStrategy}>
                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -1046,7 +1045,7 @@ FORMATAÇÃO:
                       getTabLabel={getTabLabel}
                     />
                   ))}
-                  {tabs.length === 0 && <span className="text-sm text-slate-400 italic px-4 py-2">Nenhuma atividade gerada ainda...</span>}
+                  {tabs.length === 0 && <span className="text-sm text-brown-400 italic px-4 py-2">Nenhuma atividade gerada ainda...</span>}
                 </div>
               </SortableContext>
             </DndContext>
