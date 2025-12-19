@@ -119,7 +119,7 @@ export const ActivityArea = ({
                             {activityType === 'summary' && drackerData ? (
                                 <div className="space-y-6">
                                     <div className="bg-white border rounded-lg shadow-sm p-8 relative group overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-4 opacity-20" style={{ filter: 'sepia(100%) saturate(300%) hue-rotate(315deg) brightness(70%)' }}>
+                                        <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none" style={{ filter: 'sepia(100%) saturate(300%) hue-rotate(315deg) brightness(70%)' }}>
                                             <img src="/dracker.png" alt="Drácker" className="w-32 h-32 object-contain opacity-50" />
                                         </div>
 
@@ -233,6 +233,7 @@ export const ActivityArea = ({
                                     foundPlacements={foundPlacements}
                                     hideText={activityType === 'wordsearch' && wordsearchHideText}
                                     hideGrid={activityType === 'wordsearch' && wordsearchHideGrid}
+                                    title={activityType === 'wordsearch' ? wordsearchTitle : null}
                                 />
                             )}
                         </>

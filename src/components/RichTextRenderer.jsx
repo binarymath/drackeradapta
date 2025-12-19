@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Key } from 'lucide-react';
 
-const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], foundPlacements = [], hideText = false, hideGrid = false }) => {
+const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], foundPlacements = [], hideText = false, hideGrid = false, title = null }) => {
     if (!content) return null;
 
     const renderInlineStyles = (text) => {
@@ -9,7 +9,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         const parts = cleanText.split(/(\*\*.*?\*\*)/g);
         return parts.map((part, index) => {
             if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={index} className="text-amber-900 font-bold">{part.slice(2, -2)}</strong>;
+                return <strong key={index} className="text-amber-700 font-extrabold">{part.slice(2, -2)}</strong>;
             }
             return part;
         });
@@ -22,62 +22,75 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
     let gridBuffer = [];
     let columnBuffer = [];
     let questionBuffer = [];
+
     let answerBuffer = [];
+    let storyBuffer = [];
+    let titleRendered = false;
+    let wordListBuffer = [];
 
     const flushList = () => {
         // No-op: removemos marcadores de lista
         listBuffer = [];
     };
 
-    const flushGrid = () => {
-        if (gridBuffer.length > 0) {
-            if (!hideGrid) {
-                // Processa cada linha para separar letras corretamente
+    const flushGameCard = () => {
+        // Renderiza se tiver Grid OU Lista de Palavras (Game Mode)
+        if (gridBuffer.length > 0 || wordListBuffer.length > 0) {
+
+            // Só renderiza a estrutura se não estiver tudo oculto
+            // Se hideGrid=true, não mostramos nada?
+            // Regra: se hideGrid=true, o jogo inteiro some (Grid + Lista).
+            // A menos que queiramos manter a lista?
+            // O user pediu "Esconder o Jogo (Só a História)". O jogo é o grid + palavras.
+            if (hideGrid) {
+                gridBuffer = [];
+                wordListBuffer = [];
+                return;
+            }
+
+            const cardContent = [];
+
+            // 1. RENDER GRID
+            if (gridBuffer.length > 0) {
                 const processedRows = gridBuffer.map(row => {
                     const trimmed = row.trim();
-                    // Tenta separar por espaço primeiro
                     let letters = trimmed.split(/\s+/).filter(l => l.length > 0);
-
-                    // Se não encontrou separação por espaço, tenta separar letra por letra
                     if (letters.length === 1 && trimmed.length > 1) {
                         letters = trimmed.split('').filter(l => /[A-Z]/i.test(l));
                     }
-
                     return letters;
                 });
 
                 const cols = processedRows[0]?.length || 0;
 
-                if (cols === 0) return;
-
-                // Monta índice de posições das palavras para destaque quando showAnswers=true
-                const wordPositions = new Set();
-                if (showAnswers) {
-                    if (foundPlacements && foundPlacements.length > 0) {
-                        // Usa coordenadas exatas fornecidas pelo gerador
-                        for (const p of foundPlacements) {
-                            const cells = p?.positions || p?.cells || [];
-                            for (const cell of cells) {
-                                if (Array.isArray(cell) && cell.length === 2) {
-                                    const [r, c] = cell;
-                                    wordPositions.add(`${r}-${c}`);
-                                } else if (typeof cell === 'string') {
-                                    wordPositions.add(cell);
+                if (cols > 0) {
+                    // Logic to highlight words
+                    const wordPositions = new Set();
+                    if (showAnswers) {
+                        if (foundPlacements && foundPlacements.length > 0) {
+                            for (const p of foundPlacements) {
+                                const cells = p?.positions || p?.cells || [];
+                                for (const cell of cells) {
+                                    if (Array.isArray(cell) && cell.length === 2) {
+                                        const [r, c] = cell;
+                                        wordPositions.add(`${r}-${c}`);
+                                    } else if (typeof cell === 'string') {
+                                        wordPositions.add(cell);
+                                    }
                                 }
                             }
-                        }
-                    } else if (foundWords && foundWords.length > 0) {
-                        // Fallback: tentativa heurística horizontal (caso antigo)
-                        const targetNorms = foundWords.map(w => w.toUpperCase());
-                        for (let row = 0; row < processedRows.length; row++) {
-                            for (let col = 0; col < processedRows[row].length; col++) {
-                                for (const word of targetNorms) {
-                                    const len = word.length;
-                                    if (col + len <= processedRows[row].length) {
-                                        const candidate = processedRows[row].slice(col, col + len).join('');
-                                        if (candidate === word) {
-                                            for (let i = 0; i < len; i++) {
-                                                wordPositions.add(`${row}-${col + i}`);
+                        } else if (foundWords && foundWords.length > 0) {
+                            const targetNorms = foundWords.map(w => w.toUpperCase());
+                            for (let row = 0; row < processedRows.length; row++) {
+                                for (let col = 0; col < processedRows[row].length; col++) {
+                                    for (const word of targetNorms) {
+                                        const len = word.length;
+                                        if (col + len <= processedRows[row].length) {
+                                            const candidate = processedRows[row].slice(col, col + len).join('');
+                                            if (candidate === word) {
+                                                for (let i = 0; i < len; i++) {
+                                                    wordPositions.add(`${row}-${col + i}`);
+                                                }
                                             }
                                         }
                                     }
@@ -85,36 +98,61 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                             }
                         }
                     }
-                }
 
-                elements.push(
-                    <div key={`grid-${elements.length}`} className="mt-2 mb-0 flex justify-center">
-                        <div className="inline-block">
-                            <div
-                                className="grid"
-                                style={{ gridTemplateColumns: `repeat(${cols}, auto)`, gap: '0px', marginTop: '8px', marginBottom: '8px' }}
-                            >
-                                {processedRows.map((letters, rowIndex) =>
-                                    letters.map((letter, colIndex) => {
-                                        const isHighlighted = wordPositions.has(`${rowIndex}-${colIndex}`);
-                                        return (
-                                            <div
-                                                key={`${rowIndex}-${colIndex}`}
-                                                className={`flex items-center justify-center font-mono text-sm font-bold transition-colors cursor-pointer ${isHighlighted ? 'bg-green-300 text-slate-900' : 'text-slate-800 bg-white hover:bg-yellow-200'
-                                                    }`}
-                                                style={{ width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' }}
-                                            >
-                                                {letter.toUpperCase()}
-                                            </div>
-                                        );
-                                    })
-                                )}
+                    cardContent.push(
+                        <div key="grid-content" className="flex justify-center mb-6">
+                            <div className="inline-block p-4 bg-slate-50 rounded-lg border border-slate-200 shadow-inner">
+                                <div
+                                    className="grid"
+                                    style={{ gridTemplateColumns: `repeat(${cols}, auto)`, gap: '0px' }}
+                                >
+                                    {processedRows.map((letters, rowIndex) =>
+                                        letters.map((letter, colIndex) => {
+                                            const isHighlighted = wordPositions.has(`${rowIndex}-${colIndex}`);
+                                            return (
+                                                <div
+                                                    key={`${rowIndex}-${colIndex}`}
+                                                    className={`flex items-center justify-center font-mono text-sm font-bold transition-colors cursor-pointer border border-slate-100/50 ${isHighlighted ? 'bg-green-400 text-white shadow-sm scale-110 z-10 rounded' : 'text-slate-800 bg-white hover:bg-yellow-200'
+                                                        }`}
+                                                    style={{ width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' }}
+                                                >
+                                                    {letter.toUpperCase()}
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
                             </div>
+                        </div>
+                    );
+                }
+            }
+
+            // 2. RENDER WORD LIST
+            if (wordListBuffer.length > 0) {
+                cardContent.push(
+                    <div key="word-list-content" className="mt-4 pt-4 border-t-2 border-dashed border-slate-200">
+                        <h4 className="text-center text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Palavras para Encontrar</h4>
+                        <div className="flex flex-wrap justify-center gap-3 px-4">
+                            {wordListBuffer.map((part, pIdx) => (
+                                <span key={pIdx} className="bg-white text-slate-700 px-4 py-1.5 rounded-full text-sm font-bold border-2 border-slate-100 shadow-sm uppercase tracking-wider hover:border-amber-300 hover:text-amber-800 transition-colors cursor-help">
+                                    {part.trim()}
+                                </span>
+                            ))}
                         </div>
                     </div>
                 );
             }
+
+            // Wrapper Card
+            elements.push(
+                <div key={`game-card-${elements.length}`} className="bg-white p-6 rounded-xl shadow-lg border-2 border-slate-100 my-8 print:shadow-none print:border-slate-300">
+                    {cardContent}
+                </div>
+            );
+
             gridBuffer = [];
+            wordListBuffer = [];
         }
     };
 
@@ -156,6 +194,33 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         }
     };
 
+    const flushStory = () => {
+        if (storyBuffer.length > 0) {
+            elements.push(
+                <div key={`story-${elements.length}`} className="bg-white border rounded-lg shadow-sm p-8 relative mb-6 overflow-hidden">
+
+                    {/* Title inside Card (only for the first story block) */}
+                    {title && !hideText && !titleRendered && (
+                        <div className="border-b border-amber-100 pb-4 mb-6">
+                            <h2 className="text-2xl font-bold text-amber-900 mb-1">{title}</h2>
+                        </div>
+                    )}
+
+                    {/* Story Content */}
+                    <div className="prose prose-lg max-w-none text-slate-800 leading-loose font-serif">
+                        {storyBuffer.map((line, idx) => (
+                            <p key={idx} className="indent-8 mb-6 text-justify">
+                                {renderInlineStyles(line)}
+                            </p>
+                        ))}
+                    </div>
+                </div>
+            );
+            storyBuffer = [];
+            if (title) titleRendered = true;
+        }
+    };
+
     const flushAnswerKey = () => {
         if (answerBuffer.length > 0) {
             elements.push(<AnswerKeyCard key={`ans-${elements.length}`} lines={answerBuffer} renderInlineStyles={renderInlineStyles} />);
@@ -166,6 +231,11 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
     let pastWordList = false;
     let inWordListSection = false;
     let textStarted = false;
+
+    // Render Title if provided and Text NOT hidden -> Now handled inside flushStory for the first block
+    // to include it in the card. If no story text exists but title does, we might miss it?
+    // We should allow flushing an empty story with title if title exists? 
+    // Usually there is text. If not, we can force a flush at the end.
 
     lines.forEach((line, index) => {
         const trimmedLine = line.trim();
@@ -178,7 +248,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
             // Se encontrou cabeçalho ou já está no buffer de gabarito
             // Mas cuidado para não pegar coisa errada. Geralmente é o final.
             // Vamos assumir que se começou, vai até o fim ou até próximo header forte.
-            flushList(); flushGrid(); flushColumn(); flushQuestion();
+            flushList(); flushGrid(); flushColumn(); flushQuestion(); flushStory();
 
             if (!isEmpty) {
                 answerBuffer.push(trimmedLine.replace(/^(##|###|\*\*)\s*/, '').replace(/\*\*/g, ''));
@@ -192,7 +262,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         const isAlternative = /^[a-e]\)(\s|$)/i.test(trimmedLine);
 
         if (isQuestionStart) {
-            flushList(); flushGrid(); flushColumn(); flushQuestion();
+            flushList(); flushGrid(); flushColumn(); flushQuestion(); flushStory();
             questionBuffer.push(trimmedLine);
             return;
         }
@@ -293,15 +363,31 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         if (isGridRow) {
             flushList();
             flushColumn();
+            flushStory(); // End story before grid
             gridBuffer.push(trimmedLine);
             return;
         } else {
-            flushGrid();
+            // Se não é linha de grid, não flusha imediatamente! 
+            // O grid pode ser seguido por palavras
         }
 
         if (isListRow && listParts.length >= 1) {
-            flushList();
-            flushGrid();
+            flushList(); // Clear bullet buffer
+            // flushGrid(); -> REMOVIDO: não queremos flushar o grid ainda se estamos acumulando lista
+
+            // Se for Word List Section, acumula
+            if (inWordListSection || gridBuffer.length > 0) {
+                if (hasPipe && listParts.length >= 2) {
+                    // Pipes também podem ser usados para lista de palavras
+                    listParts.forEach(p => wordListBuffer.push(p));
+                } else {
+                    listParts.forEach(p => wordListBuffer.push(p));
+                }
+                return;
+            }
+
+            // Se for lista normal (fora do contexto do jogo), flusha o jogo anterior e renderiza normal
+            flushGameCard();
 
             if (hasPipe && listParts.length >= 2) {
                 columnBuffer.push({ left: listParts[0].trim(), right: listParts[1].trim() });
@@ -338,23 +424,25 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
             return;
         }
 
-        // 4. Renderiza Parágrafos e Títulos
+        // Se é header de lista de palavras, SUPRIME o output de texto e prepara o buffer
+        if (isWordListHeader) {
+            flushStory();
+            // Não flusha grid/game aqui, pois o header vem antes ou depois do grid e queremos eles juntos
+            return;
+        }
+
+        // 4. Renderiza Parágrafos e Títulos (Acumula no Buffer de História)
         if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
             textStarted = true;
-            elements.push(
-                <div key={index} className="flex gap-2 mb-2 pl-4 items-start">
-                    <div className="min-w-[6px] h-[6px] mt-[9px] rounded-full bg-indigo-500"></div>
-                    <p className="text-slate-700 text-lg leading-relaxed text-justify">
-                        {renderInlineStyles(trimmedLine.substring(2))}
-                    </p>
-                </div>
-            );
+            // Listas / Bullets na história também entram no card
+            storyBuffer.push(trimmedLine);
             return;
         } else {
             flushList();
         }
 
         if (/^_{3,}$/.test(trimmedLine) || /^-{3,}$/.test(trimmedLine)) {
+            flushStory();
             elements.push(
                 <div key={index} className="my-6 text-center">
                     <div className="inline-block text-slate-300 tracking-[0.5em] font-light text-sm">__________________________________________________</div>
@@ -364,6 +452,9 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         }
 
         if (trimmedLine.startsWith('[[TITULO]]')) {
+            // Ignora titulo inline se já temos o title prop ou trata como header
+            // Melhor tratar como flushStory para começar novo bloco
+            flushStory();
             textStarted = true;
             const t = trimmedLine.replace('[[TITULO]]', '').trim();
             elements.push(
@@ -377,36 +468,38 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
             return;
         }
         if (trimmedLine.startsWith('### ')) {
+            flushStory();
             textStarted = true;
             elements.push(<h3 key={index} className="text-xl font-bold text-indigo-700 mt-8 mb-3 flex items-center gap-2"><div className="w-2 h-6 bg-indigo-400 rounded-full"></div>{trimmedLine.slice(4)}</h3>);
         } else if (trimmedLine.startsWith('## ')) {
+            flushStory();
             textStarted = true;
             elements.push(<h2 key={index} className="text-2xl font-bold text-slate-800 mt-10 mb-4 pb-2 border-b-2 border-indigo-100">{trimmedLine.slice(3)}</h2>);
         } else if (trimmedLine.startsWith('# ')) {
+            flushStory();
             textStarted = true;
             elements.push(<h1 key={index} className="text-3xl font-extrabold text-slate-900 mt-6 mb-6 text-center">{trimmedLine.slice(2)}</h1>);
         } else if (trimmedLine === '') {
+            // Linha vazia na história pode ser só espaço. Não flusha, só ignora ou adiciona <br/> se quiser.
+            // Para Wordsearch, quebras de linha duplas marcam parágrafos.
+            // Como estamos acumulando em storyBuffer, strings vazias podem ser ignoradas ou usadas para separar.
+            // O split('\n') do RichTextRenderer já quebra linhas.
+            // Se for vazia e estivermos em story mode, ignoramos (para não criar <p> vazio).
             if (!hideGrid || textStarted) {
-                elements.push(<div key={index} className="h-4"></div>);
+                // elements.push(<div key={index} className="h-4"></div>); // Antigo espaçador
             }
         } else if (trimmedLine) {
             textStarted = true;
-            // Parágrafo Normal Estilizado (Compactado)
-            elements.push(
-                <div key={index} className="mb-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm leading-relaxed">
-                    <p className="text-slate-800 text-lg leading-relaxed font-medium text-justify">
-                        {renderInlineStyles(line)}
-                    </p>
-                </div>
-            );
+            // Acumula parágrafo normal
+            storyBuffer.push(line);
         }
     });
 
     flushList();
-    flushGrid();
-    flushGrid();
+    flushGameCard(); // Flusha Game Card final
     flushColumn();
     flushQuestion();
+    flushStory(); // Flusha o resto da história
     flushAnswerKey();
     return <>{elements}</>;
 };
