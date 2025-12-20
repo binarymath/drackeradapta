@@ -96,18 +96,28 @@ export default function App() {
     type: ''
   });
 
+  // Import Merge Dialog State
+  const [importDialog, setImportDialog] = useState({
+    isOpen: false,
+    importedTabs: [],
+    importedDate: null,
+    importedVersion: null
+  });
+
   // Backup / Restore System
   const exportSystemState = () => {
     try {
       const state = {
-        date: new Date().toISOString(),
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        exportTime: new Date().getTime(),
         tabs: tabs
       };
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `backup_atividades_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`;
+      link.download = `backup_atividades_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}_v1.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -125,13 +135,24 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const state = JSON.parse(event.target.result);
-        if (state.tabs && Array.isArray(state.tabs)) {
-          setTabs(state.tabs);
-          if (state.tabs.length > 0) {
-            setActiveTabId(state.tabs[0].id);
+        const importedState = JSON.parse(event.target.result);
+        if (importedState.tabs && Array.isArray(importedState.tabs)) {
+          // Se não há abas abertas, substitui diretamente
+          if (tabs.length === 0) {
+            setTabs(importedState.tabs);
+            if (importedState.tabs.length > 0) {
+              setActiveTabId(importedState.tabs[0].id);
+            }
+            alert('Sistema restaurado com sucesso!');
+          } else {
+            // Se há abas, mostra modal de opção
+            setImportDialog({
+              isOpen: true,
+              importedTabs: importedState.tabs,
+              importedDate: importedState.exportDate,
+              importedVersion: importedState.version
+            });
           }
-          alert('Sistema restaurado com sucesso!');
         } else {
           alert('Arquivo de backup inválido.');
         }
@@ -141,6 +162,25 @@ export default function App() {
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleMergeImport = () => {
+    // Mescla as abas: adiciona as importadas sem duplicar por ID
+    const existingIds = new Set(tabs.map(t => t.id));
+    const newTabs = importDialog.importedTabs.filter(t => !existingIds.has(t.id));
+    setTabs([...tabs, ...newTabs]);
+    setImportDialog({ isOpen: false, importedTabs: [], importedDate: null, importedVersion: null });
+    alert(`${newTabs.length} nova(s) atividade(s) adicionada(s)!`);
+  };
+
+  const handleReplaceImport = () => {
+    // Substitui completamente
+    setTabs(importDialog.importedTabs);
+    if (importDialog.importedTabs.length > 0) {
+      setActiveTabId(importDialog.importedTabs[0].id);
+    }
+    setImportDialog({ isOpen: false, importedTabs: [], importedDate: null, importedVersion: null });
+    alert('Sistema restaurado (substituído)!');
   };
 
   // Helper to add new activity tab
@@ -287,10 +327,7 @@ export default function App() {
   ], []);
 
   const modelOptions = useMemo(() => [
-    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Recomendado)' },
-    { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-    { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
   ], []);
 
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
@@ -470,12 +507,22 @@ FORMATAÇÃO:
 
           RETORNE APENAS UM JSON VÁLIDO com a seguinte estrutura:
           {
-            "lyrics": "[Instrumental Intro]\\n[Verse 1]\\n(Letra sobre o Drácker aprendendo sobre ${topic})...",
+            "lyrics": "[Instrumental Intro]\n[Verse 1]\n(Letra sobre o Drácker aprendendo sobre ${topic})...",
             "questions": [
-               "Pergunta de interpretação 1 sobre a música/tema?",
-               "Pergunta 2?",
-               "Pergunta 3?",
-               "Pergunta 4?"
+               {
+                 "text": "Pergunta fácil 1 sobre a música/tema?",
+                 "correct_answer": "Resposta correta",
+                 "incorrect_options": ["Alternativa errada 1", "Alternativa errada 2", "Alternativa errada 3"]
+               },
+               { "text": "Pergunta fácil 2?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
+               { "text": "Pergunta fácil 3?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
+               { "text": "Pergunta fácil 4?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
+               { "text": "Pergunta média 1?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
+               { "text": "Pergunta média 2?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
+               { "text": "Pergunta média 3?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
+               { "text": "Pergunta média 4?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
+               { "text": "Pergunta difícil 1?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
+               { "text": "Pergunta difícil 2?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] }
             ]
           }
 
@@ -483,7 +530,9 @@ FORMATAÇÃO:
           - A letra deve mencionar o Drácker e a floresta encantada.
           - Estrutura clara: [Verse 1], [Chorus], [Verse 2], [Chorus], [Bridge], [Outro].
           - Letra rimada e rítmica.
-          - Crie 4 perguntas de interpretação de texto baseadas na letra criada.
+          - Crie EXATAMENTE 10 perguntas de interpretação baseadas na letra: 4 FÁCEIS (compreensão literal), 4 MÉDIAS (inferência/análise) e 2 DIFÍCEIS (reflexão/aplicação).
+          - Cada pergunta deve trazer uma resposta correta e 3 alternativas incorretas distintas. O sistema embaralha a posição da correta automaticamente.
+          - Todas as perguntas devem estar diretamente relacionadas à música criada.
           - Retorne APENAS o JSON.`;
           break;
           prompt = `Crie uma atividade educativa sobre "${topic}".`;
@@ -517,7 +566,7 @@ FORMATAÇÃO:
 
       let text = await geminiService.generateText(prompt, {
         model: selectedModel,
-        fallbackModel: selectedModel === 'gemini-1.5-pro' ? 'gemini-2.0-flash' : 'gemini-1.5-flash',
+        fallbackModel: null,
         // Aumentamos o limite de tokens para garantir JSON completo
         maxOutputTokens: 4000
       });
@@ -784,19 +833,35 @@ FORMATAÇÃO:
 
   const handleMusicConfirm = (editedData) => {
     try {
+      const letters = ['a', 'b', 'c', 'd', 'e'];
+      const normalizedQuestions = (editedData.questions || []).map((q, idx) => {
+        const text = typeof q === 'string' ? q : (q.text || q.question || `Pergunta ${idx + 1}`);
+        const correct = typeof q === 'object' ? (q.correctAnswer || q.correct_answer || q.answer || q.correct_option || '') : '';
+        const distractors = typeof q === 'object' ? (q.distractors || q.incorrect_options || []) : [];
+        const provided = typeof q === 'object' ? (q.options || q.ordered_options || []) : [];
+        const options = Array.from(new Set([correct, ...distractors, ...provided].filter(Boolean)));
+        return { text, correctAnswer: correct, distractors, options, ordered_options: options };
+      });
+
       let formattedOutput = `# 🎵 Música do Drácker: ${topic}\n\n`;
 
       formattedOutput += `${editedData.lyrics}\n\n`;
       formattedOutput += `\n---\n**📝 Perguntas de Interpretação:**\n\n`;
 
-      editedData.questions.forEach((q, index) => {
-        formattedOutput += `${index + 1}. ${q}\n`;
+      normalizedQuestions.forEach((q, index) => {
+        formattedOutput += `${index + 1}. ${q.text}\n`;
+        if (q.options?.length) {
+          q.options.slice(0, 5).forEach((opt, optIdx) => {
+            formattedOutput += `   ${letters[optIdx] || String.fromCharCode(65 + optIdx)}) ${opt}\n`;
+          });
+        }
+        formattedOutput += `\n`;
       });
 
       if (isEditing) {
         setTabs(prev => prev.map(t => {
           if (t.id === activeTabId) {
-            return { ...t, content: formattedOutput, musicData: editedData };
+            return { ...t, content: formattedOutput, musicData: { ...editedData, questions: normalizedQuestions } };
           }
           return t;
         }));
@@ -805,7 +870,7 @@ FORMATAÇÃO:
           title: topic || "Música do Drácker",
           type: 'simplify',
           content: formattedOutput,
-          musicData: editedData
+          musicData: { ...editedData, questions: normalizedQuestions }
         });
       }
 
@@ -1230,7 +1295,64 @@ FORMATAÇÃO:
                 Cancelar
               </Button>
               <Button onClick={handleCreateNewFromModal}>
-                + Criar Nova
+                Nova Atividade
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* IMPORT MERGE/REPLACE DIALOG */}
+        <Modal
+          isOpen={importDialog.isOpen}
+          onClose={() => setImportDialog({ isOpen: false, importedTabs: [], importedDate: null, importedVersion: null })}
+          title="Importar Atividades"
+          className="max-w-md"
+        >
+          <div className="space-y-4">
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <p className="text-sm font-semibold text-blue-900 mb-2">📋 Backup Carregado</p>
+              <p className="text-xs text-blue-800 mb-1">
+                <strong>Versão:</strong> {importDialog.importedVersion || '1.0'}
+              </p>
+              <p className="text-xs text-blue-800 mb-1">
+                <strong>Data:</strong> {importDialog.importedDate ? new Date(importDialog.importedDate).toLocaleString('pt-BR') : 'N/A'}
+              </p>
+              <p className="text-xs text-blue-800">
+                <strong>Atividades:</strong> {importDialog.importedTabs.length}
+              </p>
+            </div>
+
+            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+              <p className="text-sm font-semibold text-amber-900 mb-2">⚙️ Selecione uma opção:</p>
+              <p className="text-xs text-amber-800">
+                Você tem <strong>{tabs.length} atividade(s)</strong> em trabalho. O que deseja fazer?
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={handleMergeImport}
+                className="w-full p-3 rounded-lg border-2 border-green-300 bg-green-50 hover:bg-green-100 text-left transition-colors"
+              >
+                <p className="font-semibold text-green-900">✨ Mesclar</p>
+                <p className="text-xs text-green-700 mt-1">Adicionar atividades do backup às atividades atuais</p>
+              </button>
+
+              <button
+                onClick={handleReplaceImport}
+                className="w-full p-3 rounded-lg border-2 border-red-300 bg-red-50 hover:bg-red-100 text-left transition-colors"
+              >
+                <p className="font-semibold text-red-900">🔄 Substituir</p>
+                <p className="text-xs text-red-700 mt-1">Carregar apenas as atividades do backup (perder atuais)</p>
+              </button>
+            </div>
+
+            <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => setImportDialog({ isOpen: false, importedTabs: [], importedDate: null, importedVersion: null })}
+              >
+                Cancelar
               </Button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2, GripVertical, Music } from 'lucide-react';
+import { Save, Plus, Trash2, GripVertical, Music } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -27,11 +27,28 @@ const SortableQuestionItem = ({ question, index, onRemove, onChange, id }) => {
             <div className="flex-1">
                 <label className="text-xs font-bold text-brown-500 mb-1 block">Pergunta {index + 1}</label>
                 <TextArea
-                    value={question}
-                    onChange={(e) => onChange(id, e.target.value)}
+                    value={question.text}
+                    onChange={(e) => onChange(id, 'text', e.target.value)}
                     className="min-h-[100px]"
                     placeholder="Digite a pergunta aqui..."
                 />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                    <Input
+                        label="Resposta correta"
+                        value={question.correctAnswer}
+                        onChange={(e) => onChange(id, 'correct', e.target.value)}
+                        placeholder="Alternativa correta"
+                    />
+                    {question.distractors.map((opt, optIdx) => (
+                        <Input
+                            key={optIdx}
+                            label={`Alternativa incorreta ${optIdx + 1}`}
+                            value={opt}
+                            onChange={(e) => onChange(id, 'distractor', e.target.value, optIdx)}
+                            placeholder="Digite uma alternativa incorreta"
+                        />
+                    ))}
+                </div>
             </div>
             <Button
                 onClick={() => onRemove(id)}
@@ -57,12 +74,22 @@ export const MusicEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
     useEffect(() => {
         if (isOpen && initialData) {
             setLyrics(initialData.lyrics || '');
-            // Ensure questions have IDs for dnd-kit
-            const initialQuestions = (initialData.questions || []).map((q, idx) => ({
-                id: `q-${Date.now()}-${idx}`,
-                text: typeof q === 'string' ? q : q.text || ''
-            }));
-            setQuestions(initialQuestions);
+            // Ensure questions have IDs for dnd-kit and already carry alternatives
+            const initialQuestions = (initialData.questions || []).map((q, idx) => {
+                const text = typeof q === 'string' ? q : (q.text || q.question || '');
+                const correct = typeof q === 'object' ? (q.correctAnswer || q.correct_answer || q.answer || q.correct_option || '') : '';
+                const distractors = typeof q === 'object' ? (q.distractors || q.incorrect_options || []) : [];
+                const filledDistractors = [...distractors];
+                while (filledDistractors.length < 3) filledDistractors.push('');
+                return {
+                    id: `q-${Date.now()}-${idx}-${Math.floor(Math.random() * 1000)}`,
+                    text,
+                    correctAnswer: correct,
+                    distractors: filledDistractors.slice(0, 3),
+                    difficulty: (q.difficulty || (idx < 4 ? 'facil' : idx < 8 ? 'medio' : 'dificil'))
+                };
+            });
+            setQuestions(initialQuestions.length ? initialQuestions : [{ id: `q-${Date.now()}-0`, text: '', correctAnswer: '', distractors: ['', '', ''] }]);
         }
     }, [isOpen, initialData]);
 
@@ -77,12 +104,22 @@ export const MusicEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
         }
     };
 
-    const handleQuestionChange = (id, newText) => {
-        setQuestions(prev => prev.map(q => q.id === id ? { ...q, text: newText } : q));
+    const handleQuestionChange = (id, field, value, distractorIndex = 0) => {
+        setQuestions(prev => prev.map(q => {
+            if (q.id !== id) return q;
+            if (field === 'text') return { ...q, text: value };
+            if (field === 'correct') return { ...q, correctAnswer: value };
+            if (field === 'distractor') {
+                const next = [...(q.distractors || [])];
+                next[distractorIndex] = value;
+                return { ...q, distractors: next };
+            }
+            return q;
+        }));
     };
 
     const addQuestion = () => {
-        setQuestions([...questions, { id: `q-${Date.now()}`, text: '' }]);
+        setQuestions([...questions, { id: `q-${Date.now()}-${Math.floor(Math.random() * 1000)}`, text: '', correctAnswer: '', distractors: ['', '', ''] }]);
     };
 
     const removeQuestion = (id) => {
@@ -94,9 +131,38 @@ export const MusicEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
     };
 
     const handleSave = () => {
+        // Build normalized questions with options
+        let normalizedQuestions = questions.map(q => {
+            const cleanedDistractors = (q.distractors || []).map(d => d?.trim()).filter(Boolean);
+            const options = Array.from(new Set([q.correctAnswer, ...cleanedDistractors].filter(Boolean)));
+            return {
+                text: q.text,
+                correctAnswer: q.correctAnswer,
+                distractors: cleanedDistractors,
+                options,
+                ordered_options: options,
+                difficulty: q.difficulty || ''
+            };
+        });
+        // Enforce exactly 10 questions
+        if (normalizedQuestions.length < 10) {
+            const toAdd = 10 - normalizedQuestions.length;
+            for (let i = 0; i < toAdd; i++) {
+                normalizedQuestions.push({ text: '', correctAnswer: '', distractors: [], options: [], ordered_options: [], difficulty: '' });
+            }
+        } else if (normalizedQuestions.length > 10) {
+            normalizedQuestions = normalizedQuestions.slice(0, 10);
+        }
+
+        // Enforce difficulty distribution: 4 fácil, 4 médio, 2 difícil
+        normalizedQuestions = normalizedQuestions.map((q, idx) => ({
+            ...q,
+            difficulty: (idx < 4 ? 'facil' : idx < 8 ? 'medio' : 'dificil')
+        }));
+
         onSave({
             lyrics,
-            questions: questions.map(q => q.text)
+            questions: normalizedQuestions
         });
         onClose();
     };
@@ -119,6 +185,28 @@ export const MusicEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
             size="xl" // Using standard size enum if xl is not valid, but let's assume xl is supported in Modal
             footer={footer}
         >
+            <div className="space-y-4">
+                {/* Destaque da Playlist */}
+                <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg space-y-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-purple-200 flex items-center justify-center text-purple-600 font-bold text-lg">
+                            🎵
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-purple-900">Playlist Oficial: Músicas do Drácker</h4>
+                            <p className="text-xs text-purple-700">Acesse todas as músicas criadas com Drácker no Producer.ai</p>
+                        </div>
+                    </div>
+                    <a
+                        href="https://www.producer.ai/professornerd"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full p-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded text-center text-sm transition-colors"
+                    >
+                        🎧 Ouvir Playlist Completa
+                    </a>
+                </div>
+
             <div className="flex flex-col md:flex-row gap-6 h-full min-h-[500px]">
 
                 {/* Left: Lyrics Editor */}
@@ -132,7 +220,7 @@ export const MusicEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                     <TextArea
                         value={lyrics}
                         onChange={(e) => setLyrics(e.target.value)}
-                        className="flex-1 font-mono text-sm leading-relaxed"
+                        className="flex-1 font-mono text-sm leading-relaxed min-h-[360px] max-h-[520px]"
                         placeholder="[Intro]..."
                     />
                 </div>
@@ -161,7 +249,7 @@ export const MusicEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                                         <SortableQuestionItem
                                             key={q.id}
                                             id={q.id}
-                                            question={q.text}
+                                            question={q}
                                             index={index}
                                             onRemove={removeQuestion}
                                             onChange={handleQuestionChange}
@@ -172,6 +260,7 @@ export const MusicEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                         </DndContext>
                     </Card>
                 </div>
+            </div>
             </div>
         </Modal>
     );

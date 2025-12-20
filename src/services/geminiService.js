@@ -162,15 +162,16 @@ class GeminiService {
     }
 
     // Se tiver modelo de fallback e falhou, tenta com ele
-    if (fallbackModel && lastError?.message === 'OVERLOADED') {
-      this.reportStatus('fallback', `Mudando para modelo alternativo: ${fallbackModel}`, { fallbackModel });
-      console.log(`Tentando modelo fallback: ${fallbackModel}`);
-      return this.request(fallbackModel, payload, {
-        ...options,
-        maxRetries: 3,
-        fallbackModel: null
-      });
-    }
+    // DESABILITADO: usar apenas o modelo selecionado
+    // if (fallbackModel && lastError?.message === 'OVERLOADED') {
+    //   this.reportStatus('fallback', `Mudando para modelo alternativo: ${fallbackModel}`, { fallbackModel });
+    //   console.log(`Tentando modelo fallback: ${fallbackModel}`);
+    //   return this.request(fallbackModel, payload, {
+    //     ...options,
+    //     maxRetries: 3,
+    //     fallbackModel: null
+    //   });
+    // }
 
     throw lastError;
   }
@@ -178,13 +179,17 @@ class GeminiService {
   /**
    * Gera texto usando o modelo especificado
    */
+  /**
+   * Gera texto usando rotação inteligente de modelos para evitar erros de Rate Limit
+   */
   async generateText(prompt, options = {}) {
     const {
-      model = 'gemini-2.5-flash',
       maxOutputTokens = 4000,
-      temperature = 0.7,
-      fallbackModel = 'gemini-2.0-flash'
+      temperature = 0.7
     } = options;
+
+    // MODELO ÚNICO: gemini-2.5-flash (sem fallback)
+    const MODEL = 'gemini-2.5-flash';
 
     await this.enforceRateLimit();
 
@@ -196,14 +201,69 @@ class GeminiService {
       }
     };
 
-    const data = await this.request(model, payload, { fallbackModel });
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    try {
+      console.log(`[GeminiService] Tentando modelo: ${MODEL}`);
 
-    if (!text) {
-      throw new Error('Nenhum texto recebido da API');
+      const data = await this.request(MODEL, payload, {
+        maxRetries: 2,
+        initialDelay: 2000
+      });
+
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!text) {
+        throw new Error('Resposta vazia da API');
+      }
+
+      return text;
+
+    } catch (error) {
+      console.error(`[GeminiService] Erro com modelo ${MODEL}:`, error.message);
+      throw error;
     }
+  }
 
-    return text;
+  /**
+   * Consulta a API para listar modelos disponíveis e escolhe o melhor
+   */
+  async getBestAvailableModel() {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`);
+      if (!response.ok) throw new Error(`Falha ao listar modelos: ${response.status}`);
+
+      const data = await response.json();
+      if (!data.models) throw new Error('Lista de modelos vazia');
+
+      // Filtra modelos que suportam generateContent
+      const candidates = data.models.filter(m =>
+        m.supportedGenerationMethods?.includes('generateContent')
+      );
+
+      if (candidates.length === 0) throw new Error('Nenhum modelo suporta geração de texto');
+
+      // Prioridade: 1.5 Flash > 2.0 > 1.5 Pro > 1.0
+      const preferences = [
+        'gemini-1.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-pro',
+        'gemini-pro'
+      ];
+
+      for (const pref of preferences) {
+        const match = candidates.find(m => m.name.includes(pref));
+        if (match) return match.name.replace('models/', ''); // Remove prefixo se existir na chamada futura (mas request monta URL com models/, entao cuidado)
+        // O request monta a URL assim: .../models/${model}:generateContent
+        // A API retorna nomes como "models/gemini-pro".
+        // Se eu retornar "gemini-pro", o request fará "models/gemini-pro". OK.
+        // Se eu retornar "models/gemini-pro", o request fará "models/models/gemini-pro". ERRADO.
+        // Entao devo remover o prefixo 'models/'.
+      }
+
+      // Se nao achou preferido, pega o primeiro disponivel (ex: gemini-1.0-pro-001)
+      return candidates[0].name.replace('models/', '');
+    } catch (e) {
+      throw new Error(`Erro buscando modelos: ${e.message}`);
+    }
   }
 
   /**

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateCrossword } from '../utils/crosswordGenerator';
-import { Edit2, Sparkles, Trash2, Save, X, Plus, RefreshCw, Eye, Eraser, Check } from 'lucide-react';
+import { Edit2, Sparkles, Trash2, Save, X, Plus, RefreshCw, Eye, Eraser, Check, Trophy, UserPlus } from 'lucide-react';
 
 // UI Components
 import { Button } from './ui/Button';
@@ -9,12 +9,20 @@ import { Card } from './ui/Card';
 import { Input, Select, TextArea } from './ui/Input';
 import { Modal } from './ui/Modal';
 
-export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
+export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, onRestart }) => {
     // --- STATE ---
     const [words, setWords] = useState(data?.words || []); // {word, clue, x, y, dir, num}
     const [gridSize, setGridSize] = useState(data?.gridSize || 15);
     const [gridState, setGridState] = useState([]); // Matriz de user input + estado
     const [fillBlanks, setFillBlanks] = useState(data?.fillBlanks || false);
+    const [playerName, setPlayerName] = useState('');
+    const [hasStarted, setHasStarted] = useState(false);
+    const [rankings, setRankings] = useState([]);
+    const [startTime, setStartTime] = useState(null);
+    const [lastRunTimeMs, setLastRunTimeMs] = useState(null);
+    const [showRanking, setShowRanking] = useState(false);
+    const [showSolution, setShowSolution] = useState(false);
+    const [isCompleted, setIsCompleted] = useState(false);
 
     // Editor State
     const [showEditor, setShowEditor] = useState(false);
@@ -22,8 +30,19 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
 
     // Init
     useEffect(() => {
+        try {
+            const saved = localStorage.getItem('crossword_ranking');
+            if (saved) setRankings(JSON.parse(saved));
+        } catch (err) {
+            console.error('Erro ao carregar ranking', err);
+        }
+    }, []);
+
+    useEffect(() => {
         if (!data || !data.words) return;
         initializeGame(data.words);
+        setIsCompleted(false);
+        setHasStarted(false);
     }, [data, fillBlanks, gridSize]);
 
     const initializeGame = (wordList) => {
@@ -171,6 +190,79 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
         setGridState(newGrid);
     };
 
+    const persistRanking = (finalTimeMs) => {
+        const entry = {
+            name: playerName?.trim() || 'Jogador',
+            status: 'completo',
+            words: words.length,
+            date: new Date().toISOString(),
+            timeMs: typeof finalTimeMs === 'number' ? finalTimeMs : Number.MAX_SAFE_INTEGER
+        };
+        const normalized = rankings.map(r => ({ ...r, timeMs: typeof r.timeMs === 'number' ? r.timeMs : Number.MAX_SAFE_INTEGER }));
+        const updated = [...normalized, entry]
+            .sort((a, b) => {
+                if (a.timeMs !== b.timeMs) return a.timeMs - b.timeMs;
+                return new Date(b.date) - new Date(a.date);
+            });
+        setRankings(updated);
+        localStorage.setItem('crossword_ranking', JSON.stringify(updated));
+    };
+
+    const formatTime = (ms) => {
+        if (!ms || !Number.isFinite(ms) || ms === Number.MAX_SAFE_INTEGER) return '--:--';
+        const totalSeconds = Math.max(0, Math.round(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+        const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+        return `${minutes}:${seconds}`;
+    };
+
+    const deleteRankingEntry = (idx) => {
+        const updated = rankings.filter((_, i) => i !== idx);
+        setRankings(updated);
+        localStorage.setItem('crossword_ranking', JSON.stringify(updated));
+    };
+
+    const startGame = () => {
+        if (!playerName.trim()) return;
+        setHasStarted(true);
+        setIsCompleted(false);
+        setStartTime(Date.now());
+        setLastRunTimeMs(null);
+        setShowRanking(false);
+        clearGrid();
+    };
+
+    const handleRestart = () => {
+        setHasStarted(false);
+        setIsCompleted(false);
+        setPlayerName('');
+        setStartTime(null);
+        setLastRunTimeMs(null);
+        setShowRanking(false);
+        setShowSolution(false);
+        clearGrid();
+    };
+
+    const checkAnswerWithTracking = () => {
+        const newGrid = gridState.map(row => row.map(cell => {
+            if (!cell || cell.isFiller) return cell;
+            return { ...cell, status: cell.input?.toUpperCase() === cell.char ? 'correct' : cell.input ? 'incorrect' : null };
+        }));
+
+        const hasEmpty = newGrid.some(row => row.some(cell => cell && !cell.isFiller && !cell.input));
+        const allCorrect = newGrid.every(row => row.every(cell => !cell || cell.isFiller || cell.status === 'correct'));
+
+        setGridState(newGrid);
+        if (hasEmpty) alert("Preencha todos os campos antes de verificar!");
+        else if (allCorrect) {
+            const finalTimeMs = startTime ? Date.now() - startTime : Number.MAX_SAFE_INTEGER;
+            setLastRunTimeMs(finalTimeMs);
+            setIsCompleted(true);
+            persistRanking(finalTimeMs);
+            alert("Parabéns! Você completou o desafio!");
+        }
+        else alert("Existem erros. Verifique as células vermelhas.");
+    };
 
     // --- EDITOR HANDLERS ---
 
@@ -225,12 +317,300 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
     };
 
 
+    // --- PRINT VIEW ---
+    function renderPrintView() {
+        return (
+            <div className="flex flex-col gap-6 p-4 max-w-6xl mx-auto print:gap-3 print:p-2">
+                <Card className="flex flex-wrap justify-between items-center p-4 print:hidden">
+                    <div className="flex items-center gap-4">
+                        <h2 className="text-xl font-bold text-brown-900 flex items-center gap-2">
+                            <Sparkles className="text-brown-500" />
+                            {topic || "Palavras Cruzadas"}
+                        </h2>
+                        <Badge variant="outline">{words.length} Palavras</Badge>
+                    </div>
+                    <div className="flex gap-2 no-print flex-wrap sm:flex-nowrap">
+                        <Button onClick={() => setShowEditor(true)} icon={Edit2} className="whitespace-nowrap">
+                            Editar / Adicionar
+                        </Button>
+                        <Button
+                            onClick={() => setShowSolution(!showSolution)}
+                            variant={showSolution ? "primary" : "secondary"}
+                            className={`whitespace-nowrap min-w-[170px] text-center ${showSolution ? 'bg-green-600 text-white' : ''}`}
+                        >
+                            {showSolution ? 'Ocultar Solução' : 'Mostrar Solução'}
+                        </Button>
+                    </div>
+                </Card>
+
+                <Card className="w-full flex flex-col items-center print:shadow-none print:border-none">
+                    <div
+                        className="grid gap-0 bg-transparent p-0 rounded print:bg-transparent print:!gap-0 print:!p-0 print:!shadow-none print:!border-none"
+                        style={{
+                            gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+                            width: 'fit-content',
+                            maxWidth: '100%'
+                        }}
+                    >
+                        {gridState.map((row, y) => (
+                            row.map((cell, x) => {
+                                if (!cell) return <div key={`${x}-${y}`} className="w-8 h-8 sm:w-10 sm:h-10 bg-brown-50/30 print:invisible print:border-none" />;
+                                const isFiller = cell.isFiller;
+                                return (
+                                    <div
+                                        key={`${x}-${y}`}
+                                        className={`relative w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center ${isFiller ? 'bg-brown-50 print:bg-white' : 'bg-white'} border border-brown-900 print:!border print:!border-black print:z-10`}
+                                        style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}
+                                    >
+                                        {cell.num && (
+                                            <span className="absolute top-0.5 left-0.5 text-[10px] font-black text-brown-800 leading-none pointer-events-none print:text-black z-20">
+                                                {cell.num}
+                                            </span>
+                                        )}
+                                        {!isFiller && (
+                                            <span className={`text-lg font-bold uppercase ${showSolution ? 'text-brown-900' : 'text-transparent'}`}>
+                                                {showSolution ? cell.char : ''}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })
+                        ))}
+                    </div>
+                </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                    <Card className="print:shadow-none print:border">
+                        <h3 className="font-bold text-brown-900 mb-4 flex items-center gap-2 text-lg border-b border-brown-100 pb-2">
+                            <Badge variant="secondary">HORIZONTAIS</Badge>
+                        </h3>
+                        <ul className="space-y-3 text-sm">
+                            {words.filter(w => w.dir === 'H').sort((a, b) => a.num - b.num).map(w => (
+                                <li key={w.num} className="flex items-start gap-3">
+                                    <span className="font-black text-brown-600 min-w-[1.5rem] text-right">{w.num}.</span>
+                                    <span className="text-brown-700 font-medium flex-1 whitespace-normal break-normal hyphens-none">{w.clue}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </Card>
+
+                    <Card className="print:shadow-none print:border">
+                        <h3 className="font-bold text-brown-900 mb-4 flex items-center gap-2 text-lg border-b border-brown-100 pb-2">
+                            <Badge className="bg-brown-800 text-white border-none">VERTICAIS</Badge>
+                        </h3>
+                        <ul className="space-y-3 text-sm">
+                            {words.filter(w => w.dir === 'V').sort((a, b) => a.num - b.num).map(w => (
+                                <li key={w.num} className="flex items-start gap-3">
+                                    <span className="font-black text-brown-800 min-w-[1.5rem] text-right">{w.num}.</span>
+                                    <span className="text-brown-700 font-medium flex-1 whitespace-normal break-normal hyphens-none">{w.clue}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </Card>
+                </div>
+            </div>
+        );
+    }
+
     // --- RENDER ---
+    if (!isGameMode) {
+        return (
+            <>
+                {renderPrintView()}
+                {showEditor && (
+                    <Modal
+                        isOpen={showEditor}
+                        onClose={() => setShowEditor(false)}
+                        title="Editor de Palavras"
+                        icon={Edit2}
+                        size="lg"
+                        footer={
+                            <div className="flex justify-end w-full">
+                                <Button onClick={() => setShowEditor(false)} icon={Check}>
+                                    Concluir Edição
+                                </Button>
+                            </div>
+                        }
+                    >
+                        <div className="flex-1">
+                            <form
+                                className="bg-white p-4 rounded-xl shadow-sm mb-6 border border-brown-200"
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const w = e.target.word.value.trim().toUpperCase();
+                                    const c = e.target.clue.value.trim();
+                                    if (w && c) {
+                                        addWord({ word: w, clue: c });
+                                        e.target.reset();
+                                    }
+                                }}
+                            >
+                                <h4 className="font-bold text-sm text-brown-500 uppercase mb-3">Adicionar Nova Palavra</h4>
+                                <div className="flex gap-3">
+                                    <Input name="word" placeholder="PALAVRA" className="flex-1 font-bold uppercase" required />
+                                    <TextArea name="clue" placeholder="Dica..." className="flex-[2] h-auto" rows={2} required />
+                                    <Button type="submit" className="h-auto py-2">
+                                        <Plus className="w-5 h-5" />
+                                    </Button>
+                                </div>
+                            </form>
+
+                            <div className="space-y-2">
+                                {words.map((w, idx) => (
+                                    <Card key={idx} className="flex items-center justify-between p-3 group hover:border-brown-300 shadow-sm">
+                                        <div>
+                                            <div className="font-bold text-brown-800">{w.word}</div>
+                                            <div className="text-xs text-brown-500">{w.clue}</div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Button
+                                                onClick={() => removeWord(idx)}
+                                                variant="ghost"
+                                                className="text-brown-300 hover:text-red-500 opacity-0 group-hover:opacity-100"
+                                                icon={Trash2}
+                                            />
+                                        </div>
+                                    </Card>
+                                ))}
+                                {words.length === 0 && (
+                                    <p className="text-center text-brown-400 italic py-4">Nenhuma palavra adicionada ainda.</p>
+                                )}
+                            </div>
+
+                            <div className="mt-6 flex justify-end">
+                                <Button onClick={regenerateLayout} icon={Sparkles}>
+                                    Regerar Grade
+                                </Button>
+                            </div>
+                        </div>
+                    </Modal>
+                )}
+            </>
+        );
+    }
+
+    if (!hasStarted) {
+        return (
+            <Card className="max-w-2xl mx-auto border-2 border-brown-200 shadow-xl overflow-hidden">
+                <div className="p-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                            <UserPlus className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-brown-900">Digite seu nome para jogar</h2>
+                            <p className="text-sm text-brown-700">Seu nome ficará salvo no ranking local (JSON no navegador).</p>
+                        </div>
+                    </div>
+
+                    <input
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        placeholder="Seu nome"
+                        className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+
+                    <Button
+                        onClick={startGame}
+                        disabled={!playerName.trim()}
+                        className="w-full bg-amber-600 hover:bg-amber-700 text-white shadow-lg disabled:opacity-50"
+                        icon={UserPlus}
+                    >
+                        Começar Jogo
+                    </Button>
+
+                    <Button
+                        onClick={() => setShowRanking(!showRanking)}
+                        variant="secondary"
+                        className="w-full border-amber-200 text-amber-800 hover:bg-amber-100"
+                        icon={Trophy}
+                    >
+                        {showRanking ? 'Esconder Ranking' : 'Mostrar Ranking'}
+                    </Button>
+
+                    {showRanking && rankings.length > 0 && (
+                        <div className="mt-4 p-4 rounded-lg bg-amber-50 border border-amber-200">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Trophy className="w-4 h-4 text-amber-600" />
+                                <span className="text-sm font-semibold text-amber-800">Ranking Local</span>
+                            </div>
+                            <div className="space-y-1 text-sm text-amber-900">
+                                {rankings.map((r, idx) => (
+                                    <div key={idx} className="flex justify-between items-center">
+                                        <span>{idx + 1}. {r.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span>{r.words} palavras • {formatTime(r.timeMs)}</span>
+                                            <button
+                                                onClick={() => deleteRankingEntry(idx)}
+                                                className="p-1 text-amber-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                title="Deletar participante"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </Card>
+        );
+    }
+
+    if (isCompleted) {
+        return (
+            <div className="flex flex-col items-center justify-center p-8 space-y-6 animate-fade-in max-w-2xl mx-auto">
+                <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-4 border-4 border-yellow-300 shadow-lg">
+                    <Trophy className="w-12 h-12 text-yellow-600" />
+                </div>
+                <h2 className="text-3xl font-bold text-brown-900">Palavras Cruzadas Completas!</h2>
+                {Number.isFinite(lastRunTimeMs) && (
+                    <p className="text-sm text-brown-600">Tempo: {formatTime(lastRunTimeMs)}</p>
+                )}
+                
+                <div className="flex gap-3">
+                    <Button onClick={() => setShowRanking(!showRanking)} variant="secondary" className="border-amber-200 text-amber-800 hover:bg-amber-100" icon={Trophy}>
+                        {showRanking ? 'Esconder Ranking' : 'Ver Ranking'}
+                    </Button>
+                    <Button onClick={handleRestart} icon={RefreshCw} className="bg-brown-600 hover:bg-brown-700 text-white px-8 py-3 text-lg rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
+                        Jogar Novamente
+                    </Button>
+                </div>
+
+                {showRanking && rankings.length > 0 && (
+                    <Card className="w-full bg-white border border-amber-200 p-4 text-sm text-brown-800">
+                        <div className="flex items-center gap-2 mb-2 font-semibold text-amber-800">
+                            <Trophy className="w-4 h-4" /> Ranking Local
+                        </div>
+                        <div className="space-y-1">
+                            {rankings.map((r, idx) => (
+                                <div key={idx} className={`flex justify-between items-center ${r.name === (playerName?.trim() || 'Jogador') ? 'font-bold text-green-700' : ''}`}>
+                                    <span>{idx + 1}. {r.name}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span>{r.words} palavras • {formatTime(r.timeMs)}</span>
+                                        <button
+                                            onClick={() => deleteRankingEntry(idx)}
+                                            className="p-1 text-amber-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                            title="Deletar participante"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </Card>
+                )}
+            </div>
+        );
+    }
+
     return (
-        <div className="flex flex-col gap-6 p-4 max-w-6xl mx-auto">
+        <div className="flex flex-col gap-6 p-4 max-w-6xl mx-auto print:gap-3 print:p-2">
 
             {/* Toolbar */}
-            <Card className="flex flex-wrap justify-between items-center p-4">
+            <Card className="flex flex-wrap justify-between items-center p-4 print:hidden">
                 <div className="flex items-center gap-4">
                     <h2 className="text-xl font-bold text-brown-900 flex items-center gap-2">
                         <Sparkles className="text-brown-500" />
@@ -241,15 +621,17 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
                     </Badge>
                 </div>
 
-                <div className="flex gap-2">
-                    <Button onClick={() => setShowEditor(true)} icon={Edit2}>
-                        Editar / Adicionar
-                    </Button>
-                </div>
+                {!isGameMode && (
+                    <div className="flex gap-2">
+                        <Button onClick={() => setShowEditor(true)} icon={Edit2}>
+                            Editar / Adicionar
+                        </Button>
+                    </div>
+                )}
             </Card>
 
             {/* Main Layout - Column for better print/PDF flow */}
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-8 print:gap-4">
 
                 {/* Grid Area - Centered */}
                 <Card className="w-full flex flex-col items-center print:shadow-none print:border-none">
@@ -316,14 +698,22 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
 
                     {/* Game Controls - Hide on Print */}
                     <div className="mt-8 flex gap-3 no-print print:hidden">
-                        <Button onClick={checkAnswers} variant="primary" className="bg-green-600 hover:bg-green-700 text-white" icon={Check}>
+                        <Button onClick={checkAnswerWithTracking} variant="primary" className="bg-green-600 hover:bg-green-700 text-white" icon={Check}>
                             Verificar
                         </Button>
-                        <Button onClick={revealAnswers} variant="secondary" className="bg-yellow-500 hover:bg-yellow-400 text-brown-900 border-none" icon={Eye}>
-                            Soluções
-                        </Button>
+                        {!isGameMode && (
+                            <Button onClick={revealAnswers} variant="secondary" className="bg-yellow-500 hover:bg-yellow-400 text-brown-900 border-none" icon={Eye}>
+                                Soluções
+                            </Button>
+                        )}
                         <Button onClick={clearGrid} variant="ghost" className="bg-brown-100 text-brown-800 hover:bg-brown-200" icon={Eraser}>
                             Limpar
+                        </Button>
+                        <Button onClick={() => {
+                            handleRestart();
+                            onRestart?.();
+                        }} variant="ghost" className="ml-auto bg-brown-100 text-brown-700 hover:bg-brown-200" title="Voltar para modo de impressão">
+                            Voltar
                         </Button>
                     </div>
 

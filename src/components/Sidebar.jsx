@@ -1,5 +1,5 @@
-import React from 'react';
-import { Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Loader2, Sparkles, AlertCircle, GripVertical } from 'lucide-react';
 import WordsearchWizard from './WordsearchWizard';
 import { theme } from '../styles/theme';
 import { Button } from './ui/Button';
@@ -46,6 +46,52 @@ export const Sidebar = ({
     error,
     openSaveLoad
 }) => {
+    const [orderedActivities, setOrderedActivities] = useState([]);
+    const [draggedItem, setDraggedItem] = useState(null);
+
+    useEffect(() => {
+        // Carrega ordem salva no localStorage ou usa ordem padrão
+        const saved = localStorage.getItem('activityOrder');
+        if (saved) {
+            try {
+                setOrderedActivities(JSON.parse(saved));
+            } catch {
+                setOrderedActivities(activityOptions);
+            }
+        } else {
+            setOrderedActivities(activityOptions);
+        }
+    }, [activityOptions]);
+
+    const handleDragStart = (e, index) => {
+        setDraggedItem(index);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = (e, targetIndex) => {
+        e.preventDefault();
+        if (draggedItem === null || draggedItem === targetIndex) return;
+
+        const newOrder = [...orderedActivities];
+        const [movedItem] = newOrder.splice(draggedItem, 1);
+        newOrder.splice(targetIndex, 0, movedItem);
+        
+        setOrderedActivities(newOrder);
+        setDraggedItem(null);
+        
+        // Salva no localStorage
+        localStorage.setItem('activityOrder', JSON.stringify(newOrder));
+    };
+
+    const handleDragEnd = () => {
+        setDraggedItem(null);
+    };
+
     return (
         <div className={theme.layout.sidebar}>
             {showSettings && (
@@ -68,26 +114,7 @@ export const Sidebar = ({
                         )}
                     </div>
 
-                    {apiKey && (
-                        <div>
-                            <h3 className={theme.text.subtitle}>⚡ Modelo de IA</h3>
-                            <div className="space-y-2">
-                                {modelOptions.map((model) => (
-                                    <label key={model.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-brown-50 cursor-pointer transition-colors">
-                                        <input
-                                            type="radio"
-                                            name="model"
-                                            value={model.id}
-                                            checked={selectedModel === model.id}
-                                            onChange={(e) => setSelectedModel(e.target.value)}
-                                            className={theme.input.checkbox}
-                                        />
-                                        <span className="text-xs text-brown-700">{model.label}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+
                     {imagePng && (
                         <div className="mt-6">
                             <img src={imagePng} alt="Imagem gerada por IA" className="max-w-full border border-brown-200 rounded-lg shadow-sm" />
@@ -139,23 +166,37 @@ export const Sidebar = ({
                     <div>
                         <label className={theme.text.label}>Tipo</label>
                         <div className="space-y-2 max-h-96 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent">
-                            {activityOptions.map((opt) => (
+                            {orderedActivities.map((opt, index) => (
                                 opt.url ? (
                                     <a
                                         key={opt.id}
                                         href={opt.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 bg-brown-50 hover:bg-brown-100 text-brown-800 transition-colors"
+                                        className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 bg-brown-50 hover:bg-brown-100 text-brown-800 transition-colors cursor-grab"
+                                        draggable
+                                        onDragStart={(e) => handleDragStart(e, index)}
+                                        onDragOver={handleDragOver}
+                                        onDrop={(e) => handleDrop(e, index)}
+                                        onDragEnd={handleDragEnd}
                                     >
+                                        <GripVertical className="w-4 h-4 opacity-50" />
                                         {opt.icon} {opt.label}
                                     </a>
                                 ) : (
                                     <button
                                         key={opt.id}
                                         onClick={() => setActivityType(opt.id)}
-                                        className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all ${activityType === opt.id ? 'bg-brown-100 border border-brown-400 text-brown-900 font-medium' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'}`}
+                                        draggable
+                                        onDragStart={(e) => handleDragStart(e, index)}
+                                        onDragOver={handleDragOver}
+                                        onDrop={(e) => handleDrop(e, index)}
+                                        onDragEnd={handleDragEnd}
+                                        className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-grab active:cursor-grabbing ${
+                                            activityType === opt.id ? 'bg-brown-100 border border-brown-400 text-brown-900 font-medium' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
+                                        } ${draggedItem === index ? 'opacity-50' : ''}`}
                                     >
+                                        <GripVertical className="w-4 h-4 opacity-50" />
                                         {opt.icon} {opt.label}
                                     </button>
                                 )

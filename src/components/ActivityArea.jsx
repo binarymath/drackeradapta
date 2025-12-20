@@ -2,6 +2,7 @@ import React from 'react';
 import { Copy, FileText, Download, Sparkles, Check, Pencil, Play, Gamepad2 } from 'lucide-react';
 import { QuizGame } from './QuizGame';
 import { WordSearchGame } from './WordSearchGame';
+import { MusicGame } from './MusicGame';
 import RichTextRenderer from './RichTextRenderer';
 import { CrosswordActivity } from './CrosswordActivity';
 
@@ -40,6 +41,9 @@ export const ActivityArea = ({
 }) => {
     const hasContent = generatedContent || (activityType === 'crossword' && crosswordData);
     const [isGameMode, setIsGameMode] = React.useState(false);
+    const isWordsearchGame = isGameMode && activityType === 'wordsearch';
+    const isCrosswordGame = isGameMode && activityType === 'crossword';
+    const isMusicGame = isGameMode && activityType === 'simplify';
 
     // Reset game mode when content changes
     React.useEffect(() => {
@@ -126,11 +130,11 @@ export const ActivityArea = ({
                                         </label>
                                     </div>
                                     <Button
-                                        onClick={() => setIsGameMode(true)}
-                                        className="mt-4 w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white border-none hover:scale-105 shadow-lg animate-pulse-slow"
+                                        onClick={() => setIsGameMode(!isGameMode)}
+                                        className={`mt-4 w-full border-none shadow-lg animate-pulse-slow ${isWordsearchGame ? 'bg-amber-100 text-amber-900 hover:bg-amber-200' : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:scale-105'}`}
                                         icon={Gamepad2}
                                     >
-                                        Jogar Agora (Online)
+                                        {isWordsearchGame ? 'Voltar ao modo impressão' : 'Jogar Agora (Online)'}
                                     </Button>
                                 </Card>
                             )}
@@ -158,20 +162,58 @@ export const ActivityArea = ({
                                 </Card>
                             )}
 
+                            {activityType === 'crossword' && crosswordData && (
+                                <Card className="mb-6 bg-blue-50 border-blue-200 no-print flex items-center justify-between p-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                            <Gamepad2 className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-blue-900">Palavras Cruzadas</h3>
+                                            <p className="text-xs text-blue-700">Impressão primeiro; jogue online se quiser.</p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={() => setIsGameMode(!isGameMode)}
+                                        className={`transition-all shadow-sm ${isCrosswordGame ? 'bg-blue-100 text-blue-900 hover:bg-blue-200 border-blue-300' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                                    >
+                                        {isCrosswordGame ? 'Voltar ao modo impressão' : 'Jogar Agora (Online)'}
+                                    </Button>
+                                </Card>
+                            )}
+
                             {/* --- INTERACTIVE GAMES --- */}
 
-                            {isGameMode && activityType === 'wordsearch' ? (
+                            {isWordsearchGame ? (
                                 <WordSearchGame
                                     content={generatedContent}
                                     wordsToFind={(foundWords || []).map(w => typeof w === 'string' ? w.replace(/\s+/g, '') : (w.word || '').replace(/\s+/g, ''))}
+                                    onRestart={() => setIsGameMode(false)}
+                                />
+                            ) : isCrosswordGame ? (
+                                <CrosswordActivity
+                                    data={crosswordData}
+                                    onUpdate={onCrosswordUpdate}
+                                    isGameMode={true}
+                                    onRestart={() => setIsGameMode(false)}
+                                />
+                            ) : activityType === 'crossword' && crosswordData ? (
+                                <CrosswordActivity
+                                    data={crosswordData}
+                                    onUpdate={onCrosswordUpdate}
+                                    isGameMode={false}
                                     onRestart={() => setIsGameMode(false)}
                                 />
                             ) : isGameMode && quizData ? (
                                 <QuizGame
                                     quizData={quizData}
                                     onRestart={() => setIsGameMode(true)} // Force re-render or handle inside component
-                                />
-                            ) : activityType === 'summary' && drackerData ? (
+                                />                            ) : isMusicGame && musicData ? (
+                                <MusicGame
+                                    musicData={musicData}
+                                    onRestart={() => setIsGameMode(true)}
+                                    onExitToPrint={() => setIsGameMode(false)}
+                                />                            ) : activityType === 'summary' && drackerData ? (
                                 <div className="space-y-6">
                                     <Card className="p-8 relative group overflow-hidden border border-brown-100 shadow-sm">
                                         <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none" style={{ filter: 'sepia(100%) saturate(300%) hue-rotate(315deg) brightness(70%)' }}>
@@ -240,13 +282,50 @@ export const ActivityArea = ({
                                         </Card>
                                     </Card>
                                 </div>
-                            ) : activityType === 'crossword' && crosswordData ? (
-                                <CrosswordActivity
-                                    data={crosswordData}
-                                    onUpdate={onCrosswordUpdate}
-                                />
                             ) : activityType === 'simplify' && musicData ? (
                                 <div className="space-y-6">
+                                    {/* Card: Destaque da Playlist */}
+                                    <Card className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 no-print shadow-lg">
+                                        <div className="p-4 space-y-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-purple-200 flex items-center justify-center text-purple-600 font-bold text-lg">
+                                                    🎵
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-purple-900">Playlist Oficial: Músicas do Drácker</h3>
+                                                    <p className="text-xs text-purple-700">Acesse todas as músicas criadas com Drácker no Producer.ai</p>
+                                                </div>
+                                            </div>
+                                            <a
+                                                href="https://www.producer.ai/professornerd"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="block w-full p-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg text-center transition-colors"
+                                            >
+                                                🎧 Ouvir Playlist Completa
+                                            </a>
+                                        </div>
+                                    </Card>
+
+                                    {/* Card: Game Mode Toggle */}
+                                    <Card className="mb-6 bg-green-50 border-green-200 no-print flex items-center justify-between p-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                                                <Gamepad2 className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-green-900">Jogo de Interpretação Musical</h3>
+                                                <p className="text-xs text-green-700">Responda as perguntas com múltipla escolha!</p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            onClick={() => setIsGameMode(!isGameMode)}
+                                            className={`transition-all shadow-sm ${isGameMode ? 'bg-green-100 text-green-900 hover:bg-green-200 border-green-300' : 'bg-green-600 text-white hover:bg-green-700'}`}
+                                        >
+                                            {isGameMode ? 'Voltar para Impressão' : 'Jogar Agora'}
+                                        </Button>
+                                    </Card>
+
                                     {/* Card 1: Music Lyrics */}
                                     <Card className="p-6 relative group">
                                         <div className="absolute top-0 right-0 p-2 opacity-10">
@@ -266,8 +345,21 @@ export const ActivityArea = ({
                                                 Copiar Letra
                                             </Button>
                                         </div>
-                                        <div className="whitespace-pre-wrap font-sans text-brown-700 text-lg leading-relaxed">
-                                            {musicData.lyrics}
+                                        <div className="font-sans text-brown-700 text-lg leading-relaxed">
+                                            {musicData.lyrics.split('\n').map((line, idx) => {
+                                                // Renderiza markdown simples: **texto** → negrito
+                                                const parts = line.split(/(\*\*.*?\*\*)/g);
+                                                return (
+                                                    <div key={idx} className="whitespace-pre-wrap">
+                                                        {parts.map((part, i) => {
+                                                            if (part.startsWith('**') && part.endsWith('**')) {
+                                                                return <strong key={i} className="font-extrabold">{part.slice(2, -2)}</strong>;
+                                                            }
+                                                            return part;
+                                                        })}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </Card>
                                     {/* Card 2: Questions */}
@@ -277,26 +369,76 @@ export const ActivityArea = ({
                                         </div>
                                         <h2 className="text-xl font-bold text-brown-800 mb-4 border-b border-brown-100 pb-2">Perguntas de Interpretação</h2>
                                         <ol className="list-decimal list-inside space-y-4">
-                                            {musicData.questions.map((q, idx) => (
-                                                <li key={idx} className="text-brown-900 font-medium">
-                                                    {q}
-                                                    <div className="mt-2 h-8 border-b border-dotted border-brown-300 w-full"></div>
-                                                </li>
-                                            ))}
+                                            {musicData.questions.map((q, idx) => {
+                                                const questionText = typeof q === 'string' ? q : (q.text || q.question || `Pergunta ${idx + 1}`);
+                                                const options = Array.from(new Set(
+                                                    (typeof q === 'object' ? (q.options || q.ordered_options || []) : [])
+                                                        .concat(typeof q === 'object' ? (q.distractors || q.incorrect_options || []) : [])
+                                                        .concat(typeof q === 'object' ? (q.correctAnswer || q.correct_answer || q.answer || q.correct_option || []) : [])
+                                                )).filter(Boolean);
+
+                                                return (
+                                                    <li key={idx} className="text-brown-900 font-medium">
+                                                        {questionText}
+                                                        {options.length > 0 && (
+                                                            <div className="mt-2 space-y-2 text-sm text-brown-800 no-print">
+                                                                <span className="font-semibold text-brown-900">Alternativas (visíveis só na edição)</span>
+                                                                <div className="grid gap-2 sm:grid-cols-2">
+                                                                    {options.map((opt, optIdx) => (
+                                                                        <div
+                                                                            key={optIdx}
+                                                                            className="px-3 py-2 rounded-lg border border-brown-100 bg-brown-50"
+                                                                        >
+                                                                            <span className="font-semibold text-brown-700 mr-2">{String.fromCharCode(65 + optIdx)})</span>
+                                                                            <span className="text-brown-800">{opt}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        <div className="mt-2 h-8 border-b border-dotted border-brown-300 w-full"></div>
+                                                    </li>
+                                                );
+                                            })}
                                         </ol>
                                     </Card>
                                 </div>
                             ) : (
-                                <RichTextRenderer
-                                    content={generatedContent}
-                                    showAnswers={showAnswers}
-                                    foundWords={foundWords}
-                                    foundPlacements={foundPlacements}
-                                    hideText={activityType === 'wordsearch' && wordsearchHideText}
-                                    hideGrid={activityType === 'wordsearch' && wordsearchHideGrid}
-                                    title={activityType === 'wordsearch' ? wordsearchTitle : null}
-                                />
+                                <>
+                                    {activityType === 'wordsearch' && (
+                                        <Card className="mb-6 bg-purple-50 border-purple-200 no-print flex items-center justify-between p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        onClick={() => setShowAnswers(!showAnswers)}
+                                                        variant={showAnswers ? "primary" : "secondary"}
+                                                        className={`h-8 text-sm px-3 ${showAnswers ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+                                                    >
+                                                        {showAnswers ? 'Respostas' : 'Soluções'}
+                                                    </Button>
+                                                    <Button
+                                                        onClick={onEdit}
+                                                        variant="secondary"
+                                                        className="h-8 text-sm px-3"
+                                                    >
+                                                        Editar/Adicionar
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    )}
+                                    <RichTextRenderer
+                                        content={generatedContent}
+                                        showAnswers={showAnswers}
+                                        foundWords={foundWords}
+                                        foundPlacements={foundPlacements}
+                                        hideText={activityType === 'wordsearch' && wordsearchHideText}
+                                        hideGrid={activityType === 'wordsearch' && wordsearchHideGrid}
+                                        title={activityType === 'wordsearch' ? wordsearchTitle : null}
+                                    />
+                                </>
                             )}
+
 
                         </>
                     ) : (
