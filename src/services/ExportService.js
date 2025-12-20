@@ -41,8 +41,8 @@ export class ExportService {
         const container = document.createElement('div');
         container.style.width = '100%';
         // Ajustando para largura segura (A4 210mm - 20mm margem = 190mm ~ 718px)
-        // Reduzindo para 650px para garantir folga absoluta
-        container.style.maxWidth = '650px';
+        // Aumentado para 750px para aproveitar melhor a folha
+        container.style.maxWidth = '750px';
         container.style.margin = '0 auto';
         container.style.padding = '0'; // Remove padding do container para controle total
         container.style.color = 'black';
@@ -87,7 +87,22 @@ export class ExportService {
         // Força estilos de impressão (Preto no Branco) e TEXTO ESQUERDA
         const allEls = clone.querySelectorAll('*');
         allEls.forEach(el => {
-            el.style.color = '#000';
+            // Força estilos de impressão (Preto no Branco) e TEXTO ESQUERDA, mas RESPEITA BRANCO em FUNDO ESCURO
+            const isDarkBackground = el.classList.contains('bg-brown-900') ||
+                el.classList.contains('bg-black') ||
+                el.classList.contains('text-white') ||
+                el.classList.contains('bg-slate-900');
+
+            if (isDarkBackground) {
+                el.style.color = '#FFFFFF';
+                // Força background escuro se necessário para impressão (alguns browsers removem bg)
+                el.style.backgroundColor = getComputedStyle(el).backgroundColor;
+                el.style.printColorAdjust = 'exact';
+                el.style.webkitPrintColorAdjust = 'exact';
+            } else {
+                el.style.color = '#000';
+            }
+
 
             // Remove justificativa que causa espaçamento irregular no PDF
             if (getComputedStyle(el).textAlign === 'justify') {
@@ -96,8 +111,8 @@ export class ExportService {
             // Remove tracking (espaçamento entre letras)
             el.style.letterSpacing = 'normal';
 
-            // Remove fundos escuros/coloridos se não forem essenciais
-            if (el.classList.contains('bg-white')) el.style.backgroundColor = 'white';
+            // Remove fundos escuros/coloridos se não forem essenciais (apenas se nao for os headers)
+            if (el.classList.contains('bg-white') && !isDarkBackground) el.style.backgroundColor = 'white';
 
             // Garante que nenhum elemento filho ultrapasse a largura do container
             el.style.maxWidth = '100% !important';
@@ -106,16 +121,21 @@ export class ExportService {
             // Remove margins negativas ou muito grandes
             el.style.marginRight = '0';
 
+            // PDF: Reduce Card/Container Padding to minimize whitespace
+            if (el.classList.contains('p-6') || el.classList.contains('p-8') || el.classList.contains('p-4')) {
+                el.style.padding = '5px'; // Force small padding
+            }
+
             // PDF: Reduce Size of Crossword/Grid Cells to fit page
-            // Targets the w-8 h-8 (32px) cells and shrinks them to ~24px
+            // Targets the w-8 h-8 (32px) cells and shrinks them to ~32px (Aumentado a pedido do user para 32px - max fit)
             if (el.classList.contains('w-8') && el.classList.contains('h-8')) {
-                el.style.width = '24px';
-                el.style.height = '24px';
-                el.style.fontSize = '10px'; // Smaller font for numbers inside
+                el.style.width = '32px';
+                el.style.height = '32px';
+                el.style.fontSize = '12px'; // Font adjusted
             }
             if (el.classList.contains('sm:w-10')) {
-                el.style.width = '24px'; // Force override responsive utilities
-                el.style.height = '24px';
+                el.style.width = '32px'; // Force override responsive utilities
+                el.style.height = '32px';
             }
         });
 
@@ -127,7 +147,7 @@ export class ExportService {
         await new Promise(resolve => setTimeout(resolve, 1500));
 
         const opt = {
-            margin: [10, 10, 10, 10], // mm
+            margin: [5, 5, 5, 5], // MARGIN REDUZIDA para 5mm para caber mais
             filename: `${title || 'atividade'}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: {
@@ -258,11 +278,11 @@ export class ExportService {
                         children.forEach((child, index) => {
                             const td = document.createElement('td');
                             td.style.border = '1px solid #000';
-                            td.style.width = '24px';
-                            td.style.height = '24px';
+                            td.style.width = '32px';
+                            td.style.height = '32px';
                             td.style.textAlign = 'center';
                             td.style.verticalAlign = 'middle';
-                            td.style.fontSize = '11pt';
+                            td.style.fontSize = '12pt';
                             td.style.fontWeight = 'bold';
                             td.innerText = child.innerText;
 
@@ -282,10 +302,20 @@ export class ExportService {
                 }
             }
 
-            // Cards e Parágrafos
+            // Tratamento de Cor de Texto (Branco em Fundo Escuro vs Preto Padrão)
+            const isDarkBackground = el.classList.contains('bg-brown-900') ||
+                el.classList.contains('bg-black') ||
+                el.classList.contains('text-white') ||
+                el.classList.contains('bg-slate-900');
+
+            if (isDarkBackground) {
+                el.style.color = '#FFFFFF';
+            } else {
+                el.style.color = '#000000';
+            }
             if (el.classList.contains('bg-white') || el.classList.contains('shadow-sm') || el.classList.contains('rounded-xl')) {
                 el.style.border = '1px solid #ccc';
-                el.style.padding = '10px';
+                el.style.padding = '5px';
                 el.style.marginBottom = '15px';
                 el.style.backgroundColor = '#ffffff';
                 el.style.borderRadius = '8px';
