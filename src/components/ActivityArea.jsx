@@ -1,5 +1,7 @@
 import React from 'react';
-import { Copy, FileText, Download, Sparkles, Check, Pencil } from 'lucide-react';
+import { Copy, FileText, Download, Sparkles, Check, Pencil, Play, Gamepad2 } from 'lucide-react';
+import { QuizGame } from './QuizGame';
+import { WordSearchGame } from './WordSearchGame';
 import RichTextRenderer from './RichTextRenderer';
 import { CrosswordActivity } from './CrosswordActivity';
 
@@ -33,9 +35,16 @@ export const ActivityArea = ({
     musicData,
     drackerData,
     crosswordData,
+    quizData,
     onCrosswordUpdate
 }) => {
     const hasContent = generatedContent || (activityType === 'crossword' && crosswordData);
+    const [isGameMode, setIsGameMode] = React.useState(false);
+
+    // Reset game mode when content changes
+    React.useEffect(() => {
+        setIsGameMode(false);
+    }, [generatedContent]);
 
     return (
         <div className="lg:col-span-8">
@@ -116,10 +125,53 @@ export const ActivityArea = ({
                                             <span className="text-xs font-bold text-brown-700">Esconder o Jogo (Só a História)</span>
                                         </label>
                                     </div>
+                                    <Button
+                                        onClick={() => setIsGameMode(true)}
+                                        className="mt-4 w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white border-none hover:scale-105 shadow-lg animate-pulse-slow"
+                                        icon={Gamepad2}
+                                    >
+                                        Jogar Agora (Online)
+                                    </Button>
                                 </Card>
                             )}
 
-                            {activityType === 'summary' && drackerData ? (
+
+
+                            {/* QUIZ GAME TOGGLE */}
+                            {activityType === 'quiz' && quizData && (
+                                <Card className="mb-6 bg-amber-50 border-amber-200 no-print flex items-center justify-between p-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                                            <Gamepad2 className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-amber-900">Modo Jogo Interativo</h3>
+                                            <p className="text-xs text-amber-700">Transforme este quiz em um jogo divertido agora!</p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={() => setIsGameMode(!isGameMode)}
+                                        className={`transition-all shadow-sm ${isGameMode ? 'bg-amber-100 text-amber-900 hover:bg-amber-200 border-amber-300' : 'bg-amber-600 text-white hover:bg-amber-700'}`}
+                                    >
+                                        {isGameMode ? 'Voltar para Impressão' : 'Jogar Agora'}
+                                    </Button>
+                                </Card>
+                            )}
+
+                            {/* --- INTERACTIVE GAMES --- */}
+
+                            {isGameMode && activityType === 'wordsearch' ? (
+                                <WordSearchGame
+                                    content={generatedContent}
+                                    wordsToFind={(foundWords || []).map(w => typeof w === 'string' ? w.replace(/\s+/g, '') : (w.word || '').replace(/\s+/g, ''))}
+                                    onRestart={() => setIsGameMode(false)}
+                                />
+                            ) : isGameMode && quizData ? (
+                                <QuizGame
+                                    quizData={quizData}
+                                    onRestart={() => setIsGameMode(true)} // Force re-render or handle inside component
+                                />
+                            ) : activityType === 'summary' && drackerData ? (
                                 <div className="space-y-6">
                                     <Card className="p-8 relative group overflow-hidden border border-brown-100 shadow-sm">
                                         <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none" style={{ filter: 'sepia(100%) saturate(300%) hue-rotate(315deg) brightness(70%)' }}>
@@ -218,7 +270,6 @@ export const ActivityArea = ({
                                             {musicData.lyrics}
                                         </div>
                                     </Card>
-
                                     {/* Card 2: Questions */}
                                     <Card className="p-6 relative">
                                         <div className="absolute top-0 right-0 p-2 opacity-10">
@@ -246,6 +297,7 @@ export const ActivityArea = ({
                                     title={activityType === 'wordsearch' ? wordsearchTitle : null}
                                 />
                             )}
+
                         </>
                     ) : (
                         <div className="h-full flex flex-col items-center justify-center text-brown-300">
@@ -264,9 +316,8 @@ export const ActivityArea = ({
                                 </>
                             )}
                         </div>
-                    )
-                    }
-                </div >
+                    )}
+                </div>
             </div >
         </div >
     );

@@ -6,7 +6,7 @@ import { Edit2, Sparkles, Trash2, Save, X, Plus, RefreshCw, Eye, Eraser, Check }
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Card } from './ui/Card';
-import { Input, Select } from './ui/Input';
+import { Input, Select, TextArea } from './ui/Input';
 import { Modal } from './ui/Modal';
 
 export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
@@ -42,15 +42,31 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
                             char: w.word[i],
                             blocked: false,
                             input: '',
-                            num: i === 0 ? w.num : null // Pode ser sobrescrito se cruzamento startar outra
+                            numH: null,
+                            numV: null,
+                            num: null
                         };
-                    } else {
-                        // Cruzamento
-                        if (i === 0) newGrid[cy][cx].num = w.num;
+                    }
+
+                    if (i === 0) {
+                        if (w.dir === 'V') newGrid[cy][cx].numV = w.num;
+                        if (w.dir === 'H') newGrid[cy][cx].numH = w.num;
                     }
                 }
             }
         });
+
+        // 1.5 Formatar números (Vertical / Horizontal)
+        for (let y = 0; y < gridSize; y++) {
+            for (let x = 0; x < gridSize; x++) {
+                if (newGrid[y][x]) {
+                    const { numV, numH } = newGrid[y][x];
+                    if (numV && numH) newGrid[y][x].num = `${numV}/${numH}`;
+                    else if (numV) newGrid[y][x].num = numV.toString();
+                    else if (numH) newGrid[y][x].num = numH.toString();
+                }
+            }
+        }
 
         // 2. Preencher vazios (se fillBlanks)
         if (fillBlanks) {
@@ -381,7 +397,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate }) => {
                             <h4 className="font-bold text-sm text-brown-500 uppercase mb-3">Adicionar Nova Palavra</h4>
                             <div className="flex gap-3">
                                 <Input name="word" placeholder="PALAVRA" className="flex-1 font-bold uppercase" required />
-                                <Input name="clue" placeholder="Dica..." className="flex-[2]" required />
+                                <TextArea name="clue" placeholder="Dica..." className="flex-[2] h-auto" rows={2} required />
                                 <Button type="submit" className="h-auto py-2">
                                     <Plus className="w-5 h-5" />
                                 </Button>

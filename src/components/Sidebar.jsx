@@ -138,7 +138,7 @@ export const Sidebar = ({
 
                     <div>
                         <label className={theme.text.label}>Tipo</label>
-                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent">
+                        <div className="space-y-2 max-h-96 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent">
                             {activityOptions.map((opt) => (
                                 opt.url ? (
                                     <a

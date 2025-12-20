@@ -15,6 +15,8 @@ import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { ActivityArea } from './components/ActivityArea';
 import { QuizEditorModal } from './components/QuizEditorModal';
+import { Modal } from './components/ui/Modal';
+import { Button } from './components/ui/Button';
 import { DrackerEditorModal } from './components/DrackerEditorModal';
 import { VoiceSettingsModal } from './components/VoiceSettingsModal';
 import { MusicEditorModal } from './components/MusicEditorModal';
@@ -87,20 +89,33 @@ export default function App() {
   const [tabs, setTabs] = useState([]);
   const [activeTabId, setActiveTabId] = useState(null);
 
+  // Tab Selection Modal State
+  const [tabSelectionModal, setTabSelectionModal] = useState({
+    isOpen: false,
+    tabs: [],
+    type: ''
+  });
+
   // Backup / Restore System
   const exportSystemState = () => {
-    const state = {
-      date: new Date().toISOString(),
-      tabs: tabs
-    };
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `backup_atividades_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const state = {
+        date: new Date().toISOString(),
+        tabs: tabs
+      };
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `backup_atividades_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Erro ao fazer backup:", error);
+      alert("Erro ao criar arquivo de backup: " + error.message);
+    }
   };
 
   const importSystemState = (e) => {
@@ -153,12 +168,19 @@ export default function App() {
     return tabs.find(t => t.id === activeTabId) || null;
   }, [tabs, activeTabId]);
 
-  // Sync active activity state to global editors/viewers
+  // Sync active activity state to global editors/viewers and sidebar
   useEffect(() => {
     if (activeActivity) {
-      // Sync local states if necessary for editing
-      // However, ideally editors should open with activeActivity data
-      // For simplicity, we just ensure ActivityArea receives activeActivity props
+      setTopic(activeActivity.title || '');
+      // Only sync type if it's one of the known types, to update the sidebar highlight
+      if (['quiz', 'wordsearch', 'crossword', 'summary', 'simplify'].includes(activeActivity.type)) {
+        // Using the raw state setter to avoid navigation side-effects
+        // Note: setActivityType here refers to the useState setter, NOT the handler wrapper (which is defined later)
+        // Wait, the handler wrapper is defined CONST after this. setActivityType from useState is in scope.
+        // Actually, I need to be careful. The handler wrapper is named `handleActivityTypeChange`. 
+        // `setActivityType` IS the useState setter. Correct.
+        setActivityType(activeActivity.type);
+      }
     }
   }, [activeActivity]);
 
@@ -488,7 +510,7 @@ FORMATAÇÃO:
            }
            
            REQUISITOS:
-           - 5 Questões no total (2 Fáceis, 2 Médias, 1 Difícil - misturadas).
+           - 10 Questões no total (4 Fáceis, 4 Médias, 2 Difíceis - misturadas).
            - O texto introdutório deve ajudar a criança a entender o tema.
            - Retorne APENAS o JSON puro. SEM MARKDOWN. SEM TEXTO ANTES OU DEPOIS.`;
       }
@@ -956,16 +978,58 @@ FORMATAÇÃO:
     });
   };
 
+  // --- EXPORT HANDLERS ---
   const handleDownloadDoc = () => {
-    ExportService.exportToDOCX(activityAreaRef.current, wordsearchTitle || topic || 'Atividade');
+    const titleToUse = activeActivity?.title || topic || 'Atividade';
+    ExportService.exportToDOCX(activityAreaRef.current, titleToUse);
   };
 
   const handleDownloadPdf = () => {
-    ExportService.exportToPDF(activityAreaRef.current, wordsearchTitle || topic || 'Atividade');
+    const titleToUse = activeActivity?.title || topic || 'Atividade';
+    ExportService.exportToPDF(activityAreaRef.current, titleToUse);
   };
 
   // --- PERSISTENCE LOGIC ---
 
+
+
+  // Handler for Sidebar Activity switch - switches view to creation mode OR existing tab
+  const handleActivityTypeChange = (type) => {
+    // 1. Filter existing tabs of this type
+    const existingTabs = tabs.filter(t => t.type === type);
+
+    if (existingTabs.length === 1) {
+      // Single match -> Switch to it
+      setActiveTabId(existingTabs[0].id);
+    } else if (existingTabs.length > 1) {
+      // Multiple matches -> Show selection modal
+      setTabSelectionModal({
+        isOpen: true,
+        tabs: existingTabs,
+        type: type
+      });
+    } else {
+      // No match -> Go to creation mode
+      setActivityType(type);
+      setActiveTabId(null);
+    }
+  };
+
+  const handleTabSelection = (tabId) => {
+    const selectedTab = tabs.find(t => t.id === tabId);
+    if (selectedTab) {
+      setActiveTabId(tabId);
+      setActivityType(selectedTab.type);
+      setTopic(selectedTab.title || '');
+    }
+    setTabSelectionModal({ isOpen: false, tabs: [], type: '' });
+  };
+
+  const handleCreateNewFromModal = () => {
+    setActivityType(tabSelectionModal.type);
+    setActiveTabId(null);
+    setTabSelectionModal({ isOpen: false, tabs: [], type: '' });
+  };
 
 
   return (
@@ -1007,7 +1071,7 @@ FORMATAÇÃO:
           setDifficulty={setDifficulty}
           activityOptions={activityOptions}
           activityType={activityType}
-          setActivityType={setActivityType}
+          setActivityType={handleActivityTypeChange}
           imagePrompt={imagePrompt}
           setImagePrompt={setImagePrompt}
           imageStyle={imageStyle}
@@ -1034,7 +1098,7 @@ FORMATAÇÃO:
           <div className="flex flex-col gap-2 bg-white p-2 rounded-xl shadow-sm border border-brown-200">
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTabDragEnd}>
               <SortableContext items={tabs.map(t => t.id)} strategy={horizontalListSortingStrategy}>
-                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                <div className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent">
                   {tabs.map(tab => (
                     <SortableTab
                       key={tab.id}
@@ -1057,9 +1121,9 @@ FORMATAÇÃO:
             activityType={activeActivity ? activeActivity.type : activityType}
 
             // WORDSEARCH PROPS (Read from Tab if available, else state)
-            foundWords={activeActivity?.wordsearchData?.words || foundWords}
-            foundPlacements={activeActivity?.wordsearchData?.placements || foundPlacements}
-            wordsearchTitle={activeActivity?.wordsearchData?.title || wordsearchTitle}
+            foundWords={activeActivity?.wordsearchData?.words || activeActivity?.data?.words || foundWords}
+            foundPlacements={activeActivity?.wordsearchData?.placements || activeActivity?.data?.placements || foundPlacements}
+            wordsearchTitle={activeActivity?.wordsearchData?.title || activeActivity?.data?.title || wordsearchTitle}
 
             // UI State (Still somewhat local unless we move all to tab)
             showAnswers={showAnswers}
@@ -1090,7 +1154,7 @@ FORMATAÇÃO:
             }
             musicData={activeActivity?.musicData}
             drackerData={activeActivity?.drackerData}
-            crosswordData={activeActivity?.data}
+            crosswordData={activeActivity?.data || activeActivity?.crosswordData}
             onCrosswordUpdate={(newData) => {
               setTabs(prev => prev.map(t => {
                 if (t.id === activeTabId) {
@@ -1099,6 +1163,7 @@ FORMATAÇÃO:
                 return t;
               }));
             }}
+            quizData={activeActivity?.quizData}
           />
         </div>
 
@@ -1115,6 +1180,42 @@ FORMATAÇÃO:
           onSave={handleDrackerConfirm}
           initialData={drackerEditorData}
         />
+
+        {/* TAB SELECTION MODAL */}
+        <Modal
+          isOpen={tabSelectionModal.isOpen}
+          onClose={() => setTabSelectionModal(prev => ({ ...prev, isOpen: false }))}
+          title="Atividades Encontradas"
+          className="max-w-md"
+        >
+          <div className="space-y-4">
+            <p className="text-brown-700">
+              Você já tem atividades desse tipo abertas. Deseja abrir uma existente ou criar uma nova?
+            </p>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {tabSelectionModal.tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabSelection(tab.id)}
+                  className="w-full text-left p-3 rounded-lg bg-brown-50 hover:bg-brown-100 border border-brown-200 transition-colors flex items-center justify-between group"
+                >
+                  <span className="font-medium text-brown-800 truncate">{tab.title}</span>
+                  <span className="text-xs text-brown-500 group-hover:text-brown-700">Abrir</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="pt-4 border-t border-brown-100 flex justify-end gap-3">
+              <Button variant="secondary" onClick={() => setTabSelectionModal(prev => ({ ...prev, isOpen: false }))}>
+                Cancelar
+              </Button>
+              <Button onClick={handleCreateNewFromModal}>
+                + Criar Nova
+              </Button>
+            </div>
+          </div>
+        </Modal>
 
 
 

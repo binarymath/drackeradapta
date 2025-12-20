@@ -227,7 +227,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
 
     const flushAnswerKey = () => {
         if (answerBuffer.length > 0) {
-            elements.push(<AnswerKeyCard key={`ans-${elements.length}`} lines={answerBuffer} renderInlineStyles={renderInlineStyles} />);
+            elements.push(<AnswerKeyCard key={`ans-${elements.length}`} lines={answerBuffer} renderInlineStyles={renderInlineStyles} showAnswers={showAnswers} />);
             answerBuffer = [];
         }
     };
@@ -252,7 +252,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
             // Se encontrou cabeçalho ou já está no buffer de gabarito
             // Mas cuidado para não pegar coisa errada. Geralmente é o final.
             // Vamos assumir que se começou, vai até o fim ou até próximo header forte.
-            flushList(); flushGrid(); flushColumn(); flushQuestion(); flushStory();
+            flushList(); flushGameCard(); flushColumn(); flushQuestion(); flushStory();
 
             if (!isEmpty) {
                 answerBuffer.push(trimmedLine.replace(/^(##|###|\*\*)\s*/, '').replace(/\*\*/g, ''));
@@ -266,7 +266,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         const isAlternative = /^[a-e]\)(\s|$)/i.test(trimmedLine);
 
         if (isQuestionStart) {
-            flushList(); flushGrid(); flushColumn(); flushQuestion(); flushStory();
+            flushList(); flushGameCard(); flushColumn(); flushQuestion(); flushStory();
             questionBuffer.push(trimmedLine);
             return;
         }
@@ -509,14 +509,23 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
 };
 
 // Componente Isolado para o Card de Gabarito
-const AnswerKeyCard = ({ lines, renderInlineStyles }) => {
+const AnswerKeyCard = ({ lines, renderInlineStyles, showAnswers }) => {
     const [isVisible, setIsVisible] = useState(false);
+
+    React.useEffect(() => {
+        if (showAnswers !== undefined) {
+            setIsVisible(showAnswers);
+        }
+    }, [showAnswers]);
 
     // Se estiver oculto (isVisible = false), NÃO renderiza o conteúdo detalhado,
     // garantindo que não saia no cloneNode do ExportService.
 
     return (
-        <Card className="mt-8 mb-4 pt-6 no-break">
+        <Card
+            className={`mt-8 mb-4 pt-6 ${isVisible ? '' : 'no-print'}`}
+            style={isVisible ? { pageBreakBefore: 'always', breakBefore: 'page' } : {}}
+        >
             <div
                 onClick={() => setIsVisible(!isVisible)}
                 className="flex items-center justify-between cursor-pointer bg-brown-50 hover:bg-brown-100 p-4 rounded-xl transition-colors border border-brown-200"

@@ -27,6 +27,16 @@ export class ExportService {
         overlay.style.padding = '40px';
         overlay.id = 'pdf-export-overlay';
 
+        // Mensagem de Carregamento
+        overlay.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; background: rgba(255,255,255,0.95); z-index: 100000;">
+                <div style="width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <h2 style="margin-top: 20px; font-family: sans-serif; color: #333;">Gerando PDF...</h2>
+                <p style="color: #666; font-family: sans-serif;">Por favor, aguarde um momento.</p>
+                <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+            </div>
+        `;
+
         // Container do conteúdo (A4 simulado ou fluido)
         const container = document.createElement('div');
         container.style.width = '100%';
@@ -41,7 +51,8 @@ export class ExportService {
         // Força quebra de linha para evitar cortes
         container.style.overflowWrap = 'break-word';
         container.style.wordWrap = 'break-word';
-        container.style.hyphens = 'auto';
+        container.style.hyphens = 'none';
+        container.style.wordBreak = 'normal';
 
         // 1. Título
         if (title) {
@@ -71,6 +82,7 @@ export class ExportService {
         // Remove interface
         clone.querySelectorAll('button').forEach(b => b.remove());
         clone.querySelectorAll('.wordsearch-controls').forEach(el => el.remove());
+        clone.querySelectorAll('.no-print').forEach(el => el.remove());
 
         // Força estilos de impressão (Preto no Branco) e TEXTO ESQUERDA
         const allEls = clone.querySelectorAll('*');

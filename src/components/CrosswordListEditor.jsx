@@ -116,7 +116,7 @@ export const CrosswordListEditor = ({
                                         <textarea
                                             value={item.clue}
                                             onChange={(e) => handleChange(idx, 'clue', e.target.value)}
-                                            rows={1}
+                                            rows={3}
                                             className="w-full text-brown-700 bg-transparent border border-transparent hover:border-brown-300 focus:border-brown-500 focus:bg-white rounded px-2 py-1 outline-none resize-none overflow-hidden transition-all"
                                             placeholder="Dica para esta palavra..."
                                             onInput={(e) => {
