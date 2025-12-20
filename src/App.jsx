@@ -107,14 +107,14 @@ export default function App() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `backup_atividades_${new Date().toLocaleDateString().replace(/\//g, '-')}.json`;
+      link.download = `backup_atividades_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Erro ao fazer backup:", error);
-      alert("Erro ao criar arquivo de backup: " + error.message);
+      alert("Erro ao criar arquivo de backup (.json): " + error.message);
     }
   };
 
@@ -979,14 +979,33 @@ FORMATAÇÃO:
   };
 
   // --- EXPORT HANDLERS ---
-  const handleDownloadDoc = () => {
-    const titleToUse = activeActivity?.title || topic || 'Atividade';
-    ExportService.exportToDOCX(activityAreaRef.current, titleToUse);
+  // --- EXPORT HANDLERS ---
+  const handleDownloadDoc = async () => {
+    try {
+      if (!activityAreaRef.current) {
+        alert('Não foi possível encontrar a área de atividade para exportar.');
+        return;
+      }
+      const titleToUse = activeActivity?.title || topic || 'Atividade';
+      await ExportService.exportToDOCX(activityAreaRef.current, titleToUse);
+    } catch (e) {
+      console.error("Erro export DOC:", e);
+      alert("Erro ao gerar DOC: " + e.message);
+    }
   };
 
-  const handleDownloadPdf = () => {
-    const titleToUse = activeActivity?.title || topic || 'Atividade';
-    ExportService.exportToPDF(activityAreaRef.current, titleToUse);
+  const handleDownloadPdf = async () => {
+    try {
+      if (!activityAreaRef.current) {
+        alert('Não foi possível encontrar a área de atividade para exportar.');
+        return;
+      }
+      const titleToUse = activeActivity?.title || topic || 'Atividade';
+      await ExportService.exportToPDF(activityAreaRef.current, titleToUse);
+    } catch (e) {
+      console.error("Erro export PDF:", e);
+      alert("Erro ao gerar PDF: " + e.message);
+    }
   };
 
   // --- PERSISTENCE LOGIC ---

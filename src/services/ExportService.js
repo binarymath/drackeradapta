@@ -104,8 +104,19 @@ export class ExportService {
             el.style.boxSizing = 'border-box';
 
             // Remove margins negativas ou muito grandes
-            el.style.marginLeft = '0';
             el.style.marginRight = '0';
+
+            // PDF: Reduce Size of Crossword/Grid Cells to fit page
+            // Targets the w-8 h-8 (32px) cells and shrinks them to ~24px
+            if (el.classList.contains('w-8') && el.classList.contains('h-8')) {
+                el.style.width = '24px';
+                el.style.height = '24px';
+                el.style.fontSize = '10px'; // Smaller font for numbers inside
+            }
+            if (el.classList.contains('sm:w-10')) {
+                el.style.width = '24px'; // Force override responsive utilities
+                el.style.height = '24px';
+            }
         });
 
         container.appendChild(clone);
@@ -247,11 +258,11 @@ export class ExportService {
                         children.forEach((child, index) => {
                             const td = document.createElement('td');
                             td.style.border = '1px solid #000';
-                            td.style.width = '30px';
-                            td.style.height = '30px';
+                            td.style.width = '24px';
+                            td.style.height = '24px';
                             td.style.textAlign = 'center';
                             td.style.verticalAlign = 'middle';
-                            td.style.fontSize = '14pt';
+                            td.style.fontSize = '11pt';
                             td.style.fontWeight = 'bold';
                             td.innerText = child.innerText;
 
