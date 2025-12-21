@@ -898,6 +898,18 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                                                 onChange={(e) => handleCellInput(x, y, e.target.value)}
                                                 onKeyDown={(e) => handleKeyDown(e, x, y)}
                                                 onClick={() => handleGridCellClick(x, y)}
+                                                onTouchStart={(e) => {
+                                                    e.stopPropagation();
+                                                    handleTouchStart(e);
+                                                }}
+                                                onTouchMove={(e) => {
+                                                    e.stopPropagation();
+                                                    handleTouchMove(e);
+                                                }}
+                                                onTouchEnd={(e) => {
+                                                    e.stopPropagation();
+                                                    handleTouchEnd(e);
+                                                }}
                                             />
                                         )}
                                     </div>
