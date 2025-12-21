@@ -203,18 +203,21 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
     const selectWord = (word) => {
         const cells = getWordCells(word);
         const cellSet = new Set(cells.map(c => `${c.x}-${c.y}`));
+        console.log('Selecionando palavra:', word.word, 'Células:', Array.from(cellSet));
         setSelectedCells(cellSet);
     };
 
     const handleTouchStart = (e) => {
         const touch = e.touches[0];
         const cell = getCellFromPoint(touch.clientX, touch.clientY);
+        console.log('Touch start em célula:', cell);
         if (cell) {
             setTouchStartCell(cell);
             setIsSelectingWord(true);
             
             // Auto-select first word at this cell
             const wordsAtCell = getWordsAtCell(cell.x, cell.y);
+            console.log('Palavras encontradas:', wordsAtCell);
             if (wordsAtCell.length > 0) {
                 selectWord(wordsAtCell[0]);
             }
