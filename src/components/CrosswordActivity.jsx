@@ -807,6 +807,11 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                     <Badge variant="outline">
                         {words.length} Palavras
                     </Badge>
+                    {selectedCells.size > 0 && (
+                        <Badge className="bg-amber-500 text-white">
+                            {selectedCells.size} células selecionadas
+                        </Badge>
+                    )}
                 </div>
 
                 {!isGameMode && (
