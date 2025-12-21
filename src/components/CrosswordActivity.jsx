@@ -224,6 +224,8 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
     const handleTouchMove = (e) => {
         if (!isSelectingWord || !touchStartCell) return;
         
+        e.preventDefault(); // Previne scroll durante seleção
+        
         const touch = e.touches[0];
         const currentCell = getCellFromPoint(touch.clientX, touch.clientY);
         if (!currentCell) return;
@@ -269,19 +271,37 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
         }
     };
 
-    const handleCellTouchStart = (e, x, y) => {
-        e.preventDefault();
-        handleTouchStart(e);
-    };
+    const handleGridCellClick = (x, y) => {
+        // Obtém todas as palavras nesta célula
+        const wordsAtCell = getWordsAtCell(x, y);
+        if (wordsAtCell.length === 0) return;
 
-    const handleCellTouchMove = (e, x, y) => {
-        e.preventDefault();
-        handleTouchMove(e);
-    };
+        // Se nada está selecionado, seleciona primeira palavra
+        if (selectedCells.size === 0) {
+            selectWord(wordsAtCell[0]);
+            return;
+        }
 
-    const handleCellTouchEnd = (e, x, y) => {
-        e.preventDefault();
-        handleTouchEnd(e);
+        // Verifica qual palavra atual está selecionada
+        const currentWordCells = wordsAtCell.map(w => getWordCells(w));
+        let currentWordIndex = -1;
+
+        for (let i = 0; i < currentWordCells.length; i++) {
+            const wordCellSet = new Set(currentWordCells[i].map(c => `${c.x}-${c.y}`));
+            
+            // Compara o tamanho e cada célula
+            if (
+                wordCellSet.size === selectedCells.size &&
+                Array.from(wordCellSet).every(c => selectedCells.has(c))
+            ) {
+                currentWordIndex = i;
+                break;
+            }
+        }
+
+        // Move para próxima palavra (com ciclo)
+        const nextIndex = (currentWordIndex + 1) % wordsAtCell.length;
+        selectWord(wordsAtCell[nextIndex]);
     };
 
     const isCellSelected = (x, y) => {
@@ -845,9 +865,6 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                                             printColorAdjust: 'exact',
                                             WebkitPrintColorAdjust: 'exact'
                                         }}
-                                        onTouchStart={(e) => handleCellTouchStart(e, x, y)}
-                                        onTouchMove={(e) => handleCellTouchMove(e, x, y)}
-                                        onTouchEnd={(e) => handleCellTouchEnd(e, x, y)}
                                     >
                                         {cell.num && (
                                             <span className="absolute top-0.5 left-0.5 text-[10px] font-black text-brown-800 leading-none pointer-events-none print:text-black z-20">
