@@ -28,6 +28,12 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
     const [showEditor, setShowEditor] = useState(false);
     const [editingWord, setEditingWord] = useState(null); // { index, ...data }
 
+    // Touch/Drag Selection State
+    const [isSelectingWord, setIsSelectingWord] = useState(false);
+    const [selectedCells, setSelectedCells] = useState(new Set()); // Cells being selected
+    const [touchStartCell, setTouchStartCell] = useState(null);
+    const gridRef = useRef(null);
+
     // Init
     useEffect(() => {
         try {
@@ -117,6 +123,9 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
             newGrid[y][x] = { ...newGrid[y][x], input: newVal };
             setGridState(newGrid);
 
+            // Clear selection when typing
+            setSelectedCells(new Set());
+
             if (newVal) {
                 // Tenta avançar foco
                 // Precisamos saber a direção da palavra atual que estamos editando.
@@ -152,6 +161,162 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
             }
         }
         return false;
+    };
+
+    // --- TOUCH/DRAG SELECTION HANDLERS ---
+    const getCellFromPoint = (clientX, clientY) => {
+        if (!gridRef.current) return null;
+        const element = document.elementFromPoint(clientX, clientY);
+        if (!element) return null;
+        
+        const cellMatch = element.id?.match(/cell-(\d+)-(\d+)/);
+        if (cellMatch) {
+            return { x: parseInt(cellMatch[1]), y: parseInt(cellMatch[2]) };
+        }
+        return null;
+    };
+
+    const getWordsAtCell = (x, y) => {
+        // Returns all words that pass through this cell
+        return words.filter(w => {
+            if (w.dir === 'H') {
+                return w.y === y && x >= w.x && x < w.x + w.word.length;
+            } else {
+                return w.x === x && y >= w.y && y < w.y + w.word.length;
+            }
+        });
+    };
+
+    const getWordCells = (word) => {
+        // Returns array of {x, y} for all cells in a word
+        const cells = [];
+        for (let i = 0; i < word.word.length; i++) {
+            if (word.dir === 'H') {
+                cells.push({ x: word.x + i, y: word.y });
+            } else {
+                cells.push({ x: word.x, y: word.y + i });
+            }
+        }
+        return cells;
+    };
+
+    const selectWord = (word) => {
+        const cells = getWordCells(word);
+        const cellSet = new Set(cells.map(c => `${c.x}-${c.y}`));
+        setSelectedCells(cellSet);
+    };
+
+    const handleTouchStart = (e) => {
+        const touch = e.touches[0];
+        const cell = getCellFromPoint(touch.clientX, touch.clientY);
+        if (cell) {
+            setTouchStartCell(cell);
+            setIsSelectingWord(true);
+            
+            // Auto-select first word at this cell
+            const wordsAtCell = getWordsAtCell(cell.x, cell.y);
+            if (wordsAtCell.length > 0) {
+                selectWord(wordsAtCell[0]);
+            }
+        }
+    };
+
+    const handleTouchMove = (e) => {
+        if (!isSelectingWord || !touchStartCell) return;
+        
+        const touch = e.touches[0];
+        const currentCell = getCellFromPoint(touch.clientX, touch.clientY);
+        if (!currentCell) return;
+
+        // Determine direction of drag
+        const dx = currentCell.x - touchStartCell.x;
+        const dy = currentCell.y - touchStartCell.y;
+        
+        // Determine if drag is primarily horizontal or vertical
+        const isHorizontal = Math.abs(dx) > Math.abs(dy);
+
+        // Find word in that direction that contains both start and current cell
+        const wordsAtStart = getWordsAtCell(touchStartCell.x, touchStartCell.y);
+        let selectedWord = null;
+
+        if (isHorizontal) {
+            // Look for horizontal word
+            selectedWord = wordsAtStart.find(w => w.dir === 'H');
+        } else {
+            // Look for vertical word
+            selectedWord = wordsAtStart.find(w => w.dir === 'V');
+        }
+
+        // If found word, select it
+        if (selectedWord) {
+            selectWord(selectedWord);
+        }
+    };
+
+    const handleTouchEnd = (e) => {
+        setIsSelectingWord(false);
+        
+        // Auto-fill selected word with focus
+        if (selectedCells.size > 0) {
+            const cellArray = Array.from(selectedCells).map(c => c.split('-').map(Number));
+            if (cellArray.length > 0) {
+                const firstCell = cellArray[0];
+                const el = document.getElementById(`cell-${firstCell[0]}-${firstCell[1]}`);
+                if (el) {
+                    el.focus();
+                }
+            }
+        }
+    };
+
+    const handleCellTouchStart = (e, x, y) => {
+        e.preventDefault();
+        handleTouchStart(e);
+    };
+
+    const handleCellTouchMove = (e, x, y) => {
+        e.preventDefault();
+        handleTouchMove(e);
+    };
+
+    const handleCellTouchEnd = (e, x, y) => {
+        e.preventDefault();
+        handleTouchEnd(e);
+    };
+
+    const isCellSelected = (x, y) => {
+        return selectedCells.has(`${x}-${y}`);
+    };
+
+    const handleGridCellClick = (x, y) => {
+        // Get all words at this cell
+        const wordsAtCell = getWordsAtCell(x, y);
+        if (wordsAtCell.length === 0) return;
+
+        // If no word selected, select the first one
+        if (selectedCells.size === 0) {
+            selectWord(wordsAtCell[0]);
+            return;
+        }
+
+        // Check if current selection matches any word at this cell
+        const currentWordCells = wordsAtCell.map(w => getWordCells(w));
+        let currentWordIndex = -1;
+
+        for (let i = 0; i < currentWordCells.length; i++) {
+            const wordCellSet = new Set(currentWordCells[i].map(c => `${c.x}-${c.y}`));
+            if (
+                wordCellSet.size === selectedCells.size &&
+                Array.from(wordCellSet).every(c => selectedCells.has(c))
+            ) {
+                currentWordIndex = i;
+                break;
+            }
+        }
+
+        // Cycle to next word or first if at end
+        const nextIndex = (currentWordIndex + 1) % wordsAtCell.length;
+        selectWord(wordsAtCell[nextIndex]);
     };
 
     const checkAnswers = () => {
@@ -636,14 +801,24 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                 {/* Grid Area - Centered */}
                 <Card className="w-full flex flex-col items-center print:shadow-none print:border-none">
 
+                    {/* Touch/Drag Info - Mobile Hint */}
+                    <div className="w-full md:hidden text-center mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+                        💡 Dica: Toque e deslize o dedo para selecionar palavras, ou digite normalmente!
+                    </div>
+
                     {/* The Grid */}
                     <div
-                        className="grid gap-0 bg-transparent p-0 rounded print:bg-transparent print:!gap-0 print:!p-0 print:!shadow-none print:!border-none"
+                        ref={gridRef}
+                        className="grid gap-0 bg-transparent p-0 rounded print:bg-transparent print:!gap-0 print:!p-0 print:!shadow-none print:!border-none select-none"
                         style={{
                             gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
                             width: 'fit-content',
-                            maxWidth: '100%'
+                            maxWidth: '100%',
+                            userSelect: 'none'
                         }}
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
                     >
                         {gridState.map((row, y) => (
                             row.map((cell, x) => {
@@ -654,20 +829,25 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                                 } // Vazio
 
                                 const isFiller = cell.isFiller;
+                                const isSelected = isCellSelected(x, y);
                                 return (
                                     <div
                                         key={`${x}-${y}`}
                                         className={`
                                             relative w-8 h-8 sm:w-10 sm:h-10 
                                             flex items-center justify-center 
-                                            ${isFiller ? 'bg-brown-50 print:bg-white' : 'bg-white'} 
+                                            ${isFiller ? 'bg-brown-50 print:bg-white' : isSelected ? 'bg-amber-200' : 'bg-white'} 
                                             border border-brown-900
                                             print:!border print:!border-black print:z-10
+                                            transition-colors duration-75
                                         `}
                                         style={{
                                             printColorAdjust: 'exact',
                                             WebkitPrintColorAdjust: 'exact'
                                         }}
+                                        onTouchStart={(e) => handleCellTouchStart(e, x, y)}
+                                        onTouchMove={(e) => handleCellTouchMove(e, x, y)}
+                                        onTouchEnd={(e) => handleCellTouchEnd(e, x, y)}
                                     >
                                         {cell.num && (
                                             <span className="absolute top-0.5 left-0.5 text-[10px] font-black text-brown-800 leading-none pointer-events-none print:text-black z-20">
@@ -688,6 +868,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                                                 value={cell.input}
                                                 onChange={(e) => handleCellInput(x, y, e.target.value)}
                                                 onKeyDown={(e) => handleKeyDown(e, x, y)}
+                                                onClick={() => handleGridCellClick(x, y)}
                                             />
                                         )}
                                     </div>
