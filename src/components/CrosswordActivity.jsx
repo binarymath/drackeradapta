@@ -308,7 +308,11 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
     };
 
     const isCellSelected = (x, y) => {
-        return selectedCells.has(`${x}-${y}`);
+        const result = selectedCells.has(`${x}-${y}`);
+        if (result) {
+            console.log(`Célula ${x},${y} está selecionada`);
+        }
+        return result;
     };
 
     const handleGridCellClick = (x, y) => {
@@ -809,7 +813,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                     </Badge>
                     {selectedCells.size > 0 && (
                         <Badge className="bg-amber-500 text-white">
-                            {selectedCells.size} células selecionadas
+                            {selectedCells.size} células: {Array.from(selectedCells).join(', ')}
                         </Badge>
                     )}
                 </div>
