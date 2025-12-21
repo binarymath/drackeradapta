@@ -78,6 +78,34 @@ export const WordSearchGame = ({ content, wordsToFind = [], onRestart }) => {
 
     // --- INTERACTION HANDLERS ---
 
+    const handleTouchStart = (e, r, c) => {
+        // Prevent default to stop scrolling while playing
+        if (e.cancelable) e.preventDefault();
+        handleMouseDown(r, c);
+    };
+
+    const handleTouchMove = (e) => {
+        // Prevent scrolling
+        if (e.cancelable) e.preventDefault();
+
+        const touch = e.touches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+
+        if (target) {
+            // Find the closest cell element (in case we hit a child or slightly off)
+            const cell = target.closest('[data-r]');
+            if (cell) {
+                const r = parseInt(cell.dataset.r, 10);
+                const c = parseInt(cell.dataset.c, 10);
+
+                // Only trigger if we are over a valid cell
+                if (!isNaN(r) && !isNaN(c)) {
+                    handleMouseEnter(r, c);
+                }
+            }
+        }
+    };
+
     const getCoords = (rowIndex, colIndex) => ({ r: rowIndex, c: colIndex });
 
     const handleMouseDown = (r, c) => {
@@ -424,6 +452,8 @@ export const WordSearchGame = ({ content, wordsToFind = [], onRestart }) => {
                                     return (
                                         <div
                                             key={`${r}-${c}`}
+                                            data-r={r}
+                                            data-c={c}
                                             className={`
                                                 w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9
                                                 flex items-center justify-center 
@@ -434,8 +464,10 @@ export const WordSearchGame = ({ content, wordsToFind = [], onRestart }) => {
                                             `}
                                             onMouseDown={() => handleMouseDown(r, c)}
                                             onMouseEnter={() => handleMouseEnter(r, c)}
-                                            // Touch events support could be added here similar to mouse
                                             onMouseUp={handleMouseUpV2}
+                                            onTouchStart={(e) => handleTouchStart(e, r, c)}
+                                            onTouchMove={handleTouchMove}
+                                            onTouchEnd={handleMouseUpV2}
                                         >
                                             {letter}
                                         </div>
