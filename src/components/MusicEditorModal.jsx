@@ -140,19 +140,12 @@ export const MusicEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                 correctAnswer: q.correctAnswer,
                 distractors: cleanedDistractors,
                 options,
-                ordered_options: options,
+                options,
+                ordered_options: options.sort(() => Math.random() - 0.5),
                 difficulty: q.difficulty || ''
             };
         });
-        // Enforce exactly 10 questions
-        if (normalizedQuestions.length < 10) {
-            const toAdd = 10 - normalizedQuestions.length;
-            for (let i = 0; i < toAdd; i++) {
-                normalizedQuestions.push({ text: '', correctAnswer: '', distractors: [], options: [], ordered_options: [], difficulty: '' });
-            }
-        } else if (normalizedQuestions.length > 10) {
-            normalizedQuestions = normalizedQuestions.slice(0, 10);
-        }
+        // Removed 10-question enforcement to respect user choice/generation
 
         // Enforce difficulty distribution: 4 fácil, 4 médio, 2 difícil
         normalizedQuestions = normalizedQuestions.map((q, idx) => ({
@@ -187,80 +180,104 @@ export const MusicEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
         >
             <div className="space-y-4">
                 {/* Destaque da Playlist */}
-                <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg space-y-3">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-purple-200 flex items-center justify-center text-purple-600 font-bold text-lg">
-                            🎵
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-purple-900">Playlist Oficial: Músicas do Drácker</h4>
-                            <p className="text-xs text-purple-700">Acesse todas as músicas criadas com Drácker no Producer.ai</p>
-                        </div>
+                {/* Destaque da Playlist */}
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg overflow-hidden shadow-sm flex flex-col sm:flex-row">
+                    <div className="w-full sm:w-32 h-32 relative">
+                        <img
+                            src="/cover_musica_dracker.jpg"
+                            alt="Capa Playlist"
+                            className="w-full h-full object-cover"
+                        />
                     </div>
-                    <a
-                        href="https://www.producer.ai/professornerd"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block w-full p-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded text-center text-sm transition-colors"
-                    >
-                        🎧 Ouvir Playlist Completa
-                    </a>
-                </div>
-
-            <div className="flex flex-col md:flex-row gap-6 h-full min-h-[500px]">
-
-                {/* Left: Lyrics Editor */}
-                <div className="flex-1 flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                        <h3 className="font-bold text-brown-700 flex items-center gap-2">
-                            🎵 Letra da Música
-                        </h3>
-                        <Badge variant="info">Markdown Suportado</Badge>
-                    </div>
-                    <TextArea
-                        value={lyrics}
-                        onChange={(e) => setLyrics(e.target.value)}
-                        className="flex-1 font-mono text-sm leading-relaxed min-h-[360px] max-h-[520px]"
-                        placeholder="[Intro]..."
-                    />
-                </div>
-
-                {/* Right: Questions Editor */}
-                <div className="flex-1 flex flex-col gap-4 overflow-y-auto">
-                    <div className="flex items-center justify-between">
-                        <h3 className="font-bold text-brown-700 flex items-center gap-2">
-                            📝 Perguntas ({questions.length})
-                        </h3>
-                        <Button
-                            onClick={addQuestion}
-                            variant="secondary"
-                            className="bg-brown-100 border-brown-200 text-xs py-1"
-                            icon={Plus}
+                    <div className="p-4 flex flex-col justify-center flex-1">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h4 className="font-bold text-purple-900 text-lg">Playlist Oficial: Músicas do Drácker</h4>
+                                <p className="text-sm text-purple-700 mb-2">Acesse todas as músicas no Suno</p>
+                            </div>
+                            <a
+                                href="https://suno.com/@drackermusic"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hidden sm:inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors gap-2 text-sm"
+                            >
+                                🎧 Ouvir Playlist
+                            </a>
+                        </div>
+                        {/* Mobile button */}
+                        <a
+                            href="https://suno.com/@drackermusic"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="sm:hidden mt-2 block w-full p-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded text-center text-sm transition-colors"
                         >
-                            Adicionar
-                        </Button>
+                            🎧 Ouvir Playlist
+                        </a>
+                    </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-6 h-full min-h-[800px]">
+
+                    {/* Left: Lyrics Editor */}
+                    <div className="flex-1 flex flex-col gap-2 overflow-hidden">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-bold text-brown-700 flex items-center gap-2">
+                                🎵 Letra da Música
+                            </h3>
+                            <div className="flex gap-2">
+                                {initialData?.metadata?.apiRequests && (
+                                    <Badge variant="warning" className="text-[10px]">
+                                        API Calls: {initialData.metadata.apiRequests}
+                                    </Badge>
+                                )}
+                                <Badge variant="info">Completa e Editável</Badge>
+                            </div>
+                        </div>
+                        <TextArea
+                            value={lyrics}
+                            onChange={(e) => setLyrics(e.target.value)}
+                            wrapperClassName="flex-1 flex flex-col"
+                            className="flex-1 font-mono text-sm leading-relaxed overflow-y-auto"
+                            placeholder="[Intro]..."
+                        />
                     </div>
 
-                    <Card className="flex-1 bg-brown-50/50 border-brown-100 overflow-y-auto max-h-[500px]">
-                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                            <SortableContext items={questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
-                                <div className="space-y-4">
-                                    {questions.map((q, index) => (
-                                        <SortableQuestionItem
-                                            key={q.id}
-                                            id={q.id}
-                                            question={q}
-                                            index={index}
-                                            onRemove={removeQuestion}
-                                            onChange={handleQuestionChange}
-                                        />
-                                    ))}
-                                </div>
-                            </SortableContext>
-                        </DndContext>
-                    </Card>
+                    {/* Right: Questions Editor */}
+                    <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-bold text-brown-700 flex items-center gap-2">
+                                📝 Perguntas ({questions.length})
+                            </h3>
+                            <Button
+                                onClick={addQuestion}
+                                variant="secondary"
+                                className="bg-brown-100 border-brown-200 text-xs py-1"
+                                icon={Plus}
+                            >
+                                Adicionar
+                            </Button>
+                        </div>
+
+                        <Card className="flex-1 bg-brown-50/50 border-brown-100 overflow-y-auto">
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                <SortableContext items={questions.map(q => q.id)} strategy={verticalListSortingStrategy}>
+                                    <div className="space-y-4">
+                                        {questions.map((q, index) => (
+                                            <SortableQuestionItem
+                                                key={q.id}
+                                                id={q.id}
+                                                question={q}
+                                                index={index}
+                                                onRemove={removeQuestion}
+                                                onChange={handleQuestionChange}
+                                            />
+                                        ))}
+                                    </div>
+                                </SortableContext>
+                            </DndContext>
+                        </Card>
+                    </div>
                 </div>
-            </div>
             </div>
         </Modal>
     );

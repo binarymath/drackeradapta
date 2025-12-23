@@ -208,202 +208,230 @@ export const ActivityArea = ({
                                 <QuizGame
                                     quizData={quizData}
                                     onRestart={() => setIsGameMode(true)} // Force re-render or handle inside component
-                                />                            ) : isMusicGame && musicData ? (
-                                <MusicGame
-                                    musicData={musicData}
-                                    onRestart={() => setIsGameMode(true)}
-                                    onExitToPrint={() => setIsGameMode(false)}
-                                />                            ) : activityType === 'summary' && drackerData ? (
-                                <div className="space-y-6">
-                                    <Card className="p-8 relative group overflow-hidden border border-brown-100 shadow-sm">
-                                        <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none" style={{ filter: 'sepia(100%) saturate(300%) hue-rotate(315deg) brightness(70%)' }}>
-                                            <img src="/dracker.png" alt="Drácker" className="w-32 h-32 object-contain opacity-50" />
-                                        </div>
-
-                                        {/* HEADER */}
-                                        <div className="border-b border-brown-100 pb-4 mb-6 flex justify-between items-start">
-                                            <div>
-                                                <h2 className="text-2xl font-bold text-brown-900 mb-1">Aprenda com o Drácker</h2>
-                                                <p className="text-brown-600 font-medium opacity-75">Uma história interativa para a turma</p>
-                                            </div>
-                                            <Button
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(drackerData.story);
-                                                    alert('História copiada!');
-                                                }}
-                                                variant="secondary"
-                                                className="text-xs"
-                                                icon={Copy}
-                                            >
-                                                Copiar Texto
-                                            </Button>
-                                        </div>
-
-                                        {/* STORY CONTENT */}
-                                        <div className="prose prose-lg max-w-none text-brown-900 leading-loose mb-10 font-serif">
-                                            {drackerData.story.split('\n\n').map((paragraph, index) => (
-                                                <p key={index} className="indent-8 mb-6 text-justify">
-                                                    {paragraph.split(/(\*\*.*?\*\*)/g).map((part, i) => {
-                                                        if (part.startsWith('**') && part.endsWith('**')) {
-                                                            return (
-                                                                <strong key={i} className="text-brown-800 font-extrabold">
-                                                                    {part.slice(2, -2)}
-                                                                </strong>
-                                                            );
-                                                        }
-                                                        return part;
-                                                    })}
-                                                </p>
-                                            ))}
-                                        </div>
-
-                                        {/* ACTIVITIES CONTENT */}
-                                        <Card className="bg-white/50 border-2 border-dashed border-brown-200">
-                                            <h3 className="text-lg font-bold text-brown-800 mb-6 flex items-center gap-2">
-                                                <img src="/dracker.png" alt="Brain" className="w-6 h-6 object-contain" />
-                                                Atividades Práticas
-                                            </h3>
-                                            <ol className="list-decimal list-outside ml-5 space-y-4">
-                                                {drackerData.activities.map((act, idx) => (
-                                                    <li key={idx} className="text-brown-700 font-medium pl-2">
-                                                        {act.split(/(\*\*.*?\*\*)/g).map((part, i) => {
-                                                            if (part.startsWith('**') && part.endsWith('**')) {
-                                                                return (
-                                                                    <strong key={i} className="text-brown-800 font-extrabold">
-                                                                        {part.slice(2, -2)}
-                                                                    </strong>
-                                                                );
-                                                            }
-                                                            return part;
-                                                        })}
-                                                    </li>
-                                                ))}
-                                            </ol>
-                                        </Card>
-                                    </Card>
-                                </div>
-                            ) : activityType === 'simplify' && musicData ? (
-                                <div className="space-y-6">
-                                    {/* Card: Destaque da Playlist */}
-                                    <Card className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 no-print shadow-lg">
-                                        <div className="p-4 space-y-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-purple-200 flex items-center justify-center text-purple-600 font-bold text-lg">
-                                                    🎵
+                                />) : isMusicGame && musicData ? (
+                                    <MusicGame
+                                        musicData={musicData}
+                                        onRestart={() => setIsGameMode(true)}
+                                        onExitToPrint={() => setIsGameMode(false)}
+                                    />) : activityType === 'summary' && drackerData ? (
+                                        <div className="space-y-6">
+                                            <Card className="p-8 relative group overflow-hidden border border-brown-100 shadow-sm">
+                                                <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none" style={{ filter: 'sepia(100%) saturate(300%) hue-rotate(315deg) brightness(70%)' }}>
+                                                    <img src="/dracker.png" alt="Drácker" className="w-32 h-32 object-contain opacity-50" />
                                                 </div>
-                                                <div>
-                                                    <h3 className="font-bold text-purple-900">Playlist Oficial: Músicas do Drácker</h3>
-                                                    <p className="text-xs text-purple-700">Acesse todas as músicas criadas com Drácker no Producer.ai</p>
-                                                </div>
-                                            </div>
-                                            <a
-                                                href="https://www.producer.ai/professornerd"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="block w-full p-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg text-center transition-colors"
-                                            >
-                                                🎧 Ouvir Playlist Completa
-                                            </a>
-                                        </div>
-                                    </Card>
 
-                                    {/* Card: Game Mode Toggle */}
-                                    <Card className="mb-6 bg-green-50 border-green-200 no-print flex items-center justify-between p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                                                <Gamepad2 className="w-6 h-6" />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-bold text-green-900">Jogo de Interpretação Musical</h3>
-                                                <p className="text-xs text-green-700">Responda as perguntas com múltipla escolha!</p>
-                                            </div>
-                                        </div>
-                                        <Button
-                                            onClick={() => setIsGameMode(!isGameMode)}
-                                            className={`transition-all shadow-sm ${isGameMode ? 'bg-green-100 text-green-900 hover:bg-green-200 border-green-300' : 'bg-green-600 text-white hover:bg-green-700'}`}
-                                        >
-                                            {isGameMode ? 'Voltar para Impressão' : 'Jogar Agora'}
-                                        </Button>
-                                    </Card>
-
-                                    {/* Card 1: Music Lyrics */}
-                                    <Card className="p-6 relative group">
-                                        <div className="absolute top-0 right-0 p-2 opacity-10">
-                                            <span className="text-6xl">🎵</span>
-                                        </div>
-                                        <div className="flex justify-between items-center border-b border-brown-100 pb-2 mb-4">
-                                            <h2 className="text-xl font-bold text-brown-900">Música do Drácker</h2>
-                                            <Button
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(musicData.lyrics);
-                                                    alert('Letra copiada!');
-                                                }}
-                                                variant="secondary"
-                                                className="text-xs z-10"
-                                                icon={Copy}
-                                            >
-                                                Copiar Letra
-                                            </Button>
-                                        </div>
-                                        <div className="font-sans text-brown-700 text-lg leading-relaxed">
-                                            {musicData.lyrics.split('\n').map((line, idx) => {
-                                                // Renderiza markdown simples: **texto** → negrito
-                                                const parts = line.split(/(\*\*.*?\*\*)/g);
-                                                return (
-                                                    <div key={idx} className="whitespace-pre-wrap">
-                                                        {parts.map((part, i) => {
-                                                            if (part.startsWith('**') && part.endsWith('**')) {
-                                                                return <strong key={i} className="font-extrabold">{part.slice(2, -2)}</strong>;
-                                                            }
-                                                            return part;
-                                                        })}
+                                                {/* HEADER */}
+                                                <div className="border-b border-brown-100 pb-4 mb-6 flex justify-between items-start">
+                                                    <div>
+                                                        <h2 className="text-2xl font-bold text-brown-900 mb-1">Aprenda com o Drácker</h2>
+                                                        <p className="text-brown-600 font-medium opacity-75">Uma história interativa para a turma</p>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </Card>
-                                    {/* Card 2: Questions */}
-                                    <Card className="p-6 relative">
-                                        <div className="absolute top-0 right-0 p-2 opacity-10">
-                                            <span className="text-6xl">📝</span>
-                                        </div>
-                                        <h2 className="text-xl font-bold text-brown-800 mb-4 border-b border-brown-100 pb-2">Perguntas de Interpretação</h2>
-                                        <ol className="list-decimal list-inside space-y-4">
-                                            {musicData.questions.map((q, idx) => {
-                                                const questionText = typeof q === 'string' ? q : (q.text || q.question || `Pergunta ${idx + 1}`);
-                                                const options = Array.from(new Set(
-                                                    (typeof q === 'object' ? (q.options || q.ordered_options || []) : [])
-                                                        .concat(typeof q === 'object' ? (q.distractors || q.incorrect_options || []) : [])
-                                                        .concat(typeof q === 'object' ? (q.correctAnswer || q.correct_answer || q.answer || q.correct_option || []) : [])
-                                                )).filter(Boolean);
+                                                    <Button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(drackerData.story);
+                                                            alert('História copiada!');
+                                                        }}
+                                                        variant="secondary"
+                                                        className="text-xs"
+                                                        icon={Copy}
+                                                    >
+                                                        Copiar Texto
+                                                    </Button>
+                                                </div>
 
-                                                return (
-                                                    <li key={idx} className="text-brown-900 font-medium">
-                                                        {questionText}
-                                                        {options.length > 0 && (
-                                                            <div className="mt-2 space-y-2 text-sm text-brown-800 no-print">
-                                                                <span className="font-semibold text-brown-900">Alternativas (visíveis só na edição)</span>
-                                                                <div className="grid gap-2 sm:grid-cols-2">
-                                                                    {options.map((opt, optIdx) => (
-                                                                        <div
-                                                                            key={optIdx}
-                                                                            className="px-3 py-2 rounded-lg border border-brown-100 bg-brown-50"
-                                                                        >
-                                                                            <span className="font-semibold text-brown-700 mr-2">{String.fromCharCode(65 + optIdx)})</span>
-                                                                            <span className="text-brown-800">{opt}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
+                                                {/* STORY CONTENT */}
+                                                <div className="prose prose-lg max-w-none text-brown-900 leading-loose mb-10 font-serif">
+                                                    {drackerData.story.split('\n\n').map((paragraph, index) => (
+                                                        <p key={index} className="indent-8 mb-6 text-justify">
+                                                            {paragraph.split(/(\*\*.*?\*\*)/g).map((part, i) => {
+                                                                if (part.startsWith('**') && part.endsWith('**')) {
+                                                                    return (
+                                                                        <strong key={i} className="text-brown-800 font-extrabold">
+                                                                            {part.slice(2, -2)}
+                                                                        </strong>
+                                                                    );
+                                                                }
+                                                                return part;
+                                                            })}
+                                                        </p>
+                                                    ))}
+                                                </div>
+
+                                                {/* ACTIVITIES CONTENT */}
+                                                <Card className="bg-white/50 border-2 border-dashed border-brown-200">
+                                                    <h3 className="text-lg font-bold text-brown-800 mb-6 flex items-center gap-2">
+                                                        <img src="/dracker.png" alt="Brain" className="w-6 h-6 object-contain" />
+                                                        Atividades Práticas
+                                                    </h3>
+                                                    <ol className="list-decimal list-outside ml-5 space-y-4">
+                                                        {drackerData.activities.map((act, idx) => (
+                                                            <li key={idx} className="text-brown-700 font-medium pl-2">
+                                                                {act.split(/(\*\*.*?\*\*)/g).map((part, i) => {
+                                                                    if (part.startsWith('**') && part.endsWith('**')) {
+                                                                        return (
+                                                                            <strong key={i} className="text-brown-800 font-extrabold">
+                                                                                {part.slice(2, -2)}
+                                                                            </strong>
+                                                                        );
+                                                                    }
+                                                                    return part;
+                                                                })}
+                                                            </li>
+                                                        ))}
+                                                    </ol>
+                                                </Card>
+                                            </Card>
+                                        </div>
+                                    ) : activityType === 'simplify' && musicData ? (
+                                        <div className="space-y-6">
+                                            {/* Card: Destaque da Playlist */}
+                                            <Card className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 no-print shadow-lg overflow-hidden">
+                                                <div className="p-0 flex flex-col sm:flex-row">
+                                                    <div className="w-full sm:w-48 h-48 sm:h-auto relative">
+                                                        <img
+                                                            src="/cover_musica_dracker.jpg"
+                                                            alt="Músicas do Drácker"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                    <div className="p-6 flex flex-col justify-center flex-1">
+                                                        <h3 className="font-bold text-purple-900 text-xl mb-2">Playlist Oficial: Músicas do Drácker</h3>
+                                                        <p className="text-purple-700 mb-4">Acesse todas as músicas criadas com Drácker no Suno.</p>
+                                                        <a
+                                                            href="https://suno.com/@drackermusic"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center justify-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors gap-2 shadow-sm self-start"
+                                                        >
+                                                            🎧 Ouvir Playlist Completa
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </Card>
+
+                                            {/* Card: Game Mode Toggle */}
+                                            <Card className="mb-6 bg-green-50 border-green-200 no-print flex items-center justify-between p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                                                        <Gamepad2 className="w-6 h-6" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-green-900">Jogo de Interpretação Musical</h3>
+                                                        <p className="text-xs text-green-700">Responda as perguntas com múltipla escolha!</p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    onClick={() => setIsGameMode(!isGameMode)}
+                                                    className={`transition-all shadow-sm ${isGameMode ? 'bg-green-100 text-green-900 hover:bg-green-200 border-green-300' : 'bg-green-600 text-white hover:bg-green-700'}`}
+                                                >
+                                                    {isGameMode ? 'Voltar para Impressão' : 'Jogar Agora'}
+                                                </Button>
+                                            </Card>
+
+                                            {/* Card 1: Music Lyrics */}
+                                            <Card className="p-6 relative group">
+                                                <div className="absolute top-0 right-0 p-2 opacity-10">
+                                                    <span className="text-6xl">🎵</span>
+                                                </div>
+                                                <div className="flex justify-between items-center border-b border-brown-100 pb-2 mb-4">
+                                                    <h2 className="text-xl font-bold text-brown-900">Música do Drácker</h2>
+                                                    <Button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(musicData.lyrics);
+                                                            alert('Letra copiada!');
+                                                        }}
+                                                        variant="secondary"
+                                                        className="text-xs z-10"
+                                                        icon={Copy}
+                                                    >
+                                                        Copiar Letra
+                                                    </Button>
+                                                </div>
+                                                <div className="font-sans text-brown-700 text-lg leading-relaxed">
+                                                    {musicData.lyrics.split('\n').map((line, idx) => {
+                                                        // Renderiza markdown simples: **texto** → negrito
+                                                        const parts = line.split(/(\*\*.*?\*\*)/g);
+                                                        return (
+                                                            <div key={idx} className="whitespace-pre-wrap">
+                                                                {parts.map((part, i) => {
+                                                                    if (part.startsWith('**') && part.endsWith('**')) {
+                                                                        return <strong key={i} className="font-extrabold">{part.slice(2, -2)}</strong>;
+                                                                    }
+                                                                    return part;
+                                                                })}
                                                             </div>
-                                                        )}
-                                                        <div className="mt-2 h-8 border-b border-dotted border-brown-300 w-full"></div>
-                                                    </li>
-                                                );
-                                            })}
-                                        </ol>
-                                    </Card>
-                                </div>
-                            ) : (
+                                                        );
+                                                    })}
+                                                </div>
+                                            </Card>
+
+                                            {/* Card 1b: Style */}
+                                            {musicData.style && (
+                                                <Card className="p-6 relative group">
+                                                    <div className="absolute top-0 right-0 p-2 opacity-10">
+                                                        <span className="text-6xl">🎨</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center border-b border-brown-100 pb-2 mb-4">
+                                                        <h2 className="text-xl font-bold text-brown-900">Estilo Musical</h2>
+                                                        <Button
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(musicData.style);
+                                                                alert('Estilo copiado!');
+                                                            }}
+                                                            variant="secondary"
+                                                            className="text-xs z-10"
+                                                            icon={Copy}
+                                                        >
+                                                            Copiar Estilo
+                                                        </Button>
+                                                    </div>
+                                                    <div className="font-sans text-brown-700 text-base leading-relaxed whitespace-pre-wrap">
+                                                        {musicData.style}
+                                                    </div>
+                                                </Card>
+                                            )}
+                                            {/* Card 2: Questions */}
+                                            <Card className="p-6 relative">
+                                                <div className="absolute top-0 right-0 p-2 opacity-10">
+                                                    <span className="text-6xl">📝</span>
+                                                </div>
+                                                <h2 className="text-xl font-bold text-brown-800 mb-4 border-b border-brown-100 pb-2">Perguntas de Interpretação</h2>
+                                                <ol className="list-decimal list-inside space-y-4">
+                                                    {(musicData.questions || []).map((q, idx) => {
+                                                        const questionText = typeof q === 'string' ? q : (q.text || q.question || `Pergunta ${idx + 1}`);
+                                                        const options = Array.from(new Set(
+                                                            (typeof q === 'object' ? (q.options || q.ordered_options || []) : [])
+                                                                .concat(typeof q === 'object' ? (q.distractors || q.incorrect_options || []) : [])
+                                                                .concat(typeof q === 'object' ? (q.correctAnswer || q.correct_answer || q.answer || q.correct_option || []) : [])
+                                                        )).filter(Boolean);
+
+                                                        return (
+                                                            <li key={idx} className="text-brown-900 font-medium">
+                                                                {questionText}
+                                                                {options.length > 0 && (
+                                                                    <div className="mt-2 space-y-2 text-sm text-brown-800 no-print">
+                                                                        <span className="font-semibold text-brown-900">Alternativas (visíveis só na edição)</span>
+                                                                        <div className="grid gap-2 sm:grid-cols-2">
+                                                                            {options.map((opt, optIdx) => (
+                                                                                <div
+                                                                                    key={optIdx}
+                                                                                    className="px-3 py-2 rounded-lg border border-brown-100 bg-brown-50"
+                                                                                >
+                                                                                    <span className="font-semibold text-brown-700 mr-2">{String.fromCharCode(65 + optIdx)})</span>
+                                                                                    <span className="text-brown-800">{opt}</span>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                <div className="mt-2 h-8 border-b border-dotted border-brown-300 w-full"></div>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ol>
+                                            </Card>
+                                        </div>
+                                    ) : (
                                 <>
                                     {activityType === 'wordsearch' && (
                                         <Card className="mb-6 bg-purple-50 border-purple-200 no-print flex items-center justify-between p-4">
@@ -442,7 +470,33 @@ export const ActivityArea = ({
 
                         </>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-brown-300">
+                        <div className="h-full flex flex-col items-center justify-center text-brown-300 p-8">
+                            {!isLoading && activityType === 'simplify' && (
+                                <Card className="w-full max-w-2xl mb-8 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 shadow-xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                                    <div className="p-0 flex flex-col sm:flex-row">
+                                        <div className="w-full sm:w-40 h-40 sm:h-auto relative">
+                                            <img
+                                                src="/cover_musica_dracker.jpg"
+                                                alt="Músicas do Drácker"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                        <div className="p-5 flex flex-col justify-center flex-1">
+                                            <h3 className="font-bold text-purple-900 text-xl mb-1">Playlist Oficial</h3>
+                                            <p className="text-sm text-purple-700 mb-4">Conheça as músicas do Drácker!</p>
+                                            <a
+                                                href="https://suno.com/@drackermusic"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center justify-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors gap-2 self-start"
+                                            >
+                                                🎧 Ouvir no Suno
+                                            </a>
+                                        </div>
+                                    </div>
+                                </Card>
+                            )}
+
                             {isLoading ? (
                                 <div className="flex flex-col items-center gap-4">
                                     <img src="/dracker.png" alt="Loading" className="w-16 h-16 animate-bounce" />

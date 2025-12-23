@@ -315,37 +315,6 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
         return result;
     };
 
-    const handleGridCellClick = (x, y) => {
-        // Get all words at this cell
-        const wordsAtCell = getWordsAtCell(x, y);
-        if (wordsAtCell.length === 0) return;
-
-        // If no word selected, select the first one
-        if (selectedCells.size === 0) {
-            selectWord(wordsAtCell[0]);
-            return;
-        }
-
-        // Check if current selection matches any word at this cell
-        const currentWordCells = wordsAtCell.map(w => getWordCells(w));
-        let currentWordIndex = -1;
-
-        for (let i = 0; i < currentWordCells.length; i++) {
-            const wordCellSet = new Set(currentWordCells[i].map(c => `${c.x}-${c.y}`));
-            if (
-                wordCellSet.size === selectedCells.size &&
-                Array.from(wordCellSet).every(c => selectedCells.has(c))
-            ) {
-                currentWordIndex = i;
-                break;
-            }
-        }
-
-        // Cycle to next word or first if at end
-        const nextIndex = (currentWordIndex + 1) % wordsAtCell.length;
-        selectWord(wordsAtCell[nextIndex]);
-    };
-
     const checkAnswers = () => {
         let allCorrect = true;
         let hasEmpty = false;

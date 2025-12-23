@@ -1,61 +1,29 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   FileText,
   MessageSquare,
   Grid,
-  Music,
-  X
+  Music
 } from 'lucide-react';
 
 import { createGeminiService } from './services/geminiService';
 import { ExportService } from './services/ExportService';
+import { generateMusicActivity } from './core/usecases/generateMusicActivity';
+import { generateQuizActivity } from './core/usecases/generateQuizActivity';
+import { useAudioNarration } from './hooks/useAudioNarration';
 
 // Components
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { ActivityArea } from './components/ActivityArea';
 import { QuizEditorModal } from './components/QuizEditorModal';
-import { Modal } from './components/ui/Modal';
-import { Button } from './components/ui/Button';
 import { DrackerEditorModal } from './components/DrackerEditorModal';
 import { VoiceSettingsModal } from './components/VoiceSettingsModal';
 import { MusicEditorModal } from './components/MusicEditorModal';
 import { CrosswordListEditor } from './components/CrosswordListEditor'; // Integrated
-import { CSS } from '@dnd-kit/utilities';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import RichTextRenderer from './components/RichTextRenderer';
-
-const SortableTab = ({ tab, activeTabId, setActiveTabId, closeTab, getTabLabel }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: tab.id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  const isActive = activeTabId === tab.id;
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      onClick={() => setActiveTabId(tab.id)}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-colors border select-none ${isActive ? 'bg-brown-100 border-brown-300 text-brown-800 font-bold shadow-sm' : 'bg-brown-50 border-brown-100 text-brown-600 hover:bg-brown-100'}`}
-    >
-      <span className="text-sm max-w-[120px] truncate" title={tab.title}>
-        {getTabLabel(tab)}
-      </span>
-      <button
-        onClick={(e) => closeTab(tab.id, e)}
-        className="text-brown-400 hover:text-red-500 transition-colors ml-1 p-0.5 rounded-full hover:bg-brown-200/50"
-      >
-        <X className="w-3 h-3" />
-      </button>
-    </div>
-  );
-};
+import { TabsBar } from './components/TabsBar';
+import { TabSelectionModal } from './components/TabSelectionModal';
+import { ImportDialog } from './components/ImportDialog';
 
 export default function App() {
   // --- STATE MANAGEMENT ---
@@ -224,20 +192,7 @@ export default function App() {
     }
   }, [activeActivity]);
 
-  // Audio State
-  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const audioRef = useRef(null);
-  const [speechChunks, setSpeechChunks] = useState([]);
-  const [chunkIndex, setChunkIndex] = useState(0);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
-  const [speechSettings, setSpeechSettings] = useState({
-    voiceURI: '',
-    rate: 1.1,
-    pitch: 1.0
-  });
 
   // Wordsearch State
   const [foundWords, setFoundWords] = useState([]);           // Palavras encontradas no texto gerado
@@ -276,20 +231,8 @@ export default function App() {
 
   const activityAreaRef = useRef(null);
 
-  // DND SENSORS
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
-
-  const handleTabDragEnd = (event) => {
-    const { active, over } = event;
-    if (active.id !== over.id) {
-      setTabs((items) => {
-        const oldIndex = items.findIndex(t => t.id === active.id);
-        const newIndex = items.findIndex(t => t.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
-      });
-    }
+  const handleTabsReorder = (reorderedTabs) => {
+    setTabs(reorderedTabs);
   };
 
   const getTabLabel = (tab) => {
@@ -347,6 +290,21 @@ export default function App() {
       }
     });
   }, [apiKey]);
+
+  const {
+    isGeneratingAudio,
+    isSpeaking,
+    isPaused,
+    speechChunks,
+    chunkIndex,
+    speechSettings,
+    setSpeechSettings,
+    generateAudio,
+    handleSpeak,
+    speakNext,
+    speakPrev,
+    resetAudioState
+  } = useAudioNarration(geminiService);
 
   // --- API VALIDATION ---
   useEffect(() => {
@@ -416,160 +374,72 @@ export default function App() {
     setFoundPlacements([]);
 
     // Clear Audio
-    setAudioUrl(null);
-    setSpeechChunks([]);
-    setChunkIndex(0);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    setIsSpeaking(false);
-    setIsPaused(false);
+    resetAudioState();
     setIsEditing(false); // Default to new activity generation
 
     try {
-      let prompt = '';
-      const context = `Contexto/Detalhes: ${lessonDetails || 'Nenhum detalhe adicional.'}`;
-      const level = difficulty === 'hard' ? 'avançado/difícil' : difficulty === 'easy' ? 'fácil/infantil' : 'médio';
+      const levelLabel = difficulty === 'hard' ? 'avançado/difícil' : difficulty === 'easy' ? 'fácil/infantil' : 'médio';
 
-      switch (activityType) {
-        case 'quiz':
-          prompt = `Crie uma atividade de Quiz sobre "${topic}".
-          
-ESTRUTURA OBRIGATÓRIA:
-1. Pequeno texto explicativo introdutório sobre o tema (para ajudar a responder).
-2. 10 Questões de múltipla escolha exatamente nesta distribuição:
-   - 4 Questsões Fáceis
-   - 4 Questões Médias
-   - 2 Questões Difíceis
-3. Gabarito no final.
+      // Activity-specific generation
+      if (activityType === 'quiz') {
+        const parsedData = await generateQuizActivity({
+          topic,
+          lessonDetails,
+          difficulty,
+          model: selectedModel,
+          geminiService
+        });
 
-REGRAS DE OURO:
-- As respostas corretas DEVEM ser distribuídas aleatoriamente (não concentre na letra B ou C).
-- Variedade: Garanta que tenhamos gabaritos A, B, C, D e E.
-
-FORMATAÇÃO:
-- Use "1. Enunciado" para as perguntas.
-- Use "a) Alternativa" para as respostas.
-- Não use blocos de código.`;
-          break;
-        case 'crossword':
-          prompt = `Crie uma lista de palavras e dicas para um jogo de Palavras Cruzadas sobre o tema "${topic}".
-              
-              Nível: ${level}.
-              Contexto: ${context}.
-
-              RETORNE APENAS UM JSON VÁLIDO com a seguinte estrutura:
-              {
-                "words": [
-                   { "word": "PALAVRA1", "clue": "Dica da palavra 1..." },
-                   { "word": "PALAVRA2", "clue": "Dica da palavra 2..." }
-                ]
-              }
-
-              REQUISITOS:
-              - Gere entre 10 e 15 palavras relacionadas ao tema.
-              - As palavras devem estar em formato string simples (sem acentos preferencialmente, mas o sistema normaliza).
-              - As dicas devem ser claras e adequadas ao nível solicitado.
-              - RETORNE APENAS O JSON.`;
-          break;
-        case 'summary':
-          prompt = `Crie uma história educativa sobre "${topic}" com o personagem Drácker.
-          
-          CONTEXTO:
-          Drácker é um dragãozinho camarada que mora numa floresta encantada. Ele está aprendendo sobre o tema "${topic}" junto com seus amigos da floresta.
-          
-          Nível: ${level}. ${context}.
-
-          RETORNE APENAS UM JSON VÁLIDO com a seguinte estrutura:
-          {
-            "story": "Texto da história onde Drácker aprende sobre o tema...",
-            "activities": [
-              "Atividade prática 1 relacionada ao tema...",
-              "Atividade prática 2...",
-              "Atividade prática 3...",
-              "Atividade prática 4...",
-              "Atividade prática 5..."
-            ]
-          }
-          
-          REQUISITOS:
-          - A história deve ser lúdica e envolvente.
-          - Liste EXATAMENTE 5 atividades práticas que as crianças possam fazer para reforçar o aprendizado.
-          - Retorne APENAS o JSON.`;
-          break;
-        case 'simplify':
-          prompt = `Crie a letra de uma música infantil sobre "${topic}" com o personagem Drácker (um dragãozinho camarada da floresta encantada).
-          
-          ESTILO: Balão Mágico / Música Infantil Anos 80 / Pop Feliz.
-          NÍVEL: ${level}.
-          CONTEXTO: ${context}.
-
-          RETORNE APENAS UM JSON VÁLIDO com a seguinte estrutura:
-          {
-            "lyrics": "[Instrumental Intro]\n[Verse 1]\n(Letra sobre o Drácker aprendendo sobre ${topic})...",
-            "questions": [
-               {
-                 "text": "Pergunta fácil 1 sobre a música/tema?",
-                 "correct_answer": "Resposta correta",
-                 "incorrect_options": ["Alternativa errada 1", "Alternativa errada 2", "Alternativa errada 3"]
-               },
-               { "text": "Pergunta fácil 2?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
-               { "text": "Pergunta fácil 3?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
-               { "text": "Pergunta fácil 4?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
-               { "text": "Pergunta média 1?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
-               { "text": "Pergunta média 2?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
-               { "text": "Pergunta média 3?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
-               { "text": "Pergunta média 4?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
-               { "text": "Pergunta difícil 1?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] },
-               { "text": "Pergunta difícil 2?", "correct_answer": "...", "incorrect_options": ["...", "...", "..."] }
-            ]
-          }
-
-          REQUISITOS:
-          - A letra deve mencionar o Drácker e a floresta encantada.
-          - Estrutura clara: [Verse 1], [Chorus], [Verse 2], [Chorus], [Bridge], [Outro].
-          - Letra rimada e rítmica.
-          - Crie EXATAMENTE 10 perguntas de interpretação baseadas na letra: 4 FÁCEIS (compreensão literal), 4 MÉDIAS (inferência/análise) e 2 DIFÍCEIS (reflexão/aplicação).
-          - Cada pergunta deve trazer uma resposta correta e 3 alternativas incorretas distintas. O sistema embaralha a posição da correta automaticamente.
-          - Todas as perguntas devem estar diretamente relacionadas à música criada.
-          - Retorne APENAS o JSON.`;
-          break;
-          prompt = `Crie uma atividade educativa sobre "${topic}".`;
+        setQuizEditorData(parsedData);
+        setShowQuizEditor(true);
+        setCurrentQuizData(parsedData);
+        setIsLoading(false);
+        return;
       }
 
+      if (activityType === 'simplify') {
+        const parsedData = await generateMusicActivity({
+          topic,
+          lessonDetails,
+          model: selectedModel,
+          geminiService
+        });
 
-      // Se for QUIZ ou DRACKER (Summary), pedimos JSON para processamento local
-      if (activityType === 'quiz') {
-        prompt = `Crie uma atividade de Quiz sobre "${topic}".
-           
-           Nível: ${difficulty === 'hard' ? 'Difícil' : difficulty === 'easy' ? 'Fácil/Infantil' : 'Médio'}.
-           Detalhes: ${lessonDetails || 'Sem detalhes'}.
+        setMusicEditorData(parsedData);
+        setShowMusicEditor(true);
+        setCurrentMusicData(parsedData);
+        setIsLoading(false);
+        return;
+      }
 
-           RETORNE APENAS UM JSON VÁLIDO (sem markdown de código) com a seguinte estrutura:
-           {
-             "intro_text": "Texto explicativo curto e amigável sobre o tema...",
-             "questions": [
-               {
-                 "statement": "Enunciado da questão...",
-                 "correct_answer": "Resposta Certa",
-                 "distractors": ["Errada 1", "Errada 2", "Errada 3", "Errada 4"]
-               }
-             ]
-           }
-           
-           REQUISITOS:
-           - 10 Questões no total (4 Fáceis, 4 Médias, 2 Difíceis - misturadas).
-           - O texto introdutório deve ajudar a criança a entender o tema.
-           - Retorne APENAS o JSON puro. SEM MARKDOWN. SEM TEXTO ANTES OU DEPOIS.`;
+      // Wordsearch handled earlier by trigger; Crossword/summary/image fall through below
+      // For summary/crossword the prompt stays inline (legacy)
+
+      let prompt = '';
+      const context = `Contexto/Detalhes: ${lessonDetails || 'Nenhum detalhe adicional.'}`;
+      const level = levelLabel;
+
+      switch (activityType) {
+        case 'summary':
+          prompt = `Crie uma história sobre "${topic}" para a série Aprenda com o Drácker.\n\n${context}\nNível: ${level}.\n\nREGRAS:\n- Estrutura: Introdução (ambientação), Desenvolvimento (2-3 parágrafos), Encerramento (mensagem clara).\n- Tom: acolhedor, lúdico, educativo.\n- Dê exemplos práticos ou situações cotidianas.\n- Tamanho: 6-10 parágrafos curtos.\n- Só texto, sem markdown.`;
+          break;
+        case 'crossword':
+          prompt = `Gere um JSON com palavras cruzadas para o tema "${topic}".\n${context}\nNível: ${level}.\nRetorne apenas o JSON com {\n  "title": string,\n  "words": [{ "word": string, "clue": string }]\n}`;
+          break;
+        default:
+          prompt = topic;
       }
 
       let text = await geminiService.generateText(prompt, {
         model: selectedModel,
         fallbackModel: null,
-        // Aumentamos o limite de tokens para garantir JSON completo
-        maxOutputTokens: 4000
+        maxOutputTokens: 4000,
+        temperature: 0.7
       });
+
+      if (!text || !text.trim()) {
+        throw new Error('A API retornou uma resposta vazia. Tente novamente em instantes.');
+      }
 
       // PROCESSAMENTO DO QUIZ (JSON -> Markdown Formatado)
 
@@ -583,6 +453,14 @@ FORMATAÇÃO:
           }
           const cleanJson = text.substring(firstBrace, lastBrace + 1);
           const parsedData = JSON.parse(cleanJson);
+
+          // Normalização de dados: garante que temos 'clue'
+          if (parsedData.words) {
+            parsedData.words = parsedData.words.map(w => ({
+              ...w,
+              clue: w.clue || w.hint || "Sem dica"
+            }));
+          }
 
           // Open Editor instead of generating immediately
           setCrosswordEditorData(parsedData);
@@ -600,7 +478,7 @@ FORMATAÇÃO:
       }
 
 
-      if (activityType === 'quiz' || activityType === 'summary' || activityType === 'simplify') {
+      if (activityType === 'quiz' || activityType === 'summary') {
         try {
           // Limpeza e Extração de JSON (Busca o primeiro { e o último })
           const firstBrace = text.indexOf('{');
@@ -627,10 +505,6 @@ FORMATAÇÃO:
             setDrackerEditorData(parsedData);
             setShowDrackerEditor(true);
             setCurrentDrackerData(parsedData);
-          } else if (activityType === 'simplify') {
-            setMusicEditorData(parsedData);
-            setShowMusicEditor(true);
-            setCurrentMusicData(parsedData);
           }
 
           // We return here to wait for user interaction in Modal
@@ -750,7 +624,6 @@ FORMATAÇÃO:
       });
 
       text = formattedOutput + gabaritoOutput;
-      text = formattedOutput + gabaritoOutput;
 
 
       if (isEditing) {
@@ -839,13 +712,28 @@ FORMATAÇÃO:
         const correct = typeof q === 'object' ? (q.correctAnswer || q.correct_answer || q.answer || q.correct_option || '') : '';
         const distractors = typeof q === 'object' ? (q.distractors || q.incorrect_options || []) : [];
         const provided = typeof q === 'object' ? (q.options || q.ordered_options || []) : [];
-        const options = Array.from(new Set([correct, ...distractors, ...provided].filter(Boolean)));
+        // Respect provided order if valid, else fallback to correct + distractors shuffled
+        let options = [];
+        if (provided && provided.length > 0) {
+          options = provided;
+        } else {
+          const setArgs = [correct, ...distractors].filter(Boolean);
+          options = Array.from(new Set(setArgs));
+          // Fisher-Yates Shuffle
+          for (let i = options.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [options[i], options[j]] = [options[j], options[i]];
+          }
+        }
         return { text, correctAnswer: correct, distractors, options, ordered_options: options };
       });
 
       let formattedOutput = `# 🎵 Música do Drácker: ${topic}\n\n`;
 
-      formattedOutput += `${editedData.lyrics}\n\n`;
+      formattedOutput += `## Lyrics\n${editedData.lyrics}\n\n`;
+      if (editedData.style) {
+        formattedOutput += `## Style\n${editedData.style}\n\n`;
+      }
       formattedOutput += `\n---\n**📝 Perguntas de Interpretação:**\n\n`;
 
       normalizedQuestions.forEach((q, index) => {
@@ -902,110 +790,6 @@ FORMATAÇÃO:
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  // --- AUDIO LOGIC ---
-  const generateAudio = async (text) => {
-    if (!text || !geminiService) return;
-    setIsGeneratingAudio(true);
-
-    // Clean text
-    // Clean text
-    const clean = geminiService.cleanTextForSpeech(text);
-    const chunks = geminiService.sliceIntoChunks(clean, 300); // 300 chars limit per chunk
-    setSpeechChunks(chunks);
-    setChunkIndex(0);
-
-    setIsGeneratingAudio(false);
-    // We don't pre-generate all audio to save API calls, we stream first chunk when Play is clicked?
-    // Or we can try to pre-buffer. For now, we set chunks.
-  };
-
-  const playChunk = (index) => {
-    if (index < 0 || index >= speechChunks.length) return;
-
-    // Use Browser Native TTS
-    const chunkText = speechChunks[index];
-
-    // Stop any current
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(chunkText);
-    utterance.lang = 'pt-BR';
-
-    // Voice Selection from State or Default
-    if (speechSettings && speechSettings.voiceURI) {
-      const voices = window.speechSynthesis.getVoices();
-      const selected = voices.find(v => v.voiceURI === speechSettings.voiceURI);
-      if (selected) utterance.voice = selected;
-    } else {
-      // Fallback default logic
-      const voices = window.speechSynthesis.getVoices();
-      const brVoices = voices.filter(v => v.lang.includes('pt-BR') || v.lang.includes('pt_BR'));
-      const preferredVoice = brVoices.find(v =>
-        v.name.includes('Google') ||
-        v.name.includes('Francisca') ||
-        v.name.includes('Luciana') ||
-        v.name.toLowerCase().includes('female')
-      ) || brVoices[0];
-      if (preferredVoice) utterance.voice = preferredVoice;
-    }
-
-    utterance.rate = speechSettings ? speechSettings.rate : 1.0;
-    utterance.pitch = speechSettings ? speechSettings.pitch : 1.2;
-
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      setIsPaused(false);
-      setIsGeneratingAudio(false);
-    };
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      // Auto-play next logic
-      if (index < speechChunks.length - 1) {
-        setChunkIndex(index + 1);
-        playChunk(index + 1); // Recursive next
-      }
-    };
-
-    utterance.onerror = (e) => {
-      console.error("Browser TTS Error", e);
-      setIsGeneratingAudio(false);
-      setIsSpeaking(false);
-    };
-
-    window.speechSynthesis.speak(utterance);
-    // Store utterance reference if needed for detailed control, but cancelling window.speechSynthesis usually enough
-  };
-
-  const handleSpeak = () => {
-    if (isSpeaking && !isPaused) {
-      window.speechSynthesis.pause();
-      setIsPaused(true);
-    } else if (isPaused) {
-      window.speechSynthesis.resume();
-      setIsPaused(false);
-    } else {
-      // Start playing current chunk
-      playChunk(chunkIndex);
-    }
-  };
-
-  const speakNext = () => {
-    if (chunkIndex < speechChunks.length - 1) {
-      setChunkIndex(prev => prev + 1);
-      setIsSpeaking(false); // Stop current
-      setTimeout(() => playChunk(chunkIndex + 1), 100);
-    }
-  };
-
-  const speakPrev = () => {
-    if (chunkIndex > 0) {
-      setChunkIndex(prev => prev - 1);
-      setIsSpeaking(false);
-      setTimeout(() => playChunk(chunkIndex - 1), 100);
-    }
   };
 
   // --- WORDSEARCH CALLBACKS ---
@@ -1178,26 +962,14 @@ FORMATAÇÃO:
         />
 
         <div className="lg:col-span-8 flex flex-col gap-4">
-          {/* TABS HEADER */}
-          <div className="flex flex-col gap-2 bg-white p-2 rounded-xl shadow-sm border border-brown-200">
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTabDragEnd}>
-              <SortableContext items={tabs.map(t => t.id)} strategy={horizontalListSortingStrategy}>
-                <div className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent">
-                  {tabs.map(tab => (
-                    <SortableTab
-                      key={tab.id}
-                      tab={tab}
-                      activeTabId={activeTabId}
-                      setActiveTabId={setActiveTabId}
-                      closeTab={closeTab}
-                      getTabLabel={getTabLabel}
-                    />
-                  ))}
-                  {tabs.length === 0 && <span className="text-sm text-brown-400 italic px-4 py-2">Nenhuma atividade gerada ainda...</span>}
-                </div>
-              </SortableContext>
-            </DndContext>
-          </div>
+          <TabsBar
+            tabs={tabs}
+            activeTabId={activeTabId}
+            onSelect={setActiveTabId}
+            onClose={closeTab}
+            onReorder={handleTabsReorder}
+            getTabLabel={getTabLabel}
+          />
 
           {/* ACTIVE ACTIVITY AREA */}
           <ActivityArea
@@ -1236,7 +1008,7 @@ FORMATAÇÃO:
                   activeActivity?.type === 'simplify' ? handleEditMusic :
                     undefined
             }
-            musicData={activeActivity?.musicData}
+            musicData={activeActivity?.musicData || currentMusicData}
             drackerData={activeActivity?.drackerData}
             crosswordData={activeActivity?.data || activeActivity?.crosswordData}
             onCrosswordUpdate={(newData) => {
@@ -1265,98 +1037,24 @@ FORMATAÇÃO:
           initialData={drackerEditorData}
         />
 
-        {/* TAB SELECTION MODAL */}
-        <Modal
+        <TabSelectionModal
           isOpen={tabSelectionModal.isOpen}
+          tabs={tabSelectionModal.tabs}
+          onSelect={handleTabSelection}
+          onCreateNew={handleCreateNewFromModal}
           onClose={() => setTabSelectionModal(prev => ({ ...prev, isOpen: false }))}
-          title="Atividades Encontradas"
-          className="max-w-md"
-        >
-          <div className="space-y-4">
-            <p className="text-brown-700">
-              Você já tem atividades desse tipo abertas. Deseja abrir uma existente ou criar uma nova?
-            </p>
+        />
 
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {tabSelectionModal.tabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabSelection(tab.id)}
-                  className="w-full text-left p-3 rounded-lg bg-brown-50 hover:bg-brown-100 border border-brown-200 transition-colors flex items-center justify-between group"
-                >
-                  <span className="font-medium text-brown-800 truncate">{tab.title}</span>
-                  <span className="text-xs text-brown-500 group-hover:text-brown-700">Abrir</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="pt-4 border-t border-brown-100 flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => setTabSelectionModal(prev => ({ ...prev, isOpen: false }))}>
-                Cancelar
-              </Button>
-              <Button onClick={handleCreateNewFromModal}>
-                Nova Atividade
-              </Button>
-            </div>
-          </div>
-        </Modal>
-
-        {/* IMPORT MERGE/REPLACE DIALOG */}
-        <Modal
+        <ImportDialog
           isOpen={importDialog.isOpen}
+          importedTabs={importDialog.importedTabs}
+          importedDate={importDialog.importedDate}
+          importedVersion={importDialog.importedVersion}
+          currentTabsCount={tabs.length}
+          onMerge={handleMergeImport}
+          onReplace={handleReplaceImport}
           onClose={() => setImportDialog({ isOpen: false, importedTabs: [], importedDate: null, importedVersion: null })}
-          title="Importar Atividades"
-          className="max-w-md"
-        >
-          <div className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <p className="text-sm font-semibold text-blue-900 mb-2">📋 Backup Carregado</p>
-              <p className="text-xs text-blue-800 mb-1">
-                <strong>Versão:</strong> {importDialog.importedVersion || '1.0'}
-              </p>
-              <p className="text-xs text-blue-800 mb-1">
-                <strong>Data:</strong> {importDialog.importedDate ? new Date(importDialog.importedDate).toLocaleString('pt-BR') : 'N/A'}
-              </p>
-              <p className="text-xs text-blue-800">
-                <strong>Atividades:</strong> {importDialog.importedTabs.length}
-              </p>
-            </div>
-
-            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-              <p className="text-sm font-semibold text-amber-900 mb-2">⚙️ Selecione uma opção:</p>
-              <p className="text-xs text-amber-800">
-                Você tem <strong>{tabs.length} atividade(s)</strong> em trabalho. O que deseja fazer?
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <button
-                onClick={handleMergeImport}
-                className="w-full p-3 rounded-lg border-2 border-green-300 bg-green-50 hover:bg-green-100 text-left transition-colors"
-              >
-                <p className="font-semibold text-green-900">✨ Mesclar</p>
-                <p className="text-xs text-green-700 mt-1">Adicionar atividades do backup às atividades atuais</p>
-              </button>
-
-              <button
-                onClick={handleReplaceImport}
-                className="w-full p-3 rounded-lg border-2 border-red-300 bg-red-50 hover:bg-red-100 text-left transition-colors"
-              >
-                <p className="font-semibold text-red-900">🔄 Substituir</p>
-                <p className="text-xs text-red-700 mt-1">Carregar apenas as atividades do backup (perder atuais)</p>
-              </button>
-            </div>
-
-            <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">
-              <Button
-                variant="secondary"
-                onClick={() => setImportDialog({ isOpen: false, importedTabs: [], importedDate: null, importedVersion: null })}
-              >
-                Cancelar
-              </Button>
-            </div>
-          </div>
-        </Modal>
+        />
 
 
 
@@ -1391,3 +1089,4 @@ FORMATAÇÃO:
     </div >
   );
 }
+

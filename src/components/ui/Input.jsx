@@ -14,9 +14,9 @@ export const Input = ({ label, className = '', error, ...props }) => {
     );
 };
 
-export const TextArea = ({ label, className = '', error, ...props }) => {
+export const TextArea = ({ label, className = '', error, wrapperClassName = '', ...props }) => {
     return (
-        <div className="w-full">
+        <div className={`w-full ${wrapperClassName}`}>
             {label && <label className={theme.text.label}>{label}</label>}
             <textarea
                 className={`${theme.input.textarea} ${error ? 'border-red-500 focus:ring-red-500' : ''} ${className}`}
