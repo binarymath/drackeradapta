@@ -47,14 +47,26 @@ export const DrackerEditorModal = ({ isOpen, onClose, onSave, initialData }) => 
     );
 
     useEffect(() => {
-        if (isOpen && initialData) {
-            setStory(initialData.story || '');
-            const mappedActivities = (initialData.activities || []).map((act, index) => ({
-                id: `act-${Date.now()}-${index}`,
-                text: act
-            }));
-            setActivities(mappedActivities);
+        if (!isOpen) return;
+
+        const timestamp = Date.now();
+        setStory(initialData?.story || '');
+
+        const mappedActivities = (initialData?.activities || []).map((act, index) => ({
+            id: `act-${timestamp}-${index}`,
+            text: act || ''
+        }));
+
+        const paddedActivities = [...mappedActivities];
+        while (paddedActivities.length < 5) {
+            const label = paddedActivities.length + 1;
+            paddedActivities.push({
+                id: `act-${timestamp}-placeholder-${label}`,
+                text: `**Atividade ${label}** — Materiais: papel sulfite, lápis de cor e cola. Passo a passo: organize em grupos, explique a tarefa e peça um registro final.`,
+            });
         }
+
+        setActivities(paddedActivities);
     }, [isOpen, initialData]);
 
     const handleDragEnd = (event) => {
@@ -80,7 +92,10 @@ export const DrackerEditorModal = ({ isOpen, onClose, onSave, initialData }) => 
     };
 
     const handleAddActivity = () => {
-        setActivities([...activities, { id: `new-${Date.now()}`, text: '' }]);
+        setActivities([...activities, {
+            id: `new-${Date.now()}`,
+            text: '**Nova atividade** — Materiais: papel, lápis de cor e tesoura sem ponta. Passo a passo: descreva a dinâmica e o registro final.',
+        }]);
     };
 
     const handleSave = () => {
