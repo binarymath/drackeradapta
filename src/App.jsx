@@ -641,11 +641,18 @@ export default function App() {
 
   const handleDrackerConfirm = (editedData) => {
     try {
+      const baseActivities = (editedData.activities || []).map((act) => (act || '').trim()).filter(Boolean);
+      const normalizedActivities = baseActivities.slice(0, 5);
+
+      while (normalizedActivities.length < 5) {
+        normalizedActivities.push(`**Atividade ${normalizedActivities.length + 1}: ${topic || 'Drácker'}** — Materiais: papel, lápis de cor e tesoura sem ponta. Como fazer: proponha uma exploração simples em grupo e um desenho final.`);
+      }
+
       let formattedOutput = `## Aprenda com o Drácker: ${topic}\n\n`;
       formattedOutput += `${editedData.story}\n\n`;
       formattedOutput += `### 🐉 Atividades Práticas na Floresta\n\n`;
 
-      editedData.activities.forEach((act, index) => {
+      normalizedActivities.forEach((act, index) => {
         formattedOutput += `${index + 1}. ${act}\n`;
       });
 

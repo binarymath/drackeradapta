@@ -88,10 +88,16 @@ export async function generateDrackerActivity({ topic, lessonDetails, difficulty
       parsed = JSON.parse(jsonSlice);
     } catch (e) {
       console.warn('Falha ao converter JSON do Drácker, usando fallback.', e);
+
+      // Tenta extrair apenas o valor de "story" para evitar exibir o texto original inteiro.
+      const storyMatch = jsonSlice.match(/"story"\s*:\s*"([\s\S]*?)"\s*(,|})/);
+      if (storyMatch) {
+        parsed.story = storyMatch[1].replace(/\\n/g, '\n');
+      }
     }
   }
 
-  const story = ensureDrackerStory(parsed.story || raw, topic);
+  const story = ensureDrackerStory(parsed.story, topic);
   const activities = normalizeActivities(parsed.activities, topic);
 
   return { story, activities, metadata: { rawLength: raw.length } };
