@@ -10,6 +10,7 @@ import { createGeminiService } from './services/geminiService';
 import { ExportService } from './services/ExportService';
 import { generateMusicActivity } from './core/usecases/generateMusicActivity';
 import { generateQuizActivity } from './core/usecases/generateQuizActivity';
+import { generateDrackerActivity } from './core/usecases/generateDrackerActivity';
 import { useAudioNarration } from './hooks/useAudioNarration';
 
 // Components
@@ -413,17 +414,35 @@ export default function App() {
         return;
       }
 
-      // Wordsearch handled earlier by trigger; Crossword/summary/image fall through below
-      // For summary/crossword the prompt stays inline (legacy)
+      if (activityType === 'summary') {
+        try {
+          const parsedData = await generateDrackerActivity({
+            topic,
+            lessonDetails,
+            difficulty,
+            model: selectedModel,
+            geminiService
+          });
+
+          setDrackerEditorData(parsedData);
+          setShowDrackerEditor(true);
+          setCurrentDrackerData(parsedData);
+        } catch (err) {
+          console.error('Erro ao gerar Drácker:', err);
+          setError(`Erro ao gerar Drácker: ${err.message}`);
+        }
+
+        setIsLoading(false);
+        return;
+      }
+
+      // Wordsearch handled earlier by trigger; Crossword/image fall through below
 
       let prompt = '';
       const context = `Contexto/Detalhes: ${lessonDetails || 'Nenhum detalhe adicional.'}`;
       const level = levelLabel;
 
       switch (activityType) {
-        case 'summary':
-          prompt = `Crie uma história sobre "${topic}" para a série Aprenda com o Drácker.\n\n${context}\nNível: ${level}.\n\nREGRAS:\n- Estrutura: Introdução (ambientação), Desenvolvimento (2-3 parágrafos), Encerramento (mensagem clara).\n- Tom: acolhedor, lúdico, educativo.\n- Dê exemplos práticos ou situações cotidianas.\n- Tamanho: 6-10 parágrafos curtos.\n- Só texto, sem markdown.`;
-          break;
         case 'crossword':
           prompt = `Gere um JSON com palavras cruzadas para o tema "${topic}".\n${context}\nNível: ${level}.\nRetorne apenas o JSON com {\n  "title": string,\n  "words": [{ "word": string, "clue": string }]\n}`;
           break;
@@ -477,48 +496,6 @@ export default function App() {
           return;
         }
       }
-
-
-      if (activityType === 'quiz' || activityType === 'summary') {
-        try {
-          // Limpeza e Extração de JSON (Busca o primeiro { e o último })
-          const firstBrace = text.indexOf('{');
-          const lastBrace = text.lastIndexOf('}');
-
-          if (firstBrace === -1 || lastBrace === -1) {
-            throw new Error("JSON structure not found in response");
-          }
-
-          const cleanJson = text.substring(firstBrace, lastBrace + 1);
-          const parsedData = JSON.parse(cleanJson);
-
-          if (activityType === 'quiz') {
-            setQuizEditorData(parsedData);
-            setShowQuizEditor(true);
-            // Store tentative data to add tab later if confirmed? 
-            // Actually we open editor first. On confirm we add tab.
-            // We need to pass a callback to editor to "create new tab" instead of update current.
-            // Let's modify handleQuizConfirm to create tab if activeTab doesn't exist?
-            // The flow is: Generate -> Editor -> Confirm -> Tab Created.
-            // So here we DO NOT create tab yet.
-            setCurrentQuizData(parsedData); // Temporary storage
-          } else if (activityType === 'summary') {
-            setDrackerEditorData(parsedData);
-            setShowDrackerEditor(true);
-            setCurrentDrackerData(parsedData);
-          }
-
-          // We return here to wait for user interaction in Modal
-          setIsLoading(false);
-          return;
-
-        } catch (e) {
-          console.error("Erro ao processar JSON:", e);
-          // Fallback: se falhar o parse, usa o texto original da IA
-          text = `(Nota: O formato gerado diferiu do esperado, exibindo original)\n\n${text}`;
-        }
-      }
-
       addActivityTab({
         title: topic || "Atividade",
         type: activityType,
