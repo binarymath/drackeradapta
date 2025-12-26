@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Sparkles, AlertCircle, GripVertical } from 'lucide-react';
-import WordsearchWizard from './WordsearchWizard';
 import { theme } from '../styles/theme';
 import { Button } from './ui/Button';
 import { Input, TextArea, Select } from './ui/Input';
@@ -35,12 +34,6 @@ export const Sidebar = ({
     setImageSize,
     handleGenerateImage,
     isLoading,
-    geminiService,
-    directions,
-    setDirections,
-    handleWordsearchComplete,
-    setError,
-    wordsearchTrigger,
     handleGenerate,
     systemStatus,
     error,
@@ -279,22 +272,6 @@ export const Sidebar = ({
                                     : 'Processando sua solicitação...'}
                             </p>
                         </div>
-                    )}
-
-                    {activityType === 'wordsearch' && geminiService && (
-                        <WordsearchWizard
-                            apiKey={apiKey}
-                            topic={topic}
-                            lessonDetails={lessonDetails}
-                            difficulty={difficulty}
-                            directions={directions}
-                            setDirections={setDirections}
-                            onComplete={handleWordsearchComplete}
-                            onError={setError}
-                            geminiService={geminiService}
-                            triggerStart={wordsearchTrigger}
-                            defaultTitle={topic}
-                        />
                     )}
 
                     {systemStatus && (

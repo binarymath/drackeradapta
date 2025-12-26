@@ -24,6 +24,7 @@ import { CrosswordListEditor } from './components/CrosswordListEditor'; // Integ
 import { TabsBar } from './components/TabsBar';
 import { TabSelectionModal } from './components/TabSelectionModal';
 import { ImportDialog } from './components/ImportDialog';
+import WordsearchWizard from './components/WordsearchWizard';
 
 export default function App() {
   // --- STATE MANAGEMENT ---
@@ -779,6 +780,12 @@ export default function App() {
     }
   };
 
+  const handleEditWordsearch = () => {
+    // Ensure the wizard is mounted even if the sidebar is showing another activity type
+    setActivityType('wordsearch');
+    setWordsearchTrigger(prev => prev + 1);
+  };
+
 
 
   const handleDownloadGeneratedPng = () => {
@@ -949,11 +956,6 @@ export default function App() {
 
           isLoading={isLoading}
           geminiService={geminiService}
-          directions={directions}
-          setDirections={setDirections}
-          handleWordsearchComplete={handleWordsearchComplete}
-          setError={handleChildError}
-          wordsearchTrigger={wordsearchTrigger}
           handleGenerate={handleGenerate}
           systemStatus={systemStatus}
           error={error}
@@ -1003,10 +1005,12 @@ export default function App() {
 
             // EDIT HANDLERS (Context aware)
             onEdit={
-              activeActivity?.type === 'quiz' ? handleEditQuiz :
-                activeActivity?.type === 'summary' ? handleEditDracker :
-                  activeActivity?.type === 'simplify' ? handleEditMusic :
-                    undefined
+              activityType === 'wordsearch' ? handleEditWordsearch :
+                activeActivity?.type === 'quiz' ? handleEditQuiz :
+                  activeActivity?.type === 'summary' ? handleEditDracker :
+                    activeActivity?.type === 'simplify' ? handleEditMusic :
+                      activeActivity?.type === 'wordsearch' ? handleEditWordsearch :
+                        undefined
             }
             musicData={activeActivity?.musicData || currentMusicData}
             drackerData={activeActivity?.drackerData}
@@ -1073,6 +1077,20 @@ export default function App() {
           onClose={() => setShowMusicEditor(false)}
           onSave={handleMusicConfirm}
           initialData={musicEditorData}
+        />
+
+        <WordsearchWizard
+          apiKey={apiKey}
+          topic={topic}
+          lessonDetails={lessonDetails}
+          difficulty={difficulty}
+          directions={directions}
+          setDirections={setDirections}
+          onComplete={handleWordsearchComplete}
+          onError={handleChildError}
+          geminiService={geminiService}
+          triggerStart={wordsearchTrigger}
+          defaultTitle={topic}
         />
 
         {showCrosswordEditor && crosswordEditorData && (
