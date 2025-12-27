@@ -2,33 +2,48 @@ export function buildDrackerPrompt(topic, lessonDetails, difficultyLabel) {
   const safeTopic = topic || 'o tema definido pelo professor';
   const safeDetails = lessonDetails || 'Sem detalhes extras fornecidos.';
 
-  return `Atue como roteirista pedagógico do Dragãozinho camarada Drácker. Gere conteúdo em português brasileiro.
-TEMA: "${safeTopic}"
-DETALHES: ${safeDetails}
-NÍVEL E TOM: ${difficultyLabel} (linguagem acolhedora e clara).
+  return `Você é um assistente pedagógico especializado em criar atividades lúdicas e educativas.
+Sua missão é gerar um conteúdo completo para a atividade "Aprenda com o Drácker".
 
-PRODUZA APENAS UM JSON COM O FORMATO:
+**PARÂMETROS:**
+- **TEMA:** ${safeTopic}
+- **CONTEXTO:** ${safeDetails}
+- **NÍVEL:** ${difficultyLabel}
+- **PERSONAGEM:** Drácker, um dragãozinho curioso, amigável e motivador.
+
+---
+
+**OBJETIVO 1: A HISTÓRIA (Obrigatoriamente 3 a 6 parágrafos)**
+Escreva uma história envolvente onde o Drácker interage com as crianças sobre o tema.
+- **Introdução:** O encontro com o Drácker e a apresentação do tema.
+- **Desenvolvimento:** A exploração, perguntas curiosas, diálogos e descobertas. (Mínimo 2 parágrafos aqui).
+- **Conclusão:** Uma lição aprendida ou um convite para a prática.
+- **IMPORTANTE:** A história deve ser rica, bem escrita e adequada para crianças. Não faça resumos. Escreva a história completa.
+
+**OBJETIVO 2: ATIVIDADES PRÁTICAS (Exatamente 5 atividades)**
+Crie 5 atividades "mão na massa" relacionadas à história e ao tema.
+Cada atividade deve ter:
+1. **Título Criativo:** Um nome divertido.
+2. **Materiais:** Lista de itens necessários (simples e escolares).
+3. **Passo a Passo:** Instruções claras de como realizar.
+
+---
+
+**FORMATO DE RESPOSTA (JSON PURO):**
+Você deve retornar APENAS um objeto JSON válido. Não use Markdown (\`\`\`json). Não inclua texto antes ou depois.
+
+Exemplo de estrutura (siga estritamente as chaves em inglês):
 {
-  "story": "história com Drácker em parágrafos separados por \n\n",
+  "story": "Era uma vez... (história completa com quebras de linha \\n)",
   "activities": [
-    "Atividade 1 com materiais simples",
-    "Atividade 2 com materiais simples",
-    "Atividade 3 com materiais simples",
-    "Atividade 4 com materiais simples",
-    "Atividade 5 com materiais simples"
+    {
+      "title": "Caça ao Tesouro",
+      "materials": "Papel, caneta e fita adesiva",
+      "steps": "1. Esconda as pistas... 2. Peça para os alunos..."
+    },
+    ... (mais 4 atividades)
   ]
 }
 
-REGRAS DA HISTÓRIA:
-- Drácker deve aparecer como um amigo que aprende junto com as crianças.
-- Estrutura: 5 a 7 parágrafos curtos (3-4 frases), separados por \n\n.
-- Traga situações cotidianas da sala de aula ou do bairro.
-- Mantenha a voz narrativa positiva, curiosa e colaborativa.
-
-REGRAS DAS ATIVIDADES:
-- Exatamente 5 atividades práticas e rápidas para sala de aula.
-- Cada item deve caber em uma única linha do JSON, com até 30-40 palavras.
-- Cite materiais bem simples (papel, lápis de cor, cartolina, cola, tesoura sem ponta, barbante, tampinhas, revistas, sucata limpa).
-- Inclua título, materiais e passo a passo na mesma linha, podendo usar negrito com ** **.
-- Não use markdown fora do JSON. Não crie campos extras.`;
+Gere o JSON agora:`;
 }

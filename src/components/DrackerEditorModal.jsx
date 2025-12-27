@@ -52,17 +52,26 @@ export const DrackerEditorModal = ({ isOpen, onClose, onSave, initialData }) => 
         const timestamp = Date.now();
         setStory(initialData?.story || '');
 
-        const mappedActivities = (initialData?.activities || []).map((act, index) => ({
-            id: `act-${timestamp}-${index}`,
-            text: act || ''
-        }));
+        const mappedActivities = (initialData?.activities || []).map((act, index) => {
+            const isObject = typeof act === 'object' && act !== null;
+            return {
+                id: `act-${timestamp}-${index}`,
+                title: isObject ? (act.title || '') : String(act), // Fallback for legacy string
+                materials: isObject ? (act.materials || '') : '',
+                steps: isObject ? (act.steps || '') : '',
+                // Keep original text if it was a string just in case, but we prioritize the new fields
+                original: act
+            };
+        });
 
         const paddedActivities = [...mappedActivities];
         while (paddedActivities.length < 5) {
             const label = paddedActivities.length + 1;
             paddedActivities.push({
                 id: `act-${timestamp}-placeholder-${label}`,
-                text: `**Atividade ${label}** — Materiais: papel sulfite, lápis de cor e cola. Passo a passo: organize em grupos, explique a tarefa e peça um registro final.`,
+                title: `Nova Atividade ${label}`,
+                materials: 'Papel, lápis...',
+                steps: 'Descreva o passo a passo...'
             });
         }
 
@@ -81,9 +90,9 @@ export const DrackerEditorModal = ({ isOpen, onClose, onSave, initialData }) => 
         }
     };
 
-    const handleActivityChange = (id, value) => {
+    const handleActivityChange = (id, field, value) => {
         setActivities(activities.map(act =>
-            act.id === id ? { ...act, text: value } : act
+            act.id === id ? { ...act, [field]: value } : act
         ));
     };
 
@@ -94,14 +103,20 @@ export const DrackerEditorModal = ({ isOpen, onClose, onSave, initialData }) => 
     const handleAddActivity = () => {
         setActivities([...activities, {
             id: `new-${Date.now()}`,
-            text: '**Nova atividade** — Materiais: papel, lápis de cor e tesoura sem ponta. Passo a passo: descreva a dinâmica e o registro final.',
+            title: 'Nova Atividade',
+            materials: '',
+            steps: ''
         }]);
     };
 
     const handleSave = () => {
         const exportData = {
             story: story,
-            activities: activities.map(a => a.text)
+            activities: activities.map(a => ({
+                title: a.title,
+                materials: a.materials,
+                steps: a.steps
+            }))
         };
         onSave(exportData);
     };
@@ -138,9 +153,9 @@ export const DrackerEditorModal = ({ isOpen, onClose, onSave, initialData }) => 
                         }
                         value={story}
                         onChange={(e) => setStory(e.target.value)}
-                        className="min-h-[400px]"
+                        className="min-h-[200px]"
                         placeholder="Era uma vez..."
-                        rows={15}
+                        rows={8}
                     />
                 </Card>
 
@@ -159,35 +174,56 @@ export const DrackerEditorModal = ({ isOpen, onClose, onSave, initialData }) => 
                             items={activities.map(a => a.id)}
                             strategy={verticalListSortingStrategy}
                         >
-                            {activities.map((act, index) => (
-                                <SortableActivityItem key={act.id} id={act.id}>
-                                    <div className="flex-none pt-2 font-bold text-brown-400 text-sm w-6 text-center">
-                                        {index + 1}.
-                                    </div>
-                                    <TextArea
-                                        value={act.text}
-                                        onChange={(e) => handleActivityChange(act.id, e.target.value)}
-                                        className="min-h-[120px]"
-                                        placeholder={`Descrição da atividade ${index + 1}...`}
-                                        rows={5}
-                                    />
-                                    <Button
-                                        onClick={() => handleDeleteActivity(act.id)}
-                                        variant="ghost"
-                                        className="h-fit p-2 text-brown-300 hover:text-red-500 hover:bg-red-50"
-                                        title="Excluir atividade"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                </SortableActivityItem>
-                            ))}
+                            <div className="space-y-4">
+                                {activities.map((act, index) => (
+                                    <SortableActivityItem key={act.id} id={act.id}>
+                                        <div className="w-full bg-brown-50/50 p-4 rounded-xl border border-brown-100 hover:border-brown-300 transition-all">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <Badge className="bg-brown-200 text-brown-800">#{index + 1}</Badge>
+                                                <Button
+                                                    onClick={() => handleDeleteActivity(act.id)}
+                                                    variant="ghost"
+                                                    className="h-6 w-6 p-0 text-brown-400 hover:text-red-500"
+                                                    title="Excluir atividade"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <Input
+                                                    placeholder="Título da Atividade"
+                                                    value={act.title}
+                                                    onChange={(e) => handleActivityChange(act.id, 'title', e.target.value)}
+                                                    className="font-bold text-brown-900"
+                                                />
+                                                <Input
+                                                    placeholder="Materiais (ex: Papel, cola...)"
+                                                    value={act.materials}
+                                                    onChange={(e) => handleActivityChange(act.id, 'materials', e.target.value)}
+                                                    className="text-sm"
+                                                    label="Materiais:"
+                                                />
+                                                <TextArea
+                                                    placeholder="Passo a passo detalhado..."
+                                                    value={act.steps}
+                                                    onChange={(e) => handleActivityChange(act.id, 'steps', e.target.value)}
+                                                    className="text-sm min-h-[80px]"
+                                                    rows={3}
+                                                    label="Como fazer:"
+                                                />
+                                            </div>
+                                        </div>
+                                    </SortableActivityItem>
+                                ))}
+                            </div>
                         </SortableContext>
                     </DndContext>
 
                     <Button
                         onClick={handleAddActivity}
                         variant="outline"
-                        className="w-full py-4 mt-4 border-dashed text-brown-500 hover:bg-brown-50"
+                        className="w-full py-4 mt-6 border-dashed text-brown-500 hover:bg-brown-50"
                         icon={Plus}
                     >
                         Adicionar Atividade

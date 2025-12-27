@@ -18,16 +18,22 @@ code {
 }
 
 @media print {
+  /* Configuração da Página */
   @page {
-    margin: 1cm;
-    size: auto;
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   body * {
     visibility: hidden;
   }
 
-  /* Exibe apenas a área de atividade */
+  /* Exibe a área de atividade e seus filhos */
   #activity-area-print,
   #activity-area-print * {
     visibility: visible;
@@ -41,21 +47,49 @@ code {
     margin: 0;
     padding: 0;
     background: white;
-    color: black !important;
+    font-size: 11pt; /* Tamanho base otimizado para leitura */
   }
 
-  /* Garante que textos sejam pretos e fundos brancos */
-  #activity-area-print * {
-    color: black !important;
-    background-color: transparent !important;
+  /* --- OTIMIZAÇÃO VISUAL PARA IMPRESSÃO --- */
+
+  /* Estilização suave em vez de brutal */
+  #activity-area-print .text-brown-900 {
+    color: #3e2723 !important; /* Marrom escuro para texto principal */
+  }
+
+  #activity-area-print .text-brown-600,
+  #activity-area-print .text-brown-700 {
+    color: #5d4037 !important; /* Marrom médio para secundários */
+  }
+
+  /* Permite backgrounds suaves para os cards */
+  #activity-area-print .bg-brown-50\/50,
+  #activity-area-print .bg-white\/50 {
+    background-color: #fdfbf7 !important; /* Creme muito suave */
+    border: 1px solid #efebe9 !important;
+  }
+  
+  /* Numerais com destaque */
+  #activity-area-print .rounded-full.bg-brown-600 {
+    background-color: #3e2723 !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Remover sombras pesadas, trocar por bordas finas */
+  #activity-area-print .shadow-sm,
+  #activity-area-print .shadow-lg {
     box-shadow: none !important;
   }
-
-  /* Mantém bordas essenciais para cartas/cards */
-  #activity-area-print .shadow-sm,
-  #activity-area-print .rounded-xl,
+  
+  /* Se for necessário borda */
   #activity-area-print .border {
-    border: 1px solid #ddd !important;
+    border-color: #d7ccc8 !important;
+  }
+  
+  /* Links e botões não funcionais no papel */
+  #activity-area-print button {
+    display: none !important;
   }
 
   .no-print {

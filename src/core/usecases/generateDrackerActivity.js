@@ -11,35 +11,43 @@ const SIMPLE_MATERIAL_FALLBACKS = [
 function normalizeActivities(rawActivities = [], topic) {
   const base = rawActivities
     .map((act) => {
-      if (!act) return '';
-      if (typeof act === 'string') return act.trim();
+      if (!act) return null;
+      // Handle string legacy case
+      if (typeof act === 'string') {
+        return {
+          title: act,
+          materials: '',
+          steps: ''
+        };
+      }
 
-      const label = act.title || act.nome || act.activity || act.headline || '';
-      const description = act.description || act.desc || '';
+      const title = act.title || act.nome || act.activity || act.headline || 'Atividade Prática';
+      const description = act.description || act.desc || ''; // Optional description
       const materials = act.materials || act.recursos || act.material || '';
       const steps = act.steps || act.passos || act.instrucoes || '';
 
-      const parts = [];
-      if (label) parts.push(`**${label}**`);
-      if (materials) {
-        const list = Array.isArray(materials) ? materials.join(', ') : materials;
-        parts.push(`Materiais: ${list}`);
-      }
-      if (description) parts.push(description);
-      if (steps) {
-        const stepsText = Array.isArray(steps) ? steps.join(' ') : steps;
-        parts.push(`Como fazer: ${stepsText}`);
-      }
-
-      return parts.join(' — ');
+      return {
+        title,
+        materials: Array.isArray(materials) ? materials.join(', ') : materials,
+        steps: Array.isArray(steps) ? steps.join(' ') : steps,
+        description
+      };
     })
     .filter(Boolean);
 
   const filled = [...base];
   while (filled.length < 5) {
-    const template = SIMPLE_MATERIAL_FALLBACKS[filled.length % SIMPLE_MATERIAL_FALLBACKS.length];
-    const label = `**Explorando ${topic || 'o tema'} (${filled.length + 1})**`;
-    filled.push(`${label} — ${template}`);
+    const templateIdx = filled.length % SIMPLE_MATERIAL_FALLBACKS.length;
+    // Parse the fallback string into object parts loosely or just provide a generic object
+    const fallbackString = SIMPLE_MATERIAL_FALLBACKS[templateIdx];
+    // Fallback strings are like "Materiais: x, y, z."
+    // We'll just put that in materials.
+
+    filled.push({
+      title: `Explorando ${topic || 'o tema'} (${filled.length + 1})`,
+      materials: fallbackString.replace('Materiais:', '').trim(),
+      steps: 'Crie livremente com a turma usando os materiais disponíveis.'
+    });
   }
 
   return filled.slice(0, 5);
@@ -70,8 +78,8 @@ export async function generateDrackerActivity({ topic, lessonDetails, difficulty
   const raw = await geminiService.generateText(prompt, {
     model,
     fallbackModel: null,
-    maxOutputTokens: 2200,
-    temperature: 0.65,
+    maxOutputTokens: 4000,
+    temperature: 0.75,
   });
 
   if (!raw || !raw.trim()) {
@@ -79,20 +87,104 @@ export async function generateDrackerActivity({ topic, lessonDetails, difficulty
   }
 
   let parsed = {};
-  const firstBrace = raw.indexOf('{');
-  const lastBrace = raw.lastIndexOf('}');
+
+  // 1. Clean Markdown wrappers
+  let cleanRaw = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+  // 2. Extract JSON block if surrounded by text
+  const firstBrace = cleanRaw.indexOf('{');
+  const lastBrace = cleanRaw.lastIndexOf('}');
 
   if (firstBrace !== -1 && lastBrace !== -1) {
-    const jsonSlice = raw.slice(firstBrace, lastBrace + 1);
-    try {
-      parsed = JSON.parse(jsonSlice);
-    } catch (e) {
-      console.warn('Falha ao converter JSON do Drácker, usando fallback.', e);
+    cleanRaw = cleanRaw.slice(firstBrace, lastBrace + 1);
+  }
 
-      // Tenta extrair apenas o valor de "story" para evitar exibir o texto original inteiro.
-      const storyMatch = jsonSlice.match(/"story"\s*:\s*"([\s\S]*?)"\s*(,|})/);
-      if (storyMatch) {
-        parsed.story = storyMatch[1].replace(/\\n/g, '\n');
+  // 3. Try Direct Parse
+  try {
+    parsed = JSON.parse(cleanRaw);
+  } catch (e) {
+    console.warn('Falha ao converter JSON do Drácker (parse direto). Tentando recuperação via regex.', e);
+
+    // 4. Fallback: Regex Scavenger Mode
+    // Finds "story": "..." and activity objects anywhere in the text
+
+    // Story
+    const storyMatch = raw.match(/"story"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (storyMatch) {
+      parsed.story = storyMatch[1]
+        .replace(/\\"/g, '"')
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t');
+    }
+
+    // Activities (Global Object Search)
+    const scavengerActivities = [];
+    const allBraceBlocks = raw.match(/\{[\s\S]*?\}/g) || [];
+
+    for (const block of allBraceBlocks) {
+      // Look for title + (materials OR steps) inside any block
+      const titleM = block.match(/"(?:title|nome|t[ií]tulo)"\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+      const matM = block.match(/"(?:materials|materiais|recursos)"\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+      const stepsM = block.match(/"(?:steps|passos|instru[cç][oõ]es)"\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+
+      if (titleM && (matM || stepsM)) {
+        const extract = (m) => m ? m[1].replace(/\\"/g, '"').replace(/\\n/g, '\n') : '';
+        scavengerActivities.push({
+          title: extract(titleM),
+          materials: extract(matM),
+          steps: extract(stepsM)
+        });
+      }
+    }
+
+    if (scavengerActivities.length > 0) {
+      if (!parsed.activities) parsed.activities = [];
+      parsed.activities = scavengerActivities;
+    }
+  }
+
+  // 5. Desperate Text Scavenger (If JSON and Object Regex failed or yielded few results)
+  // Sometimes the model ignores JSON and just prints text like:
+  // "1. Caça ao Tesouro"
+  // "Materiais: x, y, z"
+  // "Passo a passo: ..."
+  if (!parsed.activities || !Array.isArray(parsed.activities) || parsed.activities.length < 3) {
+    console.warn('Fallback Final: Tentando extrair de texto estruturado (não-JSON)...');
+
+    const textActivities = [];
+    // Split by something that looks like a numbered activity header: "1. Título", "Atividade 1:", etc.
+    // Regex: Newline + Number + Dot/Paren + Space + Text
+    const splitRegex = /\n\s*(?:\d+\.|Atividade \d+:?)\s+(.*?)(?=\n\s*(?:\d+\.|Atividade \d+:?)|$)/gs;
+
+    let match;
+    while ((match = splitRegex.exec(raw)) !== null) {
+      const fullBlock = match[0]; // The whole activity block
+      const titleLine = match[1].split('\n')[0].trim(); // mostly the title
+
+      // Extract Materials
+      const matMatch = fullBlock.match(/(?:Materiais|Recursos|Itens necessários)[:\s]+(.*?)(?=\n\s*(?:Passo|Como fazer|Instru|Steps)|$)/i);
+      const materials = matMatch ? matMatch[1].trim() : '';
+
+      // Extract Steps
+      const stepMatch = fullBlock.match(/(?:Passo a passo|Como fazer|Instruções|Steps)[:\s]+([\s\S]*?)$/i);
+      const steps = stepMatch ? stepMatch[1].trim() : '';
+
+      if (titleLine && (materials || steps)) {
+        textActivities.push({
+          title: titleLine.replace(/[*"]/g, ''),
+          materials: materials.replace(/[*"]/g, ''),
+          steps: steps.replace(/[*"]/g, '')
+        });
+      }
+    }
+
+    if (textActivities.length > 0) {
+      // Merge or overwrite if we found nothing before
+      if (!parsed.activities || parsed.activities.length === 0) {
+        parsed.activities = textActivities;
+      } else {
+        // Append compliant ones
+        parsed.activities = [...parsed.activities, ...textActivities];
       }
     }
   }

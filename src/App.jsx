@@ -702,44 +702,50 @@ export default function App() {
     }
   };
 
-  const handleDrackerConfirm = (editedData) => {
-    try {
-      const baseActivities = (editedData.activities || []).map((act) => (act || '').trim()).filter(Boolean);
-      const normalizedActivities = baseActivities.slice(0, 5);
 
-      while (normalizedActivities.length < 5) {
-        normalizedActivities.push(`**Atividade ${normalizedActivities.length + 1}: ${topic || 'Drácker'}** — Materiais: papel, lápis de cor e tesoura sem ponta. Como fazer: proponha uma exploração simples em grupo e um desenho final.`);
+  const handleDrackerConfirm = (data) => {
+    // Data now strictly follows the structure: { story: string, activities: [{ title, materials, steps }] }
+    // We do NOT need to normalize it again if the editor returns valid objects.
+    // However, for consistency with the rest of the app state, we might want to ensure it's clean.
+
+    const newDrackerData = {
+      story: data.story,
+      activities: data.activities // Pass through the objects directly
+    };
+
+    // Format the output for display in the activity tab
+    let formattedOutput = `## Aprenda com o Drácker: ${topic}\n\n`;
+    formattedOutput += `${newDrackerData.story}\n\n`;
+    formattedOutput += `### 🐉 Atividades Práticas na Floresta\n\n`;
+
+    newDrackerData.activities.forEach((act, index) => {
+      formattedOutput += `${index + 1}. ${act.title}\n`;
+      if (act.materials) {
+        formattedOutput += `   Materiais: ${act.materials}\n`;
       }
+      if (act.steps) {
+        formattedOutput += `   Como fazer: ${act.steps}\n`;
+      }
+      formattedOutput += `\n`;
+    });
 
-      let formattedOutput = `## Aprenda com o Drácker: ${topic}\n\n`;
-      formattedOutput += `${editedData.story}\n\n`;
-      formattedOutput += `### 🐉 Atividades Práticas na Floresta\n\n`;
-
-      normalizedActivities.forEach((act, index) => {
-        formattedOutput += `${index + 1}. ${act}\n`;
+    if (isEditing) {
+      setTabs(prev => prev.map(t => {
+        if (t.id === activeTabId) {
+          return { ...t, content: formattedOutput, drackerData: newDrackerData };
+        }
+        return t;
+      }));
+    } else {
+      addActivityTab({
+        title: topic || "Aprenda com o Drácker",
+        type: 'summary',
+        content: formattedOutput,
+        drackerData: newDrackerData
       });
-
-      if (isEditing) {
-        setTabs(prev => prev.map(t => {
-          if (t.id === activeTabId) {
-            return { ...t, content: formattedOutput, drackerData: editedData };
-          }
-          return t;
-        }));
-      } else {
-        addActivityTab({
-          title: topic || "Aprenda com o Drácker",
-          type: 'summary',
-          content: formattedOutput,
-          drackerData: editedData
-        });
-      }
-
-      generateAudio(editedData.story);
-    } catch (e) {
-      console.error("Error formatting Dracker activity", e);
-      setError("Erro ao formatar atividade Drácker.");
     }
+
+    generateAudio(newDrackerData.story); // Generate audio for the story part
     setShowDrackerEditor(false);
     setIsLoading(false);
   };
