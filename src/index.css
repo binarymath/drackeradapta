@@ -18,6 +18,7 @@ code {
 }
 
 @media print {
+
   /* Configuração da Página */
   @page {
     margin: 1.5cm;
@@ -47,28 +48,32 @@ code {
     margin: 0;
     padding: 0;
     background: white;
-    font-size: 11pt; /* Tamanho base otimizado para leitura */
+    font-size: 11pt;
+    /* Tamanho base otimizado para leitura */
   }
 
   /* --- OTIMIZAÇÃO VISUAL PARA IMPRESSÃO --- */
 
   /* Estilização suave em vez de brutal */
   #activity-area-print .text-brown-900 {
-    color: #3e2723 !important; /* Marrom escuro para texto principal */
+    color: #3e2723 !important;
+    /* Marrom escuro para texto principal */
   }
 
   #activity-area-print .text-brown-600,
   #activity-area-print .text-brown-700 {
-    color: #5d4037 !important; /* Marrom médio para secundários */
+    color: #5d4037 !important;
+    /* Marrom médio para secundários */
   }
 
   /* Permite backgrounds suaves para os cards */
   #activity-area-print .bg-brown-50\/50,
   #activity-area-print .bg-white\/50 {
-    background-color: #fdfbf7 !important; /* Creme muito suave */
+    background-color: #fdfbf7 !important;
+    /* Creme muito suave */
     border: 1px solid #efebe9 !important;
   }
-  
+
   /* Numerais com destaque */
   #activity-area-print .rounded-full.bg-brown-600 {
     background-color: #3e2723 !important;
@@ -81,12 +86,12 @@ code {
   #activity-area-print .shadow-lg {
     box-shadow: none !important;
   }
-  
+
   /* Se for necessário borda */
   #activity-area-print .border {
     border-color: #d7ccc8 !important;
   }
-  
+
   /* Links e botões não funcionais no papel */
   #activity-area-print button {
     display: none !important;
@@ -95,4 +100,48 @@ code {
   .no-print {
     display: none !important;
   }
+
+  .only-print {
+    display: block !important;
+  }
+}
+
+/* Ensure only-print is hidden on screen */
+.only-print {
+  display: none;
+}
+
+@media print {
+  .page-break {
+    break-before: page;
+    page-break-before: always;
+  }
+}
+
+/* --- PDF Capture Styles (html2pdf) --- */
+/* Force layout state during capture without relying on @media print */
+
+.pdf-capture-mode button,
+.pdf-capture-mode .no-pdf {
+  display: none !important;
+}
+
+/* Essay Lines vs Alternatives Logic */
+.pdf-capture-mode .essay-lines {
+  display: block;
+  /* Default: Show lines in PDF */
+}
+
+.pdf-capture-mode .alternatives-list {
+  display: none;
+  /* Default: Hide alternatives in PDF */
+}
+
+/* If "Show Alternatives" is active */
+.pdf-capture-mode.pdf-show-alternatives .essay-lines {
+  display: none !important;
+}
+
+.pdf-capture-mode.pdf-show-alternatives .alternatives-list {
+  display: block !important;
 }

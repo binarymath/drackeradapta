@@ -1001,6 +1001,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-brown-50 font-sans text-brown-900">
       <Header
+        className="no-print"
         apiKeyStatus={apiKeyStatus}
         handleSpeak={handleSpeak}
         isGeneratingAudio={isGeneratingAudio}
@@ -1018,51 +1019,54 @@ export default function App() {
       />
 
       <main className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <Sidebar
-          showSettings={showSettings}
-          apiKey={apiKey}
-          handleApiKeyChange={handleApiKeyChange}
-          clearApiKey={clearApiKey}
-          modelOptions={modelOptions}
-          selectedModel={selectedModel}
-          setSelectedModel={setSelectedModel}
-          imagePng={imagePng}
-          handleDownloadGeneratedPng={handleDownloadGeneratedPng}
-          topic={topic}
-          setTopic={setTopic}
-          lessonDetails={lessonDetails}
-          setLessonDetails={setLessonDetails}
-          difficultyOptions={difficultyOptions}
-          difficulty={difficulty}
-          setDifficulty={setDifficulty}
-          activityOptions={activityOptions}
-          activityType={activityType}
-          setActivityType={handleActivityTypeChange}
-          imagePrompt={imagePrompt}
-          setImagePrompt={setImagePrompt}
-          imageStyle={imageStyle}
-          setImageStyle={setImageStyle}
-          imageSize={imageSize}
-          setImageSize={setImageSize}
+        <div className="lg:col-span-4 no-print">
+          <Sidebar
+            showSettings={showSettings}
+            apiKey={apiKey}
+            handleApiKeyChange={handleApiKeyChange}
+            clearApiKey={clearApiKey}
+            modelOptions={modelOptions}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
+            imagePng={imagePng}
+            handleDownloadGeneratedPng={handleDownloadGeneratedPng}
+            topic={topic}
+            setTopic={setTopic}
+            lessonDetails={lessonDetails}
+            setLessonDetails={setLessonDetails}
+            difficultyOptions={difficultyOptions}
+            difficulty={difficulty}
+            setDifficulty={setDifficulty}
+            activityOptions={activityOptions}
+            activityType={activityType}
+            setActivityType={handleActivityTypeChange}
+            imagePrompt={imagePrompt}
+            setImagePrompt={setImagePrompt}
+            imageStyle={imageStyle}
+            setImageStyle={setImageStyle}
+            imageSize={imageSize}
+            setImageSize={setImageSize}
 
-          isLoading={isLoading}
-          geminiService={geminiService}
-          handleGenerate={handleGenerate}
-          systemStatus={systemStatus}
-          error={error}
-
-        // openSaveLoad={() => setShowSaveLoad(true)} // Removed
-        />
+            isLoading={isLoading}
+            geminiService={geminiService}
+            handleGenerate={handleGenerate}
+            systemStatus={systemStatus}
+            error={error}
+          // openSaveLoad={() => setShowSaveLoad(true)} // Removed
+          />
+        </div>
 
         <div className="lg:col-span-8 flex flex-col gap-4">
-          <TabsBar
-            tabs={tabs}
-            activeTabId={activeTabId}
-            onSelect={setActiveTabId}
-            onClose={closeTab}
-            onReorder={handleTabsReorder}
-            getTabLabel={getTabLabel}
-          />
+          <div className="no-print">
+            <TabsBar
+              tabs={tabs}
+              activeTabId={activeTabId}
+              onSelect={setActiveTabId}
+              onClose={closeTab}
+              onReorder={handleTabsReorder}
+              getTabLabel={getTabLabel}
+            />
+          </div>
 
           {/* ACTIVE ACTIVITY AREA */}
           <ActivityArea

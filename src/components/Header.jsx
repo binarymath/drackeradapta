@@ -15,6 +15,7 @@ import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 
 export const Header = ({
+    className,
     apiKeyStatus,
     handleSpeak,
     isGeneratingAudio,
@@ -31,7 +32,7 @@ export const Header = ({
     onRestore
 }) => {
     return (
-        <header className={theme.layout.header}>
+        <header className={`${theme.layout.header} ${className || ''}`}>
             <div className={theme.layout.headerContainer}>
                 <div className="flex items-center gap-2 text-brown-900">
                     <img src="/dracker.png" alt="Drácker Logo" className="w-10 h-10 object-contain hover:scale-110 transition-transform" />

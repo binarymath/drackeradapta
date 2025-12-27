@@ -6,6 +6,8 @@ import { MusicGame } from './MusicGame';
 import RichTextRenderer from './RichTextRenderer';
 import { CrosswordActivity } from './CrosswordActivity';
 
+import html2pdf from 'html2pdf.js';
+
 // UI Components
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
@@ -40,7 +42,9 @@ export const ActivityArea = ({
     onCrosswordUpdate
 }) => {
     const hasContent = generatedContent || (activityType === 'crossword' && crosswordData);
+    const [printMode, setPrintMode] = React.useState('all'); // 'all', 'lyrics', 'questions'
     const [isGameMode, setIsGameMode] = React.useState(false);
+    const [pdfShowAlternatives, setPdfShowAlternatives] = React.useState(false);
     const isWordsearchGame = isGameMode && activityType === 'wordsearch';
     const isCrosswordGame = isGameMode && activityType === 'crossword';
     const isMusicGame = isGameMode && activityType === 'simplify';
@@ -48,7 +52,52 @@ export const ActivityArea = ({
     // Reset game mode when content changes
     React.useEffect(() => {
         setIsGameMode(false);
+        setPdfShowAlternatives(false);
     }, [generatedContent]);
+
+    const handlePrint = (mode) => {
+        setPrintMode(mode);
+        setTimeout(() => {
+            window.print();
+            setPrintMode('all');
+        }, 500);
+    };
+
+    const handleDirectDownload = (elementId, filename) => {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+
+        // Apply temporary print styles for capture if needed, 
+        // but html2pdf handles visible content. 
+        // We might need to ensure the element is visible.
+
+        const opt = {
+            margin: 10, // mm
+            filename: filename,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // We temporarily set printMode to ensure the right content is visible if logic depends on it,
+        // though strictly targeting by ID is better.
+        // However, the essay lines are "only-print". html2pdf captures SCREEN state usually unless customized.
+        // We might need to force the "print" state visuals. 
+        // Actually, html2pdf renders what is in the DOM. 
+        // If our essay lines are `.only-print` (display: none on screen), they won't show in html2pdf!
+        // We need a way to Toggle "Preview Mode" or add a class to valid elements before downloading.
+
+        // Strategy: Force a class on the element or body to trigger "print-like" styles for the capture.
+        element.classList.add('pdf-capture-mode');
+        if (pdfShowAlternatives && elementId === 'questions-card') {
+            element.classList.add('pdf-show-alternatives');
+        }
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            element.classList.remove('pdf-capture-mode');
+            element.classList.remove('pdf-show-alternatives');
+        });
+    };
 
     return (
         <div className="lg:col-span-8">
@@ -370,7 +419,7 @@ export const ActivityArea = ({
                                                 </div>
                                             </Card>
 
-                                            {/* Card: Game Mode Toggle */}
+                                            {/* Game Mode / Print Toggle */}
                                             <Card className="mb-6 bg-green-50 border-green-200 no-print flex items-center justify-between p-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
@@ -390,107 +439,164 @@ export const ActivityArea = ({
                                             </Card>
 
                                             {/* Card 1: Music Lyrics */}
-                                            <Card className="p-6 relative group">
-                                                <div className="absolute top-0 right-0 p-2 opacity-10">
-                                                    <span className="text-6xl">🎵</span>
-                                                </div>
-                                                <div className="flex justify-between items-center border-b border-brown-100 pb-2 mb-4">
-                                                    <h2 className="text-xl font-bold text-brown-900">Música do Drácker</h2>
-                                                    <Button
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText(musicData.lyrics);
-                                                            alert('Letra copiada!');
-                                                        }}
-                                                        variant="secondary"
-                                                        className="text-xs z-10"
-                                                        icon={Copy}
-                                                    >
-                                                        Copiar Letra
-                                                    </Button>
-                                                </div>
-                                                <div className="font-sans text-brown-700 text-lg leading-relaxed">
-                                                    {musicData.lyrics.split('\n').map((line, idx) => {
-                                                        // Renderiza markdown simples: **texto** → negrito
-                                                        const parts = line.split(/(\*\*.*?\*\*)/g);
-                                                        return (
-                                                            <div key={idx} className="whitespace-pre-wrap">
-                                                                {parts.map((part, i) => {
-                                                                    if (part.startsWith('**') && part.endsWith('**')) {
-                                                                        return <strong key={i} className="font-extrabold">{part.slice(2, -2)}</strong>;
-                                                                    }
-                                                                    return part;
-                                                                })}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </Card>
+                                            <div className={printMode === 'questions' ? 'no-print' : ''}>
+                                                <Card id="lyrics-card" className="p-8 relative group border border-brown-100 shadow-sm print:shadow-none print:border-4 print:border-brown-200 print:p-10">
+                                                    <div className="absolute top-0 right-0 p-4 opacity-10 print:opacity-5">
+                                                        <span className="text-6xl print:text-8xl">🎵</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center border-b border-brown-100 pb-4 mb-6 print:border-b-2 print:border-brown-800 print:mb-8">
+                                                        <h2 className="text-2xl font-bold text-brown-900 print:text-4xl print:font-serif">Música do Drácker</h2>
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                onClick={() => handleDirectDownload('lyrics-card', 'Música_Dracker.pdf')}
+                                                                variant="secondary"
+                                                                className="text-xs z-10 print:hidden bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                                                                icon={Download}
+                                                            >
+                                                                Baixar Letra
+                                                            </Button>
+                                                            <Button
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(musicData.lyrics);
+                                                                    alert('Letra copiada!');
+                                                                }}
+                                                                variant="secondary"
+                                                                className="text-xs z-10 print:hidden"
+                                                                icon={Copy}
+                                                            >
+                                                                Copiar
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="font-sans text-brown-800 text-lg leading-relaxed print:font-serif print:text-xl print:leading-loose whitespace-pre-wrap print:block">
+                                                        {musicData.lyrics.split('\n').map((line, idx) => {
+                                                            const parts = line.split(/(\*\*.*?\*\*)/g);
+                                                            return (
+                                                                <div key={idx} className={`${line.trim() === '' ? 'h-6' : ''} break-inside-avoid`}>
+                                                                    {parts.map((part, i) => {
+                                                                        if (part.startsWith('**') && part.endsWith('**')) {
+                                                                            return <strong key={i} className="font-extrabold text-brown-900 print:text-black">{part.slice(2, -2)}</strong>;
+                                                                        }
+                                                                        return part;
+                                                                    })}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
 
-                                            {/* Card 1b: Style */}
-                                            {musicData.style && (
-                                                <Card className="p-6 relative group">
-                                                    <div className="absolute top-0 right-0 p-2 opacity-10">
-                                                        <span className="text-6xl">🎨</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center border-b border-brown-100 pb-2 mb-4">
-                                                        <h2 className="text-xl font-bold text-brown-900">Estilo Musical</h2>
-                                                        <Button
-                                                            onClick={() => {
-                                                                navigator.clipboard.writeText(musicData.style);
-                                                                alert('Estilo copiado!');
-                                                            }}
-                                                            variant="secondary"
-                                                            className="text-xs z-10"
-                                                            icon={Copy}
-                                                        >
-                                                            Copiar Estilo
-                                                        </Button>
-                                                    </div>
-                                                    <div className="font-sans text-brown-700 text-base leading-relaxed whitespace-pre-wrap">
-                                                        {musicData.style}
+                                                    {/* Footer for Lyrics Page */}
+                                                    <div className="hidden print:flex mt-auto pt-8 border-t border-brown-200 justify-between text-xs text-brown-600">
+                                                        <span className="flex items-center gap-1 font-bold">
+                                                            <img src="/dracker.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" />
+                                                            Atividade Musical - Drácker
+                                                        </span>
+                                                        <span>{new Date().toLocaleDateString()}</span>
                                                     </div>
                                                 </Card>
-                                            )}
-                                            {/* Card 2: Questions */}
-                                            <Card className="p-6 relative">
-                                                <div className="absolute top-0 right-0 p-2 opacity-10">
-                                                    <span className="text-6xl">📝</span>
-                                                </div>
-                                                <h2 className="text-xl font-bold text-brown-800 mb-4 border-b border-brown-100 pb-2">Perguntas de Interpretação</h2>
-                                                <ol className="list-decimal list-inside space-y-4">
-                                                    {(musicData.questions || []).map((q, idx) => {
-                                                        const questionText = typeof q === 'string' ? q : (q.text || q.question || `Pergunta ${idx + 1}`);
-                                                        const options = Array.from(new Set(
-                                                            (typeof q === 'object' ? (q.options || q.ordered_options || []) : [])
-                                                                .concat(typeof q === 'object' ? (q.distractors || q.incorrect_options || []) : [])
-                                                                .concat(typeof q === 'object' ? (q.correctAnswer || q.correct_answer || q.answer || q.correct_option || []) : [])
-                                                        )).filter(Boolean);
+                                            </div>
 
-                                                        return (
-                                                            <li key={idx} className="text-brown-900 font-medium">
-                                                                {questionText}
-                                                                {options.length > 0 && (
-                                                                    <div className="mt-2 space-y-2 text-sm text-brown-800 no-print">
-                                                                        <span className="font-semibold text-brown-900">Alternativas (visíveis só na edição)</span>
-                                                                        <div className="grid gap-2 sm:grid-cols-2">
-                                                                            {options.map((opt, optIdx) => (
-                                                                                <div
-                                                                                    key={optIdx}
-                                                                                    className="px-3 py-2 rounded-lg border border-brown-100 bg-brown-50"
-                                                                                >
-                                                                                    <span className="font-semibold text-brown-700 mr-2">{String.fromCharCode(65 + optIdx)})</span>
-                                                                                    <span className="text-brown-800">{opt}</span>
+                                            {/* Card 1b: Style (Hidden in Print usually, or kept simple) */}
+                                            <div className="no-print">
+                                                {musicData.style && (
+                                                    <Card className="p-6 relative group">
+                                                        <div className="absolute top-0 right-0 p-2 opacity-10">
+                                                            <span className="text-6xl">🎨</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center border-b border-brown-100 pb-2 mb-4">
+                                                            <h2 className="text-xl font-bold text-brown-900">Estilo Musical</h2>
+                                                            <Button
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(musicData.style);
+                                                                    alert('Estilo copiado!');
+                                                                }}
+                                                                variant="secondary"
+                                                                className="text-xs z-10"
+                                                                icon={Copy}
+                                                            >
+                                                                Copiar Estilo
+                                                            </Button>
+                                                        </div>
+                                                        <div className="font-sans text-brown-700 text-base leading-relaxed whitespace-pre-wrap">
+                                                            {musicData.style}
+                                                        </div>
+                                                    </Card>
+                                                )}
+                                            </div>
+
+                                            {/* Explicit Page Break */}
+                                            {printMode === 'all' && <div className="page-break"></div>}
+
+                                            {/* Card 2: Questions */}
+                                            <div className={printMode === 'lyrics' ? 'no-print' : ''}>
+                                                <Card id="questions-card" className="p-8 relative mt-6 print:border-4 print:border-brown-200 print:p-10 print:shadow-none">
+                                                    <div className="absolute top-0 right-0 p-4 opacity-10 print:opacity-5">
+                                                        <span className="text-6xl print:text-8xl">📝</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center mb-6 border-b border-brown-100 pb-4 print:border-brown-800 print:mb-8">
+                                                        <h2 className="text-xl font-bold text-brown-900 print:text-3xl print:font-serif mb-0">Perguntas de Interpretação</h2>
+                                                        <div className="flex items-center gap-4 z-10 no-pdf print:hidden">
+                                                            <label className="flex items-center gap-2 cursor-pointer text-sm text-brown-700 select-none bg-brown-50 px-3 py-1.5 rounded-lg border border-brown-200 hover:bg-brown-100 transition-colors">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={pdfShowAlternatives}
+                                                                    onChange={(e) => setPdfShowAlternatives(e.target.checked)}
+                                                                    className="rounded border-brown-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
+                                                                />
+                                                                Incluir Alternativas
+                                                            </label>
+                                                            <Button
+                                                                onClick={() => handleDirectDownload('questions-card', 'Perguntas_Dracker.pdf')}
+                                                                variant="secondary"
+                                                                className="text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                                                                icon={Download}
+                                                            >
+                                                                Baixar Perguntas
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                    <ol className="list-decimal list-outside ml-6 space-y-6 print:space-y-8">
+                                                        {(musicData.questions || []).map((q, idx) => {
+                                                            const questionText = typeof q === 'string' ? q : (q.text || q.question || `Pergunta ${idx + 1}`);
+                                                            const options = Array.from(new Set(
+                                                                (((typeof q === 'object' && (q.options || q.alternatives)) || [])).map(o => o.trim()).filter(Boolean)
+                                                            ));
+
+                                                            return (
+                                                                <li key={idx} className="text-brown-800 font-medium print:text-xl print:text-black break-inside-avoid">
+                                                                    <div className="mb-3 font-bold print:mb-4">{questionText}</div>
+                                                                    {/* Print: Essay Lines */}
+                                                                    <div className="only-print essay-lines space-y-4 my-4">
+                                                                        {[1, 2, 3].map((line, lIdx) => (
+                                                                            <div key={lIdx} className="border-b border-brown-300 h-8 w-full"></div>
+                                                                        ))}
+                                                                    </div>
+
+                                                                    {options.length > 0 && (
+                                                                        <div className="pl-4 space-y-2 no-print alternatives-list">
+                                                                            {/* Screen: Alternatives */}
+                                                                            {options.map((opt, i) => (
+                                                                                <div key={i} className="flex items-center gap-2 text-brown-700 font-normal text-base">
+                                                                                    <div className="w-5 h-5 rounded-full border-2 border-brown-300 shrink-0"></div>
+                                                                                    <span>{opt}</span>
                                                                                 </div>
                                                                             ))}
                                                                         </div>
-                                                                    </div>
-                                                                )}
-                                                                <div className="mt-2 h-8 border-b border-dotted border-brown-300 w-full"></div>
-                                                            </li>
-                                                        );
-                                                    })}
-                                                </ol>
-                                            </Card>
+                                                                    )}
+                                                                </li>
+                                                            );
+                                                        })}
+                                                    </ol>
+
+                                                    {/* Footer for Questions Page */}
+                                                    <div className="hidden print:flex mt-16 pt-8 border-t border-brown-200 justify-between text-xs text-brown-600">
+                                                        <span className="flex items-center gap-1 font-bold">
+                                                            <img src="/dracker.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" />
+                                                            Interpretação - Drácker
+                                                        </span>
+                                                        <span>{new Date().toLocaleDateString()}</span>
+                                                    </div>
+                                                </Card>
+                                            </div>
                                         </div>
                                     ) : (
                                 <>
@@ -573,8 +679,9 @@ export const ActivityArea = ({
                                 </>
                             )}
                         </div>
-                    )}
-                </div>
+                    )
+                    }
+                </div >
             </div >
         </div >
     );
