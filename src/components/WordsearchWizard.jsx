@@ -35,6 +35,8 @@ export default function WordsearchWizard({
   const [rows, setRows] = useState(16);
   const [cols, setCols] = useState(16);
 
+  const maxSelectableWords = (rows >= 18 || cols >= 18) ? 10 : 15;
+
   const steps = [
     { id: 1, label: 'História', icon: <FileText className="w-4 h-4" /> },
     { id: 2, label: 'Configurar', icon: <Settings2 className="w-4 h-4" /> },
@@ -43,14 +45,19 @@ export default function WordsearchWizard({
 
   // Inicia quando o botão Gerar é pressionado (triggerStart muda)
   React.useEffect(() => {
-    // Agora apenas ABRE o modal, mas não inicia a geração
-    if (triggerStart && step === 0) {
-      setStep('INTRO');
-    }
+    if (!triggerStart) return;
+
+    // Reset wizard state so reopens cleanly even after previous runs
+    setGeneratedText('');
+    setEditableText('');
+    setAvailableWords([]);
+    setSelectedWords([]);
+    setIsLoading(false);
+    setStep('INTRO');
   }, [triggerStart]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStartWordsearch = async () => {
-    if (!apiKey) {
+    if (!geminiService || !apiKey) {
       onError('Configure sua API Key');
       return;
     }
@@ -116,24 +123,28 @@ Texto divertido: `;
   const handleTextConfirm = () => {
     const words = extractWords(editableText, 25);
     setAvailableWords(words);
-    setSelectedWords(words.slice(0, Math.min(10, words.length)));
+    setSelectedWords(words.slice(0, Math.min(maxSelectableWords, words.length)));
     setStep(2);
   };
 
   const handleRandomWords = () => {
     const shuffled = [...availableWords].sort(() => Math.random() - 0.5);
-    setSelectedWords(shuffled.slice(0, Math.min(10, shuffled.length)));
+    setSelectedWords(shuffled.slice(0, Math.min(maxSelectableWords, shuffled.length)));
   };
 
   const handleWordToggle = (word) => {
     if (selectedWords.includes(word)) {
       setSelectedWords(selectedWords.filter(w => w !== word));
     } else {
-      if (selectedWords.length < 15) {
+      if (selectedWords.length < maxSelectableWords) {
         setSelectedWords([...selectedWords, word]);
       }
     }
   };
+
+  React.useEffect(() => {
+    setSelectedWords(prev => prev.slice(0, maxSelectableWords));
+  }, [maxSelectableWords]);
 
   const handleGenerateGrid = () => {
     if (selectedWords.length < 3) {
@@ -335,6 +346,11 @@ Texto divertido: `;
                 ))}
               </div>
               <p className="text-xs text-brown-400 mt-2 text-center">{selectedWords.length} palavras selecionadas</p>
+              {rows >= 18 && (
+                <p className="text-[11px] text-brown-500 text-center mt-1">
+                  Limite de 10 palavras para caber na mesma página com a grade 18x18.
+                </p>
+              )}
             </Card>
 
             {/* Configurações de Grade */}
