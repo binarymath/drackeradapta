@@ -56,7 +56,8 @@ export default function WordsearchWizard({
     setSelectedWords([]);
     setIsLoading(false);
 
-    if (mode === 'edit' && initialData) {
+    const hasInitialEditData = Boolean(initialData && Object.keys(initialData).length);
+    if ((mode === 'edit' || hasInitialEditData) && initialData) {
       const baseStory = (initialData.story || '').trim();
       setGeneratedText(baseStory);
       setEditableText(baseStory);
