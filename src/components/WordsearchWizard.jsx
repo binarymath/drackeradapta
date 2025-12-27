@@ -337,6 +337,21 @@ Texto divertido: `;
             <div className="bg-brown-50 border border-brown-100 p-4 rounded-xl text-brown-800 text-sm">
               Aqui está a história base. Você pode reescrever ou corrigir o que quiser antes de gerarmos o jogo!
             </div>
+
+            {isEditSession && (
+              <Card className="bg-green-50 border-green-200 text-green-900 text-sm">
+                <p className="font-semibold text-green-800 mb-1">Fluxo rápido da edição</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Aperte o botão "Editar / Adicionar" (abre o modal de Ajustar História).</li>
+                  <li>Toque em "Próximo" para continuar no modal (Configurar Jogo).</li>
+                  <li>Finalize com "Gerar Jogo" e o Caça-Palavras é atualizado.</li>
+                </ol>
+                <p className="text-[13px] text-green-700 mt-2">
+                  Durante a edição, a IA não é usada novamente: você parte do texto e do jogo que já foram criados.
+                </p>
+              </Card>
+            )}
+
             <TextArea
               value={editableText}
               onChange={(e) => setEditableText(e.target.value.slice(0, 1000))}
