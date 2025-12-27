@@ -1,4 +1,5 @@
 import React from 'react';
+import { safeLocalStorageClear } from '../utils/storage';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -26,7 +27,7 @@ class ErrorBoundary extends React.Component {
                         {this.state.errorInfo && this.state.errorInfo.componentStack}
                     </details>
                     <button
-                        onClick={() => { localStorage.clear(); window.location.reload(); }}
+                        onClick={() => { safeLocalStorageClear(); window.location.reload(); }}
                         style={{ marginTop: '20px', padding: '10px', background: 'red', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                     >
                         Limpar Dados e Recarregar
