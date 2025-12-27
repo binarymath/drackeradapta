@@ -24,7 +24,9 @@ export default function WordsearchWizard({
   onError,
   geminiService,
   triggerStart,
-  defaultTitle
+  defaultTitle,
+  mode = 'create',
+  initialData
 }) {
   const [step, setStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,8 +55,26 @@ export default function WordsearchWizard({
     setAvailableWords([]);
     setSelectedWords([]);
     setIsLoading(false);
+
+    if (mode === 'edit' && initialData) {
+      const baseStory = (initialData.story || '').trim();
+      setGeneratedText(baseStory);
+      setEditableText(baseStory);
+
+      const presetWords = (initialData.words || []).map(w => w.toUpperCase());
+      setAvailableWords(presetWords);
+      setSelectedWords(presetWords.slice(0, Math.min(maxSelectableWords, presetWords.length)));
+
+      if (initialData.rows) setRows(initialData.rows);
+      if (initialData.cols) setCols(initialData.cols);
+      if (initialData.directions) setDirections(initialData.directions);
+
+      setStep(1);
+      return;
+    }
+
     setStep('INTRO');
-  }, [triggerStart]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [triggerStart, mode, initialData, maxSelectableWords, setDirections]);
 
   const handleStartWordsearch = async () => {
     if (!geminiService || !apiKey) {
@@ -176,7 +196,16 @@ Texto divertido: `;
       const textContent = editableText.toUpperCase();
       const finalContent = `${gridText} \n\n${wordsList} \n\n________________\n\n${textContent} `;
 
-      onComplete(finalContent, placedWords, placements || [], title);
+      onComplete({
+        content: finalContent,
+        words: placedWords,
+        placements: placements || [],
+        title,
+        story: editableText,
+        rows,
+        cols,
+        directions
+      });
       setStep(3);
 
     } catch (err) {
