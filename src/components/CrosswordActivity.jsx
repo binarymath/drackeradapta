@@ -168,7 +168,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
         if (!gridRef.current) return null;
         const element = document.elementFromPoint(clientX, clientY);
         if (!element) return null;
-        
+
         const cellMatch = element.id?.match(/cell-(\d+)-(\d+)/);
         if (cellMatch) {
             return { x: parseInt(cellMatch[1]), y: parseInt(cellMatch[2]) };
@@ -214,7 +214,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
         if (cell) {
             setTouchStartCell(cell);
             setIsSelectingWord(true);
-            
+
             // Auto-select first word at this cell
             const wordsAtCell = getWordsAtCell(cell.x, cell.y);
             console.log('Palavras encontradas:', wordsAtCell);
@@ -226,9 +226,9 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
 
     const handleTouchMove = (e) => {
         if (!isSelectingWord || !touchStartCell) return;
-        
+
         e.preventDefault(); // Previne scroll durante seleção
-        
+
         const touch = e.touches[0];
         const currentCell = getCellFromPoint(touch.clientX, touch.clientY);
         if (!currentCell) return;
@@ -236,7 +236,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
         // Determine direction of drag
         const dx = currentCell.x - touchStartCell.x;
         const dy = currentCell.y - touchStartCell.y;
-        
+
         // Determine if drag is primarily horizontal or vertical
         const isHorizontal = Math.abs(dx) > Math.abs(dy);
 
@@ -260,7 +260,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
 
     const handleTouchEnd = (e) => {
         setIsSelectingWord(false);
-        
+
         // Auto-fill selected word with focus
         if (selectedCells.size > 0) {
             const cellArray = Array.from(selectedCells).map(c => c.split('-').map(Number));
@@ -291,7 +291,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
 
         for (let i = 0; i < currentWordCells.length; i++) {
             const wordCellSet = new Set(currentWordCells[i].map(c => `${c.x}-${c.y}`));
-            
+
             // Compara o tamanho e cada célula
             if (
                 wordCellSet.size === selectedCells.size &&
@@ -425,7 +425,33 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
         else alert("Existem erros. Verifique as células vermelhas.");
     };
 
+    const [editingIndices, setEditingIndices] = useState(new Set());
+
     // --- EDITOR HANDLERS ---
+    const toggleEdit = (index) => {
+        setEditingIndices(prev => {
+            const next = new Set(prev);
+            if (next.has(index)) {
+                next.delete(index);
+                // Auto-save/regenerate when closing edit? 
+                // Perhaps getting the latest word state and regenerating layout is safer done explicitly or on "Regenerate".
+                // For now, changes are in-place in 'words' state, so they are "saved" to state immediately.
+                regenerateLayout();
+            } else {
+                next.add(index);
+            }
+            return next;
+        });
+    };
+
+    const handleWordChange = (index, field, value) => {
+        const newWords = [...words];
+        newWords[index] = { ...newWords[index], [field]: value };
+        if (field === 'word') {
+            newWords[index][field] = value.toUpperCase();
+        }
+        setWords(newWords);
+    };
 
     // Função para re-gerar posição das palavras
     const regenerateLayout = () => {
@@ -448,6 +474,11 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
     const addWord = (newWord) => {
         // Adiciona à lista e tenta regenerar layout
         const updatedList = [...words, { ...newWord, x: 0, y: 0, dir: 'H', num: 0 }];
+
+        // Auto-edit the new word
+        const newIdx = updatedList.length - 1;
+        setEditingIndices(prev => new Set(prev).add(newIdx));
+
         // Limpa posições para forçar regeração inteligente se quiser, 
         // ou tenta só posicionar ? Melhor regenerar tudo para otimizar espaço.
         const cleanList = updatedList.map(w => ({ word: w.word, clue: w.clue }));
@@ -466,6 +497,14 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
     const removeWord = (index) => {
         const newList = [...words];
         newList.splice(index, 1);
+
+        // Adjust indices
+        const newSet = new Set();
+        editingIndices.forEach(idx => {
+            if (idx < index) newSet.add(idx);
+            if (idx > index) newSet.add(idx - 1);
+        });
+        setEditingIndices(newSet);
 
         // Regenera para fechar buracos
         const cleanList = newList.map(w => ({ word: w.word, clue: w.clue }));
@@ -617,22 +656,54 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                             </form>
 
                             <div className="space-y-2">
-                                {words.map((w, idx) => (
-                                    <Card key={idx} className="flex items-center justify-between p-3 group hover:border-brown-300 shadow-sm">
-                                        <div>
-                                            <div className="font-bold text-brown-800">{w.word}</div>
-                                            <div className="text-xs text-brown-500">{w.clue}</div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <Button
-                                                onClick={() => removeWord(idx)}
-                                                variant="ghost"
-                                                className="text-brown-300 hover:text-red-500 opacity-0 group-hover:opacity-100"
-                                                icon={Trash2}
-                                            />
-                                        </div>
-                                    </Card>
-                                ))}
+                                {words.map((w, idx) => {
+                                    const isEditing = editingIndices.has(idx);
+                                    return (
+                                        <Card key={idx} className="flex items-center justify-between p-3 group hover:border-brown-300 shadow-sm transition-colors">
+                                            <div className="flex-1 mr-4">
+                                                {isEditing ? (
+                                                    <div className="space-y-2">
+                                                        <input
+                                                            value={w.word}
+                                                            onChange={(e) => handleWordChange(idx, 'word', e.target.value)}
+                                                            className="w-full font-bold uppercase text-brown-800 bg-white border border-brown-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-amber-500"
+                                                            placeholder="PALAVRA"
+                                                        />
+                                                        <textarea
+                                                            value={w.clue}
+                                                            onChange={(e) => handleWordChange(idx, 'clue', e.target.value)}
+                                                            className="w-full text-xs text-brown-600 bg-white border border-brown-300 rounded px-2 py-1 focus:outline-none focus:border-amber-500 resize-none"
+                                                            rows={2}
+                                                            placeholder="Dica..."
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="font-bold text-brown-800">{w.word}</div>
+                                                        <div className="text-xs text-brown-500">{w.clue}</div>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    onClick={() => toggleEdit(idx)}
+                                                    variant="ghost"
+                                                    className={`p-2 h-auto ${isEditing ? 'text-green-600 hover:text-green-700 bg-green-50' : 'text-brown-400 hover:text-amber-600 hover:bg-amber-50'}`}
+                                                    title={isEditing ? "Salvar" : "Editar"}
+                                                >
+                                                    {isEditing ? <Check className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+                                                </Button>
+                                                <Button
+                                                    onClick={() => removeWord(idx)}
+                                                    variant="ghost"
+                                                    className="text-brown-300 hover:text-red-500 p-2 h-auto"
+                                                    icon={Trash2}
+                                                    title="Remover"
+                                                />
+                                            </div>
+                                        </Card>
+                                    );
+                                })}
                                 {words.length === 0 && (
                                     <p className="text-center text-brown-400 italic py-4">Nenhuma palavra adicionada ainda.</p>
                                 )}
@@ -729,7 +800,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                 {Number.isFinite(lastRunTimeMs) && (
                     <p className="text-sm text-brown-600">Tempo: {formatTime(lastRunTimeMs)}</p>
                 )}
-                
+
                 <div className="flex gap-3">
                     <Button onClick={() => setShowRanking(!showRanking)} variant="secondary" className="border-amber-200 text-amber-800 hover:bg-amber-100" icon={Trophy}>
                         {showRanking ? 'Esconder Ranking' : 'Ver Ranking'}

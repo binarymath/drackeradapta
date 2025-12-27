@@ -899,7 +899,7 @@ export default function App() {
       });
     }
 
-    setWordsearchEditData(null);
+    // setWordsearchEditData(null); // Keep data to prevent Wizard from resetting mode while showing Success step
     setIsLoading(false);
     setSystemStatus(null);
   };
