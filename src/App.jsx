@@ -374,10 +374,6 @@ export default function App() {
     setIsEditing(isEditMode);
     setWordsearchEditData(editingData);
 
-    if (!isEditMode && activeActivity?.type === 'wordsearch') {
-      setActiveTabId(null); // Desvincula o caça-palavras atual antes de iniciar um novo fluxo
-    }
-
     setShowAnswers(false);
     setFoundWords(editingData?.words || []);
     setFoundPlacements(editingData?.placements || []);
