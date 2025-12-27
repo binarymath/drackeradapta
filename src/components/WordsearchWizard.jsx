@@ -28,6 +28,11 @@ export default function WordsearchWizard({
   mode = 'create',
   initialData
 }) {
+  const isEditSession = React.useMemo(
+    () => mode === 'edit' || (initialData && Object.keys(initialData).length > 0),
+    [mode, initialData]
+  );
+
   const [step, setStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedText, setGeneratedText] = useState('');
@@ -56,8 +61,7 @@ export default function WordsearchWizard({
     setSelectedWords([]);
     setIsLoading(false);
 
-    const hasInitialEditData = Boolean(initialData && Object.keys(initialData).length);
-    if ((mode === 'edit' || hasInitialEditData) && initialData) {
+    if (isEditSession && initialData) {
       const baseStory = (initialData.story || '').trim();
       setGeneratedText(baseStory);
       setEditableText(baseStory);
@@ -75,9 +79,14 @@ export default function WordsearchWizard({
     }
 
     setStep('INTRO');
-  }, [triggerStart, mode, initialData, maxSelectableWords, setDirections]);
+  }, [triggerStart, isEditSession, initialData, maxSelectableWords, setDirections]);
 
   const handleStartWordsearch = async () => {
+    if (isEditSession) {
+      setStep(1);
+      return;
+    }
+
     if (!geminiService || !apiKey) {
       onError('Configure sua API Key');
       return;
