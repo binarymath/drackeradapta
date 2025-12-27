@@ -12,6 +12,7 @@ import { generateMusicActivity } from './core/usecases/generateMusicActivity';
 import { generateQuizActivity } from './core/usecases/generateQuizActivity';
 import { generateDrackerActivity } from './core/usecases/generateDrackerActivity';
 import { useAudioNarration } from './hooks/useAudioNarration';
+import { safeLocalStorageGet, safeLocalStorageSet, safeLocalStorageRemove } from './utils/storage';
 
 // Components
 import { Header } from './components/Header';
@@ -30,11 +31,11 @@ import WordsearchWizard from './components/WordsearchWizard';
 export default function App() {
   // --- STATE MANAGEMENT ---
   const [apiKey, setApiKey] = useState(() => {
-    return localStorage.getItem('gemini_api_key') || '';
+    return safeLocalStorageGet('gemini_api_key') || '';
   });
   const [apiKeyStatus, setApiKeyStatus] = useState('empty'); // empty, validating, valid, invalid
   const [showSettings, setShowSettings] = useState(() => {
-    return !localStorage.getItem('gemini_api_key');
+    return !safeLocalStorageGet('gemini_api_key');
   });
 
   // Activity Form State
@@ -194,6 +195,17 @@ export default function App() {
     }
   }, [activeActivity]);
 
+  // Wordsearch State
+  const [foundWords, setFoundWords] = useState([]);           // Palavras encontradas no texto gerado
+  const [foundPlacements, setFoundPlacements] = useState([]); // Coordenadas exatas do grid
+  const [showAnswers, setShowAnswers] = useState(false);
+  const [wordsearchTrigger, setWordsearchTrigger] = useState(0);
+  const [wordsearchTitle, setWordsearchTitle] = useState('');
+  const [directions, setDirections] = useState({ horizontal: true, vertical: true, diagonal: true, reverse: false });
+  const [wordsearchHideText, setWordsearchHideText] = useState(false); // Esconder texto
+  const [wordsearchHideGrid, setWordsearchHideGrid] = useState(false); // Esconder grid
+  const [wordsearchEditData, setWordsearchEditData] = useState(null);
+
   useEffect(() => {
     if (!activeActivity || activeActivity.type !== 'wordsearch') return;
 
@@ -211,17 +223,6 @@ export default function App() {
   }, [activeActivity, setDirections]);
 
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
-
-  // Wordsearch State
-  const [foundWords, setFoundWords] = useState([]);           // Palavras encontradas no texto gerado
-  const [foundPlacements, setFoundPlacements] = useState([]); // Coordenadas exatas do grid
-  const [showAnswers, setShowAnswers] = useState(false);
-  const [wordsearchTrigger, setWordsearchTrigger] = useState(0);
-  const [wordsearchTitle, setWordsearchTitle] = useState('');
-  const [directions, setDirections] = useState({ horizontal: true, vertical: true, diagonal: true, reverse: false });
-  const [wordsearchHideText, setWordsearchHideText] = useState(false); // Esconder texto
-  const [wordsearchHideGrid, setWordsearchHideGrid] = useState(false); // Esconder grid
-  const [wordsearchEditData, setWordsearchEditData] = useState(null);
 
   // Quiz Editor State
   const [showQuizEditor, setShowQuizEditor] = useState(false);
@@ -343,7 +344,7 @@ export default function App() {
         const isValid = await geminiService.validateApiKey();
         setApiKeyStatus(isValid ? 'valid' : 'invalid');
         if (isValid) {
-          localStorage.setItem('gemini_api_key', apiKey);
+          safeLocalStorageSet('gemini_api_key', apiKey);
           setShowSettings(false);
         }
       }
@@ -362,7 +363,7 @@ export default function App() {
 
   const clearApiKey = () => {
     setApiKey('');
-    localStorage.removeItem('gemini_api_key');
+    safeLocalStorageRemove('gemini_api_key');
     setApiKeyStatus('empty');
     setShowSettings(true);
   };
