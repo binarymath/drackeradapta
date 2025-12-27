@@ -350,6 +350,18 @@ export default function App() {
     setShowSettings(true);
   };
 
+  const startWordsearchWizard = () => {
+    // Sempre começa um novo fluxo de criação de caça-palavras
+    setIsEditing(false);
+    setFoundWords([]);
+    setFoundPlacements([]);
+    setWordsearchHideText(false);
+    setWordsearchHideGrid(false);
+    setWordsearchTitle('');
+    setActivityType('wordsearch');
+    setWordsearchTrigger(prev => prev + 1);
+  };
+
   const handleGenerate = async () => {
     if (!apiKey) {
       setError('Por favor, insira sua chave API nas configurações.');
@@ -364,7 +376,7 @@ export default function App() {
 
     if (activityType === 'wordsearch') {
       // Trigger WordsearchWizard
-      setWordsearchTrigger(prev => prev + 1);
+      startWordsearchWizard();
       return;
     }
 
@@ -766,8 +778,7 @@ export default function App() {
 
   const handleEditWordsearch = () => {
     // Ensure the wizard is mounted even if the sidebar is showing another activity type
-    setActivityType('wordsearch');
-    setWordsearchTrigger(prev => prev + 1);
+    startWordsearchWizard();
   };
 
 
