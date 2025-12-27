@@ -29,12 +29,40 @@ import WordsearchWizard from './components/WordsearchWizard';
 
 export default function App() {
   // --- STATE MANAGEMENT ---
+  const safeLocalStorageGet = (key) => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn('LocalStorage read failed:', e);
+      return null;
+    }
+  };
+
+  const safeLocalStorageSet = (key, value) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn('LocalStorage write failed:', e);
+    }
+  };
+
+  const safeLocalStorageRemove = (key) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.warn('LocalStorage remove failed:', e);
+    }
+  };
+
   const [apiKey, setApiKey] = useState(() => {
-    return localStorage.getItem('gemini_api_key') || '';
+    return safeLocalStorageGet('gemini_api_key') || '';
   });
   const [apiKeyStatus, setApiKeyStatus] = useState('empty'); // empty, validating, valid, invalid
   const [showSettings, setShowSettings] = useState(() => {
-    return !localStorage.getItem('gemini_api_key');
+    return !safeLocalStorageGet('gemini_api_key');
   });
 
   // Activity Form State
@@ -343,7 +371,7 @@ export default function App() {
         const isValid = await geminiService.validateApiKey();
         setApiKeyStatus(isValid ? 'valid' : 'invalid');
         if (isValid) {
-          localStorage.setItem('gemini_api_key', apiKey);
+          safeLocalStorageSet('gemini_api_key', apiKey);
           setShowSettings(false);
         }
       }
@@ -362,7 +390,7 @@ export default function App() {
 
   const clearApiKey = () => {
     setApiKey('');
-    localStorage.removeItem('gemini_api_key');
+    safeLocalStorageRemove('gemini_api_key');
     setApiKeyStatus('empty');
     setShowSettings(true);
   };
