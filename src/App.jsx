@@ -194,6 +194,22 @@ export default function App() {
     }
   }, [activeActivity]);
 
+  useEffect(() => {
+    if (!activeActivity || activeActivity.type !== 'wordsearch') return;
+
+    const storedData = activeActivity.wordsearchData || activeActivity.data || {};
+
+    setFoundWords(storedData.words || []);
+    setFoundPlacements(storedData.placements || []);
+    setWordsearchTitle(storedData.title || activeActivity.title || '');
+    setWordsearchHideText(storedData.hideText ?? false);
+    setWordsearchHideGrid(storedData.hideGrid ?? false);
+
+    if (storedData.directions) {
+      setDirections(storedData.directions);
+    }
+  }, [activeActivity, setDirections]);
+
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
 
   // Wordsearch State
@@ -789,6 +805,8 @@ export default function App() {
   const handleEditWordsearch = () => {
     if (!activeActivity || activeActivity.type !== 'wordsearch') return;
 
+    const storedData = activeActivity.wordsearchData || activeActivity.data || {};
+
     const storyFromContent = () => {
       if (!activeActivity.content) return '';
       const parts = activeActivity.content.split('________________');
@@ -799,13 +817,15 @@ export default function App() {
     };
 
     const editPayload = {
-      ...activeActivity.wordsearchData,
-      title: activeActivity.wordsearchData?.title || activeActivity.title,
+      ...storedData,
+      title: storedData?.title || activeActivity.title,
       content: activeActivity.content,
-      story: activeActivity.wordsearchData?.story || storyFromContent(),
+      story: storedData?.story || storyFromContent(),
     };
 
     setTopic(activeActivity.title || topic);
+    setWordsearchHideText(storedData?.hideText ?? false);
+    setWordsearchHideGrid(storedData?.hideGrid ?? false);
     setActivityType('wordsearch');
     startWordsearchWizard({ editingData: editPayload });
   };
