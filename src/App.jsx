@@ -353,6 +353,10 @@ export default function App() {
   const startWordsearchWizard = () => {
     // Sempre começa um novo fluxo de criação de caça-palavras
     setIsEditing(false);
+    if (activeActivity?.type === 'wordsearch') {
+      setActiveTabId(null); // Desvincula o caça-palavras atual antes de iniciar um novo fluxo
+    }
+    setShowAnswers(false);
     setFoundWords([]);
     setFoundPlacements([]);
     setWordsearchHideText(false);
