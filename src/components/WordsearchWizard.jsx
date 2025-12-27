@@ -266,14 +266,23 @@ Texto divertido: `;
             icon={isLoading ? Loader2 : Play}
             isLoading={isLoading}
           >
-            {isLoading ? 'Montando...' : 'Gerar Jogo'}
+            {isLoading ? 'Montando...' : isEditSession ? 'Concluir Edição' : 'Gerar Jogo'}
           </Button>
         )}
       </div>
     );
   }
 
-  const modalTitle = step === 'INTRO' ? '✨ Nova História' : step === 1 ? '✏️ Ajustar História' : step === 2 ? '⚙️ Configurar Jogo' : step === 3 ? '🎉 Sucesso!' : 'Criando...';
+  const introTitle = isEditSession ? '✏️ Ajustar História' : '✨ Nova História';
+  const modalTitle = step === 'INTRO'
+    ? introTitle
+    : step === 1
+      ? '✏️ Ajustar História'
+      : step === 2
+        ? '⚙️ Configurar Jogo'
+        : step === 3
+          ? '🎉 Sucesso !'
+          : 'Criando...';
 
   // --- RENDER MODAL ---
   return (
@@ -337,6 +346,21 @@ Texto divertido: `;
             <div className="bg-brown-50 border border-brown-100 p-4 rounded-xl text-brown-800 text-sm">
               Aqui está a história base. Você pode reescrever ou corrigir o que quiser antes de gerarmos o jogo!
             </div>
+
+            {isEditSession && (
+              <Card className="bg-green-50 border-green-200 text-green-900 text-sm">
+                <p className="font-semibold text-green-800 mb-1">Fluxo rápido da edição</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Aperte o botão "Editar / Adicionar" (abre o modal de Ajustar História).</li>
+                  <li>Toque em "Próximo" para continuar no modal (Configurar Jogo).</li>
+                  <li>Finalize com "Concluir Edição" para atualizar o Caça-Palavras.</li>
+                </ol>
+                <p className="text-[13px] text-green-700 mt-2">
+                  Durante a edição, a IA não é usada novamente: você parte do texto e do jogo que já foram criados.
+                </p>
+              </Card>
+            )}
+
             <TextArea
               value={editableText}
               onChange={(e) => setEditableText(e.target.value.slice(0, 1000))}
@@ -446,7 +470,7 @@ Texto divertido: `;
               <CheckCircle2 className="w-10 h-10 text-brown-600" />
             </div>
             <div className="space-y-2">
-              <h3 className="text-2xl font-black text-brown-900">Tudo Pronto!</h3>
+              <h3 className="text-2xl font-black text-brown-900">Sucesso !</h3>
               <p className="text-brown-600 max-w-sm mx-auto">
                 Seu caça-palavras foi gerado com sucesso e já está disponível na área de visualização.
               </p>
