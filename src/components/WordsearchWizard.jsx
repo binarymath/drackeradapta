@@ -274,15 +274,7 @@ Texto divertido: `;
   }
 
   const introTitle = isEditSession ? '✏️ Ajustar História' : '✨ Nova História';
-  const modalTitle = step === 'INTRO'
-    ? introTitle
-    : step === 1
-      ? '✏️ Ajustar História'
-      : step === 2
-        ? '⚙️ Configurar Jogo'
-        : step === 3
-          ? '🎉 Sucesso !'
-          : 'Criando...';
+  const modalTitle = step === 'INTRO' ? introTitle : step === 1 ? '✏️ Ajustar História' : step === 2 ? '⚙️ Configurar Jogo' : step === 3 ? '🎉 Sucesso!' : 'Criando...';
 
   // --- RENDER MODAL ---
   return (
