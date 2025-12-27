@@ -194,6 +194,22 @@ export default function App() {
     }
   }, [activeActivity]);
 
+  useEffect(() => {
+    if (!activeActivity || activeActivity.type !== 'wordsearch') return;
+
+    const storedData = activeActivity.wordsearchData || activeActivity.data || {};
+
+    setFoundWords(storedData.words || []);
+    setFoundPlacements(storedData.placements || []);
+    setWordsearchTitle(storedData.title || activeActivity.title || '');
+    setWordsearchHideText(storedData.hideText ?? false);
+    setWordsearchHideGrid(storedData.hideGrid ?? false);
+
+    if (storedData.directions) {
+      setDirections(storedData.directions);
+    }
+  }, [activeActivity, setDirections]);
+
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
 
   // Wordsearch State
@@ -205,6 +221,7 @@ export default function App() {
   const [directions, setDirections] = useState({ horizontal: true, vertical: true, diagonal: true, reverse: false });
   const [wordsearchHideText, setWordsearchHideText] = useState(false); // Esconder texto
   const [wordsearchHideGrid, setWordsearchHideGrid] = useState(false); // Esconder grid
+  const [wordsearchEditData, setWordsearchEditData] = useState(null);
 
   // Quiz Editor State
   const [showQuizEditor, setShowQuizEditor] = useState(false);
@@ -350,18 +367,19 @@ export default function App() {
     setShowSettings(true);
   };
 
-  const startWordsearchWizard = () => {
-    // Sempre começa um novo fluxo de criação de caça-palavras
-    setIsEditing(false);
-    if (activeActivity?.type === 'wordsearch') {
-      setActiveTabId(null); // Desvincula o caça-palavras atual antes de iniciar um novo fluxo
-    }
+  const startWordsearchWizard = (options = {}) => {
+    const editingData = options.editingData || null;
+    const isEditMode = Boolean(editingData);
+
+    setIsEditing(isEditMode);
+    setWordsearchEditData(editingData);
+
     setShowAnswers(false);
-    setFoundWords([]);
-    setFoundPlacements([]);
-    setWordsearchHideText(false);
-    setWordsearchHideGrid(false);
-    setWordsearchTitle('');
+    setFoundWords(editingData?.words || []);
+    setFoundPlacements(editingData?.placements || []);
+    setWordsearchHideText(editingData?.hideText ?? false);
+    setWordsearchHideGrid(editingData?.hideGrid ?? false);
+    setWordsearchTitle(editingData?.title || '');
     setActivityType('wordsearch');
     setWordsearchTrigger(prev => prev + 1);
   };
@@ -781,8 +799,31 @@ export default function App() {
   };
 
   const handleEditWordsearch = () => {
-    // Ensure the wizard is mounted even if the sidebar is showing another activity type
-    startWordsearchWizard();
+    if (!activeActivity || activeActivity.type !== 'wordsearch') return;
+
+    const storedData = activeActivity.wordsearchData || activeActivity.data || {};
+
+    const storyFromContent = () => {
+      if (!activeActivity.content) return '';
+      const parts = activeActivity.content.split('________________');
+      if (parts.length > 1) {
+        return parts[1].replace(/[_\n]/g, ' ').trim();
+      }
+      return '';
+    };
+
+    const editPayload = {
+      ...storedData,
+      title: storedData?.title || activeActivity.title,
+      content: activeActivity.content,
+      story: storedData?.story || storyFromContent(),
+    };
+
+    setTopic(activeActivity.title || topic);
+    setWordsearchHideText(storedData?.hideText ?? false);
+    setWordsearchHideGrid(storedData?.hideGrid ?? false);
+    setActivityType('wordsearch');
+    startWordsearchWizard({ editingData: editPayload });
   };
 
 
@@ -799,21 +840,37 @@ export default function App() {
   };
 
   // --- WORDSEARCH CALLBACKS ---
-  const handleWordsearchComplete = (content, words, placements, title) => {
-    addActivityTab({
-      title: title || topic || "Caça-Palavras",
-      type: 'wordsearch',
-      content: content,
-      wordsearchData: {
-        words: words,
-        placements: placements,
-        title: title,
-        hideText: false,
-        hideGrid: false
-      }
-    });
-    // setGeneratedContent(content); // REMOVED
-    // setFoundWords(words); // MOVED TO TAB DATA
+  const handleWordsearchComplete = (payload) => {
+    const { content, words, placements, title, story, rows, cols, directions: wizDirections } = payload || {};
+    const newData = {
+      words: words || [],
+      placements: placements || [],
+      title: title,
+      hideText: wordsearchHideText,
+      hideGrid: wordsearchHideGrid,
+      story,
+      rows,
+      cols,
+      directions: wizDirections
+    };
+
+    if (isEditing && activeActivity?.type === 'wordsearch') {
+      setTabs(prev => prev.map(t => {
+        if (t.id === activeTabId) {
+          return { ...t, content, wordsearchData: newData, title: title || t.title };
+        }
+        return t;
+      }));
+    } else {
+      addActivityTab({
+        title: title || topic || "Caça-Palavras",
+        type: 'wordsearch',
+        content: content,
+        wordsearchData: newData
+      });
+    }
+
+    setWordsearchEditData(null);
     setIsLoading(false);
     setSystemStatus(null);
   };
@@ -1090,6 +1147,8 @@ export default function App() {
           geminiService={geminiService}
           triggerStart={wordsearchTrigger}
           defaultTitle={topic}
+          mode={wordsearchEditData ? 'edit' : 'create'}
+          initialData={wordsearchEditData}
         />
 
         {showCrosswordEditor && crosswordEditorData && (
