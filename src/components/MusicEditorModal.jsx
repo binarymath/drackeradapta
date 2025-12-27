@@ -140,7 +140,6 @@ export const MusicEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                 correctAnswer: q.correctAnswer,
                 distractors: cleanedDistractors,
                 options,
-                options,
                 ordered_options: options.sort(() => Math.random() - 0.5),
                 difficulty: q.difficulty || ''
             };
