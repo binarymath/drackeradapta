@@ -24,8 +24,15 @@ export default function WordsearchWizard({
   onError,
   geminiService,
   triggerStart,
-  defaultTitle
+  defaultTitle,
+  mode = 'create',
+  initialData
 }) {
+  const isEditSession = React.useMemo(
+    () => mode === 'edit' || (initialData && Object.keys(initialData).length > 0),
+    [mode, initialData]
+  );
+
   const [step, setStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedText, setGeneratedText] = useState('');
@@ -53,10 +60,33 @@ export default function WordsearchWizard({
     setAvailableWords([]);
     setSelectedWords([]);
     setIsLoading(false);
+
+    if (isEditSession && initialData) {
+      const baseStory = (initialData.story || '').trim();
+      setGeneratedText(baseStory);
+      setEditableText(baseStory);
+
+      const presetWords = (initialData.words || []).map(w => w.toUpperCase());
+      setAvailableWords(presetWords);
+      setSelectedWords(presetWords.slice(0, Math.min(maxSelectableWords, presetWords.length)));
+
+      if (initialData.rows) setRows(initialData.rows);
+      if (initialData.cols) setCols(initialData.cols);
+      if (initialData.directions) setDirections(initialData.directions);
+
+      setStep(1);
+      return;
+    }
+
     setStep('INTRO');
-  }, [triggerStart]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [triggerStart, isEditSession, initialData, maxSelectableWords, setDirections]);
 
   const handleStartWordsearch = async () => {
+    if (isEditSession) {
+      setStep(1);
+      return;
+    }
+
     if (!geminiService || !apiKey) {
       onError('Configure sua API Key');
       return;
@@ -176,7 +206,16 @@ Texto divertido: `;
       const textContent = editableText.toUpperCase();
       const finalContent = `${gridText} \n\n${wordsList} \n\n________________\n\n${textContent} `;
 
-      onComplete(finalContent, placedWords, placements || [], title);
+      onComplete({
+        content: finalContent,
+        words: placedWords,
+        placements: placements || [],
+        title,
+        story: editableText,
+        rows,
+        cols,
+        directions
+      });
       setStep(3);
 
     } catch (err) {
