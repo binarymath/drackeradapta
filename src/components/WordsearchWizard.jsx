@@ -266,7 +266,7 @@ Texto divertido: `;
             icon={isLoading ? Loader2 : Play}
             isLoading={isLoading}
           >
-            {isLoading ? 'Montando...' : 'Gerar Jogo'}
+            {isLoading ? 'Montando...' : isEditSession ? 'Concluir Edição' : 'Gerar Jogo'}
           </Button>
         )}
       </div>
@@ -344,7 +344,7 @@ Texto divertido: `;
                 <ol className="list-decimal list-inside space-y-1">
                   <li>Aperte o botão "Editar / Adicionar" (abre o modal de Ajustar História).</li>
                   <li>Toque em "Próximo" para continuar no modal (Configurar Jogo).</li>
-                  <li>Finalize com "Gerar Jogo" e o Caça-Palavras é atualizado.</li>
+                  <li>Finalize com "Concluir Edição" para atualizar o Caça-Palavras.</li>
                 </ol>
                 <p className="text-[13px] text-green-700 mt-2">
                   Durante a edição, a IA não é usada novamente: você parte do texto e do jogo que já foram criados.
