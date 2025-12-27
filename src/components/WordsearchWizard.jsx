@@ -61,18 +61,20 @@ export default function WordsearchWizard({
     setSelectedWords([]);
     setIsLoading(false);
 
-    if (isEditSession && initialData) {
-      const baseStory = (initialData.story || '').trim();
-      setGeneratedText(baseStory);
-      setEditableText(baseStory);
+    if (isEditSession) {
+      if (initialData) {
+        const baseStory = (initialData.story || '').trim();
+        setGeneratedText(baseStory);
+        setEditableText(baseStory);
 
-      const presetWords = (initialData.words || []).map(w => w.toUpperCase());
-      setAvailableWords(presetWords);
-      setSelectedWords(presetWords.slice(0, Math.min(maxSelectableWords, presetWords.length)));
+        const presetWords = (initialData.words || []).map(w => w.toUpperCase());
+        setAvailableWords(presetWords);
+        setSelectedWords(presetWords.slice(0, Math.min(maxSelectableWords, presetWords.length)));
 
-      if (initialData.rows) setRows(initialData.rows);
-      if (initialData.cols) setCols(initialData.cols);
-      if (initialData.directions) setDirections(initialData.directions);
+        if (initialData.rows) setRows(initialData.rows);
+        if (initialData.cols) setCols(initialData.cols);
+        if (initialData.directions) setDirections(initialData.directions);
+      }
 
       setStep(1);
       return;
