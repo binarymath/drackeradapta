@@ -250,6 +250,36 @@ export default function App() {
     }
   }, [activeActivity, setDirections]);
 
+  // --- AUDIO SYNC ON TAB SWITCH ---
+  useEffect(() => {
+    if (!activeActivity) {
+      resetAudioState();
+      return;
+    }
+
+    let textToRead = activeActivity.content || '';
+
+    // Specialized text extraction for specific types
+    if (activeActivity.type === 'wordsearch' && activeActivity.wordsearchData?.story) {
+      textToRead = activeActivity.wordsearchData.story;
+    } else if (activeActivity.type === 'crossword' && activeActivity.data?.words) {
+      const words = activeActivity.data.words;
+      textToRead = `Palavras Cruzadas sobre ${activeActivity.title || 'o tema'}. Dicas: ` +
+        words.map((w, i) => `Número ${w.num || i + 1}: ${w.clue || w.hint}`).join('. ');
+    } else if (activeActivity.type === 'simplify' && activeActivity.musicData?.lyrics) {
+      // Prefer lyrics + questions for music if available, otherwise content is fine
+      // But content usually contains markdown headers. generateAudio cleans it.
+      // Let's stick to content for others as it is formatted.
+    }
+
+    // Debounce or just call? content switching is rare event.
+    // We check if textToRead is different to avoid loops if needed, but here we depend on ID.
+    // Passing textToRead to generateAudio.
+    if (textToRead) {
+      generateAudio(textToRead);
+    }
+  }, [activeActivity?.id]); // Only re-generate when switching tabs, not on every keystroke of content update (unless handled explicitly)
+
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
 
   // Quiz Editor State
