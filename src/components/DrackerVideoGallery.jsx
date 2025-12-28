@@ -15,7 +15,7 @@ export default function DrackerVideoGallery() {
     const [error, setError] = useState(null);
     const [activeVideoId, setActiveVideoId] = useState(null);
 
-    const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY || "AIzaSyDOXx3S4F9P7V4Cd419uLcsR9f0-d3qJSo";
+    const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
 
     const fetchPlaylist = useCallback(async () => {
         if (!apiKey) {
