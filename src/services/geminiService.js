@@ -303,6 +303,63 @@ class GeminiService {
   }
 
   /**
+   * Gera conteúdo para o jogo de ligar pontos (Liga Pontos)
+   * Retorna array de objetos com id, text, emoji e color
+   */
+  async generateConnectDots(topic) {
+    const prompt = `
+      Você é um assistente pedagógico inteligente.
+      Sua tarefa é gerar 5 pares de correspondência baseados no tema: "${topic}".
+      
+      DIRETRIZES PARA O CONTEÚDO:
+      1. Para o campo 'text': Crie uma pergunta curta ou afirmação clara (máximo 4-5 palavras).
+      2. Para o campo 'emoji' (que será a RESPOSTA):
+         - GERE UMA RESPOSTA CURTA (Texto/Número) SEGUIDA DE UM EMOJI ILUSTRATIVO.
+         - Formato: "Resposta [Emoji]"
+         - O objetivo é ajudar a associação visual.
+         - Ex: Tema "Capitais": Pergunta "França", Resposta "Paris 🗼".
+         - Ex: Tema "Matemática": Pergunta "5 x 5", Resposta "25 🔢".
+         - Ex: Tema "Inglês": Pergunta "Azul", Resposta "Blue 🔵".
+         - Ex: Tema "Química": Pergunta "Água", Resposta "H2O 💧".
+
+      CRITÉRIO CRÍTICO DE UNICIDADE:
+      - NUNCA repita perguntas (campo 'text').
+      - NUNCA repita respostas (campo 'emoji').
+      - Cada par deve ser TOTALMENTE DISTINTO dos outros. Se necessário, busque sub-temas variados dentro do tópico principal.
+      
+      IMPORTANTE:
+      - Gere EXATAMENTE 5 pares.
+      - As cores devem ser variadas entre: 'bg-blue-100 border-blue-400', 'bg-green-100 border-green-400', 'bg-red-100 border-red-400', 'bg-yellow-100 border-yellow-400', 'bg-purple-100 border-purple-400', 'bg-orange-100 border-orange-400'.
+      
+      Retorne APENAS um JSON array válido. Sem markdown.
+      Estrutura:
+      [
+        { "id": 1, "text": "Pergunta", "emoji": "Resposta 💡", "color": "bg-blue-100 border-blue-400" }
+      ]
+    `;
+
+    try {
+      const text = await this.generateText(prompt, { temperature: 0.8 });
+      // Limpa markdown se houver
+      const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const data = JSON.parse(cleanText);
+
+      if (!Array.isArray(data)) throw new Error("Formato inválido recebido da IA");
+
+      // Garante IDs e estrutura
+      return data.map((item, index) => ({
+        id: index + 1,
+        text: item.text,
+        emoji: item.emoji,
+        color: item.color || 'bg-slate-100 border-slate-400'
+      }));
+    } catch (e) {
+      console.error("Erro ao gerar Liga Pontos:", e);
+      throw new Error("Falha ao criar jogo. Tente novamente.");
+    }
+  }
+
+  /**
    * Converte dados PCM base64 para formato WAV
    */
   pcmToWav(base64PCM, sampleRate = 24000) {

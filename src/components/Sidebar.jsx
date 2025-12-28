@@ -73,10 +73,10 @@ export const Sidebar = ({
         const newOrder = [...orderedActivities];
         const [movedItem] = newOrder.splice(draggedItem, 1);
         newOrder.splice(targetIndex, 0, movedItem);
-        
+
         setOrderedActivities(newOrder);
         setDraggedItem(null);
-        
+
         // Salva no localStorage
         localStorage.setItem('activityOrder', JSON.stringify(newOrder));
     };
@@ -166,14 +166,16 @@ export const Sidebar = ({
                                         href={opt.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 bg-brown-50 hover:bg-brown-100 text-brown-800 transition-colors cursor-grab"
+                                        className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 bg-brown-50 hover:bg-brown-100 text-brown-800 transition-colors cursor-pointer"
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, index)}
                                         onDragOver={handleDragOver}
                                         onDrop={(e) => handleDrop(e, index)}
                                         onDragEnd={handleDragEnd}
                                     >
-                                        <GripVertical className="w-4 h-4 opacity-50" />
+                                        <div className="cursor-grab p-1 -ml-1 hover:bg-brown-200 rounded text-brown-500">
+                                            <GripVertical className="w-4 h-4" />
+                                        </div>
                                         {opt.icon} {opt.label}
                                     </a>
                                 ) : (
@@ -185,11 +187,12 @@ export const Sidebar = ({
                                         onDragOver={handleDragOver}
                                         onDrop={(e) => handleDrop(e, index)}
                                         onDragEnd={handleDragEnd}
-                                        className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-grab active:cursor-grabbing ${
-                                            activityType === opt.id ? 'bg-brown-100 border border-brown-400 text-brown-900 font-medium' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                        } ${draggedItem === index ? 'opacity-50' : ''}`}
+                                        className={`w-full px-2 py-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer ${activityType === opt.id ? 'bg-brown-100 border border-brown-400 text-brown-900 font-medium' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
+                                            } ${draggedItem === index ? 'opacity-50' : ''}`}
                                     >
-                                        <GripVertical className="w-4 h-4 opacity-50" />
+                                        <div className="cursor-grab p-1 hover:bg-brown-200 rounded text-brown-500" onClick={(e) => e.stopPropagation()}>
+                                            <GripVertical className="w-4 h-4" />
+                                        </div>
                                         {opt.icon} {opt.label}
                                     </button>
                                 )

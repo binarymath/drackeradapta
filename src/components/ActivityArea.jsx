@@ -5,6 +5,7 @@ import { WordSearchGame } from './WordSearchGame';
 import { MusicGame } from './MusicGame';
 import RichTextRenderer from './RichTextRenderer';
 import { CrosswordActivity } from './CrosswordActivity';
+import ConnectDotsGame from './ConnectDotsGame';
 
 import html2pdf from 'html2pdf.js';
 
@@ -39,9 +40,10 @@ export const ActivityArea = ({
     drackerData,
     crosswordData,
     quizData,
-    onCrosswordUpdate
+    onCrosswordUpdate,
+    connectDotsData
 }) => {
-    const hasContent = generatedContent || (activityType === 'crossword' && crosswordData);
+    const hasContent = generatedContent || (activityType === 'crossword' && crosswordData) || (activityType === 'connect_dots' && connectDotsData);
     const [printMode, setPrintMode] = React.useState('all'); // 'all', 'lyrics', 'questions'
     const [isGameMode, setIsGameMode] = React.useState(false);
     const [pdfShowAlternatives, setPdfShowAlternatives] = React.useState(false);
@@ -602,6 +604,42 @@ export const ActivityArea = ({
                                                 </Card>
                                             </div>
                                         </div>
+                                    ) : activityType === 'connect_dots' && connectDotsData ? (
+                                        <>
+                                            <Card className="mb-6 bg-purple-50 border-purple-200 no-print flex items-center justify-between p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                                                        <Gamepad2 className="w-6 h-6" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-purple-900">Liga Pontos</h3>
+                                                        <p className="text-xs text-purple-700">Imprima a folha ou jogue online!</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    {onEdit && (
+                                                        <Button
+                                                            onClick={onEdit}
+                                                            variant="outline"
+                                                            className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                                                        >
+                                                            <Pencil className="w-4 h-4 mr-2" />
+                                                            Editar
+                                                        </Button>
+                                                    )}
+                                                    <Button
+                                                        onClick={() => setIsGameMode(!isGameMode)}
+                                                        className={`transition-all shadow-sm ${isGameMode ? 'bg-purple-100 text-purple-900 hover:bg-purple-200 border-purple-300' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
+                                                    >
+                                                        {isGameMode ? 'Voltar para Impressão' : 'Jogar Agora'}
+                                                    </Button>
+                                                </div>
+                                            </Card>
+                                            <ConnectDotsGame
+                                                data={connectDotsData}
+                                                isGameMode={isGameMode}
+                                            />
+                                        </>
                                     ) : (
                                 <>
                                     {activityType === 'wordsearch' && (

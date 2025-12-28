@@ -3,7 +3,8 @@ import {
   FileText,
   MessageSquare,
   Grid,
-  Music
+  Music,
+  BrainCircuit
 } from 'lucide-react';
 
 import { createGeminiService } from './services/geminiService';
@@ -11,6 +12,8 @@ import { ExportService } from './services/ExportService';
 import { generateMusicActivity } from './core/usecases/generateMusicActivity';
 import { generateQuizActivity } from './core/usecases/generateQuizActivity';
 import { generateDrackerActivity } from './core/usecases/generateDrackerActivity';
+import { ConnectDotsEditorModal } from './components/ConnectDotsEditorModal';
+
 import { useAudioNarration } from './hooks/useAudioNarration';
 import { safeLocalStorageGet, safeLocalStorageSet, safeLocalStorageRemove } from './utils/storage';
 
@@ -296,6 +299,9 @@ export default function App() {
   const [showCrosswordEditor, setShowCrosswordEditor] = useState(false);
   const [crosswordEditorData, setCrosswordEditorData] = useState(null);
 
+  const [showConnectDotsEditor, setShowConnectDotsEditor] = useState(false);
+  const [connectDotsEditorData, setConnectDotsEditorData] = useState(null);
+
   // Music Editor State
 
   const [showMusicEditor, setShowMusicEditor] = useState(false);
@@ -320,6 +326,7 @@ export default function App() {
       case 'summary': typeLabel = 'Drácker'; break;
       case 'simplify': typeLabel = 'Música'; break;
       case 'wordsearch': typeLabel = 'Caça-P.'; break;
+      case 'connect_dots': typeLabel = 'Pontos'; break; // New Label
       default: typeLabel = 'Ativ.';
     }
 
@@ -338,6 +345,7 @@ export default function App() {
     { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-4 h-4" /> },
     { id: 'summary', label: 'Aprenda com o Drácker', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'simplify', label: 'Música do Drácker', icon: <Music className="w-4 h-4" /> },
+    { id: 'connect_dots', label: 'Liga Pontos', icon: <BrainCircuit className="w-4 h-4" /> },
   ], []);
 
 
@@ -525,6 +533,25 @@ export default function App() {
           setError(`Erro ao gerar Drácker: ${err.message}`);
         }
 
+        setIsLoading(false);
+        return;
+      }
+
+
+      if (activityType === 'connect_dots') {
+        try {
+          const data = await geminiService.generateConnectDots(topic);
+          addActivityTab({
+            title: topic || "Liga Pontos",
+            type: 'connect_dots',
+            content: `Atividade de Ligar Pontos sobre ${topic}`,
+            data: data
+          });
+          generateAudio(`Atividade de ligar pontos sobre ${topic}. Relacione a coluna da esquerda com a direita.`);
+        } catch (err) {
+          console.error('Erro ao gerar Liga Pontos:', err);
+          setError(`Erro ao gerar Liga Pontos: ${err.message}`);
+        }
         setIsLoading(false);
         return;
       }
@@ -778,6 +805,35 @@ export default function App() {
     generateAudio(newDrackerData.story); // Generate audio for the story part
     setShowDrackerEditor(false);
     setIsLoading(false);
+  };
+
+  const handleEditConnectDots = () => {
+    const data = activeActivity?.data;
+    if (data) {
+      setConnectDotsEditorData(data);
+      setShowConnectDotsEditor(true);
+    }
+  };
+
+  const handleConnectDotsConfirm = (newData) => {
+    if (activeActivity) {
+      setTabs(prev => prev.map(t => {
+        if (t.id === activeTabId) {
+          return { ...t, data: newData };
+        }
+        return t;
+      }));
+    }
+    setShowConnectDotsEditor(false);
+  };
+
+  const handleEditCrossword = () => {
+
+    if (activeActivity && activeActivity.drackerData) {
+      setIsEditing(true);
+      setDrackerEditorData(activeActivity.drackerData);
+      setShowDrackerEditor(true);
+    }
   };
 
   const handleEditDracker = () => {
@@ -1135,7 +1191,8 @@ export default function App() {
                   activeActivity?.type === 'summary' ? handleEditDracker :
                     activeActivity?.type === 'simplify' ? handleEditMusic :
                       activeActivity?.type === 'wordsearch' ? handleEditWordsearch :
-                        undefined
+                        activeActivity?.type === 'connect_dots' ? handleEditConnectDots :
+                          undefined
             }
             musicData={activeActivity?.musicData || currentMusicData}
             drackerData={activeActivity?.drackerData}
@@ -1149,6 +1206,7 @@ export default function App() {
               }));
             }}
             quizData={activeActivity?.quizData}
+            connectDotsData={activeActivity?.data} // Pass generic data for connect dots
           />
         </div>
 
@@ -1228,6 +1286,14 @@ export default function App() {
             onCancel={() => setShowCrosswordEditor(false)}
           />
         )}
+
+        <ConnectDotsEditorModal
+          isOpen={showConnectDotsEditor}
+          onClose={() => setShowConnectDotsEditor(false)}
+          initialData={connectDotsEditorData}
+          onConfirm={handleConnectDotsConfirm}
+        />
+
 
 
       </main >
