@@ -8,3 +8,6 @@ dist
 .env
 .env.local
 /docs
+
+# Ignored files
+ligapontos
