@@ -5,9 +5,10 @@ dist
 *.swp
 *.swo
 *~
-.env
-.env.local
+
 /docs
 
 # Ignored files
 ligapontos
+.env
+.env.local

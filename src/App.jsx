@@ -4,7 +4,8 @@ import {
   MessageSquare,
   Grid,
   Music,
-  BrainCircuit
+  BrainCircuit,
+  Play
 } from 'lucide-react';
 
 import { createGeminiService } from './services/geminiService';
@@ -326,7 +327,8 @@ export default function App() {
       case 'summary': typeLabel = 'Drácker'; break;
       case 'simplify': typeLabel = 'Música'; break;
       case 'wordsearch': typeLabel = 'Caça-P.'; break;
-      case 'connect_dots': typeLabel = 'Pontos'; break; // New Label
+      case 'connect_dots': typeLabel = 'Pontos'; break;
+      case 'video_gallery': typeLabel = 'Vídeos'; break; // New Label
       default: typeLabel = 'Ativ.';
     }
 
@@ -346,6 +348,7 @@ export default function App() {
     { id: 'summary', label: 'Aprenda com o Drácker', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'simplify', label: 'Música do Drácker', icon: <Music className="w-4 h-4" /> },
     { id: 'connect_dots', label: 'Liga Pontos', icon: <BrainCircuit className="w-4 h-4" /> },
+    { id: 'video_gallery', label: 'Galeria Drácker', icon: <Play className="w-4 h-4" /> },
   ], []);
 
 
@@ -458,7 +461,7 @@ export default function App() {
       return;
     }
 
-    if (!topic && activityType !== 'image_ai') {
+    if (!topic && activityType !== 'image_ai' && activityType !== 'video_gallery') {
       setError('Por favor, digite um tema para a atividade.');
       return;
     }
@@ -466,6 +469,16 @@ export default function App() {
     if (activityType === 'wordsearch') {
       // Trigger WordsearchWizard
       startWordsearchWizard();
+      return;
+    }
+
+    if (activityType === 'video_gallery') {
+      addActivityTab({
+        title: "Galeria Drácker",
+        type: 'video_gallery',
+        content: 'Galeria de Vídeos',
+        data: {}
+      });
       return;
     }
 

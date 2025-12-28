@@ -6,6 +6,7 @@ import { MusicGame } from './MusicGame';
 import RichTextRenderer from './RichTextRenderer';
 import { CrosswordActivity } from './CrosswordActivity';
 import ConnectDotsGame from './ConnectDotsGame';
+import DrackerVideoGallery from './DrackerVideoGallery';
 
 import html2pdf from 'html2pdf.js';
 
@@ -43,7 +44,7 @@ export const ActivityArea = ({
     onCrosswordUpdate,
     connectDotsData
 }) => {
-    const hasContent = generatedContent || (activityType === 'crossword' && crosswordData) || (activityType === 'connect_dots' && connectDotsData);
+    const hasContent = generatedContent || (activityType === 'crossword' && crosswordData) || (activityType === 'connect_dots' && connectDotsData) || (activityType === 'video_gallery');
     const [printMode, setPrintMode] = React.useState('all'); // 'all', 'lyrics', 'questions'
     const [isGameMode, setIsGameMode] = React.useState(false);
     const [pdfShowAlternatives, setPdfShowAlternatives] = React.useState(false);
@@ -604,6 +605,8 @@ export const ActivityArea = ({
                                                 </Card>
                                             </div>
                                         </div>
+                                    ) : activityType === 'video_gallery' ? (
+                                        <DrackerVideoGallery />
                                     ) : activityType === 'connect_dots' && connectDotsData ? (
                                         <>
                                             <Card className="mb-6 bg-purple-50 border-purple-200 no-print flex items-center justify-between p-4">
