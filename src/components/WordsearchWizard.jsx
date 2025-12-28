@@ -41,6 +41,7 @@ export default function WordsearchWizard({
   const [selectedWords, setSelectedWords] = useState([]);
   const [rows, setRows] = useState(16);
   const [cols, setCols] = useState(16);
+  const lastTriggerRef = React.useRef(null);
 
   const maxSelectableWords = (rows >= 18 || cols >= 18) ? 10 : 15;
 
@@ -52,7 +53,8 @@ export default function WordsearchWizard({
 
   // Inicia quando o botão Gerar é pressionado (triggerStart muda)
   React.useEffect(() => {
-    if (!triggerStart) return;
+    if (!triggerStart || triggerStart === lastTriggerRef.current) return;
+    lastTriggerRef.current = triggerStart;
 
     // Reset wizard state so reopens cleanly even after previous runs
     setGeneratedText('');
