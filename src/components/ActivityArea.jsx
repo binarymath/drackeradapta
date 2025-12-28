@@ -445,7 +445,9 @@ export const ActivityArea = ({
                                                         <span className="text-6xl print:text-8xl">🎵</span>
                                                     </div>
                                                     <div className="flex justify-between items-center border-b border-brown-100 pb-4 mb-6 print:border-b-2 print:border-brown-800 print:mb-8">
-                                                        <h2 className="text-2xl font-bold text-brown-900 print:text-4xl print:font-serif">Música do Drácker</h2>
+                                                        <h2 className="text-2xl font-bold text-brown-900 print:text-4xl print:font-serif">
+                                                            Música do Drácker: <span className="text-purple-700">{musicData.title}</span>
+                                                        </h2>
                                                         <div className="flex gap-2">
                                                             <Button
                                                                 onClick={() => handleDirectDownload('lyrics-card', 'Música_Dracker.pdf')}
@@ -533,7 +535,9 @@ export const ActivityArea = ({
                                                         <span className="text-6xl print:text-8xl">📝</span>
                                                     </div>
                                                     <div className="flex justify-between items-center mb-6 border-b border-brown-100 pb-4 print:border-brown-800 print:mb-8">
-                                                        <h2 className="text-xl font-bold text-brown-900 print:text-3xl print:font-serif mb-0">Perguntas de Interpretação</h2>
+                                                        <h2 className="text-xl font-bold text-brown-900 print:text-3xl print:font-serif mb-0">
+                                                            Perguntas de Interpretação: <span className="text-purple-700">{musicData.title}</span>
+                                                        </h2>
                                                         <div className="flex items-center gap-4 z-10 no-pdf print:hidden">
                                                             <label className="flex items-center gap-2 cursor-pointer text-sm text-brown-700 select-none bg-brown-50 px-3 py-1.5 rounded-lg border border-brown-200 hover:bg-brown-100 transition-colors">
                                                                 <input
