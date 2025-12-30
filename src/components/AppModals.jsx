@@ -3,6 +3,7 @@ import { QuizEditorModal } from './QuizEditorModal';
 import { DrackerEditorModal } from './DrackerEditorModal';
 import { VoiceSettingsModal } from './VoiceSettingsModal';
 import { MusicEditorModal } from './MusicEditorModal';
+import { AudioRecorderModal } from './AudioRecorderModal';
 import { ConnectDotsEditorModal } from './ConnectDotsEditorModal';
 import { TabSelectionModal } from './TabSelectionModal';
 import { ImportDialog } from './ImportDialog';
@@ -70,7 +71,11 @@ export const AppModals = ({
     showCrosswordEditor,
     setShowCrosswordEditor,
     crosswordEditorData,
-    handleCrosswordConfirm
+    handleCrosswordConfirm,
+
+    // Audio Recorder
+    showAudioRecorder,
+    setShowAudioRecorder
 }) => {
     return (
         <>
@@ -151,6 +156,11 @@ export const AppModals = ({
                 onClose={() => setShowConnectDotsEditor(false)}
                 initialData={connectDotsEditorData}
                 onConfirm={handleConnectDotsConfirm}
+            />
+
+            <AudioRecorderModal
+                isOpen={showAudioRecorder}
+                onClose={() => setShowAudioRecorder(false)}
             />
         </>
     );

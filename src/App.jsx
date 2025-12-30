@@ -30,6 +30,7 @@ export default function App() {
   const [apiKeyStatus, setApiKeyStatus] = useState('empty');
   const [showSettings, setShowSettings] = useState(() => !safeLocalStorageGet('gemini_api_key'));
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false);
 
   // Activity Form State
   const [topic, setTopic] = useState('');
@@ -401,6 +402,7 @@ export default function App() {
         setShowSettings={setShowSettings}
         onBackup={exportSystemState}
         onRestore={importSystemState}
+        openAudioRecorder={() => setShowAudioRecorder(true)}
       />
 
       <main className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -502,6 +504,8 @@ export default function App() {
 
           showVoiceSettings={showVoiceSettings}
           setShowVoiceSettings={setShowVoiceSettings}
+          showAudioRecorder={showAudioRecorder}
+          setShowAudioRecorder={setShowAudioRecorder}
           speechSettings={speechSettings}
           setSpeechSettings={setSpeechSettings}
 

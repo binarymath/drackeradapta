@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
     Brain,
     Volume2,
+    Mic,
     Pause,
     Settings,
     CheckCircle,
@@ -33,7 +34,8 @@ export const Header = ({
     setShowSettings,
     openVoiceSettings,
     onBackup,
-    onRestore
+    onRestore,
+    openAudioRecorder
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -59,6 +61,17 @@ export const Header = ({
                 <Button variant="ghost" className="w-8 h-8 p-0 rounded-full text-brown-600" onClick={speakNext} disabled={!speechChunks.length || chunkIndex >= speechChunks.length - 1}>
                     <span className="text-xs font-bold">{'>'}</span>
                 </Button>
+                {/* Voice Recorder Trigger */}
+                <div className="h-6 w-px bg-brown-200 mx-1"></div>
+                <Button
+                    onClick={openAudioRecorder}
+                    variant="ghost"
+                    className="w-8 h-8 p-0 rounded-full text-brown-600 hover:bg-brown-200 hover:text-brown-900"
+                    title="Gravador de Voz"
+                >
+                    <Mic className="w-4 h-4" />
+                </Button>
+
             </div>
         </div>
     );
