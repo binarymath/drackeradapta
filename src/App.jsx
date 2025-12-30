@@ -23,6 +23,7 @@ import { Sidebar } from './components/Sidebar';
 import { ActivityArea } from './components/ActivityArea';
 import { TabsBar } from './components/TabsBar';
 import { AppModals } from './components/AppModals';
+import { Footer } from './components/Footer';
 
 export default function App() {
   // --- STATE MANAGEMENT ---
@@ -531,6 +532,8 @@ export default function App() {
           geminiService={geminiService}
         />
       </main>
-    </div>
+
+      <Footer />
+    </div >
   );
 }
