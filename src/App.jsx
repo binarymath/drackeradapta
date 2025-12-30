@@ -24,6 +24,7 @@ import { ActivityArea } from './components/ActivityArea';
 import { TabsBar } from './components/TabsBar';
 import { AppModals } from './components/AppModals';
 import { Footer } from './components/Footer';
+import { CookieBanner } from './components/CookieBanner';
 
 export default function App() {
   // --- STATE MANAGEMENT ---
@@ -534,6 +535,7 @@ export default function App() {
       </main>
 
       <Footer />
+      <CookieBanner />
     </div >
   );
 }
