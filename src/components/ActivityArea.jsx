@@ -270,7 +270,7 @@ export const ActivityArea = ({
                                         <div className="space-y-6">
                                             <Card className="p-8 relative group overflow-hidden border border-brown-100 shadow-sm print:shadow-none print:border-4 print:border-brown-200 print:p-10">
                                                 <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none print:opacity-10" style={{ filter: 'sepia(100%) saturate(300%) hue-rotate(315deg) brightness(70%)' }}>
-                                                    <img src="/dracker.png" alt="Drácker" className="w-32 h-32 object-contain opacity-50 print:w-48 print:h-48" />
+                                                    <img src="/dracker_character.png" alt="Drácker" className="w-32 h-32 object-contain opacity-50 print:w-48 print:h-48" />
                                                 </div>
 
                                                 {/* HEADER */}
@@ -336,7 +336,7 @@ export const ActivityArea = ({
                                                 {/* ACTIVITIES CONTENT */}
                                                 <Card className="bg-white/50 border-2 border-dashed border-brown-200 print:border-none print:bg-transparent print:p-0">
                                                     <h3 className="text-lg font-bold text-brown-800 mb-6 flex items-center gap-2 print:text-3xl print:mb-8 print:mt-4 print:border-b print:border-brown-400 print:pb-2 break-before-page">
-                                                        <img src="/dracker.png" alt="Brain" className="w-6 h-6 object-contain print:w-10 print:h-10" />
+                                                        <img src="/dracker_character.png" alt="Brain" className="w-6 h-6 object-contain print:w-10 print:h-10" />
                                                         Atividades Práticas
                                                     </h3>
                                                     <ol className="list-none ml-0 space-y-6">
@@ -412,7 +412,7 @@ export const ActivityArea = ({
                                                 {/* FOOTER */}
                                                 <div className="mt-8 pt-4 border-t border-brown-100 flex items-center justify-between text-xs text-brown-400 print:mt-auto print:border-brown-800 print:text-brown-600">
                                                     <span className="flex items-center gap-1">
-                                                        <img src="/dracker.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" />
+                                                        <img src="/dracker_character.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" />
                                                         Atividade Adaptada - Drácker
                                                     </span>
                                                     <span>{new Date().toLocaleDateString()}</span>
@@ -516,7 +516,7 @@ export const ActivityArea = ({
                                                     {/* Footer for Lyrics Page */}
                                                     <div className="hidden print:flex mt-auto pt-8 border-t border-brown-200 justify-between text-xs text-brown-600">
                                                         <span className="flex items-center gap-1 font-bold">
-                                                            <img src="/dracker.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" />
+                                                            <img src="/dracker_character.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" />
                                                             Atividade Musical - Drácker
                                                         </span>
                                                         <span>{new Date().toLocaleDateString()}</span>
@@ -621,7 +621,7 @@ export const ActivityArea = ({
                                                     {/* Footer for Questions Page */}
                                                     <div className="hidden print:flex mt-16 pt-8 border-t border-brown-200 justify-between text-xs text-brown-600">
                                                         <span className="flex items-center gap-1 font-bold">
-                                                            <img src="/dracker.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" />
+                                                            <img src="/dracker_character.png" alt="Logo" className="w-4 h-4 opacity-50 grayscale" />
                                                             Interpretação - Drácker
                                                         </span>
                                                         <span>{new Date().toLocaleDateString()}</span>
@@ -737,7 +737,7 @@ export const ActivityArea = ({
 
                             {isLoading ? (
                                 <div className="flex flex-col items-center gap-4">
-                                    <img src="/dracker.png" alt="Loading" className="w-16 h-16 animate-bounce" />
+                                    <img src="/dracker_character.png" alt="Loading" className="w-16 h-16 animate-bounce" />
                                     <p className="text-brown-500">Criando...</p>
                                 </div>
                             ) : (

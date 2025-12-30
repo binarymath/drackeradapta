@@ -114,7 +114,7 @@ export const Header = ({
                 {/* Top Bar: Logo + Mobile Toggle */}
                 <div className="flex items-center justify-between w-full md:w-auto">
                     <div className="flex items-center gap-3 text-brown-900">
-                        <img src="/dracker.png" alt="Drácker Logo" className="w-8 h-8 md:w-10 md:h-10 object-contain" />
+                        <img src="/dracker_character.png" alt="Drácker Logo" className="w-10 h-10 md:w-14 md:h-14 object-contain drop-shadow-md hover:scale-110 transition-transform duration-300" />
                         <div>
                             <h1 className="text-lg md:text-xl font-bold tracking-tight leading-none">Dracker AdaptAI</h1>
                             {/* API Status Badge - Visible on Mobile too, but smaller */}
