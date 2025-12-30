@@ -76,29 +76,53 @@ export const AudioRecorderModal = ({ isOpen, onClose }) => {
             setIsDragging(false);
         };
 
+        const handleTouchMove = (e) => {
+            if (isDragging) {
+                // Prevent scrolling while dragging
+                // e.preventDefault(); // Sometimes this is too aggressive, but for a floating modal it's usually good
+                const touch = e.touches[0];
+                setPosition({
+                    x: touch.clientX - dragOffset.x,
+                    y: touch.clientY - dragOffset.y
+                });
+            }
+        }
+
+        const handleTouchEnd = () => {
+            setIsDragging(false);
+        }
+
         if (isDragging) {
             window.addEventListener('mousemove', handleMouseMove);
             window.addEventListener('mouseup', handleMouseUp);
+            window.addEventListener('touchmove', handleTouchMove, { passive: false });
+            window.addEventListener('touchend', handleTouchEnd);
         }
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseup', handleMouseUp);
+            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('touchend', handleTouchEnd);
         };
     }, [isDragging, dragOffset]);
 
     const handleMouseDown = (e) => {
         setIsDragging(true);
-        // Calculate offset from the top-left corner of the modal
-        const rect = e.currentTarget.getBoundingClientRect();
-        // We use the parent (modal) rect, but event is on header. 
-        // Need to be careful. Let's just track offset from mouse to current position.
-        // Actually, simpler: offset = mouse - currentPosition
         setDragOffset({
             x: e.clientX - position.x,
             y: e.clientY - position.y
         });
     };
+
+    const handleTouchStart = (e) => {
+        setIsDragging(true);
+        const touch = e.touches[0];
+        setDragOffset({
+            x: touch.clientX - position.x,
+            y: touch.clientY - position.y
+        });
+    }
 
 
     // --- RECORDING FUNCTIONS ---
@@ -245,6 +269,7 @@ export const AudioRecorderModal = ({ isOpen, onClose }) => {
                 {/* Header / Drag Handle */}
                 <div
                     onMouseDown={handleMouseDown}
+                    onTouchStart={handleTouchStart}
                     className={`flex items-center justify-between bg-brown-50 p-2 border-b border-brown-100 cursor-grab active:cursor-grabbing select-none ${isRecording ? 'animate-pulse-slow bg-red-50' : ''}`}
                 >
                     <div className="flex items-center gap-2 pointer-events-none">
