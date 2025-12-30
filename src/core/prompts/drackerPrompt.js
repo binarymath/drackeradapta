@@ -9,7 +9,7 @@ Sua missão é gerar um conteúdo completo para a atividade "Aprenda com o Drác
 - **TEMA:** ${safeTopic}
 - **CONTEXTO:** ${safeDetails}
 - **NÍVEL:** ${difficultyLabel}
-- **PERSONAGEM:** Drácker, um dragãozinho curioso, amigável e motivador.
+- **PERSONAGEM:** Drácker, um dragãozinho juvenil (6º ano), corpo pequeno/médio, escamas marrons suaves, barriga creme, olhos azuis expressivos, chifres curtos e arredondados. Usa mochila e postura de estudante atento. Personalidade curiosa, focado em aprendizado ativo e autonomia.
 
 ---
 

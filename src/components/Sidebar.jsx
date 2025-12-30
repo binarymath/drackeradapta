@@ -47,7 +47,13 @@ export const Sidebar = ({
         const saved = localStorage.getItem('activityOrder');
         if (saved) {
             try {
-                setOrderedActivities(JSON.parse(saved));
+                const savedOrder = JSON.parse(saved);
+                // Merge current options with saved order to add any new items
+                const newItems = activityOptions.filter(opt => !savedOrder.find(s => s.id === opt.id));
+                // Remove obsolete items from saved order
+                const validSavedItems = savedOrder.filter(s => activityOptions.find(opt => opt.id === s.id));
+
+                setOrderedActivities([...validSavedItems, ...newItems]);
             } catch {
                 setOrderedActivities(activityOptions);
             }
@@ -87,6 +93,15 @@ export const Sidebar = ({
 
     return (
         <div className={theme.layout.sidebar}>
+            {/* Dracker 2026 Banner */}
+            <div className="mb-4 rounded-xl overflow-hidden shadow-sm border border-brown-100 group">
+                <img
+                    src="/dracker_2026.jpg"
+                    alt="Dracker 2026"
+                    className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
+                />
+            </div>
+
             {showSettings && (
                 <Card className="space-y-4">
                     <div>

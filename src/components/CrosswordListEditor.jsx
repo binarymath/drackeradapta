@@ -14,6 +14,8 @@ export const CrosswordListEditor = ({
     onCancel,
     topic
 }) => {
+    const [words, setWords] = useState([]);
+    const [topicInput, setTopicInput] = useState(topic || '');
     const [editingIndices, setEditingIndices] = useState(new Set());
 
     useEffect(() => {

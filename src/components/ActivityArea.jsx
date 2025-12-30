@@ -7,6 +7,7 @@ import RichTextRenderer from './RichTextRenderer';
 import { CrosswordActivity } from './CrosswordActivity';
 import ConnectDotsGame from './ConnectDotsGame';
 import DrackerVideoGallery from './DrackerVideoGallery';
+import { PDFMergerTool } from './PDFMergerTool';
 
 import html2pdf from 'html2pdf.js';
 
@@ -44,7 +45,7 @@ export const ActivityArea = ({
     onCrosswordUpdate,
     connectDotsData
 }) => {
-    const hasContent = generatedContent || (activityType === 'crossword' && crosswordData) || (activityType === 'connect_dots' && connectDotsData) || (activityType === 'video_gallery');
+    const hasContent = generatedContent || (activityType === 'crossword' && crosswordData) || (activityType === 'connect_dots' && connectDotsData) || (activityType === 'video_gallery') || (activityType === 'merge_pdf');
     const [printMode, setPrintMode] = React.useState('all'); // 'all', 'lyrics', 'questions'
     const [isGameMode, setIsGameMode] = React.useState(false);
     const [pdfShowAlternatives, setPdfShowAlternatives] = React.useState(false);
@@ -273,6 +274,27 @@ export const ActivityArea = ({
                                                 </div>
 
                                                 {/* HEADER */}
+                                                {/* AUDIO SUGGESTION */}
+                                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 mt-6 mr-6 ml-6 print:hidden relative z-20">
+                                                    <div className="flex items-start gap-3">
+                                                        <Sparkles className="w-5 h-5 text-amber-600 mt-0.5" />
+                                                        <div>
+                                                            <h4 className="font-bold text-amber-900 text-sm">Dica de Narração Fluida</h4>
+                                                            <p className="text-xs text-amber-800 mt-1">
+                                                                Para uma leitura muito mais natural e fluida, copie o texto da história e cole no <b>Google AI Studio</b>.
+                                                                <a
+                                                                    href="https://aistudio.google.com/generate-speech"
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="underline hover:text-amber-950 ml-1 font-bold decoration-amber-300"
+                                                                >
+                                                                    Acessar AI Studio
+                                                                </a>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                                 <div className="border-b border-brown-100 pb-4 mb-6 flex justify-between items-start print:border-b-2 print:border-brown-800 print:mb-8">
                                                     <div>
                                                         <h2 className="text-2xl font-bold text-brown-900 mb-1 print:text-4xl print:font-serif">Aprenda com o Drácker</h2>
@@ -290,6 +312,8 @@ export const ActivityArea = ({
                                                         Copiar Texto
                                                     </Button>
                                                 </div>
+
+
 
                                                 {/* STORY CONTENT */}
                                                 <div className="prose prose-lg max-w-none text-brown-900 leading-loose mb-10 font-serif print:text-xl print:leading-loose print:text-justify">
@@ -607,6 +631,8 @@ export const ActivityArea = ({
                                         </div>
                                     ) : activityType === 'video_gallery' ? (
                                         <DrackerVideoGallery />
+                                    ) : activityType === 'merge_pdf' ? (
+                                        <PDFMergerTool />
                                     ) : activityType === 'connect_dots' && connectDotsData ? (
                                         <>
                                             <Card className="mb-6 bg-purple-50 border-purple-200 no-print flex items-center justify-between p-4">

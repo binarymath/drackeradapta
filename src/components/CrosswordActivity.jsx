@@ -579,8 +579,9 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                     </div>
                 </Card>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                    <Card className="print:shadow-none print:border">
+                {/* Clues Section - Force page break before if necessary, or avoid break inside */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full print:block print:break-inside-avoid">
+                    <Card className="print:shadow-none print:border print:mb-6 print:break-inside-avoid">
                         <h3 className="font-bold text-brown-900 mb-4 flex items-center gap-2 text-lg border-b border-brown-100 pb-2">
                             <Badge variant="secondary">HORIZONTAIS</Badge>
                         </h3>
@@ -594,7 +595,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                         </ul>
                     </Card>
 
-                    <Card className="print:shadow-none print:border">
+                    <Card className="print:shadow-none print:border print:break-inside-avoid">
                         <h3 className="font-bold text-brown-900 mb-4 flex items-center gap-2 text-lg border-b border-brown-100 pb-2">
                             <Badge className="bg-brown-800 text-white border-none">VERTICAIS</Badge>
                         </h3>

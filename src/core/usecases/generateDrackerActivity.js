@@ -56,14 +56,14 @@ function normalizeActivities(rawActivities = [], topic) {
 function ensureDrackerStory(rawStory, topic) {
   const baseStory = (rawStory || '').trim();
   if (!baseStory) {
-    return `O dragãozinho Drácker, sempre curioso, perguntou à turma sobre ${topic || 'o tema da aula'}. Eles caminharam juntos pela sala, observando objetos e criando hipóteses. Drácker lembrou que aprender é brincar e explorar com cuidado.`;
+    return `Drácker, ajustando sua mochila nas costas e com olhar atento, perguntou à turma sobre ${topic || 'o tema da aula'}. Como um bom estudante, ele sugeriu explorarem juntos, lembrando que aprender exige curiosidade e foco.`;
   }
 
   if (baseStory.toLowerCase().includes('drácker')) {
     return baseStory;
   }
 
-  return `Drácker, o dragãozinho camarada, entrou animado na sala para falar sobre ${topic || 'o tema de hoje'}. ${baseStory}`;
+  return `Drácker entrou na sala com sua mochila e postura estudiosa habitual para conversar sobre ${topic || 'o tema de hoje'}. ${baseStory}`;
 }
 
 export async function generateDrackerActivity({ topic, lessonDetails, difficulty, model, geminiService }) {

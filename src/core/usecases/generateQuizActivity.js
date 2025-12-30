@@ -1,4 +1,5 @@
 import { buildQuizPrompt } from '../prompts/quizPrompt';
+import { safeJSONParse } from '../../utils/jsonUtils';
 
 export async function generateQuizActivity({ topic, lessonDetails, difficulty, model, geminiService }) {
   const difficultyLabel = difficulty === 'hard' ? 'Difícil' : difficulty === 'easy' ? 'Fácil/Infantil' : 'Médio';
@@ -15,14 +16,11 @@ export async function generateQuizActivity({ topic, lessonDetails, difficulty, m
     throw new Error('A API retornou uma resposta vazia. Tente novamente em instantes.');
   }
 
-  // Extrai JSON pelo primeiro { até o último }
-  const firstBrace = text.indexOf('{');
-  const lastBrace = text.lastIndexOf('}');
-  if (firstBrace === -1 || lastBrace === -1) {
-    throw new Error('JSON structure not found in response');
+  const parsedData = safeJSONParse(text);
+
+  if (!parsedData) {
+    throw new Error('Não foi possível processar a resposta do gerador (JSON inválido). Tente novamente.');
   }
 
-  const cleanJson = text.substring(firstBrace, lastBrace + 1);
-  const parsedData = JSON.parse(cleanJson);
   return parsedData;
 }

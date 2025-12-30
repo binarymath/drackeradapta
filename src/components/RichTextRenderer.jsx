@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Key } from 'lucide-react';
+import { ChevronDown, ChevronUp, Key, Copy } from 'lucide-react';
 
 // UI Components
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
+import { Button } from './ui/Button';
 
 const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], foundPlacements = [], hideText = false, hideGrid = false, title = null }) => {
     if (!content) return null;
@@ -200,13 +201,25 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
 
     const flushStory = () => {
         if (storyBuffer.length > 0) {
+            const currentStoryText = storyBuffer.join('\n').replace(/\*\*/g, '');
             elements.push(
                 <Card key={`story-${elements.length}`} className="relative mb-6 overflow-hidden">
 
                     {/* Title inside Card (only for the first story block) */}
                     {title && !hideText && !titleRendered && (
-                        <div className="border-b border-brown-100 pb-4 mb-6">
+                        <div className="border-b border-brown-100 pb-4 mb-6 flex justify-between items-start">
                             <h2 className="text-2xl font-bold text-brown-900 mb-1">{title}</h2>
+                            <Button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(currentStoryText);
+                                    alert('História copiada!');
+                                }}
+                                variant="secondary"
+                                className="h-8 text-xs px-2 text-brown-600 bg-brown-50 hover:bg-brown-100 print:hidden"
+                                icon={Copy}
+                            >
+                                Copiar Texto
+                            </Button>
                         </div>
                     )}
 
