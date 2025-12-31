@@ -116,7 +116,8 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
 
     // --- GAMEPLAY HANDLERS ---
     const handleCellInput = (x, y, val) => {
-        const newVal = val.toUpperCase().slice(-1);
+        const normalized = val.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+        const newVal = normalized.slice(-1);
         const newGrid = [...gridState];
         // Ensure row exists (safety)
         if (newGrid[y] && newGrid[y][x]) {
