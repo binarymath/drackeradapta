@@ -873,15 +873,16 @@ const MemberModal = ({ member, onClose, onUpdate, onRemove }) => {
         doc.write(htmlContent);
         doc.close();
 
+        // Aguardar carregamento de imagens e estilos
         iframe.onload = async () => {
             try {
-                // Use html2pdf on the body of the iframe
-                const element = doc.body;
+                // Use html2pdf on the documentElement to capture styles in <head>
+                const element = doc.documentElement;
                 const opt = {
                     margin: 0,
                     filename: `${member.name}_DrackerFicha.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true },
+                    html2canvas: { scale: 2, useCORS: true, windowWidth: 1000 },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
 
