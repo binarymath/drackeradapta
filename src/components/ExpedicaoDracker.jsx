@@ -68,7 +68,7 @@ const generatePDFHTML = (member) => {
         .avatar img { width: 100%; height: 100%; object-fit: cover; }
         .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
         .name { font-size: 34px; font-weight: 800; margin: 0 0 8px 0; color: #431407; line-height: 1.2; }
-        .badge { align-self: flex-start; background-color: #78350f; color: white; padding: 6px 16px; border-radius: 20px; font-size: 16px; font-weight: bold; line-height: 1; text-align: center; }
+        .badge { align-self: flex-start; background-color: #78350f; color: white; padding: 0 20px; height: 34px; border-radius: 20px; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; }
         .desc { font-size: 16px; line-height: 1.5; color: #52525b; font-style: italic; margin: 0; }
         
         h3 { font-size: 20px; font-weight: bold; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 15px; color: #78350f; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px; line-height: 1.4; page-break-after: avoid; }
