@@ -154,29 +154,29 @@ const QuizView = ({ currentStep, trails, answers, onAnswer, onNext, onPrev, onCa
             </div>
 
             {/* Navigation Footer with Arrows */}
-            <div className="mt-6 md:mt-8 flex flex-col md:flex-row justify-between items-center gap-4 px-4 max-w-4xl mx-auto w-full pb-4 md:pb-0 shrink-0">
+            <div className="mt-6 md:mt-8 flex flex-col sm:flex-row justify-between items-center gap-6 md:gap-4 px-4 max-w-4xl mx-auto w-full pb-4 md:pb-0 shrink-0 z-30">
                 {/* Mobile/Desktop: Anterior */}
-                <div 
+                <button 
                     onClick={onPrev}
                     disabled={currentStep === 0}
-                    className={`flex items-center gap-2 cursor-pointer transition-all ${
+                    className={`flex items-center gap-2 transition-all active:scale-95 ${
                         currentStep === 0 
                             ? 'opacity-30 cursor-not-allowed' 
-                            : 'opacity-100 hover:scale-110'
+                            : 'opacity-100 hover:scale-110 cursor-pointer'
                     }`}
                 >
-                    <span className="text-2xl md:text-3xl font-black text-brown-600">←</span>
-                    <span className="text-lg md:text-xl font-bold text-brown-700">Anterior</span>
-                </div>
+                    <span className="text-3xl md:text-4xl font-black text-brown-600 leading-none">←</span>
+                    <span className="text-lg md:text-xl font-bold text-brown-700 whitespace-nowrap">Anterior</span>
+                </button>
 
                 {/* Mobile/Desktop: Avançar */}
-                <div 
+                <button 
                     onClick={onNext}
-                    className="flex items-center gap-2 cursor-pointer hover:scale-110 transition-all"
+                    className="flex items-center gap-2 cursor-pointer hover:scale-110 transition-all active:scale-95"
                 >
-                    <span className="text-lg md:text-xl font-bold text-brown-700">Avançar</span>
-                    <span className="text-2xl md:text-3xl font-black text-brown-600">→</span>
-                </div>
+                    <span className="text-lg md:text-xl font-bold text-brown-700 whitespace-nowrap">Avançar</span>
+                    <span className="text-3xl md:text-4xl font-black text-brown-600 leading-none">→</span>
+                </button>
 
                 {/* Visual indicator dots for mobile/tablet could go here */}
             </div>

@@ -76,8 +76,8 @@ const TeamView = ({ expedition, allMembers = [], onBack, onNewMember, onOpenMemb
                                 {member.photo ? (
                                     <img src={member.photo} alt={member.name} className="w-full h-full object-cover object-[center_20%] transition-transform duration-700 group-hover:scale-110" />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-brown-200 bg-brown-50">
-                                        <ArchIcon size={80} opacity={0.5} />
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brown-100 to-brown-50">
+                                        <img src="/dracker_expedition_logo.png" alt="Dracker Expedition Logo" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                     </div>
                                 )}
 

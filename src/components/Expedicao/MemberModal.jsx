@@ -661,16 +661,18 @@ const MemberModal = ({ member, expeditions = [], currentExpeditionId, onClose, o
                     onTouchEnd={handleTouchEnd}
                 >
 
-                    <button
-                        onClick={onClose}
-                        className="absolute top-4 right-4 p-2 bg-white/80 hover:bg-white text-brown-400 hover:text-red-500 rounded-full z-10 transition-colors shadow-sm"
-                    >
-                        <X size={24} />
-                    </button>
-
                     {/* Left Column: Info & Photo */}
                     <div className="w-full md:w-1/3 p-4 md:p-6 bg-brown-900 text-white relative flex flex-col items-center text-center shrink-0 min-h-min">
                         <div className="absolute inset-0 opacity-10 bg-[url('/noise.png')] pointer-events-none"></div>
+
+                        {/* Close Button - Top Left */}
+                        <button
+                            onClick={onClose}
+                            className="absolute top-2 left-2 md:top-3 md:left-3 p-1.5 md:p-2 bg-white hover:bg-red-50 text-brown-600 hover:text-red-500 rounded-full z-20 transition-all shadow-md hover:shadow-lg border-2 border-brown-200 hover:border-red-300 active:scale-95"
+                            title="Fechar Modal"
+                        >
+                            <X size={18} strokeWidth={3} />
+                        </button>
 
                         <div className="relative group mb-6 mt-6 md:mt-8">
                             <div className="w-32 md:w-56 aspect-[3/4] rounded-xl p-2 bg-white shadow-xl rotate-1 hover:rotate-0 transition-transform duration-300 relative z-10 border border-brown-100/50">
@@ -678,8 +680,8 @@ const MemberModal = ({ member, expeditions = [], currentExpeditionId, onClose, o
                                     {member.photo ? (
                                         <img src={member.photo} alt={member.name} className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-white/50">
-                                            <ArchIcon size={64} className="text-current opacity-50" />
+                                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brown-100 to-brown-50">
+                                            <img src="/dracker_expedition_logo.png" alt="Dracker Expedition Logo" className="w-full h-full object-cover" />
                                         </div>
                                     )}
                                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">

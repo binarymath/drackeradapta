@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Zap, Shield, Heart, Search, Users, Sun, Sparkles, BookOpen, Music, Ghost, Anchor, Map, Clock, AlertCircle, Backpack, Flame, Award, Camera, Layers, MessageCircle, Calculator, Eye, Brain } from 'lucide-react';
+import { Star, Zap, Shield, Smile, Search, Users, Sun, Sparkles, BookOpen, Music, Ghost, Anchor, Map, Clock, AlertCircle, Backpack, Flame, Award, Camera, Layers, MessageCircle, Calculator, Eye, Brain } from 'lucide-react';
 
 export const ARCHETYPES_CONFIG = {
     'Águia Real': { icon: Star, color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
@@ -7,7 +7,7 @@ export const ARCHETYPES_CONFIG = {
     'Coruja Sábia': { icon: BookOpen, color: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
     'Arara Festiva': { icon: Music, color: 'bg-pink-100 text-pink-800 border-pink-300' },
     'Raposa Astuta': { icon: Ghost, color: 'bg-brown-200 text-brown-800 border-brown-300' },
-    'Panda Gentil': { icon: Heart, color: 'bg-green-100 text-green-800 border-green-300' },
+    'Panda Gentil': { icon: Smile, color: 'bg-green-100 text-green-800 border-green-300' },
     'Camaleão Criativo': { icon: Users, color: 'bg-teal-100 text-teal-800 border-teal-300' },
     'Tartaruga Zen': { icon: Anchor, color: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
     'Tatu Viajante': { icon: Map, color: 'bg-brown-100 text-brown-800 border-brown-300' },
@@ -116,7 +116,7 @@ export const getTrails = (gender) => [
         ]
     },
     {
-        id: 'emocoes', type: 'select', title: 'Emoções', icon: <Heart className="w-4 h-4 text-pink-700" />, color: 'bg-pink-50 border-pink-200 text-pink-900',
+        id: 'emocoes', type: 'select', title: 'Emoções', icon: <Smile className="w-4 h-4 text-pink-700" />, color: 'bg-pink-50 border-pink-200 text-pink-900',
         question: 'Reação ao erro:',
         options: [
             { label: 'Escudo de Diamante', desc: 'Resiliência total.', value: 'lvl5', feedback: 'Liderança emocional.' },
