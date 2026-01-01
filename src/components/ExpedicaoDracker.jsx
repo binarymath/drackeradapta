@@ -540,13 +540,7 @@ const TeamView = ({ expedition, onBack, onNewMember, onOpenMember }) => (
                     </div>
                 </div>
 
-                {expedition?.members.length > 0 && (
-                    <div className="flex gap-3 w-full md:w-auto">
-                        <button onClick={onNewMember} className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-brown-800 hover:bg-brown-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-brown-900/10 hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
-                            <Plus size={20} /> Novo Explorador
-                        </button>
-                    </div>
-                )}
+
             </div>
 
             {expedition?.members.length === 0 ? (
