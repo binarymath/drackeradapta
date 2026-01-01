@@ -61,7 +61,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                     const trimmed = row.trim();
                     let letters = trimmed.split(/\s+/).filter(l => l.length > 0);
                     if (letters.length === 1 && trimmed.length > 1) {
-                        letters = trimmed.split('').filter(l => /[A-Z]/i.test(l));
+                        letters = trimmed.split('').filter(l => /[A-ZÀ-Ú]/i.test(l));
                     }
                     return letters;
                 });
@@ -308,10 +308,10 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         // Check Grid
         if (trimmedLine.length >= 3) {
             const withSpaces = trimmedLine.split(/\s+/).filter(l => l.length > 0);
-            if (withSpaces.length >= 3 && withSpaces.every(l => /^[A-Z]$/.test(l))) {
+            if (withSpaces.length >= 3 && withSpaces.every(l => /^[A-ZÀ-Ú]$/i.test(l))) {
                 isGridRow = true;
             }
-            if (!isGridRow && /^[A-Z]{3,}$/.test(trimmedLine)) {
+            if (!isGridRow && /^[A-ZÀ-Ú]{3,}$/i.test(trimmedLine)) {
                 isGridRow = true;
             }
         }
