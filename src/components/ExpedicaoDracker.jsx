@@ -399,7 +399,7 @@ const ArchetypeBadge = ({ type, size = "md", compact = false }) => {
     const iconSize = size === "lg" ? 20 : compact ? 12 : 14;
 
     return (
-        <div className={`flex items - center gap - 1.5 rounded - lg border ${config.color} ${sizeClasses} font - bold shadow - sm inline - flex`}>
+        <div className={`flex items-center justify-center gap-1.5 rounded-lg border ${config.color} ${sizeClasses} font-bold shadow-sm inline-flex`}>
             <Icon size={iconSize} /> <span>{type}</span>
         </div>
     );
