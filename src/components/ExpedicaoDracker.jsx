@@ -225,7 +225,7 @@ const generatePDFHTML = (member) => {
                     </div>
                     <div class="sig-block">
                         <div class="sig-line"></div>
-                        <div style="font-size:10px; text-transform:uppercase;">Pais ou Responsáveis</div>
+                        <div style="font-size:10px; text-transform:uppercase;">Responsáveis</div>
                     </div>
                 </div>
             </div>
