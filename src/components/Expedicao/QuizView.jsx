@@ -23,9 +23,9 @@ const QuizView = ({ currentStep, trails, answers, onAnswer, onNext, onPrev, onCa
 
 
     return (
-        <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-100px)] justify-center animate-fade-in">
+        <div className="max-w-4xl mx-auto flex flex-col h-screen md:h-auto md:justify-center animate-fade-in md:overflow-y-visible overflow-y-auto">
             {/* Header / Info Bar */}
-            <div className="flex items-center justify-between mb-8 px-4">
+            <div className="flex items-center justify-between mb-6 md:mb-8 px-4 pt-4 md:pt-0 shrink-0">
                 <Button variant="ghost" onClick={onCancel} className="text-gray-400 hover:text-red-500 hover:bg-red-50">
                     <X size={24} /> <span className="hidden md:inline ml-2">Cancelar</span>
                 </Button>
@@ -40,7 +40,7 @@ const QuizView = ({ currentStep, trails, answers, onAnswer, onNext, onPrev, onCa
             </div>
 
             {/* Progress Bar */}
-            <div className="h-2 bg-gray-100 rounded-full mb-12 overflow-hidden shadow-inner mx-4">
+            <div className="h-2 bg-gray-100 rounded-full mb-8 md:mb-12 overflow-hidden shadow-inner mx-4 shrink-0">
                 <div
                     className="h-full bg-gradient-to-r from-brown-400 to-brown-600 transition-all duration-700 ease-out relative"
                     style={{ width: `${progress}%` }}
@@ -50,7 +50,7 @@ const QuizView = ({ currentStep, trails, answers, onAnswer, onNext, onPrev, onCa
             </div>
 
             {/* Main Question Card */}
-            <div className="relative perspective-1000 px-4">
+            <div className="relative perspective-1000 px-4 pb-8 md:pb-0 flex-grow md:flex-grow-0">
                 <Card className={`
                     border-0 shadow-2xl bg-white overflow-hidden relative
                     transition-all duration-500 transform
@@ -122,13 +122,29 @@ const QuizView = ({ currentStep, trails, answers, onAnswer, onNext, onPrev, onCa
                                         className="h-40 text-lg p-6 bg-gray-50 focus:bg-white resize-none shadow-inner border-gray-200"
                                         autoFocus
                                     />
-                                    <div className="flex justify-end">
+                                    <div className="flex justify-between gap-3">
                                         <Button
-                                            onClick={handleTextConfirm}
-                                            className="px-8 py-4 bg-brown-800 text-white hover:bg-brown-900 shadow-xl"
+                                            onClick={onPrev}
+                                            disabled={currentStep === 0}
+                                            variant="ghost"
+                                            className="px-6 py-3 text-brown-600 hover:text-brown-800 hover:bg-brown-50 disabled:opacity-30 disabled:cursor-not-allowed"
                                         >
-                                            Confirmar e Avançar <Sparkles size={18} className="ml-2" />
+                                            <ChevronLeft size={18} className="mr-2" /> Anterior
                                         </Button>
+                                        <div className="flex gap-3">
+                                            <Button
+                                                onClick={onNext}
+                                                className="px-6 py-3 bg-gray-600 text-white hover:bg-gray-700 shadow-md"
+                                            >
+                                                <ChevronRight size={18} className="mr-2" /> Avançar
+                                            </Button>
+                                            <Button
+                                                onClick={handleTextConfirm}
+                                                className="px-8 py-3 bg-brown-800 text-white hover:bg-brown-900 shadow-xl"
+                                            >
+                                                Confirmar <Sparkles size={18} className="ml-2" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -137,16 +153,30 @@ const QuizView = ({ currentStep, trails, answers, onAnswer, onNext, onPrev, onCa
                 </Card>
             </div>
 
-            {/* Navigation Footer */}
-            <div className="mt-8 flex justify-between items-center px-4 max-w-4xl mx-auto w-full">
-                <Button
+            {/* Navigation Footer with Arrows */}
+            <div className="mt-6 md:mt-8 flex flex-col md:flex-row justify-between items-center gap-4 px-4 max-w-4xl mx-auto w-full pb-4 md:pb-0 shrink-0">
+                {/* Mobile/Desktop: Anterior */}
+                <div 
                     onClick={onPrev}
                     disabled={currentStep === 0}
-                    variant="ghost"
-                    className="text-brown-400 hover:text-brown-800 disabled:opacity-0 transition-opacity"
+                    className={`flex items-center gap-2 cursor-pointer transition-all ${
+                        currentStep === 0 
+                            ? 'opacity-30 cursor-not-allowed' 
+                            : 'opacity-100 hover:scale-110'
+                    }`}
                 >
-                    <ChevronLeft size={24} className="mr-2" /> Anterior
-                </Button>
+                    <span className="text-2xl md:text-3xl font-black text-brown-600">←</span>
+                    <span className="text-lg md:text-xl font-bold text-brown-700">Anterior</span>
+                </div>
+
+                {/* Mobile/Desktop: Avançar */}
+                <div 
+                    onClick={onNext}
+                    className="flex items-center gap-2 cursor-pointer hover:scale-110 transition-all"
+                >
+                    <span className="text-lg md:text-xl font-bold text-brown-700">Avançar</span>
+                    <span className="text-2xl md:text-3xl font-black text-brown-600">→</span>
+                </div>
 
                 {/* Visual indicator dots for mobile/tablet could go here */}
             </div>
