@@ -57,21 +57,21 @@ const generatePDFHTML = (member) => {
         .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #78350f; padding-bottom: 15px; margin-bottom: 25px; }
         .header-left { display: flex; align-items: center; gap: 15px; }
         .logo { width: 60px; height: 60px; object-fit: contain; } 
-        .title h1 { font-size: 30px; font-weight: 800; margin: 0; color: #431407; line-height: 1.3; } 
-        .title p { font-size: 14px; color: #78350f; margin: 4px 0 0 0; line-height: 1.4; }
+        .title h1 { font-size: 32px; font-weight: 800; margin: 0; color: #431407; line-height: 1.3; } 
+        .title p { font-size: 16px; color: #78350f; margin: 4px 0 0 0; line-height: 1.4; }
         .meta { text-align: right; }
-        .label { font-size: 12px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2; }
-        .value { font-size: 16px; font-weight: bold; line-height: 1.4; }
+        .label { font-size: 14px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2; }
+        .value { font-size: 18px; font-weight: bold; line-height: 1.4; }
         
         .profile { display: flex; gap: 25px; margin-bottom: 30px; background-color: #fff7ed; padding: 25px; border-radius: 16px; border: 1px solid #fed7aa; align-items: flex-start; }
         .avatar { width: 90px; height: 90px; border-radius: 50%; overflow: hidden; border: 4px solid #78350f; flex-shrink: 0; background-color: #ddd; }
         .avatar img { width: 100%; height: 100%; object-fit: cover; }
         .info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-        .name { font-size: 32px; font-weight: 800; margin: 0; color: #431407; line-height: 1.2; }
-        .badge { align-self: flex-start; background-color: #78350f; color: white; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; line-height: 1; text-align: center; }
-        .desc { font-size: 14px; line-height: 1.5; color: #52525b; font-style: italic; margin: 0; }
+        .name { font-size: 34px; font-weight: 800; margin: 0; color: #431407; line-height: 1.2; }
+        .badge { align-self: flex-start; background-color: #78350f; color: white; padding: 6px 16px; border-radius: 20px; font-size: 16px; font-weight: bold; line-height: 1; text-align: center; }
+        .desc { font-size: 16px; line-height: 1.5; color: #52525b; font-style: italic; margin: 0; }
         
-        h3 { font-size: 18px; font-weight: bold; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 15px; color: #78350f; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px; line-height: 1.4; page-break-after: avoid; }
+        h3 { font-size: 20px; font-weight: bold; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 15px; color: #78350f; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px; line-height: 1.4; page-break-after: avoid; }
         
         /* Table Styles for Stability */
         .attributes-table { width: 100%; border-collapse: separate; border-spacing: 6px; margin-bottom: 20px; page-break-inside: auto; }
@@ -93,14 +93,14 @@ const generatePDFHTML = (member) => {
         
         .icon { width: 28px; height: 28px; border-radius: 6px; background-color: #fff7ed; display: flex; align-items: center; justify-content: center; color: #78350f; font-size: 14px; font-weight: bold; flex-shrink: 0; }
         .card-content { flex: 1; min-width: 0; }
-        .card-label { font-size: 11px; text-transform: uppercase; font-weight: bold; color: #9ca3af; margin-bottom: 2px; display: block; line-height: 1.1; }
-        .card-value { font-size: 13px; font-weight: bold; color: #431407; display: block; line-height: 1.2; padding-bottom: 2px; }
-        .card-feedback { font-size: 11px; color: #6b7280; display: block; line-height: 1.2; margin-top: 2px; }
+        .card-label { font-size: 13px; text-transform: uppercase; font-weight: bold; color: #9ca3af; margin-bottom: 2px; display: block; line-height: 1.1; }
+        .card-value { font-size: 15px; font-weight: bold; color: #431407; display: block; line-height: 1.2; padding-bottom: 2px; }
+        .card-feedback { font-size: 13px; color: #6b7280; display: block; line-height: 1.2; margin-top: 2px; }
         
-        .section-title { font-size: 16px; font-weight: bold; color: #78350f; text-transform: uppercase; margin-bottom: 5px; page-break-after: avoid; }
+        .section-title { font-size: 18px; font-weight: bold; color: #78350f; text-transform: uppercase; margin-bottom: 5px; page-break-after: avoid; }
         .divider { border-bottom: 1px solid #d1d5db; margin-top: 5px; margin-bottom: 10px; }
-        .log-content { font-size: 14px; color: #374151; white-space: pre-wrap; line-height: 1.4; }
-        .obs-row { font-size: 13px; color: #374151; padding: 4px 0; border-bottom: 1px dashed #e5e7eb; display: flex; align-items: flex-start; gap: 5px; page-break-inside: avoid; }
+        .log-content { font-size: 16px; color: #374151; white-space: pre-wrap; line-height: 1.4; }
+        .obs-row { font-size: 15px; color: #374151; padding: 4px 0; border-bottom: 1px dashed #e5e7eb; display: flex; align-items: flex-start; gap: 5px; page-break-inside: avoid; }
         .obs-meta { font-weight: bold; color: #78350f; white-space: nowrap; }
         
         .page-break { page-break-before: always; margin-top: 30px; }
