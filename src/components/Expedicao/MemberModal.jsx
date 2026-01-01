@@ -740,7 +740,7 @@ const MemberModal = ({ member, expeditions = [], currentExpeditionId, onClose, o
                             </div>
                         )}
 
-                        <div className="space-y-2 w-full mt-auto hidden md:flex flex-col gap-3 px-2">
+                        <div className="space-y-2 w-full mt-auto flex md:flex flex-col gap-3 px-2">
                             <button onClick={handleDownloadPDF} disabled={isGeneratingMessage} className="w-full bg-white/90 hover:bg-white text-brown-800 font-bold py-2.5 rounded-lg shadow-sm border border-brown-200 flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm">
                                 {isGeneratingMessage ? <span className="animate-pulse">Gerando...</span> : <><Download size={16} /> Baixar PDF</>}
                             </button>
