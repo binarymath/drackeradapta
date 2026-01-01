@@ -1189,12 +1189,10 @@ export default function ExpedicaoDracker({ drackerState }) {
         const trails = getTrails(formData.gender);
         if (formData.step < trails.length - 1) actions.nextStep();
         else actions.finishQuiz(determineArchetype(formData.answers, formData.gender).desc);
-        window.scrollTo(0, 0);
     };
 
     const handleQuizPrev = () => {
         actions.prevStep();
-        window.scrollTo(0, 0);
     };
 
     const handleExpertSystem = async () => {
