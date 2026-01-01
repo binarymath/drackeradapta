@@ -387,7 +387,7 @@ const DragonIcon = ({ size = 64, className = "", fit = "contain" }) => (
     <img
         src="/dracker_expedition_logo.png"
         alt="Expedição Drácker"
-        className={`object - ${fit} drop - shadow - lg hover: scale - 105 transition - transform duration - 300 ${className} `}
+        className={`object-${fit} drop-shadow-lg hover:scale-105 transition-transform duration-300 ${className}`}
         style={{ height: size, width: fit === 'cover' ? size : 'auto', maxWidth: '100%' }}
     />
 );
@@ -400,7 +400,7 @@ const ArchetypeBadge = ({ type, size = "md", compact = false }) => {
 
     return (
         <div className={`flex items-center justify-center gap-1.5 rounded-lg border ${config.color} ${sizeClasses} font-bold shadow-sm inline-flex`}>
-            <Icon size={iconSize} /> <span>{type}</span>
+            <Icon size={iconSize} /> <span className="leading-none mt-[1px]">{type}</span>
         </div>
     );
 };
