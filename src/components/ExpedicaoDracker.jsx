@@ -5,7 +5,7 @@ import {
     X, Trash2, Camera, Download, Upload as UploadIcon,
     Pencil, Check, Map, Ghost, Anchor, Sun, Sparkles,
     Clock, Award, Star, ChevronRight, Calculator, ArrowLeft, ArrowRight,
-    Layers, AlertCircle, Grid, ClipboardList, Send, Link
+    Layers, AlertCircle, Grid, ClipboardList, Send, Link, SaveIcon
 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { determineArchetype } from '../utils/drackerArchetypes';
