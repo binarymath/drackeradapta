@@ -9,6 +9,10 @@ import {
 } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { determineArchetype } from '../utils/drackerArchetypes';
+import { Input, TextArea, Select } from './ui/Input';
+import { Button } from './ui/Button';
+import { Card } from './ui/Card';
+import { Badge } from './ui/Badge';
 
 
 // --- 1. CONFIGURAÇÕES E DADOS ESTÁTICOS ---
@@ -580,17 +584,58 @@ const NameEntryView = ({ onStart, onCancel }) => {
     const [gender, setGender] = useState('M');
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen font-sans">
-            <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-xl border border-brown-100">
-                <h2 className="text-2xl font-bold text-brown-800 mb-6 text-center">Quem é o novo recruta?</h2>
-                <div className="flex gap-4 justify-center mb-6">
-                    <button onClick={() => setGender('M')} className={`px - 4 py - 2 rounded - lg border - 2 font - bold ${gender === 'M' ? 'bg-brown-100 border-brown-500 text-brown-700' : 'bg-brown-50 border-brown-200 text-brown-400'} `}>Cavalheiro 🎩</button>
-                    <button onClick={() => setGender('F')} className={`px - 4 py - 2 rounded - lg border - 2 font - bold ${gender === 'F' ? 'bg-pink-100 border-pink-500 text-pink-700' : 'bg-brown-50 border-brown-200 text-brown-400'} `}>Dama 👑</button>
+        <div className="flex flex-col items-center justify-center min-h-screen font-sans p-4">
+            <Card className="max-w-md w-full p-8 relative overflow-visible">
+                <button onClick={onCancel} className="absolute -top-12 left-0 text-brown-600 hover:text-brown-800 flex items-center gap-2 font-bold mb-4">
+                    <ArrowLeft size={20} /> Voltar
+                </button>
+
+                <div className="flex justify-center mb-6">
+                    <div className="w-24 h-24 bg-brown-100 rounded-full flex items-center justify-center border-4 border-brown-300 shadow-inner">
+                        <Users size={48} className="text-brown-500" />
+                    </div>
                 </div>
-                <input type="text" placeholder="Nome do Explorador" autoFocus value={name} onChange={(e) => setName(e.target.value)} className="w-full p-4 text-lg border-2 border-brown-200 rounded-xl mb-6 focus:border-brown-500 outline-none" onKeyDown={(e) => e.key === 'Enter' && name.trim() && onStart(name, gender)} />
-                <button onClick={() => onStart(name, gender)} disabled={!name.trim()} className="w-full bg-brown-700 hover:bg-brown-600 text-white font-bold p-4 rounded-xl disabled:opacity-50">Começar Avaliação</button>
-                <button onClick={onCancel} className="w-full mt-4 text-brown-400 hover:text-brown-600">Cancelar</button>
-            </div>
+
+                <h2 className="text-2xl font-bold text-brown-800 mb-2 text-center">Novo Recruta</h2>
+                <p className="text-brown-500 text-center mb-8 text-sm">Preencha os dados do pequeno explorador</p>
+
+                <div className="flex gap-4 justify-center mb-6">
+                    <button
+                        onClick={() => setGender('M')}
+                        className={`flex-1 py-3 px-4 rounded-xl border-2 font-bold flex flex-col items-center gap-2 transition-all ${gender === 'M' ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-md ring-2 ring-blue-200' : 'bg-white border-brown-100 text-brown-400 hover:bg-brown-50'}`}
+                    >
+                        <span className="text-2xl">🎩</span>
+                        <span className="text-xs uppercase tracking-wider">Cavalheiro</span>
+                    </button>
+                    <button
+                        onClick={() => setGender('F')}
+                        className={`flex-1 py-3 px-4 rounded-xl border-2 font-bold flex flex-col items-center gap-2 transition-all ${gender === 'F' ? 'bg-pink-50 border-pink-500 text-pink-700 shadow-md ring-2 ring-pink-200' : 'bg-white border-brown-100 text-brown-400 hover:bg-brown-50'}`}
+                    >
+                        <span className="text-2xl">👑</span>
+                        <span className="text-xs uppercase tracking-wider">Dama</span>
+                    </button>
+                </div>
+
+                <div className="space-y-4">
+                    <Input
+                        label="Nome do Explorador"
+                        placeholder="Digite o nome..."
+                        autoFocus
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && name.trim() && onStart(name, gender)}
+                        className="text-lg"
+                    />
+
+                    <Button
+                        onClick={() => onStart(name, gender)}
+                        disabled={!name.trim()}
+                        className="w-full py-4 text-lg shadow-lg hover:translate-y-[-2px]"
+                    >
+                        Começar Avaliação <ArrowRight className="ml-2 w-5 h-5" />
+                    </Button>
+                </div>
+            </Card>
         </div>
     );
 };
@@ -611,37 +656,55 @@ const QuizView = ({ currentStep, trails, answers, onAnswer, onNext, onPrev, onCa
 
     return (
         <div className="min-h-screen font-sans">
-            <div className="max-w-md mx-auto pb-24 pt-10">
+            <div className="max-w-md mx-auto pb-24 pt-10 px-4">
                 <div className="flex justify-between items-center mb-6">
-                    <button onClick={onCancel} className="text-brown-400 hover:text-brown-600">Sair</button>
-                    <span className="font-bold text-brown-500 text-sm">{currentStep + 1} de {trails.length}</span>
+                    <button onClick={onCancel} className="text-brown-400 hover:text-brown-600 flex items-center gap-1 text-sm font-bold"><X size={16} /> Sair</button>
+                    <span className="font-bold text-brown-500 text-xs uppercase bg-brown-100 px-3 py-1 rounded-full">{currentStep + 1} / {trails.length}</span>
                 </div>
-                <div className="h-2 bg-brown-200 rounded-full mb-8 overflow-hidden"><div className="h-full bg-brown-500 transition-all duration-500" style={{ width: `${((currentStep + 1) / trails.length) * 100}% ` }} /></div>
+                <div className="h-2 bg-brown-100 rounded-full mb-8 overflow-hidden"><div className="h-full bg-gradient-to-r from-brown-500 to-orange-500 transition-all duration-500" style={{ width: `${((currentStep + 1) / trails.length) * 100}%` }} /></div>
 
-                <div className="bg-white rounded-3xl shadow-xl overflow-hidden animate-slide-up mb-6 border border-brown-100">
-                    <div className={`p - 6 ${trail.color} bg - opacity - 30 border - b flex items - center gap - 4`}>
-                        <div className="bg-white p-2 rounded-xl shadow-sm">{trail.icon}</div>
-                        <div><h3 className="font-bold text-lg text-brown-800">{trail.title}</h3><p className="text-xs opacity-70 uppercase text-brown-600">Pergunta {currentStep + 1}</p></div>
-                    </div>
-                    <div className="p-6">
-                        <h2 className="text-lg font-bold text-brown-800 mb-6 leading-relaxed">{trail.question}</h2>
-                        {trail.type === 'text' ? (
+                <div className="bg-white rounded-3xl shadow-xl overflow-hidden animate-slide-up mb-6 border border-brown-100 relative">
+                    <div className={`absolute top-0 left-0 right-0 h-1 ${trail.color.split(' ')[0].replace('bg-', 'bg-')}`}></div>
+                    <div className="p-8">
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className={`p-4 rounded-2xl ${trail.color.split(' ')[0]} bg-opacity-20`}>
+                                {React.cloneElement(trail.icon, { size: 32 })}
+                            </div>
                             <div>
-                                <textarea className="w-full border-2 border-brown-200 rounded-xl p-4 text-brown-700 focus:outline-none focus:border-brown-500 h-32 resize-none bg-brown-50" placeholder={trail.placeholder} value={textInput} onChange={(e) => setTextInput(e.target.value)} autoFocus />
-                                <button onClick={handleTextConfirm} className="w-full mt-4 bg-brown-700 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-brown-600">Confirmar <ChevronRight size={18} /></button>
+                                <h3 className="font-bold text-xl text-brown-900">{trail.title}</h3>
+                                <p className="text-sm text-brown-500 font-medium">Avaliação de Perfil</p>
+                            </div>
+                        </div>
+
+                        <h2 className="text-lg font-bold text-brown-800 mb-8 leading-relaxed min-h-[60px]">{trail.question}</h2>
+
+                        {trail.type === 'text' ? (
+                            <div className="space-y-4">
+                                <TextArea
+                                    className="h-32 text-lg resize-none"
+                                    placeholder={trail.placeholder}
+                                    value={textInput}
+                                    onChange={(e) => setTextInput(e.target.value)}
+                                    autoFocus
+                                />
+                                <Button onClick={handleTextConfirm} className="w-full py-3">
+                                    Confirmar Resposta <Check className="ml-2 w-5 h-5" />
+                                </Button>
                             </div>
                         ) : (
                             <div className="space-y-3">
                                 {trail.options?.map((opt, idx) => (
                                     <button key={idx} onClick={() => {
                                         onAnswer(trail.id, opt);
-                                        // Auto-advance with small delay for visual feedback
-                                        setTimeout(() => {
-                                            onNext();
-                                        }, 350);
-                                    }} className={`w - full text - left p - 4 rounded - xl border - 2 transition - all flex justify - between items - center group ${currentAnswer?.value === opt.value ? 'border-brown-500 bg-brown-100' : 'border-brown-100 hover:border-brown-300 hover:bg-brown-50'} `}>
-                                        <div><span className={`block font - bold ${currentAnswer?.value === opt.value ? 'text-brown-800' : 'text-brown-600'} `}>{opt.label}</span><span className="text-xs text-brown-400 mt-1 block">{opt.desc}</span></div>
-                                        <div className={`w - 5 h - 5 rounded - full border - 2 flex items - center justify - center ${currentAnswer?.value === opt.value ? 'border-brown-500 bg-brown-500' : 'border-brown-300'} `}>{currentAnswer?.value === opt.value && <Check size={12} className="text-white" />}</div>
+                                        setTimeout(() => { onNext(); }, 350);
+                                    }} className={`w-full text-left p-4 rounded-xl border-2 transition-all flex justify-between items-center group relative hover:shadow-md ${currentAnswer?.value === opt.value ? 'border-brown-600 bg-brown-50 ring-2 ring-brown-600/20' : 'border-brown-100 hover:border-brown-300 hover:bg-white bg-brown-50/50'}`}>
+                                        <div className="pr-8">
+                                            <span className={`block font-bold text-base ${currentAnswer?.value === opt.value ? 'text-brown-900' : 'text-brown-700'}`}>{opt.label}</span>
+                                            <span className="text-xs text-brown-500 mt-1 block leading-snug">{opt.desc}</span>
+                                        </div>
+                                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${currentAnswer?.value === opt.value ? 'border-brown-600 bg-brown-600 scale-110' : 'border-brown-200'}`}>
+                                            {currentAnswer?.value === opt.value && <Check size={14} className="text-white" />}
+                                        </div>
                                     </button>
                                 ))}
                             </div>
@@ -649,9 +712,9 @@ const QuizView = ({ currentStep, trails, answers, onAnswer, onNext, onPrev, onCa
                     </div>
                 </div>
 
-                <div className="flex justify-between items-center px-2 mt-4 opacity-70 hover:opacity-100 transition-opacity">
-                    <button onClick={onPrev} disabled={currentStep === 0} className="flex items-center gap-2 text-brown-400 hover:text-brown-600 disabled:opacity-0 font-bold px-4 py-2 hover:bg-brown-50 rounded-lg transition-all text-sm"><ArrowLeft size={16} /> Voltar</button>
-                    <button onClick={() => { if (trail.type === 'select' && !currentAnswer) onAnswer(trail.id, { label: 'Não observado', value: 'skipped' }); onNext(); }} className="flex items-center gap-2 text-brown-400 hover:text-brown-600 font-bold px-4 py-2 hover:bg-brown-50 rounded-lg transition-all text-sm">{currentStep === trails.length - 1 ? 'Finalizar' : 'Pular'} <ArrowRight size={16} /></button>
+                <div className="flex justify-between items-center px-2 mt-4">
+                    <button onClick={onPrev} disabled={currentStep === 0} className={`flex items-center gap-2 font-bold px-4 py-2 rounded-lg transition-all text-sm ${currentStep === 0 ? 'opacity-0' : 'text-brown-400 hover:text-brown-600 hover:bg-brown-50'}`}><ArrowLeft size={16} /> Anterior</button>
+                    <button onClick={() => { if (trail.type === 'select' && !currentAnswer) onAnswer(trail.id, { label: 'Não observado', value: 'skipped' }); onNext(); }} className="flex items-center gap-2 text-brown-400 hover:text-brown-600 font-bold px-4 py-2 hover:bg-brown-50 rounded-lg transition-all text-sm shrink-0">{currentStep === trails.length - 1 ? 'Finalizar' : 'Pular Questão'} <ArrowRight size={16} /></button>
                 </div>
             </div>
         </div>
@@ -680,18 +743,18 @@ const ResultView = ({ name, archetype, onSave, onDiscard, customDesc, setCustomD
                     <div className="relative z-10 mb-6 flex flex-col items-center justify-center">
                         {showUrlInput ? (
                             <div className="w-full max-w-[200px] mb-2 animate-in fade-in">
-                                <div className="bg-white rounded-lg p-1 flex gap-1">
+                                <div className="bg-white rounded-lg p-1 flex gap-1 shadow-lg">
                                     <input
                                         autoFocus
                                         type="text"
                                         placeholder="https://..."
-                                        className="w-full text-brown-900 text-sm px-2 py-1 outline-none rounded"
+                                        className="w-full text-brown-900 text-sm px-2 py-1 outline-none rounded bg-transparent"
                                         value={tempUrl}
                                         onChange={(e) => setTempUrl(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleUrlConfirm()}
                                     />
-                                    <button onClick={handleUrlConfirm} className="bg-green-500 hover:bg-green-600 text-white p-1 rounded"><Check size={16} /></button>
-                                    <button onClick={() => setShowUrlInput(false)} className="bg-red-400 hover:bg-red-500 text-white p-1 rounded"><X size={16} /></button>
+                                    <button onClick={handleUrlConfirm} className="bg-green-500 hover:bg-green-600 text-white p-1 rounded transition-colors"><Check size={16} /></button>
+                                    <button onClick={() => setShowUrlInput(false)} className="bg-red-400 hover:bg-red-500 text-white p-1 rounded transition-colors"><X size={16} /></button>
                                 </div>
                                 <p className="text-xs text-brown-300 mt-1">Cole o link da imagem</p>
                             </div>
@@ -713,16 +776,62 @@ const ResultView = ({ name, archetype, onSave, onDiscard, customDesc, setCustomD
                                 </button>
                             </div>
                         )}
-                        <input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={(e) => onPhotoUpload(e, true)} />
+                        <input type="file" ref={fileRef} className="hidden" accept="image/*" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) { const reader = new FileReader(); reader.onloadend = () => onSetPhoto(reader.result); reader.readAsDataURL(file); }
+                        }} />
                     </div>
-                    <div className="flex justify-center relative z-10"><ArchetypeBadge type={archetype.title} size="lg" /></div>
+
+                    <div className="relative z-10 flex gap-2 justify-center">
+                        <Badge className="bg-brown-700 text-brown-100 border-brown-600">Explorador</Badge>
+                        <Badge className="bg-yellow-500 text-yellow-900 border-yellow-400 font-bold">Nível 1</Badge>
+                    </div>
+
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 opacity-10 pattern-dots pattern-white pattern-size-4 pattern-bg-transparent"></div>
                 </div>
+
                 <div className="p-8">
-                    <div className="mb-8 bg-brown-50 p-4 rounded-xl border border-brown-200 relative group">
-                        <textarea value={customDesc} onChange={(e) => setCustomDesc(e.target.value)} className="w-full bg-white border border-brown-300 rounded p-2 text-sm text-brown-700 focus:border-brown-500 outline-none" rows={3} />
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="p-4 bg-brown-50 rounded-2xl border border-brown-100">
+                            <ArchetypeBadge type={archetype.title} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-xl text-brown-800">{archetype.title}</h3>
+                            <p className="text-sm text-brown-500">{archetype.subtitle}</p>
+                        </div>
                     </div>
-                    <button onClick={onSave} className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 mb-3"><Users size={20} /> Recrutar para a Guilda</button>
-                    <button onClick={onDiscard} className="w-full text-brown-500 py-3 font-medium hover:text-brown-800">Descartar</button>
+
+                    <div className="bg-brown-50 rounded-xl p-4 border border-brown-100 mb-8 relative group">
+                        <div className="flex justify-between items-center mb-2">
+                            <h4 className="font-bold text-brown-700 text-xs uppercase tracking-wider flex items-center gap-2">
+                                <Sparkles size={14} className="text-yellow-500" /> Características
+                            </h4>
+                            <Pencil size={14} className="text-brown-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <TextArea
+                            value={customDesc}
+                            onChange={(e) => setCustomDesc(e.target.value)}
+                            className="bg-transparent border-none p-0 text-brown-600 text-sm italic w-full resize-none focus:ring-0"
+                            rows={3}
+                        />
+                    </div>
+
+                    <div className="flex gap-4">
+                        <Button
+                            onClick={onDiscard}
+                            variant="secondary"
+                            className="flex-1 border-2 border-brown-100 hover:border-red-200 hover:bg-red-50 hover:text-red-600 text-brown-400"
+                        >
+                            <Trash2 size={18} /> Descartar
+                        </Button>
+                        <Button
+                            onClick={onSave}
+                            className="flex-[2] shadow-lg shadow-brown-200/50"
+                        >
+                            <SaveIcon className="mr-2" size={18} /> Registrar Recruta
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -756,40 +865,15 @@ const MemberModal = ({ member, onClose, onUpdate, onRemove }) => {
 
     const handleDownloadPDF = async () => {
         setIsGeneratingMessage(true);
-
-        // 1. Generate the HTML content
         const htmlContent = generatePDFHTML(member);
-
-        // 2. Create a hidden iframe
         const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed';
-        iframe.style.right = '0';
-        iframe.style.bottom = '0';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = '0';
+        iframe.style.position = 'fixed'; iframe.style.right = '0'; iframe.style.bottom = '0'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = '0';
         document.body.appendChild(iframe);
-
-        // 3. Write content to iframe
         const doc = iframe.contentWindow.document;
-        doc.open();
-        doc.write(htmlContent);
-        doc.close();
-
-        // 4. Wait for images to load then print
+        doc.open(); doc.write(htmlContent); doc.close();
         iframe.contentWindow.onload = () => {
             setIsGeneratingMessage(false);
-            try {
-                iframe.contentWindow.focus();
-                iframe.contentWindow.print();
-            } catch (e) {
-                console.error("Print error:", e);
-            } finally {
-                // Optional: remove iframe after a delay or keep it hidden
-                // document.body.removeChild(iframe); 
-                // Keeping it for a moment ensures print dialog doesn't break on some browsers
-                setTimeout(() => document.body.removeChild(iframe), 1000);
-            }
+            try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { console.error("Print error:", e); } finally { setTimeout(() => document.body.removeChild(iframe), 1000); }
         };
     };
 
@@ -822,7 +906,7 @@ const MemberModal = ({ member, onClose, onUpdate, onRemove }) => {
                 <div className="bg-brown-900 w-full md:w-[30%] p-6 flex flex-col items-center justify-center text-center text-white relative shrink-0 border-b md:border-r border-brown-800">
                     {showUrlInput ? (
                         <div className="w-full max-w-[200px] mb-3 animate-in fade-in">
-                            <div className="bg-white rounded-lg p-1 flex gap-1">
+                            <div className="bg-white rounded-lg p-1 flex gap-1 shadow-lg">
                                 <input
                                     autoFocus
                                     type="text"
@@ -858,7 +942,12 @@ const MemberModal = ({ member, onClose, onUpdate, onRemove }) => {
                     <div className="scale-90"><ArchetypeBadge type={member.archetype.title} compact size="lg" /></div>
 
                     <div className="mt-4 w-full bg-brown-800 p-2 rounded border border-brown-700">
-                        <textarea value={member.archetype.desc} onChange={(e) => onUpdate({ ...member, archetype: { ...member.archetype, desc: e.target.value } })} className="w-full bg-brown-700 text-white text-xs border border-brown-600 rounded p-1 focus:outline-none resize-none" rows={3} />
+                        <TextArea
+                            value={member.archetype.desc}
+                            onChange={(e) => onUpdate({ ...member, archetype: { ...member.archetype, desc: e.target.value } })}
+                            className="bg-brown-700 text-white text-xs border-brown-600 focus:border-brown-400 resize-none h-24"
+                            placeholder="Descrição do arquétipo..."
+                        />
                     </div>
 
                     <button onClick={handleDownloadPDF} disabled={isGeneratingMessage} className="w-full mt-4 bg-brown-700 hover:bg-brown-600 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all hover:-translate-y-1 relative z-10 disabled:opacity-50">
@@ -870,8 +959,8 @@ const MemberModal = ({ member, onClose, onUpdate, onRemove }) => {
                 {/* Coluna Direita: Dados */}
                 <div className="w-full md:w-[70%] bg-brown-50 flex flex-col h-full overflow-hidden">
                     <div className="flex border-b border-brown-200 bg-white shrink-0">
-                        <button onClick={() => setModalTab('stats')} className={`flex - 1 py - 3 text - xs font - bold uppercase ${modalTab === 'stats' ? 'text-brown-700 border-b-2 border-brown-700' : 'text-brown-400'} `}><ClipboardList className="inline mr-1" size={14} /> Atributos</button>
-                        <button onClick={() => setModalTab('registry')} className={`flex - 1 py - 3 text - xs font - bold uppercase ${modalTab === 'registry' ? 'text-brown-700 border-b-2 border-brown-700' : 'text-brown-400'} `}><BookOpen className="inline mr-1" size={14} /> Diário</button>
+                        <button onClick={() => setModalTab('stats')} className={`flex-1 py-3 text-xs font-bold uppercase ${modalTab === 'stats' ? 'text-brown-700 border-b-2 border-brown-700' : 'text-brown-400'} `}><ClipboardList className="inline mr-1" size={14} /> Atributos</button>
+                        <button onClick={() => setModalTab('registry')} className={`flex-1 py-3 text-xs font-bold uppercase ${modalTab === 'registry' ? 'text-brown-700 border-b-2 border-brown-700' : 'text-brown-400'} `}><BookOpen className="inline mr-1" size={14} /> Diário</button>
                     </div>
 
                     <div className="flex-1 p-6 overflow-y-auto">
@@ -884,14 +973,14 @@ const MemberModal = ({ member, onClose, onUpdate, onRemove }) => {
                                         return (
                                             <div key={trail.id} className="bg-white border border-brown-200 rounded-lg p-3 shadow-sm hover:border-brown-300 transition-colors">
                                                 <div className="flex justify-between items-center mb-1">
-                                                    <div className="flex items-center gap-2"><div className={`p - 1 rounded ${trail.color.split(' ')[2]} bg - opacity - 10`}>{trail.icon}</div><span className="text-[10px] font-bold uppercase text-brown-500">{trail.title}</span></div>
+                                                    <div className="flex items-center gap-2"><div className={`p-1 rounded ${trail.color.split(' ')[2]} bg-opacity-10`}>{trail.icon}</div><span className="text-[10px] font-bold uppercase text-brown-500">{trail.title}</span></div>
                                                     {!isEditing && <button onClick={() => { setEditingTrailId(trail.id); setEditValue(ans?.value); }} className="text-brown-300 hover:text-brown-500"><Pencil size={12} /></button>}
                                                 </div>
                                                 {isEditing ? (
                                                     <div className="flex flex-col gap-2">
-                                                        <select className="text-xs p-1 border rounded" value={editValue} onChange={(e) => setEditValue(e.target.value)}>
+                                                        <Select value={editValue} onChange={(e) => setEditValue(e.target.value)} className="text-xs">
                                                             {trail.options?.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                                                        </select>
+                                                        </Select>
                                                         <div className="flex justify-end gap-1"><button onClick={() => handleEditSave(trail.id)} className="bg-green-100 p-1 rounded text-green-700"><Check size={12} /></button><button onClick={() => setEditingTrailId(null)} className="bg-red-100 p-1 rounded text-red-700"><X size={12} /></button></div>
                                                     </div>
                                                 ) : (
@@ -908,12 +997,12 @@ const MemberModal = ({ member, onClose, onUpdate, onRemove }) => {
                                         return (
                                             <div key={trail.id} className="bg-white border border-brown-200 rounded-lg p-4 shadow-sm">
                                                 <div className="flex justify-between items-center mb-2 pb-2 border-b border-brown-100">
-                                                    <div className="flex items-center gap-2"><div className={`p - 1 rounded ${trail.color.split(' ')[2]} bg - opacity - 10`}>{trail.icon}</div><span className="font-bold text-brown-600 text-xs uppercase">{trail.title}</span></div>
+                                                    <div className="flex items-center gap-2"><div className={`p-1 rounded ${trail.color.split(' ')[2]} bg-opacity-10`}>{trail.icon}</div><span className="font-bold text-brown-600 text-xs uppercase">{trail.title}</span></div>
                                                     {!isEditing && <button onClick={() => { setEditingTrailId(trail.id); setEditValue(ans?.label); }} className="text-brown-300 hover:text-brown-500"><Pencil size={12} /></button>}
                                                 </div>
                                                 {isEditing ? (
                                                     <div className="flex flex-col gap-2">
-                                                        <textarea className="w-full text-xs p-2 border rounded focus:outline-none" rows={3} value={editValue} onChange={(e) => setEditValue(e.target.value)} />
+                                                        <TextArea className="text-xs p-2 h-24" value={editValue} onChange={(e) => setEditValue(e.target.value)} />
                                                         <div className="flex justify-end gap-2"><button onClick={() => handleEditSave(trail.id)} className="text-xs bg-green-600 text-white px-2 py-1 rounded">Salvar</button><button onClick={() => setEditingTrailId(null)} className="text-xs bg-brown-400 text-white px-2 py-1 rounded">Cancelar</button></div>
                                                     </div>
                                                 ) : (<p className="text-sm text-brown-800 whitespace-pre-wrap">{ans?.label || "Sem registro."}</p>)}
@@ -929,10 +1018,10 @@ const MemberModal = ({ member, onClose, onUpdate, onRemove }) => {
                             <div className="flex flex-col h-full">
                                 <div className="bg-white border border-brown-200 rounded-xl p-3 shadow-sm mb-4 shrink-0">
                                     <div className="flex gap-2 mb-2">
-                                        <input className="flex-1 text-xs border border-brown-200 rounded p-2 focus:outline-none focus:border-brown-400" placeholder="Responsável (Ex: Prof. Silva)" value={newLogResponsible} onChange={(e) => setNewLogResponsible(e.target.value)} />
-                                        <input className="flex-1 text-xs border border-brown-200 rounded p-2 focus:outline-none focus:border-brown-400" placeholder="Disciplina (Ex: Matemática)" value={newLogSubject} onChange={(e) => setNewLogSubject(e.target.value)} />
+                                        <input className="flex-1 text-xs border border-brown-200 rounded p-2 focus:outline-none focus:border-brown-400 text-brown-800 placeholder-brown-400" placeholder="Responsável (Ex: Prof. Silva)" value={newLogResponsible} onChange={(e) => setNewLogResponsible(e.target.value)} />
+                                        <input className="flex-1 text-xs border border-brown-200 rounded p-2 focus:outline-none focus:border-brown-400 text-brown-800 placeholder-brown-400" placeholder="Disciplina (Ex: Matemática)" value={newLogSubject} onChange={(e) => setNewLogSubject(e.target.value)} />
                                     </div>
-                                    <textarea className="w-full text-sm text-brown-700 placeholder-brown-400 resize-none focus:outline-none mb-2 border border-brown-200 rounded p-2" placeholder="Adicionar nova observação..." rows={2} value={newLogText} onChange={(e) => setNewLogText(e.target.value)} />
+                                    <TextArea className="h-20 text-sm mb-2" placeholder="Adicionar nova observação..." value={newLogText} onChange={(e) => setNewLogText(e.target.value)} />
                                     <div className="flex justify-end"><button onClick={() => {
                                         const newLog = {
                                             id: Date.now(),
@@ -1005,6 +1094,26 @@ const useDrackerState = () => {
         },
         deleteExpedition: (id) => setExpeditions(expeditions.filter(e => e.id !== id)),
         importData: (data) => setExpeditions(data),
+        importExpedition: (newExp, merge) => {
+            setExpeditions(prev => {
+                const existing = prev.find(e => e.name === newExp.name);
+                if (existing) {
+                    if (merge) {
+                        const mergedMembers = [...existing.members];
+                        newExp.members.forEach(nm => {
+                            if (!mergedMembers.find(m => m.name === nm.name)) {
+                                mergedMembers.push({ ...nm, id: Date.now() + Math.random() });
+                            }
+                        });
+                        return prev.map(e => e.id === existing.id ? { ...e, members: mergedMembers } : e);
+                    } else {
+                        return [...prev, { ...newExp, id: Date.now(), name: newExp.name + ' (Cópia)' }];
+                    }
+                } else {
+                    return [...prev, { ...newExp, id: Date.now() }];
+                }
+            });
+        },
 
         // Quiz Flow
         startQuiz: (name, gender) => { setFormData({ name, gender, answers: {}, step: 0, photo: null, customDesc: '' }); setView('quiz'); },
