@@ -7,7 +7,9 @@ import RichTextRenderer from './RichTextRenderer';
 import { CrosswordActivity } from './CrosswordActivity';
 import ConnectDotsGame from './ConnectDotsGame';
 import DrackerVideoGallery from './DrackerVideoGallery';
+import ExpedicaoDracker from './ExpedicaoDracker';
 import { PDFMergerTool } from './PDFMergerTool';
+import { AboutSystem } from './AboutSystem';
 
 import html2pdf from 'html2pdf.js';
 
@@ -43,9 +45,10 @@ export const ActivityArea = ({
     crosswordData,
     quizData,
     onCrosswordUpdate,
-    connectDotsData
+    connectDotsData,
+    drackerState // New prop
 }) => {
-    const hasContent = generatedContent || (activityType === 'crossword' && crosswordData) || (activityType === 'connect_dots' && connectDotsData) || (activityType === 'video_gallery') || (activityType === 'merge_pdf');
+    const hasContent = generatedContent || (activityType === 'crossword' && crosswordData) || (activityType === 'connect_dots' && connectDotsData) || (activityType === 'video_gallery') || (activityType === 'merge_pdf') || (activityType === 'expedition') || (activityType === 'about_system');
     const [printMode, setPrintMode] = React.useState('all'); // 'all', 'lyrics', 'questions'
     const [isGameMode, setIsGameMode] = React.useState(false);
     const [pdfShowAlternatives, setPdfShowAlternatives] = React.useState(false);
@@ -631,6 +634,10 @@ export const ActivityArea = ({
                                         </div>
                                     ) : activityType === 'video_gallery' ? (
                                         <DrackerVideoGallery />
+                                    ) : activityType === 'about_system' ? (
+                                        <AboutSystem />
+                                    ) : activityType === 'expedition' ? (
+                                        <ExpedicaoDracker drackerState={drackerState} />
                                     ) : activityType === 'merge_pdf' ? (
                                         <PDFMergerTool />
                                     ) : activityType === 'connect_dots' && connectDotsData ? (

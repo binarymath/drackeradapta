@@ -173,7 +173,7 @@ export const Sidebar = ({
 
                     <div>
                         <label className={theme.text.label}>Tipo</label>
-                        <div className="space-y-2 max-h-96 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent">
+                        <div className="space-y-2">
                             {orderedActivities.map((opt, index) => (
                                 opt.url ? (
                                     <a
@@ -213,6 +213,19 @@ export const Sidebar = ({
                                 )
                             ))}
                         </div>
+                        {/* Fixed "About System" Link */}
+                        <button
+                            onClick={() => setActivityType('about_system')}
+                            className={`w-full px-2 py-2 mt-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'about_system'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
+                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
+                                }`}
+                        >
+                            <div className="w-6 flex justify-center">
+                                <span className="text-lg">ℹ️</span>
+                            </div>
+                            Sobre o Sistema
+                        </button>
                     </div>
 
                     {activityType === 'image_ai' && (

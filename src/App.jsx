@@ -6,7 +6,8 @@ import {
   Music,
   BrainCircuit,
   Play,
-  Files
+  Files,
+  Compass
 } from 'lucide-react';
 
 import { createGeminiService } from './services/geminiService';
@@ -15,6 +16,7 @@ import { ExportService } from './services/ExportService';
 import { useAudioNarration } from './hooks/useAudioNarration';
 import { safeLocalStorageGet, safeLocalStorageSet, safeLocalStorageRemove } from './utils/storage';
 import { useBackupSystem } from './hooks/useBackupSystem';
+import { useDrackerState } from './hooks/useDrackerState';
 import { useActivityActions } from './hooks/useActivityActions';
 
 // Components
@@ -24,6 +26,7 @@ import { ActivityArea } from './components/ActivityArea';
 import { TabsBar } from './components/TabsBar';
 import { AppModals } from './components/AppModals';
 import { Footer } from './components/Footer';
+import { AboutSystem } from './components/AboutSystem';
 import { CookieBanner } from './components/CookieBanner';
 
 export default function App() {
@@ -47,8 +50,33 @@ export default function App() {
   const [imageStyle, setImageStyle] = useState('infantil-desenho');
 
   // TABS & SYSTEM STATE
-  const [tabs, setTabs] = useState([]);
-  const [activeTabId, setActiveTabId] = useState(null);
+  const [tabs, setTabs] = useState(() => {
+    const saved = safeLocalStorageGet('atividade_adaptada_tabs');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [activeTabId, setActiveTabId] = useState(() => {
+    const saved = safeLocalStorageGet('atividade_adaptada_active_tab');
+    return saved || null;
+  });
+
+  // Persist Tabs logic
+  useEffect(() => {
+    if (tabs.length > 0) {
+      safeLocalStorageSet('atividade_adaptada_tabs', JSON.stringify(tabs));
+    } else {
+      // If empty, clean up or keep empty array? Keeping empty array is safer
+      safeLocalStorageSet('atividade_adaptada_tabs', JSON.stringify([]));
+    }
+  }, [tabs]);
+
+  useEffect(() => {
+    if (activeTabId) {
+      safeLocalStorageSet('atividade_adaptada_active_tab', activeTabId);
+    } else {
+      safeLocalStorageRemove('atividade_adaptada_active_tab');
+    }
+  }, [activeTabId]);
 
   // Tab Selection Modal State (Kept here as it bridges Sidebar and Tabs)
   const [tabSelectionModal, setTabSelectionModal] = useState({
@@ -71,6 +99,9 @@ export default function App() {
 
   const activityAreaRef = useRef(null);
 
+  // --- EXPEDITION DRACKER STATE (LIFTED) ---
+  const drackerState = useDrackerState();
+
   // --- MEMOIZED OPTIONS ---
   const activityOptions = useMemo(() => [
     { id: 'quiz', label: 'Quiz / Questões', icon: <FileText className="w-4 h-4" /> },
@@ -80,6 +111,7 @@ export default function App() {
     { id: 'simplify', label: 'Música do Drácker', icon: <Music className="w-4 h-4" /> },
     { id: 'connect_dots', label: 'Liga Pontos', icon: <BrainCircuit className="w-4 h-4" /> },
     { id: 'video_gallery', label: 'Galeria Drácker', icon: <Play className="w-4 h-4" /> },
+    { id: 'expedition', label: 'Expedição Drácker', icon: <Compass className="w-4 h-4" /> },
     { id: 'merge_pdf', label: 'Unir PDFs', icon: <Files className="w-4 h-4" /> },
   ], []);
 
@@ -125,6 +157,17 @@ export default function App() {
     speakPrev,
     resetAudioState
   } = useAudioNarration(geminiService);
+
+  // --- BACKUP SYSTEM ---
+  // Pass expeditions and the importer function to the backup system
+  const {
+    exportSystemState,
+    importSystemState,
+    importDialog,
+    handleMergeImport,
+    handleReplaceImport,
+    closeImportDialog
+  } = useBackupSystem(tabs, setTabs, setActiveTabId, drackerState.expeditions, drackerState.actions.setExpeditions);
 
   // --- API VALIDATION ---
   useEffect(() => {
@@ -184,14 +227,7 @@ export default function App() {
     setShowSettings,
   });
 
-  const {
-    importDialog,
-    exportSystemState,
-    importSystemState,
-    handleMergeImport,
-    handleReplaceImport,
-    closeImportDialog
-  } = useBackupSystem(tabs, setTabs, setActiveTabId);
+
 
 
   const closeTab = (id, e) => {
@@ -498,6 +534,7 @@ export default function App() {
                 return t;
               }));
             }}
+            drackerState={drackerState}
           />
         </div>
 

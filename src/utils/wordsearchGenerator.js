@@ -7,8 +7,8 @@ export const normalizeForGrid = (word) => {
   return (word || '')
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z]/g, '');
+    //.replace(/[\u0300-\u036f]/g, '') // Mantém acentos
+    .replace(/[^a-záéíóúâêôãõç]/g, '');
 };
 
 /**
@@ -40,7 +40,7 @@ export const extractWords = (text, count = 10) => {
   const sorted = [...freq.entries()]
     .sort((a, b) => b[1] - a[1])
     .map(([w]) => w.toUpperCase());
-  
+
   return sorted.slice(0, count);
 };
 
@@ -56,12 +56,16 @@ export const generateWordSearch = (
   const grid = Array(rows).fill(null).map(() => Array(cols).fill(''));
   const placedWords = [];
   const placements = [];
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  // Alfabeto estendido para incluir acentos na "sopa" (proporcionalmente menos frequentes)
+  const baseAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const accents = 'ÁÉÍÓÚÂÊÔÃÕÇ';
+  // Mistura: Acentuados aparecem com chance menor
+  const alphabet = baseAlphabet.repeat(4) + accents;
 
   // Define vetores de direção conforme configurações
   const dirVecs = [];
   const addDir = (dx, dy) => dirVecs.push([dx, dy]);
-  
+
   if (directions.horizontal) {
     addDir(0, 1);
     if (directions.reverse) addDir(0, -1);
@@ -74,13 +78,13 @@ export const generateWordSearch = (
     addDir(1, 1);
     if (directions.reverse) addDir(-1, -1);
   }
-  
+
   // Fallback se nenhuma direção marcada
   if (dirVecs.length === 0) dirVecs.push([0, 1]);
 
   // Coloca palavras maiores primeiro para melhor encaixe
   const words = [...selectedWords]
-    .map(w => w.toUpperCase().replace(/[^A-Z]/g, '').slice(0, Math.max(rows, cols)))
+    .map(w => w.toUpperCase().replace(/[^A-ZÁÉÍÓÚÂÊÔÃÕÇ]/g, '').slice(0, Math.max(rows, cols)))
     .filter(w => w.length >= 3)
     .sort((a, b) => b.length - a.length);
 
@@ -88,18 +92,18 @@ export const generateWordSearch = (
 
   for (const w of words) {
     let placed = false;
-    
+
     // Tenta diversas posições e direções
     for (let attempts = 0; attempts < 200 && !placed; attempts++) {
       const dir = dirVecs[Math.floor(Math.random() * dirVecs.length)];
       const [dx, dy] = dir;
-      
+
       // Calcula faixa válida para início
       const maxRow = dx >= 0 ? rows - 1 - dx * (w.length - 1) : rows - 1;
       const maxCol = dy >= 0 ? cols - 1 - dy * (w.length - 1) : cols - 1;
       const minRow = dx < 0 ? (w.length - 1) : 0;
       const minCol = dy < 0 ? (w.length - 1) : 0;
-      
+
       const row = Math.floor(Math.random() * (maxRow - minRow + 1)) + minRow;
       const col = Math.floor(Math.random() * (maxCol - minCol + 1)) + minCol;
 

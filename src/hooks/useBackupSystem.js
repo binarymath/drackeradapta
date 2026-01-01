@@ -1,9 +1,10 @@
 import { useState } from 'react';
 
-export const useBackupSystem = (tabs, setTabs, setActiveTabId) => {
+export const useBackupSystem = (tabs, setTabs, setActiveTabId, expeditions = [], setExpeditions = () => { }) => {
     const [importDialog, setImportDialog] = useState({
         isOpen: false,
         importedTabs: [],
+        importedExpeditions: [], // New state for expeditions
         importedDate: null,
         importedVersion: null
     });
@@ -11,16 +12,17 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId) => {
     const exportSystemState = () => {
         try {
             const state = {
-                version: '1.0',
+                version: '1.1', // Bump version
                 exportDate: new Date().toISOString(),
                 exportTime: new Date().getTime(),
-                tabs: tabs
+                tabs: tabs,
+                expeditions: expeditions // Include expeditions
             };
             const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `backup_atividades_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}_v1.json`;
+            link.download = `backup_dracker_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}_v1.1.json`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -39,25 +41,37 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId) => {
         reader.onload = (event) => {
             try {
                 const importedState = JSON.parse(event.target.result);
-                if (importedState.tabs && Array.isArray(importedState.tabs)) {
-                    // Se não há abas abertas, substitui diretamente
-                    if (tabs.length === 0) {
-                        setTabs(importedState.tabs);
-                        if (importedState.tabs.length > 0) {
+
+                // Validate if it has tabs OR expeditions (valid backup)
+                if ((importedState.tabs && Array.isArray(importedState.tabs)) || (importedState.expeditions && Array.isArray(importedState.expeditions))) {
+
+                    const hasExpeditions = importedState.expeditions && importedState.expeditions.length > 0;
+                    const hasTabs = importedState.tabs && importedState.tabs.length > 0;
+
+                    // If system is empty (no tabs and default/empty expeditions), restore directly
+                    const isSystemEmpty = tabs.length === 0 && (!expeditions || expeditions.length <= 1); // <=1 assuming default 'Turma Principal' is empty
+
+                    if (isSystemEmpty) {
+                        if (hasTabs) {
+                            setTabs(importedState.tabs);
                             setActiveTabId(importedState.tabs[0].id);
+                        }
+                        if (hasExpeditions) {
+                            setExpeditions(importedState.expeditions);
                         }
                         alert('Sistema restaurado com sucesso!');
                     } else {
-                        // Se há abas, mostra modal de opção
+                        // Show merge/replace dialog
                         setImportDialog({
                             isOpen: true,
-                            importedTabs: importedState.tabs,
+                            importedTabs: importedState.tabs || [],
+                            importedExpeditions: importedState.expeditions || [],
                             importedDate: importedState.exportDate,
                             importedVersion: importedState.version
                         });
                     }
                 } else {
-                    alert('Arquivo de backup inválido.');
+                    alert('Arquivo de backup inválido ou antigo.');
                 }
             } catch (err) {
                 console.error("Erro ao importar", err);
@@ -65,31 +79,42 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId) => {
             }
         };
         reader.readAsText(file);
-        // Reset value to allow same file selection again if needed
         e.target.value = '';
     };
 
     const handleMergeImport = () => {
-        // Mescla as abas: adiciona as importadas sem duplicar por ID
-        const existingIds = new Set(tabs.map(t => t.id));
-        const newTabs = importDialog.importedTabs.filter(t => !existingIds.has(t.id));
-        setTabs([...tabs, ...newTabs]);
-        setImportDialog({ isOpen: false, importedTabs: [], importedDate: null, importedVersion: null });
-        alert(`${newTabs.length} nova(s) atividade(s) adicionada(s)!`);
+        // Merge Tabs
+        const existingTabIds = new Set(tabs.map(t => t.id));
+        const newTabs = importDialog.importedTabs.filter(t => !existingTabIds.has(t.id));
+        if (newTabs.length > 0) setTabs([...tabs, ...newTabs]);
+
+        // Merge Expeditions (avoid duplicate IDs)
+        if (importDialog.importedExpeditions.length > 0) {
+            const existingExpIds = new Set(expeditions.map(e => e.id));
+            const newExps = importDialog.importedExpeditions.filter(e => !existingExpIds.has(e.id));
+            // Optionally merge members if ID exists? For now, simple ID check.
+            if (newExps.length > 0) setExpeditions([...expeditions, ...newExps]);
+        }
+
+        setImportDialog({ isOpen: false, importedTabs: [], importedExpeditions: [], importedDate: null, importedVersion: null });
+        alert('Importação concluída (Mesclado)!');
     };
 
     const handleReplaceImport = () => {
-        // Substitui completamente
+        // Replace All
         setTabs(importDialog.importedTabs);
-        if (importDialog.importedTabs.length > 0) {
-            setActiveTabId(importDialog.importedTabs[0].id);
+        if (importDialog.importedTabs.length > 0) setActiveTabId(importDialog.importedTabs[0].id);
+
+        if (importDialog.importedExpeditions.length > 0) {
+            setExpeditions(importDialog.importedExpeditions);
         }
-        setImportDialog({ isOpen: false, importedTabs: [], importedDate: null, importedVersion: null });
-        alert('Sistema restaurado (substituído)!');
+
+        setImportDialog({ isOpen: false, importedTabs: [], importedExpeditions: [], importedDate: null, importedVersion: null });
+        alert('Sistema restaurado (Substituído)!');
     };
 
     const closeImportDialog = () => {
-        setImportDialog({ isOpen: false, importedTabs: [], importedDate: null, importedVersion: null });
+        setImportDialog({ isOpen: false, importedTabs: [], importedExpeditions: [], importedDate: null, importedVersion: null });
     };
 
     return {
