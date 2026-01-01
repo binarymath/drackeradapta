@@ -106,22 +106,15 @@ const generatePDFHTML = (member) => {
         .page-break { page-break-before: always; margin-top: 30px; }
         .separator { margin-top: 30px; border-top: 1px dashed #d1d5db; padding-top: 20px; }
         
-        /* Simulating footer with fixed position for print */
-        @media print {
-            .footer-placeholder { height: 80px; } /* Push content up */
-            .footer { 
-                position: fixed; 
-                bottom: 0; 
-                left: 0; 
-                right: 0;
-                height: 50px;
-                background: white;
-                z-index: 1000;
-                display: flex; 
-                justify-content: space-between; 
-                align-items: flex-end; 
-                padding-bottom: 10px;
-            }
+        /* Footer Styles */
+        .footer { 
+            margin-top: 50px;
+            width: 100%;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-end; 
+            padding-bottom: 20px;
+            page-break-inside: avoid;
         }
         
         .sig-block { text-align: center; }
@@ -224,7 +217,6 @@ const generatePDFHTML = (member) => {
                 </div>
                 ` : ''}
 
-                <div class="footer-placeholder"></div>
                 <div class="footer">
                     <div class="sig-block">
                         <div class="sig-line"></div>
