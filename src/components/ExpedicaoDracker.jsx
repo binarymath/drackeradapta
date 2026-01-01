@@ -860,14 +860,38 @@ const MemberModal = ({ member, onClose, onUpdate, onRemove }) => {
     const handleDownloadPDF = async () => {
         setIsGeneratingMessage(true);
         const htmlContent = generatePDFHTML(member);
+
+        // Create isolated iframe
         const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed'; iframe.style.right = '0'; iframe.style.bottom = '0'; iframe.style.width = '0'; iframe.style.height = '0'; iframe.style.border = '0';
+        iframe.style.position = 'fixed';
+        iframe.style.left = '-9999px';
+        iframe.style.width = '1000px'; // Ensure reasonable width for rendering
         document.body.appendChild(iframe);
+
         const doc = iframe.contentWindow.document;
-        doc.open(); doc.write(htmlContent); doc.close();
-        iframe.contentWindow.onload = () => {
-            setIsGeneratingMessage(false);
-            try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch (e) { console.error("Print error:", e); } finally { setTimeout(() => document.body.removeChild(iframe), 1000); }
+        doc.open();
+        doc.write(htmlContent);
+        doc.close();
+
+        iframe.onload = async () => {
+            try {
+                // Use html2pdf on the body of the iframe
+                const element = doc.body;
+                const opt = {
+                    margin: 0,
+                    filename: `${member.name}_DrackerFicha.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                await html2pdf().set(opt).from(element).save();
+            } catch (err) {
+                console.error("PDF generation error:", err);
+            } finally {
+                document.body.removeChild(iframe);
+                setIsGeneratingMessage(false);
+            }
         };
     };
 
