@@ -187,7 +187,7 @@ export const ActivityArea = ({
                                     </div>
                                     <Button
                                         onClick={() => setIsGameMode(!isGameMode)}
-                                        className={`mt-4 w-full border-none shadow-lg animate-pulse-slow ${isWordsearchGame ? 'bg-amber-100 text-amber-900 hover:bg-amber-200' : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:scale-105'}`}
+                                        className={`mt-4 w-full border-none shadow-lg animate-pulse-slow ${isWordsearchGame ? 'bg-amber-100 text-amber-900 hover:bg-amber-200' : 'bg-brown-600 text-white hover:bg-brown-700 hover:scale-105'}`}
                                         icon={Gamepad2}
                                     >
                                         {isWordsearchGame ? 'Voltar ao modo impressão' : 'Jogar Agora (Online)'}
