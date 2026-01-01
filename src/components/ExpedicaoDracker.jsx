@@ -205,6 +205,7 @@ const generatePDFHTML = (member) => {
 
                 ${member.registry && member.registry.length > 0 ? `
                 <div class="page-break"></div>
+                <div style="height: 50px;"></div>
                 <h3>Observações e Anotações</h3>
                 <div class="divider"></div>
                 <div style="display:flex; flex-direction:column;">
