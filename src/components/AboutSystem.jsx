@@ -83,7 +83,7 @@ export const AboutSystem = () => {
                         { step: 3, title: "Defina o Tópico", desc: "Digite o assunto da aula (ex: 'Ciclo da Água') e clique em Gerar." },
                         { step: 4, title: "Personalize", desc: "Edite as perguntas ou palavras geradas conforme necessário." },
                         { step: 5, title: "Imprima ou Salve", desc: "Use o botão de imprimir da atividade ou salve o progresso da turma." },
-                        { step: 6, title: "Backup e Segurança", desc: "Use o botão de nuvem ☁️ no menu superior para baixar (Backup) ou restaurar todos os seus dados, turmas e exploradores." }
+                        { step: 6, title: "Backup e Segurança", desc: "Use o botão 'Backup' (ícone de disquete) para salvar um arquivo .json. Para recuperar os dados, clique no botão 'Restaurar'." }
                     ].map((item) => (
                         <div key={item.step} className="flex items-start gap-4 p-4 bg-white rounded-lg border border-brown-100 hover:bg-brown-50 transition-colors">
                             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brown-600 text-white flex items-center justify-center font-bold font-mono">
