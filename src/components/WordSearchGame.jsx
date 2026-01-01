@@ -72,7 +72,16 @@ export const WordSearchGame = ({ content, wordsToFind = [], onRestart }) => {
         });
 
         if (gridRows.length > 0) {
-            setGrid(gridRows);
+            // Normalize grid width to ensure perfect rectangle
+            const maxLength = Math.max(...gridRows.map(row => row.length));
+            const normalizedGrid = gridRows.map(row => {
+                if (row.length < maxLength) {
+                    const diff = maxLength - row.length;
+                    return [...row, ...Array(diff).fill('')];
+                }
+                return row;
+            });
+            setGrid(normalizedGrid);
         }
     };
 
@@ -433,12 +442,15 @@ export const WordSearchGame = ({ content, wordsToFind = [], onRestart }) => {
             {!gameWon && (
                 <div className="w-full max-w-2xl space-y-4">
                     <div
-                        className="bg-brown-50 p-4 rounded-xl shadow-inner border border-brown-200 touch-none"
+                        className="bg-brown-50 p-4 rounded-xl shadow-inner border border-brown-200 touch-none overflow-auto"
                         onMouseLeave={() => setIsDragging(false)}
                     >
                         <div
-                            className="grid gap-0.5"
-                            style={{ gridTemplateColumns: `repeat(${grid[0]?.length || 0}, minmax(0, 1fr))` }}
+                            className="grid gap-0.5 mx-auto"
+                            style={{
+                                gridTemplateColumns: `repeat(${grid[0]?.length || 0}, minmax(0, 1fr))`,
+                                minWidth: 'min-content' // Ensures grid doesn't squash too much
+                            }}
                         >
                             {grid.map((row, r) => (
                                 row.map((letter, c) => {
@@ -455,10 +467,10 @@ export const WordSearchGame = ({ content, wordsToFind = [], onRestart }) => {
                                             data-r={r}
                                             data-c={c}
                                             className={`
-                                                w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9
+                                                aspect-square w-full h-full
                                                 flex items-center justify-center 
-                                                font-mono font-semibold text-base sm:text-lg 
-                                                rounded cursor-pointer transition-all duration-150
+                                                font-mono font-semibold text-sm sm:text-base md:text-lg 
+                                                rounded cursor-pointer transition-all duration-150 select-none
                                                 ${bgClass}
                                                 ${!isFound && !isSelected ? 'hover:bg-brown-100 text-brown-800' : ''}
                                             `}
