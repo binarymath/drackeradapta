@@ -1,10 +1,11 @@
 import { useState } from 'react';
 
-export const useBackupSystem = (tabs, setTabs, setActiveTabId, expeditions = [], setExpeditions = () => { }) => {
+export const useBackupSystem = (tabs, setTabs, setActiveTabId, expeditions = [], setExpeditions = () => { }, allMembers = [], setAllMembers = () => { }) => {
     const [importDialog, setImportDialog] = useState({
         isOpen: false,
         importedTabs: [],
-        importedExpeditions: [], // New state for expeditions
+        importedExpeditions: [],
+        importedAllMembers: [], // Centralized members
         importedDate: null,
         importedVersion: null
     });
@@ -12,17 +13,18 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, expeditions = [],
     const exportSystemState = () => {
         try {
             const state = {
-                version: '1.1', // Bump version
+                version: '1.2', // Bump version
                 exportDate: new Date().toISOString(),
                 exportTime: new Date().getTime(),
                 tabs: tabs,
-                expeditions: expeditions // Include expeditions
+                expeditions: expeditions, // Include expeditions
+                allMembers: allMembers // Include centralized members
             };
             const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `backup_dracker_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}_v1.1.json`;
+            link.download = `backup_dracker_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}_v1.2.json`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -47,6 +49,7 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, expeditions = [],
 
                     const hasExpeditions = importedState.expeditions && importedState.expeditions.length > 0;
                     const hasTabs = importedState.tabs && importedState.tabs.length > 0;
+                    const hasAllMembers = importedState.allMembers && Array.isArray(importedState.allMembers);
 
                     // If system is empty (no tabs and default/empty expeditions), restore directly
                     const isSystemEmpty = tabs.length === 0 && (!expeditions || expeditions.length <= 1); // <=1 assuming default 'Turma Principal' is empty
@@ -59,6 +62,9 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, expeditions = [],
                         if (hasExpeditions) {
                             setExpeditions(importedState.expeditions);
                         }
+                        if (hasAllMembers) {
+                            setAllMembers(importedState.allMembers);
+                        }
                         alert('Sistema restaurado com sucesso!');
                     } else {
                         // Show merge/replace dialog
@@ -66,6 +72,7 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, expeditions = [],
                             isOpen: true,
                             importedTabs: importedState.tabs || [],
                             importedExpeditions: importedState.expeditions || [],
+                            importedAllMembers: importedState.allMembers || [],
                             importedDate: importedState.exportDate,
                             importedVersion: importedState.version
                         });
@@ -92,11 +99,17 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, expeditions = [],
         if (importDialog.importedExpeditions.length > 0) {
             const existingExpIds = new Set(expeditions.map(e => e.id));
             const newExps = importDialog.importedExpeditions.filter(e => !existingExpIds.has(e.id));
-            // Optionally merge members if ID exists? For now, simple ID check.
             if (newExps.length > 0) setExpeditions([...expeditions, ...newExps]);
         }
 
-        setImportDialog({ isOpen: false, importedTabs: [], importedExpeditions: [], importedDate: null, importedVersion: null });
+        // Merge Members (avoid duplicate IDs)
+        if (importDialog.importedAllMembers.length > 0) {
+            const existingMemberIds = new Set(allMembers.map(m => m.id));
+            const newMembers = importDialog.importedAllMembers.filter(m => !existingMemberIds.has(m.id));
+            if (newMembers.length > 0) setAllMembers([...allMembers, ...newMembers]);
+        }
+
+        setImportDialog({ isOpen: false, importedTabs: [], importedExpeditions: [], importedAllMembers: [], importedDate: null, importedVersion: null });
         alert('Importação concluída (Mesclado)!');
     };
 
@@ -109,12 +122,16 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, expeditions = [],
             setExpeditions(importDialog.importedExpeditions);
         }
 
-        setImportDialog({ isOpen: false, importedTabs: [], importedExpeditions: [], importedDate: null, importedVersion: null });
+        if (importDialog.importedAllMembers.length > 0) {
+            setAllMembers(importDialog.importedAllMembers);
+        }
+
+        setImportDialog({ isOpen: false, importedTabs: [], importedExpeditions: [], importedAllMembers: [], importedDate: null, importedVersion: null });
         alert('Sistema restaurado (Substituído)!');
     };
 
     const closeImportDialog = () => {
-        setImportDialog({ isOpen: false, importedTabs: [], importedExpeditions: [], importedDate: null, importedVersion: null });
+        setImportDialog({ isOpen: false, importedTabs: [], importedExpeditions: [], importedAllMembers: [], importedDate: null, importedVersion: null });
     };
 
     return {

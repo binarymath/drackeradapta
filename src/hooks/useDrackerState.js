@@ -3,15 +3,69 @@ import { determineArchetype } from '../utils/drackerArchetypes';
 
 export const useDrackerState = () => {
     const [view, setView] = useState('lobby');
-    // Initialize with default or empty, App.jsx might override or merge later if needed, 
-    // but for now we keep the default structure.
-    // Ideally, we might want to load this from localStorage here if we were keeping it local,
-    // but we are lifting it to be managed via App's backup system mostly.
-    // However, for persistence between reloads relative to 'backup', 
-    // we might want simple localStorage persistence similar to tabs.
+    
+    // Centralized members storage - shared across expeditions
+    const [allMembers, setAllMembers] = useState(() => {
+        const saved = localStorage.getItem('dracker_all_members');
+        let members = saved ? JSON.parse(saved) : [];
+        
+        // Migrate old expeditions if needed
+        const savedExpeditions = localStorage.getItem('dracker_expeditions');
+        if (savedExpeditions) {
+            const exps = JSON.parse(savedExpeditions);
+            // Check if any expedition has old format (members array instead of memberIds)
+            exps.forEach(exp => {
+                if (exp.members && exp.members.length > 0 && !exp.memberIds) {
+                    // This is old format, add members to centralized storage
+                    exp.members.forEach(member => {
+                        if (!members.find(m => m.id === member.id)) {
+                            members.push(member);
+                        }
+                    });
+                }
+            });
+            if (members.length > 0) {
+                localStorage.setItem('dracker_all_members', JSON.stringify(members));
+            }
+        }
+        
+        return members;
+    });
+
+    // Expeditions now only reference member IDs, not the full member data
     const [expeditions, setExpeditions] = useState(() => {
         const saved = localStorage.getItem('dracker_expeditions');
-        return saved ? JSON.parse(saved) : [{ id: 1, name: 'Turma Principal', members: [] }];
+        if (!saved) {
+            return [{ id: 1, name: 'Turma Principal', memberIds: [], type: 'principal' }];
+        }
+        
+        const exps = JSON.parse(saved);
+        
+        // Migrate old format to new format
+        return exps.map(exp => {
+            let migrated = { ...exp };
+            
+            // Migrate members array to memberIds
+            if (exp.members && exp.members.length > 0 && !exp.memberIds) {
+                migrated = {
+                    ...migrated,
+                    memberIds: exp.members.map(m => m.id),
+                    members: undefined // Remove old format
+                };
+            }
+            
+            // Ensure memberIds exists
+            if (!migrated.memberIds) {
+                migrated.memberIds = [];
+            }
+            
+            // Migrate type (default to 'principal' for existing expeditions)
+            if (!migrated.type) {
+                migrated.type = 'principal';
+            }
+            
+            return migrated;
+        });
     });
 
     const [currentExpeditionId, setCurrentExpeditionId] = useState(null);
@@ -20,21 +74,43 @@ export const useDrackerState = () => {
     // Form State
     const [formData, setFormData] = useState({ name: '', gender: 'M', answers: {}, step: 0, photo: null, customDesc: '' });
 
-    // Persist expeditions whenever they change
+    // Migration: Save migrated data on first mount
+    useEffect(() => {
+        const savedExp = localStorage.getItem('dracker_expeditions');
+        if (savedExp) {
+            const exps = JSON.parse(savedExp);
+            // Check if migration is needed
+            const needsMigration = exps.some(exp => exp.members && exp.members.length > 0 && !exp.memberIds);
+            if (needsMigration) {
+                // Data was migrated, save it
+                localStorage.setItem('dracker_expeditions', JSON.stringify(expeditions));
+                localStorage.setItem('dracker_all_members', JSON.stringify(allMembers));
+            }
+        }
+    }, []); // Only run once on mount
+
+    // Persist both expeditions and members
     useEffect(() => {
         localStorage.setItem('dracker_expeditions', JSON.stringify(expeditions));
     }, [expeditions]);
 
+    useEffect(() => {
+        localStorage.setItem('dracker_all_members', JSON.stringify(allMembers));
+    }, [allMembers]);
+
     const currentExpedition = expeditions.find(e => e.id === currentExpeditionId);
+    
+    // Get members for current expedition (by resolving member IDs)
+    const currentMembers = currentExpedition?.memberIds?.map(memberId => allMembers.find(m => m.id === memberId)).filter(Boolean) || [];
 
     const actions = {
         // Navigation
         goHome: () => setView('lobby'),
         goTeam: (id) => { setCurrentExpeditionId(id); setView('team'); },
-        setExpeditions: (data) => setExpeditions(data), // Direct setter for imports
+        setExpeditions: (data) => setExpeditions(data),
 
         // Expeditions
-        createExpedition: (name) => setExpeditions([...expeditions, { id: Date.now(), name, members: [] }]),
+        createExpedition: (name, type = 'principal') => setExpeditions([...expeditions, { id: Date.now(), name, memberIds: [], type }]),
         renameExpedition: (id, newName) => {
             setExpeditions(prev => prev.map(e => e.id === id ? { ...e, name: newName } : e));
         },
@@ -42,39 +118,34 @@ export const useDrackerState = () => {
 
         // Granular Import Action
         importExpedition: (newExp, shouldMerge = false) => {
+            // Handle legacy format (members in expedition) or new format (memberIds)
+            const importedMembers = newExp.members || [];
+            const importedMemberIds = newExp.memberIds || [];
+            
             setExpeditions(prev => {
                 const existingIndex = prev.findIndex(e => e.name === newExp.name);
+                let newMemberIds = [];
 
                 if (existingIndex > -1 && shouldMerge) {
                     // MERGE STRATEGY
-                    const existingExp = prev[existingIndex];
-                    const mergedMembers = [...existingExp.members];
-
-                    newExp.members.forEach(newMem => {
-                        const memIndex = mergedMembers.findIndex(m => m.name === newMem.name);
-                        if (memIndex > -1) {
-                            // Update existing member
-                            mergedMembers[memIndex] = { ...mergedMembers[memIndex], ...newMem };
-                        } else {
-                            // Add new member
-                            mergedMembers.push(newMem);
-                        }
-                    });
-
-                    const updatedExpeditions = [...prev];
-                    updatedExpeditions[existingIndex] = { ...existingExp, members: mergedMembers };
-                    return updatedExpeditions;
-
+                    newMemberIds = [...prev[existingIndex].memberIds];
                 } else {
-                    // CREATE NEW / COPY STRATEGY
+                    newMemberIds = [];
+                }
+
+                // Add imported members
+                importedMemberIds.forEach(memberId => {
+                    if (!newMemberIds.includes(memberId)) {
+                        newMemberIds.push(memberId);
+                    }
+                });
+
+                if (existingIndex > -1 && shouldMerge) {
+                    const updatedExpeditions = [...prev];
+                    updatedExpeditions[existingIndex] = { ...prev[existingIndex], memberIds: newMemberIds };
+                    return updatedExpeditions;
+                } else {
                     let finalName = newExp.name;
-                    // If not merging but name exists, append (Cópia) to avoid confusion, 
-                    // or if it's a distinct Turma with same name? 
-                    // System doesn't technically forbid duplicate names, but it confuses the Merge logic logic above.
-                    // Let's enforce unique names for clarity if generating a new one?
-                    // User said: "Utilize também o fator de ser a mesma turma" -> Implies name isn't unique ID.
-                    // But if I create a new one with same name, future imports will be ambiguous.
-                    // Best practice: Append suffix if name collision and !merge.
                     if (existingIndex > -1) {
                         let counter = 1;
                         while (prev.some(e => e.name === `${newExp.name} (${counter})`)) counter++;
@@ -83,12 +154,22 @@ export const useDrackerState = () => {
 
                     const newExpedition = {
                         ...newExp,
-                        id: Date.now() + Math.floor(Math.random() * 1000), // Ensure unique ID
-                        name: finalName
+                        id: Date.now() + Math.floor(Math.random() * 1000),
+                        name: finalName,
+                        memberIds: newMemberIds
                     };
                     return [...prev, newExpedition];
                 }
             });
+
+            // Add imported members to central storage
+            if (importedMembers.length > 0) {
+                setAllMembers(prev => {
+                    const existingIds = new Set(prev.map(m => m.id));
+                    const newMembers = importedMembers.filter(m => !existingIds.has(m.id));
+                    return [...prev, ...newMembers];
+                });
+            }
         },
 
         // Quiz Flow
@@ -113,18 +194,83 @@ export const useDrackerState = () => {
                 photo: formData.photo,
                 registry: []
             };
-            setExpeditions(prev => prev.map(e => e.id === currentExpeditionId ? { ...e, members: [...e.members, newMember] } : e));
+            
+            // Add to central members storage
+            setAllMembers(prev => [...prev, newMember]);
+            
+            // Add member ID to current expedition
+            setExpeditions(prev => prev.map(e => e.id === currentExpeditionId ? { ...e, memberIds: [...e.memberIds, newMember.id] } : e));
             setView('team');
         },
+
         updateMember: (updatedMember) => {
-            setExpeditions(prev => prev.map(e => e.id === currentExpeditionId ? { ...e, members: e.members.map((m) => m.id === updatedMember.id ? updatedMember : m) } : e));
+            // Update in central storage
+            setAllMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
             setSelectedMember(updatedMember);
         },
+
         removeMember: (id) => {
-            setExpeditions(prev => prev.map(e => e.id === currentExpeditionId ? { ...e, members: e.members.filter((m) => m.id !== id) } : e));
+            // Remove member ID from current expedition only (not from central storage, as it might be used elsewhere)
+            setExpeditions(prev => prev.map(e => e.id === currentExpeditionId ? { ...e, memberIds: e.memberIds.filter(mId => mId !== id) } : e));
             setSelectedMember(null);
+        },
+
+        navigateMember: (direction, currentMemberId) => {
+            const members = currentMembers;
+            const targetId = currentMemberId || (selectedMember?.id);
+
+            const currentIndex = members.findIndex(m => String(m.id) === String(targetId));
+
+            if (currentIndex === -1) {
+                return;
+            }
+
+            let newIndex = currentIndex + direction;
+            if (newIndex < 0) newIndex = members.length - 1;
+            if (newIndex >= members.length) newIndex = 0;
+
+            setSelectedMember(members[newIndex]);
+        },
+
+        // Add member to another expedition (link, not copy)
+        addMemberToExpedition: (memberId, targetExpeditionId) => {
+            setExpeditions(prev => prev.map(e => {
+                if (e.id === Number(targetExpeditionId) && !e.memberIds.includes(memberId)) {
+                    return { ...e, memberIds: [...e.memberIds, memberId] };
+                }
+                return e;
+            }));
+        },
+
+        // Remove member from specific expedition (but keep in allMembers)
+        removeMemberFromExpedition: (memberId, expeditionId) => {
+            setExpeditions(prev => prev.map(e => {
+                if (e.id === Number(expeditionId)) {
+                    return { ...e, memberIds: e.memberIds.filter(id => id !== memberId) };
+                }
+                return e;
+            }));
+        },
+
+        // Legacy copyMember for backward compatibility
+        copyMember: (member, targetExpeditionId) => {
+            // Use the new addMemberToExpedition method (linking instead of copying)
+            actions.addMemberToExpedition(member.id, targetExpeditionId);
         }
     };
 
-    return { view, expeditions, currentExpedition, selectedMember, setSelectedMember, formData, actions, setFormData, setView };
+    return { 
+        view, 
+        expeditions: expeditions || [], 
+        currentExpedition, 
+        selectedMember, 
+        setSelectedMember, 
+        formData, 
+        actions, 
+        setFormData, 
+        setView,
+        allMembers: allMembers || [],
+        setAllMembers,
+        currentMembers: currentMembers || [] // Resolved members for current expedition
+    };
 };

@@ -167,7 +167,7 @@ export default function App() {
     handleMergeImport,
     handleReplaceImport,
     closeImportDialog
-  } = useBackupSystem(tabs, setTabs, setActiveTabId, drackerState.expeditions, drackerState.actions.setExpeditions);
+  } = useBackupSystem(tabs, setTabs, setActiveTabId, drackerState.expeditions, drackerState.actions.setExpeditions, drackerState.allMembers, drackerState.setAllMembers);
 
   // --- API VALIDATION ---
   useEffect(() => {
