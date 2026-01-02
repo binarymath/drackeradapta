@@ -545,6 +545,19 @@ const MemberModal = ({ member, expeditions = [], currentExpeditionId, onClose, o
     const archConfig = ARCHETYPES_CONFIG[member.archetype.title] || ARCHETYPES_CONFIG['Colibri Sonhador'];
     const ArchIcon = archConfig.icon;
 
+    const isDiversifiedType = (type) => typeof type === 'string' && type.toLowerCase().includes('divers');
+
+    const diversifiedExpeditions = (expeditions || []).filter(
+        e => e.id !== currentExpeditionId && isDiversifiedType(e.type)
+    );
+
+    const currentExpedition = (expeditions || []).find(e => e.id === currentExpeditionId);
+    const isDiversifiedExpedition = isDiversifiedType(currentExpedition?.type);
+
+    const memberExpeditions = (expeditions || []).filter(
+        e => Array.isArray(e.memberIds) && e.memberIds.includes(member.id)
+    );
+
     const handleCopy = (targetId) => {
         if (!targetId) return;
         if (window.confirm('Adicionar este explorador a outra turma?')) {
@@ -709,6 +722,20 @@ const MemberModal = ({ member, expeditions = [], currentExpeditionId, onClose, o
 
                         <h2 className="text-2xl font-extrabold text-white mb-2 leading-tight">{member.name}</h2>
 
+                        {memberExpeditions.length > 0 && (
+                            <div className="flex flex-wrap justify-center gap-1 mb-3 px-3">
+                                {memberExpeditions.map(exp => (
+                                    <span
+                                        key={exp.id}
+                                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full border backdrop-blur-sm ${isDiversifiedType(exp.type) ? 'bg-purple-100/80 text-purple-800 border-purple-200' : 'bg-white/80 text-brown-800 border-brown-200'}`}
+                                        title={`Turma: ${exp.name}`}
+                                    >
+                                        {exp.name}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+
                         {editingTrailId === 'phrase' ? (
                             <div className="w-full mb-6 animate-fade-in space-y-2">
                                 <TextArea
@@ -746,13 +773,16 @@ const MemberModal = ({ member, expeditions = [], currentExpeditionId, onClose, o
                             </button>
 
                             {(() => {
-                                const currentExp = expeditions?.find(e => e.id === currentExpeditionId);
-                                const isPrincipal = currentExp?.type === 'principal' || !currentExp?.type;
-                                const availableExpeditions = isPrincipal 
-                                    ? expeditions.filter(e => e.id !== currentExpeditionId && e.type === 'diversificada')
-                                    : [];
-                                
-                                return isPrincipal && availableExpeditions.length > 0 && (
+                                if (diversifiedExpeditions.length === 0) {
+                                    if (isDiversifiedExpedition) return null;
+                                    return (
+                                        <div className="w-full text-center text-[11px] text-brown-500 bg-white/60 border border-dashed border-brown-200 rounded-lg py-2 px-3">
+                                            Crie uma Turma Diversificada no Lobby para liberar este seletor.
+                                        </div>
+                                    );
+                                }
+
+                                return (
                                     <select
                                         className="w-full p-2 text-xs border border-brown-200 rounded-lg text-center bg-white/80 text-brown-800 hover:bg-white focus:bg-white transition-colors cursor-pointer font-medium"
                                         onChange={(e) => {
@@ -762,7 +792,7 @@ const MemberModal = ({ member, expeditions = [], currentExpeditionId, onClose, o
                                         defaultValue=""
                                     >
                                         <option value="" disabled>Adicionar a turma...</option>
-                                        {availableExpeditions.map(e => (
+                                        {diversifiedExpeditions.map(e => (
                                             <option key={e.id} value={e.id}>{e.name}</option>
                                         ))}
                                     </select>
@@ -1034,13 +1064,11 @@ const MemberModal = ({ member, expeditions = [], currentExpeditionId, onClose, o
                                 {isGeneratingMessage ? <span className="animate-pulse">Gerando...</span> : <><Download size={16} /> Baixar PDF</>}
                             </button>
                             {(() => {
-                                const currentExp = expeditions?.find(e => e.id === currentExpeditionId);
-                                const isPrincipal = currentExp?.type === 'principal' || !currentExp?.type;
-                                const availableExpeditions = isPrincipal 
-                                    ? expeditions.filter(e => e.id !== currentExpeditionId && e.type === 'diversificada')
-                                    : [];
-                                
-                                return isPrincipal && availableExpeditions.length > 0 && (
+                                if (diversifiedExpeditions.length === 0) {
+                                    return null;
+                                }
+
+                                return (
                                     <div className="mb-3">
                                         <select
                                             className="w-full p-2 text-xs border border-brown-300 rounded-lg text-center bg-brown-50 text-brown-800 h-10"
@@ -1051,7 +1079,7 @@ const MemberModal = ({ member, expeditions = [], currentExpeditionId, onClose, o
                                             defaultValue=""
                                         >
                                             <option value="" disabled>Adicionar a turma...</option>
-                                            {availableExpeditions.map(e => (
+                                            {diversifiedExpeditions.map(e => (
                                                 <option key={e.id} value={e.id}>{e.name}</option>
                                             ))}
                                         </select>
