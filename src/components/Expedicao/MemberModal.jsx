@@ -5,6 +5,7 @@ import { Input, TextArea } from '../ui/Input';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { getTrails, ARCHETYPES_CONFIG } from './ArchetypesConfig.jsx'; // Import central config
+import { determineArchetype } from '../../utils/drackerArchetypes';
 import html2pdf from 'html2pdf.js';
 
 // Helper to generate PDF (simplified for extraction, or pass as util)
@@ -558,6 +559,19 @@ const MemberModal = ({ member, expeditions = [], currentExpeditionId, onClose, o
         e => Array.isArray(e.memberIds) && e.memberIds.includes(member.id)
     );
 
+    const autoArchetype = determineArchetype(member.answers, member.gender);
+
+    const handleAnimalEdit = () => {
+        const next = window.prompt('Defina o animal da floresta (deixe vazio para automático):', member?.archetype?.title || autoArchetype.title || '');
+        if (next === null) return;
+        const title = next.trim();
+        if (!title) {
+            onUpdate(member.id, { ...member, archetype: { ...autoArchetype, desc: member.archetype.desc || autoArchetype.desc } });
+            return;
+        }
+        onUpdate(member.id, { ...member, archetype: { ...member.archetype, title } });
+    };
+
     const handleCopy = (targetId) => {
         if (!targetId) return;
         if (window.confirm('Adicionar este explorador a outra turma?')) {
@@ -712,10 +726,18 @@ const MemberModal = ({ member, expeditions = [], currentExpeditionId, onClose, o
                                         </button>
                                     </div>
                                 </div>
-                                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap">
+                                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap flex items-center gap-2">
                                     <Badge className="bg-white text-brown-800 shadow-sm border border-brown-100 px-3">
                                         {member.archetype.title}
                                     </Badge>
+                                    <button
+                                        type="button"
+                                        onClick={handleAnimalEdit}
+                                        className="p-1.5 rounded-full bg-brown-700 text-white hover:bg-brown-800 shadow-md border border-brown-800 transition-all focus:outline-none focus:ring-2 focus:ring-white/80"
+                                        title="Editar animalzinho"
+                                    >
+                                        <Pencil size={14} strokeWidth={2.5} />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -744,11 +766,18 @@ const MemberModal = ({ member, expeditions = [], currentExpeditionId, onClose, o
                                     className="text-center text-sm italic min-h-[60px] text-brown-900"
                                 />
                                 <div className="flex justify-center gap-2">
-                                    <Button size="sm" variant="ghost" className="text-white hover:text-white/80 hover:bg-white/10" onClick={() => setEditingTrailId(null)}>Can</Button>
-                                    <Button size="sm" className="bg-white text-brown-900 hover:bg-gray-100" onClick={() => {
-                                        onUpdate(member.id, { archetype: { ...member.archetype, desc: editValue } });
-                                        setEditingTrailId(null);
-                                    }}>Salvar</Button>
+                                    <Button size="sm" variant="ghost" className="text-white hover:text-white/80 hover:bg-white/10" onClick={() => setEditingTrailId(null)}>Cancelar</Button>
+                                    <Button
+                                        size="sm"
+                                        variant="secondary"
+                                        className="text-brown-900 font-bold px-4"
+                                        onClick={() => {
+                                            onUpdate(member.id, { archetype: { ...member.archetype, desc: editValue } });
+                                            setEditingTrailId(null);
+                                        }}
+                                    >
+                                        Salvar
+                                    </Button>
                                 </div>
                             </div>
                         ) : (
