@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { memoryService } from './memoryService';
 
+const PAIR_COLORS = [
+    'ring-red-500', 'ring-orange-500', 'ring-amber-500',
+    'ring-lime-500', 'ring-emerald-500', 'ring-teal-500',
+    'ring-cyan-500', 'ring-sky-500', 'ring-blue-500',
+    'ring-indigo-500', 'ring-violet-500', 'ring-purple-500',
+    'ring-fuchsia-500', 'ring-pink-500', 'ring-rose-500'
+];
+
 export const useMemoryGame = (geminiService, initialData = {}) => {
     const [gameState, setGameState] = useState(initialData.gameState || 'input'); // input, loading, playing, won
     const [topic, setTopic] = useState(initialData.topic || '');
@@ -16,6 +24,29 @@ export const useMemoryGame = (geminiService, initialData = {}) => {
     const [bgImage, setBgImage] = useState(initialData.bgImage || null);
     const [cardBackImage, setCardBackImage] = useState(initialData.cardBackImage || '/dracker_memory_back.png');
     const [useCardImages, setUseCardImages] = useState(initialData.useCardImages !== undefined ? initialData.useCardImages : true);
+
+    // Helper to assign colors to pairs
+    const assignColorsToPairs = (rawCards) => {
+        if (!rawCards || rawCards.length === 0) return [];
+
+        // Find unique pairIds
+        const pairIds = [...new Set(rawCards.map(c => c.pairId))];
+
+        // Shuffle colors
+        const shuffledColors = [...PAIR_COLORS].sort(() => Math.random() - 0.5);
+
+        // Map pairId -> Color
+        const colorMap = {};
+        pairIds.forEach((pid, idx) => {
+            colorMap[pid] = shuffledColors[idx % shuffledColors.length];
+        });
+
+        // Assign to cards
+        return rawCards.map(c => ({
+            ...c,
+            color: colorMap[c.pairId]
+        }));
+    };
 
     // FAIL-SAFE: Re-hydrate se receber dados novos enquanto está resetado
     useEffect(() => {
@@ -110,7 +141,10 @@ export const useMemoryGame = (geminiService, initialData = {}) => {
                 return;
             }
 
-            const shuffled = [...generatedCards].sort(() => Math.random() - 0.5);
+            // Assign colors before shuffling
+            const coloredCards = assignColorsToPairs(generatedCards);
+            const shuffled = [...coloredCards].sort(() => Math.random() - 0.5);
+
             setCards(shuffled);
             setSolved([]);
             setFlipped([]);
@@ -127,8 +161,10 @@ export const useMemoryGame = (geminiService, initialData = {}) => {
 
     const startGameFromBuilder = (gameTopic, gameData) => {
         // Accepts pre-formatted cards (from AI or Manual Modal)
+        // Assign colors before shuffling
+        const coloredCards = assignColorsToPairs(gameData);
         // Shuffle ensures randomness even if input was ordered
-        const shuffled = [...gameData].sort(() => Math.random() - 0.5);
+        const shuffled = [...coloredCards].sort(() => Math.random() - 0.5);
 
         setTopic(gameTopic);
         setCards(shuffled);

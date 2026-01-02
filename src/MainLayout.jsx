@@ -200,12 +200,6 @@ export const MainLayout = () => {
     };
 
     // Exports
-    const handleDownloadDoc = async () => {
-        if (!activityAreaRef.current) return alert('Área de atividade não encontrada.');
-        try {
-            await ExportService.exportToDOCX(activityAreaRef.current, activeActivity?.title || topic || 'Atividade');
-        } catch (e) { alert("Erro ao gerar DOC: " + e.message); }
-    };
     const handleDownloadPdf = async () => {
         if (!activityAreaRef.current) return alert('Área de atividade não encontrada.');
         try {
@@ -220,11 +214,6 @@ export const MainLayout = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    };
-    const handleCopy = () => {
-        if (!activeActivity) return;
-        const cleanText = activeActivity.content.replace(/\*\*/g, '').replace(/#/g, '').trim();
-        navigator.clipboard.writeText(cleanText).then(() => alert("Copiado!"));
     };
 
     // Backup
@@ -325,8 +314,6 @@ export const MainLayout = () => {
                         showAnswers={showAnswers}
                         setShowAnswers={setShowAnswers}
                         // Actions
-                        handleCopy={handleCopy}
-                        handleDownloadDoc={handleDownloadDoc}
                         handleDownloadPdf={handleDownloadPdf}
                         activityAreaRef={activityAreaRef}
                         // View Setters

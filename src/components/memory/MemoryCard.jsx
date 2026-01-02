@@ -28,7 +28,7 @@ const MemoryCard = ({ card, isFlipped, isSolved, onClick, cardBackImage, useCard
 
                 {/* FRENTE (FRONT) */}
                 <div className={`absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-xl overflow-hidden flex flex-col items-center justify-center text-center 
-            ${isSolved ? 'ring-4 ring-green-500 z-30' : card.type === 'question' ? 'ring-2 ring-indigo-300' : 'ring-2 ring-amber-300'} 
+            ${(isFlipped || isSolved) ? `ring-4 ${card.color || 'ring-gray-300'} z-30` : 'ring-1 ring-slate-200'}
             bg-white border-2 border-slate-100 shadow-md`}
                 >
                     {useCardImages && contentImageUrl && (

@@ -149,7 +149,7 @@ export const MusicActivityRenderer = ({
                         <span className="text-6xl print:text-8xl">📝</span>
                     </div>
                     <div className="flex justify-between items-center mb-6 border-b border-brown-100 pb-4 print:border-brown-800 print:mb-8">
-                        <h2 className="text-xl font-bold text-brown-900 print:text-3xl print:font-serif mb-0">
+                        <h2 className="text-xl font-bold text-brown-900 print:text-orange-600 print:text-3xl print:font-serif mb-0">
                             Perguntas de Interpretação: <span className="text-purple-700">{musicData.title}</span>
                         </h2>
                         <div className="flex items-center gap-4 z-10 no-pdf print:hidden">

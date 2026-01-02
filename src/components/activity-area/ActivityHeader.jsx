@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Copy, FileText, Download, Check, Pencil } from 'lucide-react';
+import { FileText, Check, Pencil } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export const ActivityHeader = ({
@@ -9,8 +9,6 @@ export const ActivityHeader = ({
     onEdit,
     showAnswers,
     setShowAnswers,
-    handleCopy,
-    handleDownloadDoc,
     handleDownloadPdf,
     foundWords
 }) => {
@@ -48,9 +46,7 @@ export const ActivityHeader = ({
                         )}
                         {activityType !== 'memory' && (
                             <>
-                                <Button onClick={handleCopy} variant="ghost" className="h-8 w-8 p-0" icon={Copy} title="Copiar" />
-                                <Button onClick={handleDownloadDoc} variant="ghost" className="h-8 w-8 p-0" icon={FileText} title="Baixar DOCX" />
-                                <Button onClick={handleDownloadPdf} variant="ghost" className="h-8 w-8 p-0" icon={Download} title="Imprimir PDF" />
+                                <Button onClick={handleDownloadPdf} variant="ghost" className="h-8 w-8 p-0" icon={FileText} title="Imprimir PDF" />
                             </>
                         )}
                     </>

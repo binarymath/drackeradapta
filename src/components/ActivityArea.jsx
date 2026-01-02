@@ -31,8 +31,6 @@ export const ActivityArea = ({
     foundWords,
     showAnswers,
     setShowAnswers,
-    handleCopy,
-    handleDownloadDoc,
     handleDownloadPdf,
     activityAreaRef,
     wordsearchTitle,
@@ -114,8 +112,6 @@ export const ActivityArea = ({
                     onEdit={onEdit}
                     showAnswers={showAnswers}
                     setShowAnswers={setShowAnswers}
-                    handleCopy={handleCopy}
-                    handleDownloadDoc={handleDownloadDoc}
                     handleDownloadPdf={handleDownloadPdf}
                     foundWords={foundWords}
                 />
