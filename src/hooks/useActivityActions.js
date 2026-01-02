@@ -3,27 +3,37 @@ import { generateMusicActivity } from '../core/usecases/generateMusicActivity';
 import { generateQuizActivity } from '../core/usecases/generateQuizActivity';
 import { generateDrackerActivity } from '../core/usecases/generateDrackerActivity';
 
-export const useActivityActions = ({
-    apiKey,
-    topic,
-    lessonDetails,
-    difficulty,
-    activityType,
-    setActivityType,
-    selectedModel,
-    geminiService,
-    addActivityTab,
-    setTabs,
-    setIsEditing,
-    isEditing,
-    activeTabId,
-    generateAudio,
-    setShowSettings,
-}) => {
+import { useActivity } from '../contexts/ActivityContext';
+import { useGemini } from '../contexts/GeminiContext';
+import { useAudio } from '../contexts/AudioContext';
+
+export const useActivityActions = () => {
+    const {
+        topic,
+        lessonDetails,
+        difficulty,
+        activityType,
+        setActivityType,
+        addActivityTab,
+        setTabs,
+        activeTabId,
+        isEditing,
+        setIsEditing,
+    } = useActivity();
+
+    const {
+        apiKey,
+        geminiService,
+        selectedModel,
+        setShowSettings,
+        setSystemStatus,
+    } = useGemini();
+
+    const { generateAudio } = useAudio();
+
     // Loading & Error States
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    const [systemStatus, setSystemStatus] = useState(null);
 
     // Editor States
     const [showQuizEditor, setShowQuizEditor] = useState(false);
@@ -372,7 +382,6 @@ export const useActivityActions = ({
     const handleCrosswordConfirm = async (editedData) => {
         try {
             // Dynamic import to avoid heavy load if not needed? Or just standard import if cheap.
-            // Assuming 'utils/crosswordGenerator' is available
             const { generateCrossword } = await import('../utils/crosswordGenerator');
 
             const layout = generateCrossword(editedData.words, 15);
@@ -434,12 +443,15 @@ export const useActivityActions = ({
         setShowConnectDotsEditor(true);
     };
 
+    // Move handleWordsearchComplete here or nearby logic? 
+    // It's used by AppModals. I can expose it from here if I want.
+    // For now I won't, to avoid changing AppModals signature too much, 
+    // but I can pass it down from MainLayout.
+
     return {
         isLoading,
         error,
         setError,
-        systemStatus,
-        setSystemStatus,
         handleGenerate,
 
         // Editor States & Setters
