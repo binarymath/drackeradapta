@@ -46,9 +46,13 @@ export const ActivityHeader = ({
                                 {showAnswers ? 'Respostas' : 'Respostas'}
                             </Button>
                         )}
-                        <Button onClick={handleCopy} variant="ghost" className="h-8 w-8 p-0" icon={Copy} title="Copiar" />
-                        <Button onClick={handleDownloadDoc} variant="ghost" className="h-8 w-8 p-0" icon={FileText} title="Baixar DOCX" />
-                        <Button onClick={handleDownloadPdf} variant="ghost" className="h-8 w-8 p-0" icon={Download} title="Imprimir PDF" />
+                        {activityType !== 'memory' && (
+                            <>
+                                <Button onClick={handleCopy} variant="ghost" className="h-8 w-8 p-0" icon={Copy} title="Copiar" />
+                                <Button onClick={handleDownloadDoc} variant="ghost" className="h-8 w-8 p-0" icon={FileText} title="Baixar DOCX" />
+                                <Button onClick={handleDownloadPdf} variant="ghost" className="h-8 w-8 p-0" icon={Download} title="Imprimir PDF" />
+                            </>
+                        )}
                     </>
                 )}
             </div>

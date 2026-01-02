@@ -139,6 +139,17 @@ export const useActivityActions = () => {
                 return;
             }
 
+            if (activityType === 'memory') {
+                addActivityTab({
+                    title: topic || "Jogo da Memória",
+                    type: 'memory',
+                    content: 'Jogo da Memória',
+                    data: { openModal: true }
+                });
+                setIsLoading(false);
+                return;
+            }
+
             if (activityType === 'connect_dots') {
                 const data = await geminiService.generateConnectDots(topic);
                 addActivityTab({

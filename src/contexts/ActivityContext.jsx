@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { safeLocalStorageGet, safeLocalStorageSet, safeLocalStorageRemove } from '../utils/storage';
 import {
-    FileText, MessageSquare, Grid, Music, BrainCircuit, Play, Files, Compass
+    FileText, MessageSquare, Grid, Music, BrainCircuit, Play, Files, Compass, Brain
 } from 'lucide-react';
 
 const ActivityContext = createContext();
@@ -122,6 +122,7 @@ export const ActivityProvider = ({ children }) => {
         { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-4 h-4" /> },
         { id: 'summary', label: 'Aprenda com o Drácker', icon: <MessageSquare className="w-4 h-4" /> },
         { id: 'simplify', label: 'Música do Drácker', icon: <Music className="w-4 h-4" /> },
+        { id: 'memory', label: 'Jogo da Memória', icon: <Brain className="w-4 h-4" /> },
         { id: 'connect_dots', label: 'Liga Pontos', icon: <BrainCircuit className="w-4 h-4" /> },
         { id: 'video_gallery', label: 'Galeria Drácker', icon: <Play className="w-4 h-4" /> },
         { id: 'expedition', label: 'Expedição Drácker', icon: <Compass className="w-4 h-4" /> },
@@ -144,12 +145,22 @@ export const ActivityProvider = ({ children }) => {
         }
     }, [activeActivity]);
 
+    const updateActivityData = (tabId, newData) => {
+        setTabs(prev => prev.map(t => {
+            if (t.id === tabId) {
+                return { ...t, ...newData };
+            }
+            return t;
+        }));
+    };
+
     return (
         <ActivityContext.Provider value={{
             tabs, setTabs,
             activeTabId, setActiveTabId,
             activeActivity,
             addActivityTab, closeTab, handleTabsReorder,
+            updateActivityData,
 
             topic, setTopic,
             lessonDetails, setLessonDetails,

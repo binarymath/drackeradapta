@@ -10,6 +10,7 @@ import DrackerVideoGallery from './DrackerVideoGallery';
 import ExpedicaoDracker from './ExpedicaoDracker';
 import { PDFMergerTool } from './PDFMergerTool';
 import { AboutSystem } from './AboutSystem';
+import MemoryGame from './memory/MemoryGame';
 
 import html2pdf from 'html2pdf.js';
 
@@ -261,6 +262,8 @@ export const ActivityArea = ({
                                     data={connectDotsData}
                                     isGameMode={isGameMode}
                                 />
+                            ) : activityType === 'memory' ? (
+                                <MemoryGame />
                             ) : (
                                 /* Default Text Renderer (Quiz Print Mode / Wordsearch Print Mode) */
                                 <>
