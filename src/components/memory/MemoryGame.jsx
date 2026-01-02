@@ -19,6 +19,7 @@ const MemoryGame = () => {
     // Config Modal State
     const [showConfigModal, setShowConfigModal] = useState(false);
     const [showPrintPreview, setShowPrintPreview] = useState(false);
+    const [showVictoryModal, setShowVictoryModal] = useState(false);
 
     const {
         gameState, setGameState,
@@ -41,6 +42,15 @@ const MemoryGame = () => {
         // If state is 'input' (default initial) and we are not loading, show modal
         if (gameState === 'input' && !showConfigModal) {
             setShowConfigModal(true);
+        }
+    }, [gameState]);
+
+    // Show Victory Modal when game is won
+    useEffect(() => {
+        if (gameState === 'won') {
+            setShowVictoryModal(true);
+        } else {
+            setShowVictoryModal(false);
         }
     }, [gameState]);
 
@@ -257,8 +267,8 @@ const MemoryGame = () => {
             </Modal>
 
             <MemoryVictoryModal
-                isOpen={gameState === 'won'}
-                onClose={() => { }} // Block closing without action? Or allow review board? Let's keep open or restart.
+                isOpen={showVictoryModal}
+                onClose={() => setShowVictoryModal(false)}
                 moves={moves}
                 time={time}
                 topic={topic}

@@ -139,7 +139,7 @@ export const ActivityProvider = ({ children }) => {
     useEffect(() => {
         if (activeActivity) {
             setTopic(activeActivity.title || '');
-            if (['quiz', 'wordsearch', 'crossword', 'summary', 'simplify', 'connect_dots', 'video_gallery'].includes(activeActivity.type)) {
+            if (['quiz', 'wordsearch', 'crossword', 'summary', 'simplify', 'connect_dots', 'video_gallery', 'memory'].includes(activeActivity.type)) {
                 setActivityType(activeActivity.type);
             }
         }

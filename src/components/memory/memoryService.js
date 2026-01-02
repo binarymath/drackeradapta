@@ -37,16 +37,19 @@ export const memoryService = {
         if (geminiService) {
             try {
                 // Prompt para texto plano (Mais robusto que JSON)
-                const prompt = `Gere 10 perguntas e respostas sobre "${topic}".
+                const prompt = `Gere 10 perguntas e respostas ÚNICAS sobre "${topic}".
                 Formato OBRIGATÓRIO por linha: PERGUNTA | RESPOSTA
-                Sem numeração, sem markdown, apenas o texto bruto.
-                As perguntas DEVEM terminar com interrogação "?".
+                
+                REGRAS RÍGIDAS:
+                1. NUNCA repita a mesma pergunta ou resposta.
+                2. Sem numeração, sem markdown, apenas o texto bruto.
+                3. As perguntas DEVEM terminar com interrogação "?".
+                4. As respostas devem ser curtas (máx 3 palavras).
+                5. Gere exatamente 10 pares distintos.
+                
                 Exemplo:
                 Qual a capital da França? | Paris
-                Quanto é 2 + 2? | 4
-                
-                As respostas devem ser curtas (máx 3 palavras).
-                Exatamente 10 linhas.`;
+                Quanto é 2 + 2? | 4`;
 
                 // Usa o serviço centralizado do app (que já trata retry/models/key)
                 const text = await geminiService.generateText(prompt, { temperature: 0.7, model });

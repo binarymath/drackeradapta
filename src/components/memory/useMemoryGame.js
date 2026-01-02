@@ -14,7 +14,7 @@ export const useMemoryGame = (geminiService, initialData = {}) => {
 
     // Customização Visual
     const [bgImage, setBgImage] = useState(initialData.bgImage || null);
-    const [cardBackImage, setCardBackImage] = useState(initialData.cardBackImage || null);
+    const [cardBackImage, setCardBackImage] = useState(initialData.cardBackImage || '/dracker_memory_back.png');
     const [useCardImages, setUseCardImages] = useState(initialData.useCardImages !== undefined ? initialData.useCardImages : true);
 
     // FAIL-SAFE: Re-hydrate se receber dados novos enquanto está resetado
