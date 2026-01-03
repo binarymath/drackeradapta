@@ -185,12 +185,17 @@ export const useActivityActions = () => {
 
             if (activityType === 'crossword') {
                 try {
-                    const firstBrace = text.indexOf('{');
-                    const lastBrace = text.lastIndexOf('}');
-                    if (firstBrace === -1 || lastBrace === -1) throw new Error("JSON não encontrado.");
+                    // Import dynamically or if defined above
+                    // We need safeJSONParse here. Since we are inside a hook, we can import it at the top of file
+                    // But wait, imports must be at top level. I will assume it is imported or I will adjust file content.
+                    // For this tool call, I'm replacing lines. I should probably add the import too if missing.
+                    // Let's assume I check imports next. For now, replacing logic.
 
-                    const cleanJson = text.substring(firstBrace, lastBrace + 1);
-                    const parsedData = JSON.parse(cleanJson);
+                    // Use the safe parser
+                    const { safeJSONParse } = await import('../utils/jsonUtils');
+                    const parsedData = safeJSONParse(text);
+
+                    if (!parsedData) throw new Error("JSON inválido ou não encontrado na resposta.");
 
                     if (parsedData.words) {
                         parsedData.words = parsedData.words.map(w => ({

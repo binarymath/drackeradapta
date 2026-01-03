@@ -3,12 +3,12 @@ import { determineArchetype } from '../utils/drackerArchetypes';
 
 export const useDrackerState = () => {
     const [view, setView] = useState('lobby');
-    
+
     // Centralized members storage - shared across expeditions
     const [allMembers, setAllMembers] = useState(() => {
         const saved = localStorage.getItem('dracker_all_members');
         let members = saved ? JSON.parse(saved) : [];
-        
+
         // Migrate old expeditions if needed
         const savedExpeditions = localStorage.getItem('dracker_expeditions');
         if (savedExpeditions) {
@@ -28,7 +28,7 @@ export const useDrackerState = () => {
                 localStorage.setItem('dracker_all_members', JSON.stringify(members));
             }
         }
-        
+
         return members;
     });
 
@@ -38,13 +38,13 @@ export const useDrackerState = () => {
         if (!saved) {
             return [{ id: 1, name: 'Turma Principal', memberIds: [], type: 'principal' }];
         }
-        
+
         const exps = JSON.parse(saved);
-        
+
         // Migrate old format to new format
         return exps.map(exp => {
             let migrated = { ...exp };
-            
+
             // Migrate members array to memberIds
             if (exp.members && exp.members.length > 0 && !exp.memberIds) {
                 migrated = {
@@ -53,17 +53,17 @@ export const useDrackerState = () => {
                     members: undefined // Remove old format
                 };
             }
-            
+
             // Ensure memberIds exists
             if (!migrated.memberIds) {
                 migrated.memberIds = [];
             }
-            
+
             // Migrate type (default to 'principal' for existing expeditions)
             if (!migrated.type) {
                 migrated.type = 'principal';
             }
-            
+
             return migrated;
         });
     });
@@ -99,7 +99,7 @@ export const useDrackerState = () => {
     }, [allMembers]);
 
     const currentExpedition = expeditions.find(e => e.id === currentExpeditionId);
-    
+
     // Get members for current expedition (by resolving member IDs)
     const currentMembers = currentExpedition?.memberIds?.map(memberId => allMembers.find(m => m.id === memberId)).filter(Boolean) || [];
 
@@ -121,7 +121,7 @@ export const useDrackerState = () => {
             // Handle legacy format (members in expedition) or new format (memberIds)
             const importedMembers = newExp.members || [];
             const importedMemberIds = newExp.memberIds || [];
-            
+
             setExpeditions(prev => {
                 const existingIndex = prev.findIndex(e => e.name === newExp.name);
                 let newMemberIds = [];
@@ -172,6 +172,16 @@ export const useDrackerState = () => {
             }
         },
 
+        // Helper for bulk importing members (used by scoped backup)
+        importMembers: (newMembers) => {
+            if (!newMembers || !Array.isArray(newMembers)) return;
+            setAllMembers(prev => {
+                const existingIds = new Set(prev.map(m => m.id));
+                const uniqueNew = newMembers.filter(m => !existingIds.has(m.id));
+                return [...prev, ...uniqueNew];
+            });
+        },
+
         // Quiz Flow
         startQuiz: (name, gender) => { setFormData({ name, gender, answers: {}, step: 0, photo: null, customDesc: '' }); setView('quiz'); },
         answerQuiz: (trailId, answer) => setFormData(prev => ({ ...prev, answers: { ...prev.answers, [trailId]: answer } })),
@@ -194,10 +204,10 @@ export const useDrackerState = () => {
                 photo: formData.photo,
                 registry: []
             };
-            
+
             // Add to central members storage
             setAllMembers(prev => [...prev, newMember]);
-            
+
             // Add member ID to current expedition
             setExpeditions(prev => prev.map(e => e.id === currentExpeditionId ? { ...e, memberIds: [...e.memberIds, newMember.id] } : e));
             setView('team');
@@ -259,15 +269,15 @@ export const useDrackerState = () => {
         }
     };
 
-    return { 
-        view, 
-        expeditions: expeditions || [], 
-        currentExpedition, 
-        selectedMember, 
-        setSelectedMember, 
-        formData, 
-        actions, 
-        setFormData, 
+    return {
+        view,
+        expeditions: expeditions || [],
+        currentExpedition,
+        selectedMember,
+        setSelectedMember,
+        formData,
+        actions,
+        setFormData,
         setView,
         allMembers: allMembers || [],
         setAllMembers,

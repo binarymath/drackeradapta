@@ -26,11 +26,33 @@ export default function ExpedicaoDracker({ drackerState }) {
 
     // --- Actions Wrappers ---
 
-    const handleImport = (data) => {
-        if (Array.isArray(data)) {
-            data.forEach(exp => actions.importExpedition(exp, false));
+    const handleImport = (payload) => {
+        let expsToImport = [];
+        let membersToImport = [];
+
+        // Normalize payload
+        if (Array.isArray(payload)) {
+            expsToImport = payload; // Legacy array
+        } else if (payload && payload.expeditions) {
+            expsToImport = payload.expeditions;
+            membersToImport = payload.allMembers || [];
         } else {
-            actions.importExpedition(data, false);
+            // Fallback for single object legacy passed as not array
+            if (payload) expsToImport = [payload];
+        }
+
+        // 1. Merge Members (if provided in payload)
+        if (membersToImport.length > 0) {
+            actions.importMembers(membersToImport);
+        }
+
+        // 2. Merge Expeditions
+        if (expsToImport.length > 0) {
+            expsToImport.forEach(exp => actions.importExpedition(exp, false));
+            // 'false' means we don't force overwrite, we create copies if conflict (default behavior of importExpedition logic update needed?
+            // Actually importExpedition logic says: if existing name, it appends (1), or stays same?
+            // "if existingIndex > -1 && shouldMerge" it merges. shouldMerge passed as false here.
+            // So it will create duplicates with (1) suffix which is safer for scoped import.
         }
     };
 
@@ -83,7 +105,7 @@ export default function ExpedicaoDracker({ drackerState }) {
     if (view === 'team') {
         const activeExpedition = currentExpedition || expeditions.find(e => e.id === drackerState.currentExpeditionId);
         const isDiversificada = activeExpedition?.type === 'diversificada';
-        
+
         return (
             <>
                 <TeamView

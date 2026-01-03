@@ -1,8 +1,11 @@
 export const safeJSONParse = (text) => {
     if (!text) return null;
 
-    // 1. Remove Markdown Wrappers (```json ... ```)
-    let clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    // 1. Remove Markdown Wrappers (```json ... ```) case-insensitively
+    // We also remove the "json" label if it appears alone at the start
+    let clean = text.replace(/```json\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .trim();
 
     // 2. Extract JSON Object or Array
     // Find first '{' or '['
@@ -34,13 +37,14 @@ export const safeJSONParse = (text) => {
 
         // Fix 1: Trailing commas
         // Replaces ,} with } and ,] with ]
-        let fixed = clean.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+        let fixed = clean
+            .replace(/,\s*}/g, '}')
+            .replace(/,\s*]/g, ']');
 
         try {
             return JSON.parse(fixed);
         } catch (e2) {
-            console.warn("JSON Parse failed even after simple fixes:", e2);
-            // If needed, we could add more aggressive fixes here (comments removal etc)
+            console.warn("JSON Parse failed even after simple fixes. Raw:", text, "Cleaned:", clean);
             return null; // Return null to indicate failure
         }
     }

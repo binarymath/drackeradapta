@@ -88,22 +88,17 @@ export async function generateDrackerActivity({ topic, lessonDetails, difficulty
 
   let parsed = {};
 
-  // 1. Clean Markdown wrappers
-  let cleanRaw = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-
-  // 2. Extract JSON block if surrounded by text
-  const firstBrace = cleanRaw.indexOf('{');
-  const lastBrace = cleanRaw.lastIndexOf('}');
-
-  if (firstBrace !== -1 && lastBrace !== -1) {
-    cleanRaw = cleanRaw.slice(firstBrace, lastBrace + 1);
-  }
-
-  // 3. Try Direct Parse
+  // 1. Try centralized safe parser first
   try {
-    parsed = JSON.parse(cleanRaw);
+    const { safeJSONParse } = await import('../../utils/jsonUtils');
+    parsed = safeJSONParse(raw) || {};
+
+    // If parsed is empty (safeJSONParse returns null/null-like), throw to trigger fallback
+    if (!parsed || Object.keys(parsed).length === 0) {
+      throw new Error("Safe parse failed or empty");
+    }
   } catch (e) {
-    console.warn('Falha ao converter JSON do Drácker (parse direto). Tentando recuperação via regex.', e);
+    console.warn('Falha ao converter JSON do Drácker (safeParser). Tentando recuperação via regex.', e);
 
     // 4. Fallback: Regex Scavenger Mode
     // Finds "story": "..." and activity objects anywhere in the text
@@ -124,15 +119,15 @@ export async function generateDrackerActivity({ topic, lessonDetails, difficulty
     for (const block of allBraceBlocks) {
       // Look for title + (materials OR steps) inside any block
       const titleM = block.match(/"(?:title|nome|t[ií]tulo)"\s*:\s*"((?:[^"\\]|\\.)*)"/i);
-      const matM = block.match(/"(?:materials|materiais|recursos)"\s*:\s*"((?:[^"\\]|\\.)*)"/i);
-      const stepsM = block.match(/"(?:steps|passos|instru[cç][oõ]es)"\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+      const materials = block.match(/"(?:materials|materiais|recursos)"\s*:\s*"((?:[^"\\]|\\.)*)"/i);
+      const steps = block.match(/"(?:steps|passos|instru[cç][oõ]es)"\s*:\s*"((?:[^"\\]|\\.)*)"/i);
 
-      if (titleM && (matM || stepsM)) {
+      if (titleM && (materials || steps)) {
         const extract = (m) => m ? m[1].replace(/\\"/g, '"').replace(/\\n/g, '\n') : '';
         scavengerActivities.push({
           title: extract(titleM),
-          materials: extract(matM),
-          steps: extract(stepsM)
+          materials: extract(materials),
+          steps: extract(steps)
         });
       }
     }

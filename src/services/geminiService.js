@@ -340,9 +340,10 @@ class GeminiService {
 
     try {
       const text = await this.generateText(prompt, { temperature: 0.8 });
-      // Limpa markdown se houver
-      const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      const data = JSON.parse(cleanText);
+
+      // Use centralized safe parser
+      const { safeJSONParse } = await import('../utils/jsonUtils');
+      const data = safeJSONParse(text);
 
       if (!Array.isArray(data)) throw new Error("Formato inválido recebido da IA");
 
