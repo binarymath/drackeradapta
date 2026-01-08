@@ -11,6 +11,7 @@ import ExpedicaoDracker from './ExpedicaoDracker';
 import { PDFMergerTool } from './PDFMergerTool';
 import { AboutSystem } from './AboutSystem';
 import MemoryGame from './memory/MemoryGame';
+import DrackerRPG from './RPG/DrackerRPG';
 
 import html2pdf from 'html2pdf.js';
 
@@ -50,7 +51,10 @@ export const ActivityArea = ({
     quizData,
     onCrosswordUpdate,
     connectDotsData,
-    drackerState
+    rpgData,
+    drackerState,
+    isFullWidth,
+    toggleFullWidth
 }) => {
     // --- State ---
     const [printMode, setPrintMode] = useState('all'); // 'all', 'lyrics', 'questions'
@@ -68,7 +72,8 @@ export const ActivityArea = ({
         (activityType === 'video_gallery') ||
         (activityType === 'merge_pdf') ||
         (activityType === 'expedition') ||
-        (activityType === 'about_system');
+        (activityType === 'about_system') ||
+        (activityType === 'rpg' && rpgData);
 
     // Reset game mode when content changes
     useEffect(() => {
@@ -103,7 +108,7 @@ export const ActivityArea = ({
     // --- Render Logic ---
 
     return (
-        <div className="lg:col-span-8">
+        <div className="w-full flex-1 flex flex-col">
             <div className="bg-white rounded-2xl shadow-xl border border-brown-200 min-h-96 flex flex-col transition-all">
 
                 <ActivityHeader
@@ -114,9 +119,11 @@ export const ActivityArea = ({
                     setShowAnswers={setShowAnswers}
                     handleDownloadPdf={handleDownloadPdf}
                     foundWords={foundWords}
+                    isFullWidth={isFullWidth}
+                    toggleFullWidth={toggleFullWidth}
                 />
 
-                <div className="flex-1 p-8 overflow-y-auto" ref={activityAreaRef} id="activity-area-print">
+                <div className="flex-1 p-8 overflow-y-auto custom-scrollbar" ref={activityAreaRef} id="activity-area-print">
                     {hasContent ? (
                         <>
                             {/* --- SETUP / TOGGLE CARDS --- */}
@@ -128,7 +135,7 @@ export const ActivityArea = ({
                                     description="Configure a impressão ou jogue online."
                                     isGameMode={isWordsearchGame}
                                     onToggle={() => setIsGameMode(!isGameMode)}
-                                    color="brown"
+                                    color="amber"
                                 >
                                     <div className="flex flex-col gap-2 mr-4 md:mr-8 min-w-[200px]">
                                         <Input
@@ -260,6 +267,8 @@ export const ActivityArea = ({
                                 />
                             ) : activityType === 'memory' ? (
                                 <MemoryGame />
+                            ) : activityType === 'rpg' && rpgData ? (
+                                <DrackerRPG data={rpgData} />
                             ) : (
                                 /* Default Text Renderer (Quiz Print Mode / Wordsearch Print Mode) */
                                 <>

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { FileText, Check, Pencil } from 'lucide-react';
+import { FileText, Check, Pencil, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export const ActivityHeader = ({
@@ -10,7 +10,9 @@ export const ActivityHeader = ({
     showAnswers,
     setShowAnswers,
     handleDownloadPdf,
-    foundWords
+    foundWords,
+    isFullWidth,
+    toggleFullWidth
 }) => {
     return (
         <div className="p-4 border-b border-brown-100 flex items-center justify-between bg-brown-50/50 no-print rounded-t-2xl">
@@ -44,13 +46,23 @@ export const ActivityHeader = ({
                                 {showAnswers ? 'Respostas' : 'Respostas'}
                             </Button>
                         )}
-                        {activityType !== 'memory' && (
+                        {activityType !== 'memory' && activityType !== 'rpg' && (
                             <>
                                 <Button onClick={handleDownloadPdf} variant="ghost" className="h-8 w-8 p-0" icon={FileText} title="Imprimir PDF" />
                             </>
                         )}
                     </>
                 )}
+
+                <div className="h-6 w-px bg-brown-200 mx-1"></div>
+
+                <Button
+                    onClick={toggleFullWidth}
+                    variant="ghost"
+                    className="h-8 w-8 p-0 hover:bg-brown-100 text-brown-500"
+                    icon={isFullWidth ? Minimize2 : Maximize2}
+                    title={isFullWidth ? "Restaurar Visão" : "Expandir Tela"}
+                />
             </div>
         </div>
     );

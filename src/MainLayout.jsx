@@ -88,6 +88,9 @@ export const MainLayout = () => {
     const [wordsearchHideText, setWordsearchHideText] = useState(false);
     const [wordsearchHideGrid, setWordsearchHideGrid] = useState(false);
 
+    // --- FULL WIDTH STATE ---
+    const [isFullWidth, setIsFullWidth] = useState(false);
+
     // --- ACTIVITY SYNC EFFECTS ---
     useEffect(() => {
         if (activeActivity) {
@@ -237,72 +240,78 @@ export const MainLayout = () => {
 
     return (
         <div className="min-h-screen bg-brown-50 font-sans text-brown-900">
-            <Header
-                className="no-print"
-                apiKeyStatus={apiKeyStatus}
-                handleSpeak={handleSpeak}
-                isGeneratingAudio={isGeneratingAudio}
-                isSpeaking={isSpeaking}
-                isPaused={isPaused}
-                openVoiceSettings={() => setShowVoiceSettings(true)}
-                speakPrev={speakPrev}
-                speakNext={speakNext}
-                speechChunks={speechChunks}
-                chunkIndex={chunkIndex}
-                showSettings={showSettings}
-                setShowSettings={setShowSettings}
-                onBackup={exportSystemState}
-                onRestore={importSystemState}
-                openAudioRecorder={() => setShowAudioRecorder(true)}
-            />
+            {!isFullWidth && (
+                <Header
+                    className="no-print"
+                    apiKeyStatus={apiKeyStatus}
+                    handleSpeak={handleSpeak}
+                    isGeneratingAudio={isGeneratingAudio}
+                    isSpeaking={isSpeaking}
+                    isPaused={isPaused}
+                    openVoiceSettings={() => setShowVoiceSettings(true)}
+                    speakPrev={speakPrev}
+                    speakNext={speakNext}
+                    speechChunks={speechChunks}
+                    chunkIndex={chunkIndex}
+                    showSettings={showSettings}
+                    setShowSettings={setShowSettings}
+                    onBackup={exportSystemState}
+                    onRestore={importSystemState}
+                    openAudioRecorder={() => setShowAudioRecorder(true)}
+                />
+            )}
 
-            <main className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <div className="lg:col-span-4 no-print">
-                    <Sidebar
-                        showSettings={showSettings}
-                        apiKey={apiKey}
-                        handleApiKeyChange={handleApiKeyChange}
-                        clearApiKey={clearApiKey}
-                        modelOptions={modelOptions}
-                        selectedModel={selectedModel}
-                        setSelectedModel={setSelectedModel}
-                        imagePng={imagePng}
-                        handleDownloadGeneratedPng={handleDownloadGeneratedPng}
-                        topic={topic}
-                        setTopic={setTopic}
-                        lessonDetails={lessonDetails}
-                        setLessonDetails={setLessonDetails}
-                        difficultyOptions={difficultyOptions}
-                        difficulty={difficulty}
-                        setDifficulty={setDifficulty}
-                        activityOptions={activityOptions}
-                        activityType={activityType}
-                        setActivityType={handleActivityTypeChange}
-                        imagePrompt={imagePrompt}
-                        setImagePrompt={setImagePrompt}
-                        imageStyle={imageStyle}
-                        setImageStyle={setImageStyle}
-                        imageSize={imageSize}
-                        setImageSize={setImageSize}
-                        isLoading={actions.isLoading}
-                        geminiService={geminiService}
-                        handleGenerate={actions.handleGenerate}
-                        systemStatus={displayedSystemStatus}
-                        error={actions.error}
-                    />
-                </div>
-
-                <div className="lg:col-span-8 flex flex-col gap-4">
-                    <div className="no-print">
-                        <TabsBar
-                            tabs={tabs}
-                            activeTabId={activeTabId}
-                            onSelect={setActiveTabId}
-                            onClose={closeTab}
-                            onReorder={handleTabsReorder}
-                            getTabLabel={getTabLabel}
+            <main className={`${isFullWidth ? 'w-full min-h-screen p-0' : 'max-w-6xl mx-auto px-4 py-8'} grid grid-cols-1 ${isFullWidth ? '' : 'lg:grid-cols-12'} gap-6 transition-all duration-300`}>
+                {!isFullWidth && (
+                    <div className="lg:col-span-4 no-print">
+                        <Sidebar
+                            showSettings={showSettings}
+                            apiKey={apiKey}
+                            handleApiKeyChange={handleApiKeyChange}
+                            clearApiKey={clearApiKey}
+                            modelOptions={modelOptions}
+                            selectedModel={selectedModel}
+                            setSelectedModel={setSelectedModel}
+                            imagePng={imagePng}
+                            handleDownloadGeneratedPng={handleDownloadGeneratedPng}
+                            topic={topic}
+                            setTopic={setTopic}
+                            lessonDetails={lessonDetails}
+                            setLessonDetails={setLessonDetails}
+                            difficultyOptions={difficultyOptions}
+                            difficulty={difficulty}
+                            setDifficulty={setDifficulty}
+                            activityOptions={activityOptions}
+                            activityType={activityType}
+                            setActivityType={handleActivityTypeChange}
+                            imagePrompt={imagePrompt}
+                            setImagePrompt={setImagePrompt}
+                            imageStyle={imageStyle}
+                            setImageStyle={setImageStyle}
+                            imageSize={imageSize}
+                            setImageSize={setImageSize}
+                            isLoading={actions.isLoading}
+                            geminiService={geminiService}
+                            handleGenerate={actions.handleGenerate}
+                            systemStatus={displayedSystemStatus}
+                            error={actions.error}
                         />
                     </div>
+                )}
+
+                <div className={`${isFullWidth ? 'w-full' : 'lg:col-span-8'} flex flex-col gap-4 transition-all duration-300`}>
+                    {!isFullWidth && (
+                        <div className="no-print">
+                            <TabsBar
+                                tabs={tabs}
+                                activeTabId={activeTabId}
+                                onSelect={setActiveTabId}
+                                onClose={closeTab}
+                                onReorder={handleTabsReorder}
+                                getTabLabel={getTabLabel}
+                            />
+                        </div>
+                    )}
 
                     <ActivityArea
                         generatedContent={activeActivity ? activeActivity.content : ''}
@@ -338,6 +347,7 @@ export const MainLayout = () => {
                         drackerData={activeActivity?.drackerData}
                         crosswordData={activeActivity?.data}
                         connectDotsData={activeActivity?.data}
+                        rpgData={activeActivity?.type === 'rpg' ? activeActivity.data : null}
                         quizData={activeActivity?.quizData}
                         onCrosswordUpdate={(newData) => {
                             setTabs(prev => prev.map(t => {
@@ -346,6 +356,8 @@ export const MainLayout = () => {
                             }));
                         }}
                         drackerState={drackerState}
+                        isFullWidth={isFullWidth}
+                        toggleFullWidth={() => setIsFullWidth(!isFullWidth)}
                     />
                 </div>
 
@@ -378,7 +390,7 @@ export const MainLayout = () => {
                 />
             </main>
 
-            <Footer />
+            {!isFullWidth && <Footer />}
             <CookieBanner />
         </div>
     );

@@ -361,6 +361,86 @@ class GeminiService {
   }
 
   /**
+   * Gera uma aventura de RPG educacional gamificada
+   */
+  async generateRPGAdventure(topic) {
+    const prompt = `
+      Você é um Mestre de RPG Educacional criativo.
+      Crie uma mini-aventura de 5 etapas para ensinar sobre: "${topic}".
+      
+      PERSONAGENS OBRIGATÓRIOS:
+      - HEROI/GUIA: Drácker (um dragãozinho da cor marrom, amigável, com grandes olhos azuis). Ele guia os jogadores.
+      - ALIADOS: Os "Animaizinhos da Floresta Encantada" (coelhos, esquilos, corujas sábias) que ajudam ou pedem ajuda.
+      
+      ESTRUTURA DA RESPOSTA (JSON ÚNICO):
+      {
+        "title": "Título Criativo (Ex: Drácker e a Lenda de...)",
+        "theme": "${topic}",
+        "villain": "Nome do Vilão Temático (Ex: Dr. Poluição)",
+        "intro": "Uma frase de introdução onde o Drácker convoca os alunos e os animais da floresta para resolver o problema causado pelo vilão.",
+        "plot": "O que o vilão fez? (Ex: roubou as cores da Floresta Encantada, poluiu o rio mágico)",
+        "encounters": [
+          {
+            "id": 1,
+            "title": "Título da Fase 1 (Início)",
+            "difficulty": "Fácil",
+            "desc": "O Drácker aponta o primeiro desafio na Floresta ou local do tema. Os animais estão preocupados. O que os heróis veem?",
+            "question": "Uma pergunta inicial sobre o tema para abrir o caminho."
+          },
+          {
+            "id": 2,
+            "title": "Título da Fase 2",
+            "difficulty": "Médio",
+            "desc": "Os animaizinhos encontram um obstáculo ou minion do vilão.",
+            "question": "Uma pergunta de nível médio sobre o tema."
+          },
+          {
+            "id": 3,
+            "title": "Título da Fase 3 (Enigma)",
+            "difficulty": "Médio",
+            "desc": "O Drácker encontra um enigma antigo bloqueando o caminho.",
+            "question": "Uma pergunta que exige raciocínio sobre o tema."
+          },
+          {
+            "id": 4,
+            "title": "Título da Fase 4 (Armadilha)",
+            "difficulty": "Difícil",
+            "desc": "Uma armadilha do vilão prende os animais ou o Drácker!",
+            "question": "Uma pergunta difícil ou detalhe específico do tema para salvá-los."
+          },
+          {
+            "id": 5,
+            "title": "Título da Fase 5 (Chefe Final)",
+            "difficulty": "Chefe",
+            "desc": "Confronto final! Drácker e os animais se unem aos alunos contra o vilão.",
+            "question": "A pergunta mais importante ou abrangente para derrotar o vilão."
+          }
+        ]
+      }
+
+      DIRETRIZES:
+      - O MUNDO DEVE SER MÁGICO, mesmo que o tema seja ciência ou história (ex: Drácker viaja no tempo ou o vilão invadiu a floresta com tecnologia).
+      - SEMPRE mencione "Drácker" e os "Animaizinhos" nas descrições.
+      - As perguntas DEVEM ser educativas e relacionadas ao tema "${topic}".
+      - Retorne APENAS o JSON válido.
+    `;
+
+    try {
+      const text = await this.generateText(prompt, { temperature: 0.9, maxOutputTokens: 5000 });
+
+      const { safeJSONParse } = await import('../utils/jsonUtils');
+      const data = safeJSONParse(text);
+
+      if (!data || !data.encounters) throw new Error("Formato inválido de aventura");
+
+      return data;
+    } catch (e) {
+      console.error("Erro ao gerar RPG:", e);
+      throw new Error("Falha ao criar aventura RPG. Tente novamente.");
+    }
+  }
+
+  /**
    * Converte dados PCM base64 para formato WAV
    */
   pcmToWav(base64PCM, sampleRate = 24000) {

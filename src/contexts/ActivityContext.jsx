@@ -125,6 +125,7 @@ export const ActivityProvider = ({ children }) => {
         { id: 'memory', label: 'Jogo da Memória', icon: <Brain className="w-4 h-4" /> },
         { id: 'connect_dots', label: 'Liga Pontos', icon: <BrainCircuit className="w-4 h-4" /> },
         { id: 'video_gallery', label: 'Galeria Drácker', icon: <Play className="w-4 h-4" /> },
+        { id: 'rpg', label: 'Drácker RPG', icon: <Compass className="w-4 h-4" /> },
         { id: 'expedition', label: 'Expedição Drácker', icon: <Compass className="w-4 h-4" /> },
         { id: 'merge_pdf', label: 'Unir PDFs', icon: <Files className="w-4 h-4" /> },
     ], []);
@@ -139,7 +140,7 @@ export const ActivityProvider = ({ children }) => {
     useEffect(() => {
         if (activeActivity) {
             setTopic(activeActivity.title || '');
-            if (['quiz', 'wordsearch', 'crossword', 'summary', 'simplify', 'connect_dots', 'video_gallery', 'memory'].includes(activeActivity.type)) {
+            if (['quiz', 'wordsearch', 'crossword', 'summary', 'simplify', 'connect_dots', 'video_gallery', 'memory', 'rpg'].includes(activeActivity.type)) {
                 setActivityType(activeActivity.type);
             }
         }

@@ -163,6 +163,19 @@ export const useActivityActions = () => {
                 return;
             }
 
+            if (activityType === 'rpg') {
+                const data = await geminiService.generateRPGAdventure(topic);
+                addActivityTab({
+                    title: data.title || topic,
+                    type: 'rpg',
+                    content: data.intro || `Aventura RPG sobre ${topic}`,
+                    data: data
+                });
+                generateAudio(data.intro);
+                setIsLoading(false);
+                return;
+            }
+
             const levelLabel = difficulty === 'hard' ? 'avançado/difícil' : difficulty === 'easy' ? 'fácil/infantil' : 'médio';
             const context = `Contexto/Detalhes: ${lessonDetails || 'Nenhum detalhe adicional.'}`;
 

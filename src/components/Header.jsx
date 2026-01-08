@@ -4,7 +4,7 @@ import {
     Volume2,
     Mic,
     Pause,
-    Settings,
+    Key,
     CheckCircle,
     AlertCircle,
     Loader2,
@@ -111,9 +111,9 @@ export const Header = ({
                 variant="icon"
                 onClick={() => setShowSettings(!showSettings)}
             >
-                <Settings className="w-5 h-5" />
+                <Key className="w-5 h-5 text-amber-600" />
             </Button>
-        </div>
+        </div >
     );
 
     return (
@@ -174,7 +174,7 @@ export const Header = ({
                             </Button>
 
                             <Button variant="ghost" onClick={() => setShowSettings(!showSettings)} className="flex-col h-auto py-2 gap-1 text-brown-700 bg-white border border-brown-100 shadow-sm hover:bg-brown-50 hover:border-brown-300">
-                                <Settings className="w-5 h-5" />
+                                <Key className="w-5 h-5 text-amber-600" />
                                 <span className="text-[10px] font-bold">Config</span>
                             </Button>
 
