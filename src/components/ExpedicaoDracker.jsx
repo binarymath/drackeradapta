@@ -6,7 +6,9 @@ import TeamView from './Expedicao/TeamView';
 import NameEntryView from './Expedicao/NameEntryView';
 import QuizView from './Expedicao/QuizView';
 import ResultView from './Expedicao/ResultView';
+
 import MemberModal from './Expedicao/MemberModal';
+import { ArchetypeEditorModal } from './Expedicao/ArchetypeEditorModal';
 
 // Main Controller Component
 export default function ExpedicaoDracker({ drackerState }) {
@@ -23,6 +25,8 @@ export default function ExpedicaoDracker({ drackerState }) {
         actions,
         setView,
     } = drackerState;
+
+    const [showArchetypeEditor, setShowArchetypeEditor] = React.useState(false);
 
     // --- Actions Wrappers ---
 
@@ -89,15 +93,23 @@ export default function ExpedicaoDracker({ drackerState }) {
     // 1. Lobby (Main View)
     if (view === 'lobby') {
         return (
-            <LobbyView
-                expeditions={expeditions}
-                allMembers={allMembers}
-                onCreate={actions.createExpedition}
-                onRename={actions.renameExpedition}
-                onDelete={actions.deleteExpedition}
-                onSelect={actions.goTeam}
-                onImport={handleImport}
-            />
+            <>
+                <LobbyView
+                    expeditions={expeditions}
+                    allMembers={allMembers}
+                    onCreate={actions.createExpedition}
+                    onRename={actions.renameExpedition}
+                    onDelete={actions.deleteExpedition}
+                    onSelect={actions.goTeam}
+                    onImport={handleImport}
+                    onOpenEditor={() => setShowArchetypeEditor(true)}
+                />
+                {
+                    showArchetypeEditor && (
+                        <ArchetypeEditorModal onClose={() => setShowArchetypeEditor(false)} />
+                    )
+                }
+            </>
         );
     }
 

@@ -1,11 +1,13 @@
 import React from 'react';
-import { ArrowLeft, UserPlus, FileSpreadsheet, Smile, Users } from 'lucide-react';
+import { Plus, Smile, User, MoreHorizontal, Shield, Award, AlertCircle, ArrowLeft, Users, UserPlus } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-
-import { ARCHETYPES_CONFIG } from './ArchetypesConfig.jsx';
+import { useSystemState } from '../../contexts/SystemStateContext';
+import * as Icons from 'lucide-react';
 
 const TeamView = ({ expedition, allMembers = [], onBack, onNewMember, onOpenMember }) => {
+    const { drackerState } = useSystemState();
+    const { archetypes } = drackerState;
     return (
         <div className="max-w-6xl mx-auto space-y-8 animate-slide-in-right pb-12">
             {/* Header */}
@@ -58,8 +60,9 @@ const TeamView = ({ expedition, allMembers = [], onBack, onNewMember, onOpenMemb
                     const member = allMembers.find(m => m.id === memberId);
                     if (!member) return null;
 
-                    const ArchIcon = ARCHETYPES_CONFIG[member.archetype.title]?.icon || Smile;
-                    const archColor = ARCHETYPES_CONFIG[member.archetype.title]?.color || 'bg-gray-100 text-gray-700';
+                    const archConfig = archetypes[member.archetype.title] || archetypes['O Inovador'] || {};
+                    const ArchIcon = Icons[archConfig.iconName] || Icons.HelpCircle;
+                    const archColor = archConfig.color || 'bg-gray-100 text-gray-700';
 
                     return (
                         <Card
@@ -91,9 +94,20 @@ const TeamView = ({ expedition, allMembers = [], onBack, onNewMember, onOpenMemb
                                     {member.name}
                                 </h3>
 
-                                <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider w-full justify-center ${archColor.split(' ')[0]} ${archColor.split(' ')[1]}`}>
-                                    <ArchIcon size={10} />
-                                    <span className="truncate">{member.archetype.title}</span>
+                                <div className="w-full flex flex-col gap-1">
+                                    {/* Archetype Badge */}
+                                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider w-full justify-center ${archColor.split(' ')[0]} ${archColor.split(' ')[1]}`}>
+                                        <ArchIcon size={10} />
+                                        <span className="truncate">{member.archetype.title}</span>
+                                    </div>
+
+                                    {/* RPG Role Badge - Only if assigned */}
+                                    {member.rpgClass && (
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider w-full justify-center bg-blue-50 text-blue-800 border border-blue-100">
+                                            {/* Ideally map icon, but simple text for now or icon if imported */}
+                                            <span className="truncate">{member.rpgClass}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

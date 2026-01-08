@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { determineArchetype } from '../utils/drackerArchetypes';
+import { DEFAULT_ARCHETYPES, DEFAULT_TRAILS } from '../utils/defaultArchetypes';
 
 export const useDrackerState = () => {
     const [view, setView] = useState('lobby');
@@ -32,40 +33,34 @@ export const useDrackerState = () => {
         return members;
     });
 
-    // Expeditions now only reference member IDs, not the full member data
+    // Expeditions state...
     const [expeditions, setExpeditions] = useState(() => {
+        // ... (existing code)
         const saved = localStorage.getItem('dracker_expeditions');
-        if (!saved) {
-            return [{ id: 1, name: 'Turma Principal', memberIds: [], type: 'principal' }];
-        }
-
+        if (!saved) return [{ id: 1, name: 'Turma Principal', memberIds: [], type: 'principal' }];
         const exps = JSON.parse(saved);
-
-        // Migrate old format to new format
+        // ... (migration logic)
         return exps.map(exp => {
             let migrated = { ...exp };
-
-            // Migrate members array to memberIds
             if (exp.members && exp.members.length > 0 && !exp.memberIds) {
-                migrated = {
-                    ...migrated,
-                    memberIds: exp.members.map(m => m.id),
-                    members: undefined // Remove old format
-                };
+                migrated = { ...migrated, memberIds: exp.members.map(m => m.id), members: undefined };
             }
-
-            // Ensure memberIds exists
-            if (!migrated.memberIds) {
-                migrated.memberIds = [];
-            }
-
-            // Migrate type (default to 'principal' for existing expeditions)
-            if (!migrated.type) {
-                migrated.type = 'principal';
-            }
-
+            if (!migrated.memberIds) migrated.memberIds = [];
+            if (!migrated.type) migrated.type = 'principal';
             return migrated;
         });
+    });
+
+    // Archetypes Configuration State
+    const [archetypes, setArchetypes] = useState(() => {
+        const saved = localStorage.getItem('dracker_archetypes_config');
+        return saved ? JSON.parse(saved) : DEFAULT_ARCHETYPES;
+    });
+
+    // Trails (Questions) Configuration State
+    const [trails, setTrails] = useState(() => {
+        const saved = localStorage.getItem('dracker_trails_config');
+        return saved ? JSON.parse(saved) : DEFAULT_TRAILS;
     });
 
     const [currentExpeditionId, setCurrentExpeditionId] = useState(null);
@@ -264,14 +259,39 @@ export const useDrackerState = () => {
 
         // Legacy copyMember for backward compatibility
         copyMember: (member, targetExpeditionId) => {
-            // Use the new addMemberToExpedition method (linking instead of copying)
             actions.addMemberToExpedition(member.id, targetExpeditionId);
+        },
+
+        // Archetype Configuration Actions
+        updateArchetypes: (newArchetypes) => setArchetypes(newArchetypes),
+        updateTrails: (newTrails) => setTrails(newTrails),
+        resetArchetypes: () => {
+            setArchetypes(DEFAULT_ARCHETYPES);
+            setTrails(DEFAULT_TRAILS);
         }
+    };
+
+    // Persist Archetypes & Trails
+    useEffect(() => {
+        localStorage.setItem('dracker_archetypes_config', JSON.stringify(archetypes));
+    }, [archetypes]);
+
+    useEffect(() => {
+        localStorage.setItem('dracker_trails_config', JSON.stringify(trails));
+    }, [trails]);
+
+    const getValue = (value) => {
+        if (!value) return 'Não informado';
+        if (typeof value === 'object') return value.label || value.text || 'Não informado';
+        return value;
     };
 
     return {
         view,
         expeditions: expeditions || [],
+        headerData: { archetypes, trails }, // Expose config for consumption
+        archetypes,
+        trails,
         currentExpedition,
         selectedMember,
         setSelectedMember,
@@ -281,6 +301,8 @@ export const useDrackerState = () => {
         setView,
         allMembers: allMembers || [],
         setAllMembers,
-        currentMembers: currentMembers || [] // Resolved members for current expedition
+        currentMembers: currentMembers || [], // Resolved members for current expedition
+        determineArchetype, // Expose helper
+        getValue // Expose helper
     };
 };

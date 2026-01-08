@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Plus, Pencil, Trash2, Users, Upload as UploadIcon, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, Users, Upload as UploadIcon, Download, Settings } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
 
-const LobbyView = ({ expeditions = [], allMembers = [], onCreate, onRename, onDelete, onSelect, onImport }) => {
+const LobbyView = ({ expeditions = [], allMembers = [], onCreate, onRename, onDelete, onSelect, onImport, onOpenEditor }) => {
     const [newExpName, setNewExpName] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [editName, setEditName] = useState('');
@@ -175,6 +175,9 @@ const LobbyView = ({ expeditions = [], allMembers = [], onCreate, onRename, onDe
                         />
                         <Button variant="outline" onClick={handleExport} className="gap-2">
                             <Download size={16} /> Exportar Backup
+                        </Button>
+                        <Button variant="outline" onClick={onOpenEditor} className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
+                            <Settings size={16} /> Configurar Sistema
                         </Button>
                     </div>
                 </div>

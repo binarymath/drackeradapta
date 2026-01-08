@@ -5,7 +5,8 @@ import { useGemini } from './contexts/GeminiContext';
 import { useAudio } from './contexts/AudioContext';
 
 import { useActivityActions } from './hooks/useActivityActions';
-import { useDrackerState } from './hooks/useDrackerState';
+// import { useDrackerState } from './hooks/useDrackerState'; // Deprecated in favor of Context
+import { useSystemState } from './contexts/SystemStateContext';
 import { useBackupSystem } from './hooks/useBackupSystem';
 import { ExportService } from './services/ExportService';
 
@@ -75,7 +76,7 @@ export const MainLayout = () => {
     } = useAudio();
 
     const actions = useActivityActions();
-    const drackerState = useDrackerState();
+    const { drackerState } = useSystemState();
     const activityAreaRef = useRef(null);
 
     // --- LOCAL VIEW STATE (Wordsearch/Display) ---
