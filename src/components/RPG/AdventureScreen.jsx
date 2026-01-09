@@ -1,15 +1,20 @@
 
 import React, { useState } from 'react';
-import { Clock, MessageCircle, Skull, MapPin, Edit3, Save, Book, Users, Play, Printer } from 'lucide-react';
+import { Clock, MessageCircle, Skull, MapPin, Edit3, Save, Book, Users, Play, Printer, Copy } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export const AdventureScreen = ({ adventureData, setView }) => {
-    const [editingId, setEditingId] = useState(null);
-    const [editTemp, setEditTemp] = useState("");
-    // Local state to manage edits without prop drilling save function for now, 
-    // or we could pass a handler if we want persistence to bubble up.
-    // For now, let's keep local state for the questions update inside this view 
-    // (though ideally it should update the main state).
+    // State for questions editing
+    const [editingQuestionId, setEditingQuestionId] = useState(null);
+    const [questionTemp, setQuestionTemp] = useState("");
+
+    // State for story editing
+    const [editingStoryId, setEditingStoryId] = useState(null);
+    const [storyTemp, setStoryTemp] = useState("");
+
+    // State for Chamado (Call) editing
+    const [editingChamado, setEditingChamado] = useState(false);
+    const [chamadoText, setChamadoText] = useState("");
 
     // Ensure encounters is always an array
     const initialEncounters = Array.isArray(adventureData?.encounters) ? adventureData.encounters : [];
@@ -20,14 +25,37 @@ export const AdventureScreen = ({ adventureData, setView }) => {
         if (adventureData?.encounters) {
             setLocalEncounters(adventureData.encounters);
         }
+        if (adventureData) {
+            // Construct the initial Chamado text
+            const initialChamado = `${adventureData.intro} O culpado é ${adventureData.villain}! Ele ${adventureData.plot}.`;
+            setChamadoText(initialChamado);
+        }
     }, [adventureData]);
 
-    const saveEdit = (idx) => {
+    const saveQuestionEdit = (idx) => {
         const newEncounters = [...localEncounters];
-        newEncounters[idx].question = editTemp;
+        newEncounters[idx].question = questionTemp;
         setLocalEncounters(newEncounters);
-        setEditingId(null);
-        // Here we would call onUpdate(newEncounters) if provided
+        setEditingQuestionId(null);
+    };
+
+    const saveStoryEdit = (idx) => {
+        const newEncounters = [...localEncounters];
+        newEncounters[idx].desc = storyTemp;
+        setLocalEncounters(newEncounters);
+        setEditingStoryId(null);
+    };
+
+    const saveChamadoEdit = () => {
+        setEditingChamado(false);
+        // Note: this only saves to local state. 
+        // If "Chamado" was a property of adventureData, we'd ideally propagate it up, 
+        // but for now local persistence within the view is the goal.
+    };
+
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text);
+        // Optional: Toast notification could be added here
     };
 
     return (
@@ -68,15 +96,50 @@ export const AdventureScreen = ({ adventureData, setView }) => {
                 </div>
 
                 <div className="p-6 space-y-6">
-                    <div className="flex gap-4 mb-6 bg-amber-50 p-4 rounded-lg border border-amber-100 print:bg-white print:border-black">
+                    <div className="flex gap-4 mb-6 bg-amber-50 p-4 rounded-lg border border-amber-100 print:bg-white print:border-black group relative">
                         <div className="shrink-0 w-12 h-12 bg-white rounded-full border-2 border-amber-300 overflow-hidden">
                             <img src="/dracker_character.png" alt="Drácker" className="w-full h-full object-cover" />
                         </div>
-                        <div>
-                            <span className="text-xs font-bold text-amber-800 uppercase print:text-black">O Chamado do Drácker</span>
-                            <p className="italic text-brown-700 text-sm print:text-black">
-                                "{adventureData.intro} O culpado é <strong>{adventureData.villain}</strong>! Ele {adventureData.plot}."
-                            </p>
+                        <div className="w-full">
+                            <div className="flex justify-between items-start">
+                                <span className="text-xs font-bold text-amber-800 uppercase print:text-black">O Chamado do Drácker</span>
+                                {!editingChamado && (
+                                    <div className="flex gap-1 absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity print:hidden bg-white/80 p-1 rounded">
+                                        <button
+                                            onClick={() => setEditingChamado(true)}
+                                            className="text-brown-400 hover:text-blue-600"
+                                            title="Editar"
+                                        >
+                                            <Edit3 size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => copyToClipboard(chamadoText)}
+                                            className="text-brown-400 hover:text-green-600"
+                                            title="Copiar"
+                                        >
+                                            <Copy size={16} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {editingChamado ? (
+                                <div className="mt-2 space-y-2">
+                                    <textarea
+                                        value={chamadoText}
+                                        onChange={(e) => setChamadoText(e.target.value)}
+                                        className="w-full p-3 border rounded-md text-sm outline-none focus:border-blue-500 bg-white min-h-[100px]"
+                                        placeholder="Edite o chamado..."
+                                    />
+                                    <div className="flex justify-end">
+                                        <button onClick={saveChamadoEdit} className="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700 flex items-center gap-1">
+                                            <Save size={14} /> Salvar
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="italic text-brown-700 text-sm print:text-black mt-1" dangerouslySetInnerHTML={{ __html: chamadoText.replace(/\n/g, '<br/>') }} />
+                            )}
                         </div>
                     </div>
 
@@ -98,34 +161,82 @@ export const AdventureScreen = ({ adventureData, setView }) => {
                                             </span>
                                         </div>
 
-                                        <p className="text-sm text-brown-600 mb-3 italic print:text-black">{enc.desc}</p>
+                                        <div className="mb-3 group relative">
+                                            {editingStoryId === enc.id ? (
+                                                <div className="space-y-2">
+                                                    <textarea
+                                                        value={storyTemp}
+                                                        onChange={(e) => setStoryTemp(e.target.value)}
+                                                        className="w-full p-3 border rounded-md text-sm outline-none focus:border-blue-500 bg-white min-h-[100px]"
+                                                        placeholder="Edite a história..."
+                                                    />
+                                                    <div className="flex justify-end">
+                                                        <button onClick={() => saveStoryEdit(idx)} className="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700 flex items-center gap-1">
+                                                            <Save size={14} /> Salvar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <p className="text-sm text-brown-600 italic print:text-black pr-6">{enc.desc}</p>
+                                                    <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity print:hidden flex gap-1 bg-white/80 p-1 rounded">
+                                                        <button
+                                                            onClick={() => { setEditingStoryId(enc.id); setStoryTemp(enc.desc); }}
+                                                            className="text-brown-400 hover:text-blue-600"
+                                                            title="Editar"
+                                                        >
+                                                            <Edit3 size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => copyToClipboard(enc.desc)}
+                                                            className="text-brown-400 hover:text-green-600"
+                                                            title="Copiar"
+                                                        >
+                                                            <Copy size={16} />
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
 
                                         <div className={`p-4 rounded-lg border relative ${idx === 4 ? 'bg-white border-red-100' : 'bg-brown-50 border-brown-200'} print:bg-white print:border-black`}>
                                             <span className="absolute -top-2.5 left-3 bg-white px-2 text-[10px] font-bold uppercase text-brown-400 border rounded print:text-black print:border-black">
                                                 Pergunta do Mestre
                                             </span>
 
-                                            {editingId === enc.id ? (
-                                                <div className="flex gap-2 mt-1">
+                                            {editingQuestionId === enc.id ? (
+                                                <div className="space-y-2 mt-1">
                                                     <textarea
-                                                        value={editTemp}
-                                                        onChange={(e) => setEditTemp(e.target.value)}
-                                                        className="w-full p-2 border rounded text-sm outline-none focus:border-blue-500"
-                                                        rows={2}
+                                                        value={questionTemp}
+                                                        onChange={(e) => setQuestionTemp(e.target.value)}
+                                                        className="w-full p-3 border rounded text-sm outline-none focus:border-blue-500 min-h-[80px]"
+                                                        placeholder="Edite a pergunta..."
                                                     />
-                                                    <button onClick={() => saveEdit(idx)} className="bg-blue-600 text-white px-3 rounded text-xs font-bold hover:bg-blue-700">
-                                                        <Save size={14} /> Salvar
-                                                    </button>
+                                                    <div className="flex justify-end">
+                                                        <button onClick={() => saveQuestionEdit(idx)} className="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-blue-700 flex items-center gap-1">
+                                                            <Save size={14} /> Salvar
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <div className="group relative">
-                                                    <p className="font-medium text-brown-900 mt-1 print:text-black">"{enc.question}"</p>
-                                                    <button
-                                                        onClick={() => { setEditingId(enc.id); setEditTemp(enc.question); }}
-                                                        className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 text-brown-400 hover:text-blue-600 transition-opacity print:hidden"
-                                                    >
-                                                        <Edit3 size={16} />
-                                                    </button>
+                                                    <p className="font-medium text-brown-900 mt-1 print:text-black pr-6">"{enc.question}"</p>
+                                                    <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity print:hidden flex gap-1 bg-white/50 p-1 rounded">
+                                                        <button
+                                                            onClick={() => { setEditingQuestionId(enc.id); setQuestionTemp(enc.question); }}
+                                                            className="text-brown-400 hover:text-blue-600"
+                                                            title="Editar"
+                                                        >
+                                                            <Edit3 size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => copyToClipboard(enc.question)}
+                                                            className="text-brown-400 hover:text-green-600"
+                                                            title="Copiar"
+                                                        >
+                                                            <Copy size={16} />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -133,7 +244,7 @@ export const AdventureScreen = ({ adventureData, setView }) => {
                                 </div>
                             ))
                         ) : (
-                            <div className="p-4 text-center text-brown-500 italic">
+                            <div className="p-4 text-center text-brown-50 italic">
                                 Nenhum encontro gerado nesta aventura.
                             </div>
                         )}
