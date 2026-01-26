@@ -60,7 +60,7 @@ export async function generateMusicActivity({ topic, lessonDetails, model, gemin
   let lyrics = await geminiService.generateText(prompt, {
     model,
     fallbackModel: null,
-    maxOutputTokens: 2500,
+    maxOutputTokens: 8000,
     temperature: 0.7
   });
 
@@ -69,7 +69,7 @@ export async function generateMusicActivity({ topic, lessonDetails, model, gemin
   }
 
   // Clean up any potential markdown or labels that slipped in
-  lyrics = lyrics.replace(/MUSIC\s*/i, '').trim();
+  lyrics = lyrics.replace(/MUSIC\s*/i, '').replace(/--- FIM DA MÚSICA ---/g, '').trim();
 
   // Step 2: Generate Questions based on the lyrics
   // Retry loop to ensure we get at least 12 questions

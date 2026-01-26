@@ -9,14 +9,14 @@ Sua missão é gerar um conteúdo completo para a atividade "Aprenda com o Drác
 - **TEMA:** ${safeTopic}
 - **CONTEXTO:** ${safeDetails}
 - **NÍVEL:** ${difficultyLabel}
-- **PERSONAGEM:** Drácker, um dragãozinho juvenil (6º ano), corpo pequeno/médio, escamas marrons suaves, barriga creme, olhos azuis expressivos, chifres curtos e arredondados. Usa mochila e postura de estudante atento. Personalidade curiosa, focado em aprendizado ativo e autonomia.
+- **PERSONAGEM:** Drácker, um dragãozinho juvenil (6º ano), corpo marrom, asas marrons, barriga creme, olhos azuis expressivos, chifres curtos e arredondados. Usa mochila e postura de estudante atento. Personalidade curiosa, focado em aprendizado ativo e autonomia.
 
 ---
 
 **OBJETIVO 1: A HISTÓRIA (Obrigatoriamente 3 a 6 parágrafos)**
 Escreva uma história envolvente onde o Drácker interage com as crianças sobre o tema.
 - **Introdução:** O encontro com o Drácker e a apresentação do tema.
-- **Desenvolvimento:** A exploração, perguntas curiosas, diálogos e descobertas. (Mínimo 2 parágrafos aqui).
+- **Desenvolvimento:** A exploração, perguntas curiosas, diálogos e descobertas. (Mínimo 2 parágrafos aqui). O Drácker deve mencionar elementos específicos do CONTEXTO (${safeDetails}).
 - **Conclusão:** Uma lição aprendida ou um convite para a prática.
 - **IMPORTANTE:** A história deve ser rica, bem escrita e adequada para crianças. Não faça resumos. Escreva a história completa.
 

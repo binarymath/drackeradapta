@@ -17,7 +17,8 @@ export function buildQuizPrompt(topic, lessonDetails, difficultyLabel) {
            }
            
            REQUISITOS:
+           - OBRIGATÓRIO: Use o campo "Detalhes" como contexto principal para formular as perguntas, se fornecido.
            - 10 Questões no total (4 Fáceis, 4 Médias, 2 Difíceis - misturadas).
-           - O texto introdutório deve ajudar a criança a entender o tema.
+           - O texto introdutório deve ajudar a criança a entender o tema, conectando com os detalhes.
            - Retorne APENAS o JSON puro. SEM MARKDOWN. SEM TEXTO ANTES OU DEPOIS.`;
 }

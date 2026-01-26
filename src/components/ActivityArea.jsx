@@ -12,6 +12,7 @@ import { PDFMergerTool } from './PDFMergerTool';
 import { AboutSystem } from './AboutSystem';
 import MemoryGame from './memory/MemoryGame';
 import DrackerRPG from './RPG/DrackerRPG';
+import HangmanGame from './HangmanGame';
 
 import html2pdf from 'html2pdf.js';
 
@@ -73,7 +74,8 @@ export const ActivityArea = ({
         (activityType === 'merge_pdf') ||
         (activityType === 'expedition') ||
         (activityType === 'about_system') ||
-        (activityType === 'rpg' && rpgData);
+        (activityType === 'rpg' && rpgData) ||
+        (activityType === 'hangman');
 
     // Reset game mode when content changes
     useEffect(() => {
@@ -265,6 +267,8 @@ export const ActivityArea = ({
                                     data={connectDotsData}
                                     isGameMode={isGameMode}
                                 />
+                            ) : activityType === 'hangman' ? (
+                                <HangmanGame />
                             ) : activityType === 'memory' ? (
                                 <MemoryGame />
                             ) : activityType === 'rpg' && rpgData ? (

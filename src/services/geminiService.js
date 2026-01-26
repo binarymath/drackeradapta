@@ -303,13 +303,119 @@ class GeminiService {
   }
 
   /**
+   * Gera palavra para o Jogo da Forca
+   */
+  /**
+   * Gera lista de palavras para o Jogo da Forca (Lote de 10)
+   */
+  async generateHangmanWordsBatch(theme, details = '') {
+    let contextPrompt = `O tema escolhido pelo usuário é: "${theme}".`;
+    if (details && details.trim()) {
+      contextPrompt += `\n    CONTEXTO ADICIONAL (Detalhes da lição): "${details}". Use este contexto para escolher palavras muito relevantes.`;
+    }
+
+    const prompt = `Gere uma lista de exatamente 50 palavras secretas para um jogo de forca (hangman) em Português do Brasil.
+    ${contextPrompt}
+    
+    REGRAS OBRIGATÓRIAS:
+    1. Responda APENAS com um array JSON de strings. Exemplo: ["PALAVRA1", "PALAVRA2", ...]
+    2. Nenhuma explicação ou texto fora do JSON.
+    3. As palavras devem ser variadas em dificuldade (algumas fáceis, outras difíceis).
+    4. Remova acentos, mas mantenha Ç se houver.
+    5. Tudo em MAIÚSCULAS.
+    6. Evite palavras compostas, mas se necessário use hífen.
+    7. NÃO inclua palavras técnicas como "JSON", "CODE", "DATA", "STRING", "ARRAY".
+    
+    Gere 50 palavras para garantir que eu tenha um bom pool para o jogo.`;
+
+    try {
+      const text = await this.generateText(prompt, { temperature: 0.9, maxOutputTokens: 2000 }); // More tokens for more words
+      console.log("Gemini Hangman Raw Response:", text); // Debug log
+
+      let words = [];
+
+      // 1. Tenta extrair JSON explícito
+      const jsonMatch = text.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        try {
+          words = JSON.parse(jsonMatch[0]);
+        } catch (e) { console.warn("Falha no JSON parse, tentando fallback regex..."); }
+      }
+
+      // 2. Fallback: Se não conseguiu JSON ou não veio JSON, busca palavras brutas
+      if (!Array.isArray(words) || words.length === 0) {
+        // Regex para pegar palavras em maiúsculo (pelo menos 3 letras)
+        const matchAll = text.toUpperCase().match(/[A-ZÁÀÂÃÉÈÊÍÏÓÒÔÕÖÚÙÛÇ]{3,}/g);
+        if (matchAll) {
+          words = matchAll;
+        }
+      }
+
+      if (!words || words.length === 0) throw new Error("A IA não retornou palavras válidas.");
+
+      // Limpeza final 
+      let cleanWords = words
+        .map(w => w.trim().toUpperCase().replace(/[^A-ZÇ\- ]/g, '')) // Remove acentos
+        .filter(w => w.length >= 3 && !['JSON', 'ARRAY', 'LISTA', 'STRING', 'CODE', 'JAVASCRIPT', 'DATA', 'EXEMPLO'].includes(w)); // Remove lixo técnico
+
+      // Remove duplicatas
+      cleanWords = [...new Set(cleanWords)];
+
+      // GARANTIA MÍNIMA
+      // Completamos se tiver poucas para garantir a jogabilidade (min 10)
+      if (cleanWords.length < 10) {
+        console.warn(`A IA retornou apenas ${cleanWords.length} palavras validas. Completando...`);
+        const backups = ["DESAFIO", "CORAGEM", "AMIZADE", "SABEDORIA", "AVENTURA", "HISTORIA", "EXPLORAR", "MISTERIO", "LEGENDA", "HEROI"];
+        let i = 0;
+        while (cleanWords.length < 10) {
+          const backup = backups[i % backups.length];
+          if (!cleanWords.includes(backup)) {
+            cleanWords.push(backup);
+          }
+          i++;
+        }
+      }
+
+      // Retorna TODAS as palavras (o componente gerencia o pool)
+      return cleanWords;
+
+    } catch (e) {
+      console.error("Erro ao gerar lote de palavras da forca:", e);
+      // Propaga o erro real para aparecer na UI (ajuda no debug)
+      throw new Error(`Falha: ${e.message}`);
+    }
+  }
+
+  /**
+   * Gera dica para o Jogo da Forca
+   */
+  async generateHangmanHint(word, theme) {
+    const prompt = `Estou jogando forca. A palavra secreta é "${word}" e o tema é "${theme}".
+    Dê uma dica curta, sutil e divertida para me ajudar a adivinhar.
+    IMPORTANTE:
+    - NÃO diga a palavra.
+    - NÃO diga quais letras a palavra tem.
+    - A dica deve ser em Português.
+    - Máximo 15 palavras.`;
+
+    try {
+      const text = await this.generateText(prompt, { temperature: 0.8, maxOutputTokens: 100 });
+      return text.trim();
+    } catch (e) {
+      console.error("Erro ao gerar dica da forca:", e);
+      return "A IA está pensando, mas ficou sem palavras...";
+    }
+  }
+
+  /**
    * Gera conteúdo para o jogo de ligar pontos (Liga Pontos)
    * Retorna array de objetos com id, text, emoji e color
    */
-  async generateConnectDots(topic) {
+  async generateConnectDots(topic, details = '') {
     const prompt = `
       Você é um assistente pedagógico inteligente.
       Sua tarefa é gerar 5 pares de correspondência baseados no tema: "${topic}".
+      ${details ? `\nCONTEXTO ADICIONAL (Detalhes da lição): "${details}". Use este contexto para tornar os pares mais relevantes.\n` : ''}
       
       DIRETRIZES PARA O CONTEÚDO:
       1. Para o campo 'text': Crie uma pergunta curta ou afirmação clara (máximo 4-5 palavras).
@@ -363,13 +469,14 @@ class GeminiService {
   /**
    * Gera uma aventura de RPG educacional gamificada
    */
-  async generateRPGAdventure(topic) {
+  async generateRPGAdventure(topic, details = '') {
     const prompt = `
       Você é um Mestre de RPG Educacional criativo.
       Crie uma mini-aventura de 5 etapas para ensinar sobre: "${topic}".
+      ${details ? `\nCONTEXTO: "${details}". A aventura deve se adaptar a este contexto/nível.\n` : ''}
       
       PERSONAGENS OBRIGATÓRIOS:
-      - HEROI/GUIA: Drácker (um dragãozinho da cor marrom, amigável, com grandes olhos azuis). Ele guia os jogadores.
+      - HEROI/GUIA: Drácker (um dragãozinho marrom com asas marrons, amigável, com grandes olhos azuis). Ele guia os jogadores.
       - ALIADOS: Os "Animaizinhos da Floresta Encantada" (coelhos, esquilos, corujas sábias) que ajudam ou pedem ajuda.
       
       ESTRUTURA DA RESPOSTA (JSON ÚNICO):
@@ -421,7 +528,7 @@ class GeminiService {
       DIRETRIZES:
       - O MUNDO DEVE SER MÁGICO, mesmo que o tema seja ciência ou história (ex: Drácker viaja no tempo ou o vilão invadiu a floresta com tecnologia).
       - SEMPRE mencione "Drácker" e os "Animaizinhos" nas descrições.
-      - As perguntas DEVEM ser educativas e relacionadas ao tema "${topic}".
+      - As perguntas DEVEM ser educativas e relacionadas ao tema "${topic}"${details ? ` e ao contexto: "${details}"` : ''}.
       - Retorne APENAS o JSON válido.
     `;
 

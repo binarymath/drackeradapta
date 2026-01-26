@@ -48,12 +48,16 @@ export const Sidebar = ({
         if (saved) {
             try {
                 const savedOrder = JSON.parse(saved);
-                // Merge current options with saved order to add any new items
-                const newItems = activityOptions.filter(opt => !savedOrder.find(s => s.id === opt.id));
-                // Remove obsolete items from saved order
-                const validSavedItems = savedOrder.filter(s => activityOptions.find(opt => opt.id === s.id));
 
-                setOrderedActivities([...validSavedItems, ...newItems]);
+                // Reconstruct the full object list using the saved order of IDs
+                const rehydratedItems = savedOrder
+                    .map(savedItem => activityOptions.find(opt => opt.id === savedItem.id))
+                    .filter(item => item !== undefined); // Remove invalid/removed IDs
+
+                // Find any NEW items in activityOptions that weren't in the saved order
+                const newItems = activityOptions.filter(opt => !rehydratedItems.find(r => r.id === opt.id));
+
+                setOrderedActivities([...rehydratedItems, ...newItems]);
             } catch {
                 setOrderedActivities(activityOptions);
             }

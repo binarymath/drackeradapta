@@ -72,7 +72,7 @@ export const useActivityActions = () => {
             return;
         }
 
-        if (!topic && activityType !== 'image_ai' && activityType !== 'video_gallery') {
+        if (!topic && activityType !== 'image_ai' && activityType !== 'video_gallery' && activityType !== 'hangman') {
             setError('Por favor, digite um tema para a atividade.');
             return;
         }
@@ -87,6 +87,16 @@ export const useActivityActions = () => {
                 title: "Galeria Drácker",
                 type: 'video_gallery',
                 content: 'Galeria de Vídeos',
+                data: {}
+            });
+            return;
+        }
+
+        if (activityType === 'hangman') {
+            addActivityTab({
+                title: topic ? `Forca: ${topic}` : "Jogo da Forca",
+                type: 'hangman',
+                content: 'Jogo da Forca',
                 data: {}
             });
             return;
@@ -151,7 +161,7 @@ export const useActivityActions = () => {
             }
 
             if (activityType === 'connect_dots') {
-                const data = await geminiService.generateConnectDots(topic);
+                const data = await geminiService.generateConnectDots(topic, lessonDetails);
                 addActivityTab({
                     title: topic || "Liga Pontos",
                     type: 'connect_dots',
@@ -164,7 +174,7 @@ export const useActivityActions = () => {
             }
 
             if (activityType === 'rpg') {
-                const data = await geminiService.generateRPGAdventure(topic);
+                const data = await geminiService.generateRPGAdventure(topic, lessonDetails);
                 addActivityTab({
                     title: data.title || topic,
                     type: 'rpg',
@@ -183,7 +193,7 @@ export const useActivityActions = () => {
             if (activityType === 'crossword') {
                 prompt = `Gere um JSON com palavras cruzadas para o tema "${topic}".\n${context}\nNível: ${levelLabel}.\nRetorne apenas o JSON com {\n  "title": string,\n  "words": [{ "word": string, "clue": string }]\n}`;
             } else {
-                prompt = topic;
+                prompt = `${topic}. ${context}`;
             }
 
             let text = await geminiService.generateText(prompt, {

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { safeLocalStorageGet, safeLocalStorageSet, safeLocalStorageRemove } from '../utils/storage';
 import {
-    FileText, MessageSquare, Grid, Music, BrainCircuit, Play, Files, Compass, Brain
+    FileText, MessageSquare, Grid, Music, BrainCircuit, Play, Files, Compass, Brain, Gamepad2
 } from 'lucide-react';
 
 const ActivityContext = createContext();
@@ -42,6 +42,9 @@ export const ActivityProvider = ({ children }) => {
     const [imageStyle, setImageStyle] = useState('infantil-desenho');
     // Note: imagePng is usually result state, but can be here too
     const [imagePng, setImagePng] = useState('');
+
+    // --- HANGMAN STATE ---
+    const [hangmanBatch, setHangmanBatch] = useState(null); // { words: [], results: {} }
 
     // --- UI STATE ---
     const [isEditing, setIsEditing] = useState(false);
@@ -91,6 +94,7 @@ export const ActivityProvider = ({ children }) => {
         const existingTabs = tabs.filter(t => t.type === type);
         if (existingTabs.length === 1) {
             setActiveTabId(existingTabs[0].id);
+            setActivityType(type); // Ensure sidebar highlight updates
         } else if (existingTabs.length > 1) {
             setTabSelectionModal({ isOpen: true, tabs: existingTabs, type: type });
         } else {
@@ -127,6 +131,7 @@ export const ActivityProvider = ({ children }) => {
         { id: 'video_gallery', label: 'Galeria Drácker', icon: <Play className="w-4 h-4" /> },
         { id: 'rpg', label: 'Drácker RPG', icon: <Compass className="w-4 h-4" /> },
         { id: 'expedition', label: 'Expedição Drácker', icon: <Compass className="w-4 h-4" /> },
+        { id: 'hangman', label: 'Jogo da Forca', icon: <Gamepad2 className="w-4 h-4" /> },
         { id: 'merge_pdf', label: 'Unir PDFs', icon: <Files className="w-4 h-4" /> },
     ], []);
 
@@ -172,6 +177,8 @@ export const ActivityProvider = ({ children }) => {
             imageSize, setImageSize,
             imageStyle, setImageStyle,
             imagePng, setImagePng,
+
+            hangmanBatch, setHangmanBatch,
 
             isEditing, setIsEditing,
 
