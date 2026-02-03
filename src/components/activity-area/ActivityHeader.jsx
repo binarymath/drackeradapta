@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { FileText, Check, Pencil, Maximize2, Minimize2 } from 'lucide-react';
+import { FileText, Check, Pencil, Maximize2, Minimize2, PenSquare, Printer } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export const ActivityHeader = ({
@@ -12,7 +12,8 @@ export const ActivityHeader = ({
     handleDownloadPdf,
     foundWords,
     isFullWidth,
-    toggleFullWidth
+    toggleFullWidth,
+    openManualMusicEditor
 }) => {
     return (
         <div className="p-4 border-b border-brown-100 flex items-center justify-between bg-brown-50/50 no-print rounded-t-2xl">
@@ -24,6 +25,19 @@ export const ActivityHeader = ({
             </div>
 
             <div className="flex gap-2">
+                {/* Manual Input Trigger for Music Activity */}
+                {activityType === 'simplify' && (
+                    <Button
+                        onClick={openManualMusicEditor}
+                        variant="secondary"
+                        className="h-8 text-sm px-3 border-dashed border-brown-300 hover:border-brown-400"
+                        icon={PenSquare}
+                        title="Criar Manualmente"
+                    >
+                        Criar Novo
+                    </Button>
+                )}
+
                 {hasContent && (
                     <>
                         {(activityType === 'quiz' || activityType === 'summary' || activityType === 'simplify') && (
@@ -48,7 +62,7 @@ export const ActivityHeader = ({
                         )}
                         {activityType !== 'memory' && activityType !== 'rpg' && (
                             <>
-                                <Button onClick={handleDownloadPdf} variant="ghost" className="h-8 w-8 p-0" icon={FileText} title="Imprimir PDF" />
+                                <Button onClick={handleDownloadPdf} variant="ghost" className="h-8 w-8 p-0" icon={Printer} title="Imprimir" />
                             </>
                         )}
                     </>

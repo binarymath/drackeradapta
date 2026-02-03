@@ -55,7 +55,8 @@ export const ActivityArea = ({
     rpgData,
     drackerState,
     isFullWidth,
-    toggleFullWidth
+    toggleFullWidth,
+    openManualMusicEditor
 }) => {
     // --- State ---
     const [printMode, setPrintMode] = useState('all'); // 'all', 'lyrics', 'questions'
@@ -123,6 +124,7 @@ export const ActivityArea = ({
                     foundWords={foundWords}
                     isFullWidth={isFullWidth}
                     toggleFullWidth={toggleFullWidth}
+                    openManualMusicEditor={openManualMusicEditor}
                 />
 
                 <div className="flex-1 p-8 overflow-y-auto custom-scrollbar" ref={activityAreaRef} id="activity-area-print">

@@ -45,6 +45,8 @@ code {
     left: 0;
     top: 0;
     width: 100%;
+    height: auto !important;
+    overflow: visible !important;
     margin: 0;
     padding: 0;
     background: white;

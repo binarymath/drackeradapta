@@ -204,11 +204,8 @@ export const MainLayout = () => {
     };
 
     // Exports
-    const handleDownloadPdf = async () => {
-        if (!activityAreaRef.current) return alert('Área de atividade não encontrada.');
-        try {
-            await ExportService.exportToPDF(activityAreaRef.current, activeActivity?.title || topic || 'Atividade');
-        } catch (e) { alert("Erro ao gerar PDF: " + e.message); }
+    const handleDownloadPdf = () => {
+        window.print();
     };
     const handleDownloadGeneratedPng = () => {
         if (!imagePng) return;
@@ -294,6 +291,7 @@ export const MainLayout = () => {
                             isLoading={actions.isLoading}
                             geminiService={geminiService}
                             handleGenerate={actions.handleGenerate}
+                            openManualMusicEditor={actions.openManualMusicEditor}
                             systemStatus={displayedSystemStatus}
                             error={actions.error}
                         />
@@ -359,6 +357,7 @@ export const MainLayout = () => {
                         drackerState={drackerState}
                         isFullWidth={isFullWidth}
                         toggleFullWidth={() => setIsFullWidth(!isFullWidth)}
+                        openManualMusicEditor={actions.openManualMusicEditor}
                     />
                 </div>
 

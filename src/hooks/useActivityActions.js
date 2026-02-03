@@ -482,6 +482,18 @@ export const useActivityActions = () => {
         setShowConnectDotsEditor(true);
     };
 
+    const openManualMusicEditor = () => {
+        if (!topic) {
+            setError('Por favor, digite um tema para a atividade.');
+            return;
+        }
+        setMusicEditorData({
+            lyrics: '',
+            questions: []
+        });
+        setShowMusicEditor(true);
+    };
+
     // Move handleWordsearchComplete here or nearby logic? 
     // It's used by AppModals. I can expose it from here if I want.
     // For now I won't, to avoid changing AppModals signature too much, 
@@ -496,7 +508,7 @@ export const useActivityActions = () => {
         // Editor States & Setters
         showQuizEditor, setShowQuizEditor, quizEditorData, openEditQuiz, handleQuizConfirm,
         showDrackerEditor, setShowDrackerEditor, drackerEditorData, openEditDracker, handleDrackerConfirm,
-        showMusicEditor, setShowMusicEditor, musicEditorData, openEditMusic, handleMusicConfirm,
+        showMusicEditor, setShowMusicEditor, musicEditorData, openEditMusic, handleMusicConfirm, openManualMusicEditor,
         showConnectDotsEditor, setShowConnectDotsEditor, connectDotsEditorData, openEditConnectDots, handleConnectDotsConfirm,
         showCrosswordEditor, setShowCrosswordEditor, crosswordEditorData, handleCrosswordConfirm,
 

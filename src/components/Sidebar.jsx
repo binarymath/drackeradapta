@@ -37,7 +37,8 @@ export const Sidebar = ({
     handleGenerate,
     systemStatus,
     error,
-    openSaveLoad
+    openSaveLoad,
+    openManualMusicEditor
 }) => {
     const [orderedActivities, setOrderedActivities] = useState([]);
     const [draggedItem, setDraggedItem] = useState(null);
