@@ -127,7 +127,7 @@ export const ActivityArea = ({
                     openManualMusicEditor={openManualMusicEditor}
                 />
 
-                <div className="flex-1 p-8 overflow-y-auto custom-scrollbar" ref={activityAreaRef} id="activity-area-print">
+                <div className={`flex-1 ${isFullWidth ? 'p-1 sm:p-2' : 'p-4 sm:p-8'} overflow-y-auto custom-scrollbar`} ref={activityAreaRef} id="activity-area-print">
                     {hasContent ? (
                         <>
                             {/* --- SETUP / TOGGLE CARDS --- */}
@@ -272,7 +272,7 @@ export const ActivityArea = ({
                             ) : activityType === 'hangman' ? (
                                 <HangmanGame />
                             ) : activityType === 'memory' ? (
-                                <MemoryGame />
+                                <MemoryGame isFullWidth={isFullWidth} />
                             ) : activityType === 'rpg' && rpgData ? (
                                 <DrackerRPG data={rpgData} />
                             ) : (

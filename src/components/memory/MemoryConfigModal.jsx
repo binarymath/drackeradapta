@@ -18,53 +18,61 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
     const [backgroundFile, setBackgroundFile] = useState(null);
 
     // Hydrate from initialData for Editing
+    const hasInitializedRef = React.useRef(false);
+
     React.useEffect(() => {
-        if (isOpen && initialData) {
-            setTopic(initialData.topic || '');
+        if (isOpen && !hasInitializedRef.current) {
+            hasInitializedRef.current = true;
+            
+            if (initialData) {
+                setTopic(initialData.topic || '');
 
-            // If it looks like a manual game (has pairs/cards we can reverse engineer)
-            // Or if we just want to load cards into manual editor
-            if (initialData.cards && initialData.cards.length > 0) {
-                // Try to reconstruct pairs
-                const uniquePairs = [];
-                const pairsMap = {};
+                // If it looks like a manual game (has pairs/cards we can reverse engineer)
+                // Or if we just want to load cards into manual editor
+                if (initialData.cards && initialData.cards.length > 0) {
+                    // Try to reconstruct pairs
+                    const uniquePairs = [];
+                    const pairsMap = {};
 
-                initialData.cards.forEach(card => {
-                    if (!pairsMap[card.pairId]) pairsMap[card.pairId] = [];
-                    pairsMap[card.pairId].push(card);
-                });
+                    initialData.cards.forEach(card => {
+                        if (!pairsMap[card.pairId]) pairsMap[card.pairId] = [];
+                        pairsMap[card.pairId].push(card);
+                    });
 
-                Object.values(pairsMap).forEach((pairCards, idx) => {
-                    if (pairCards.length === 2) {
-                        const card1 = pairCards[0];
-                        const card2 = pairCards[1];
-                        uniquePairs.push({
-                            id: Date.now() + idx,
-                            text1: card1.content || '',
-                            text2: card2.content || '',
-                            image1: card1.customImage || null,
-                            image2: card2.customImage || null
-                        });
+                    Object.values(pairsMap).forEach((pairCards, idx) => {
+                        if (pairCards.length === 2) {
+                            const card1 = pairCards[0];
+                            const card2 = pairCards[1];
+                            uniquePairs.push({
+                                id: Date.now() + idx,
+                                text1: card1.content || '',
+                                text2: card2.content || '',
+                                image1: card1.customImage || null,
+                                image2: card2.customImage || null
+                            });
+                        }
+                    });
+
+                    if (uniquePairs.length > 0) {
+                        setManualPairs(uniquePairs);
+                        setMode('manual'); // Default to manual edit if we have cards
                     }
-                });
+                } else {
+                    setMode('ai'); // Default to AI if no cards (just topic reuse)
+                }
 
-                if (uniquePairs.length > 0) {
-                    setManualPairs(uniquePairs);
-                    setMode('manual'); // Default to manual edit if we have cards
+                if (initialData.cardBackImage) {
+                    setBackgroundFile(initialData.cardBackImage);
                 }
             } else {
-                setMode('ai'); // Default to AI if no cards (just topic reuse)
+                // Reset if opening new
+                setTopic('');
+                setManualPairs([{ id: 1, text1: '', text2: '', image1: null, image2: null }]);
+                setMode('ai');
+                setBackgroundFile(null);
             }
-
-            if (initialData.cardBackImage) {
-                setBackgroundFile(initialData.cardBackImage);
-            }
-        } else if (isOpen && !initialData) {
-            // Reset if opening new
-            setTopic('');
-            setManualPairs([{ id: 1, text1: '', text2: '', image1: null, image2: null }]);
-            setMode('ai');
-            setBackgroundFile(null);
+        } else if (!isOpen) {
+            hasInitializedRef.current = false;
         }
     }, [isOpen, initialData]);
 

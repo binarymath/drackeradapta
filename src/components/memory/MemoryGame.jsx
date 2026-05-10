@@ -12,7 +12,7 @@ import MemoryVictoryModal from './MemoryVictoryModal';
 import { useActivity } from '../../contexts/ActivityContext';
 import { useGemini } from '../../contexts/GeminiContext';
 
-const MemoryGame = () => {
+const MemoryGame = ({ isFullWidth }) => {
     const { geminiService, selectedModel } = useGemini();
     const { activeActivity, updateActivityData } = useActivity();
 
@@ -176,7 +176,7 @@ const MemoryGame = () => {
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 p-4 overflow-y-auto relative z-10 w-full mx-auto custom-scrollbar flex flex-col">
+            <main className={`flex-1 p-2 sm:p-4 overflow-y-auto relative z-10 w-full ${isFullWidth ? '' : 'max-w-7xl mx-auto'} custom-scrollbar flex flex-col`}>
 
                 {/* Empty State (Waiting for Config) */}
                 {gameState === 'input' && (
@@ -203,6 +203,7 @@ const MemoryGame = () => {
                             handleCardClick={handleCardClick}
                             cardBackImage={cardBackImage}
                             useCardImages={useCardImages}
+                            isFullWidth={isFullWidth}
                         />
                         {/* Paused Overlay */}
                         {isPaused && (
@@ -257,14 +258,14 @@ const MemoryGame = () => {
                 }}
             />
 
-            <Modal isOpen={showPrintPreview} onClose={() => setShowPrintPreview(false)} title="Imprimir Jogo" className="max-w-4xl">
+            {showPrintPreview && (
                 <MemoryPrintPreview
                     items={getCardsForPrint()}
                     cardBackImage={cardBackImage}
                     topic={topic}
                     onClose={() => setShowPrintPreview(false)}
                 />
-            </Modal>
+            )}
 
             <MemoryVictoryModal
                 isOpen={showVictoryModal}

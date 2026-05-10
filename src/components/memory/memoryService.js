@@ -37,7 +37,7 @@ export const memoryService = {
         if (geminiService) {
             try {
                 // Prompt para texto plano (Mais robusto que JSON)
-                const prompt = `Gere 10 perguntas e respostas ÚNICAS sobre "${topic}".
+                const prompt = `Gere 12 perguntas e respostas ÚNICAS sobre "${topic}".
                 Formato OBRIGATÓRIO por linha: PERGUNTA | RESPOSTA
                 
                 REGRAS RÍGIDAS:
@@ -45,7 +45,7 @@ export const memoryService = {
                 2. Sem numeração, sem markdown, apenas o texto bruto.
                 3. As perguntas DEVEM terminar com interrogação "?".
                 4. As respostas devem ser curtas (máx 3 palavras).
-                5. Gere exatamente 10 pares distintos.
+                5. Gere exatamente 12 pares distintos.
                 
                 Exemplo:
                 Qual a capital da França? | Paris
@@ -79,11 +79,11 @@ export const memoryService = {
         // Fallback genérico APENAS se nenhum par foi gerado
         if (pairs.length === 0) {
             if (!error) error = `Não foi possível gerar sobre "${topic}".`;
-            pairs = Array.from({ length: 10 }, (_, i) => ({ question: `Item ${i + 1}`, answer: `Par ${i + 1}` }));
+            pairs = Array.from({ length: 12 }, (_, i) => ({ question: `Item ${i + 1}`, answer: `Par ${i + 1}` }));
         }
 
         // Formatação final dos cards
-        const selectedPairs = pairs.slice(0, 10);
+        const selectedPairs = pairs.slice(0, 12);
         const gameCards = [];
         selectedPairs.forEach((pair, index) => {
             gameCards.push({ id: `q-${index}`, pairId: index, content: pair.question, type: 'question', customImage: null });
