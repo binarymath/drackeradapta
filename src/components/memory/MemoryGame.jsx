@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RotateCcw, FileDown, Clock, Pause, Play, Shuffle, Printer } from 'lucide-react';
+import { RotateCcw, FileDown, Clock, Pause, Play, Shuffle, Printer, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { useMemoryGame } from './useMemoryGame';
@@ -20,6 +20,7 @@ const MemoryGame = ({ isFullWidth }) => {
     const [showConfigModal, setShowConfigModal] = useState(false);
     const [showPrintPreview, setShowPrintPreview] = useState(false);
     const [showVictoryModal, setShowVictoryModal] = useState(false);
+    const [expandedCard, setExpandedCard] = useState(null);
 
     const {
         gameState, setGameState,
@@ -201,6 +202,7 @@ const MemoryGame = ({ isFullWidth }) => {
                             flipped={flipped}
                             solved={solved}
                             handleCardClick={handleCardClick}
+                            onExpand={(card) => setExpandedCard(card)}
                             cardBackImage={cardBackImage}
                             useCardImages={useCardImages}
                             isFullWidth={isFullWidth}
@@ -220,6 +222,42 @@ const MemoryGame = ({ isFullWidth }) => {
                                 </div>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* Expanded Card Overlay */}
+                {expandedCard && (
+                    <div 
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in"
+                        onClick={() => setExpandedCard(null)}
+                    >
+                        <div 
+                            className="relative bg-white rounded-2xl w-full max-w-4xl aspect-[3/4] sm:aspect-auto sm:h-[85vh] flex flex-col items-center justify-center overflow-hidden shadow-2xl ring-4 ring-white/20"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button 
+                                onClick={() => setExpandedCard(null)}
+                                className="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-black/80 text-white rounded-full transition-colors"
+                            >
+                                <X size={28} />
+                            </button>
+                            
+                            {useCardImages && expandedCard.customImage && (
+                                <div className="absolute inset-0 z-0">
+                                    <img src={expandedCard.customImage} alt="" className="w-full h-full object-cover opacity-60" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/80" />
+                                </div>
+                            )}
+                            
+                            <div className="relative z-10 p-6 sm:p-12 flex flex-col items-center justify-center h-full w-full">
+                                <span className={`font-bold text-center leading-relaxed
+                                    ${useCardImages && expandedCard.customImage ? 'text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]' : 'text-brown-900'}
+                                    text-3xl sm:text-5xl md:text-6xl`}
+                                >
+                                    {expandedCard.content}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 )}
             </main>

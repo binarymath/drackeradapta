@@ -33,6 +33,10 @@ const MemoryPrintPreview = ({
     const cardChunks = chunkArray(items, CARDS_PER_PAGE);
 
     const renderCard = (card, side) => {
+        if (card.isEmpty) {
+            return <div key={card.id} className="print-card" style={{ borderColor: 'transparent', background: 'transparent' }}></div>;
+        }
+
         if (side === 'front') {
             const img = card.customImage;
             const hasText = card.content && card.content.trim() !== '';
@@ -62,7 +66,7 @@ const MemoryPrintPreview = ({
             );
         } else {
             return (
-                <div key={`back-${card.id}`} className="print-card relative border-2 border-gray-400 flex flex-col items-center justify-center p-0 overflow-hidden bg-slate-50 box-border rounded-lg">
+                <div key={`back-${card.id}`} className="print-card relative border-2 border-gray-200 flex flex-col items-center justify-center p-0 overflow-hidden bg-slate-50 box-border rounded-lg">
                     {cardBackImage ? (
                         <img src={cardBackImage} className="w-full h-full object-cover" alt="Verso" />
                     ) : (
@@ -146,12 +150,30 @@ const MemoryPrintPreview = ({
             <div className="flex-1 p-12 print:bg-white print:p-0 flex flex-col items-center gap-12 print:gap-0 print:block">
                 {/* Renderiza Frentes */}
                 {(printSide === 'all' || printSide === 'front') && (
-                    cardChunks.map((chunk, idx) => renderPage(chunk, 'front', idx, cardChunks.length))
+                    cardChunks.map((chunk, idx) => {
+                        const padded = [...chunk];
+                        while (padded.length < CARDS_PER_PAGE) {
+                            padded.push({ id: `empty-front-${idx}-${padded.length}`, isEmpty: true });
+                        }
+                        return renderPage(padded, 'front', idx, cardChunks.length);
+                    })
                 )}
                 
                 {/* Renderiza Versos */}
                 {(printSide === 'all' || printSide === 'back') && (
-                    cardChunks.map((chunk, idx) => renderPage(chunk, 'back', idx, cardChunks.length))
+                    cardChunks.map((chunk, idx) => {
+                        const padded = [...chunk];
+                        while (padded.length < CARDS_PER_PAGE) {
+                            padded.push({ id: `empty-back-${idx}-${padded.length}`, isEmpty: true });
+                        }
+                        // Espelhar colunas para alinhamento perfeito no verso (flip na borda longa)
+                        const mirrored = [
+                            padded[2], padded[1], padded[0],
+                            padded[5], padded[4], padded[3],
+                            padded[8], padded[7], padded[6]
+                        ];
+                        return renderPage(mirrored, 'back', idx, cardChunks.length);
+                    })
                 )}
             </div>
 
@@ -211,7 +233,7 @@ const MemoryPrintPreview = ({
                         width: 210mm !important;
                         height: 297mm !important;
                         padding: 15mm !important; /* Aumentado para margem de segurança */
-                        margin: 0 !important;
+                        margin: 0 auto !important;
                         border: none !important;
                         box-shadow: none !important;
                         page-break-after: always !important;

@@ -1,7 +1,7 @@
 import React from 'react';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Maximize2 } from 'lucide-react';
 
-const MemoryCard = ({ card, isFlipped, isSolved, onClick, cardBackImage, useCardImages = true }) => {
+const MemoryCard = ({ card, isFlipped, isSolved, onClick, onExpand, cardBackImage, useCardImages = true }) => {
     const contentImageUrl = card.customImage;
 
     return (
@@ -37,6 +37,20 @@ const MemoryCard = ({ card, isFlipped, isSolved, onClick, cardBackImage, useCard
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                         </div>
                     )}
+                    
+                    {(isFlipped || isSolved) && onExpand && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onExpand(card);
+                            }}
+                            className="absolute top-2 right-2 z-20 p-1.5 bg-white/90 hover:bg-white rounded-full text-brown-600 hover:text-brown-900 hover:scale-110 transition-all shadow-sm"
+                            title="Ampliar Carta"
+                        >
+                            <Maximize2 size={16} />
+                        </button>
+                    )}
+
                     <div className="relative z-10 p-2 flex flex-col items-center justify-center h-full w-full">
                         <span className={`font-bold leading-tight select-none
                 ${contentImageUrl ? 'text-white shadow-black drop-shadow-md' : 'text-brown-800'}

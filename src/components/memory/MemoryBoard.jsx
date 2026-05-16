@@ -1,7 +1,7 @@
 import React from 'react';
 import MemoryCard from './MemoryCard';
 
-const MemoryBoard = ({ cards, flipped, solved, handleCardClick, cardBackImage, useCardImages, isFullWidth }) => {
+const MemoryBoard = ({ cards, flipped, solved, handleCardClick, onExpand, cardBackImage, useCardImages, isFullWidth }) => {
     const gridCols = isFullWidth 
         ? "grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8"
         : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4"; // Mantém em 4 colunas quando não maximizado
@@ -15,6 +15,7 @@ const MemoryBoard = ({ cards, flipped, solved, handleCardClick, cardBackImage, u
                     isFlipped={flipped.includes(card.id)}
                     isSolved={solved.includes(card.pairId)}
                     onClick={handleCardClick}
+                    onExpand={onExpand}
                     cardBackImage={cardBackImage}
                     useCardImages={useCardImages}
                 />
