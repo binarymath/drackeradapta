@@ -27,10 +27,12 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
             if (initialData) {
                 setTopic(initialData.topic || '');
 
-                // If it looks like a manual game (has pairs/cards we can reverse engineer)
-                // Or if we just want to load cards into manual editor
-                if (initialData.cards && initialData.cards.length > 0) {
-                    // Try to reconstruct pairs
+                // If we explicitly saved manual pairs, use them directly
+                if (initialData.manualPairs && initialData.manualPairs.length > 0) {
+                    setManualPairs(initialData.manualPairs);
+                    setMode(initialData.gameMode || 'manual');
+                } else if (initialData.cards && initialData.cards.length > 0) {
+                    // Try to reconstruct pairs (fallback for old saves)
                     const uniquePairs = [];
                     const pairsMap = {};
 
@@ -55,10 +57,10 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
 
                     if (uniquePairs.length > 0) {
                         setManualPairs(uniquePairs);
-                        setMode('manual'); // Default to manual edit if we have cards
+                        setMode(initialData.gameMode || 'manual'); // Default to manual edit if we have cards
                     }
                 } else {
-                    setMode('ai'); // Default to AI if no cards (just topic reuse)
+                    setMode(initialData.gameMode || 'ai'); // Default to AI if no cards (just topic reuse)
                 }
 
                 if (initialData.cardBackImage) {

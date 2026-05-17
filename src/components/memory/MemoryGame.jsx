@@ -22,6 +22,9 @@ const MemoryGame = ({ isFullWidth }) => {
     const [showVictoryModal, setShowVictoryModal] = useState(false);
     const [expandedCard, setExpandedCard] = useState(null);
 
+    const [gameMode, setGameMode] = useState(activeActivity?.data?.gameMode || 'ai');
+    const [manualPairs, setManualPairs] = useState(activeActivity?.data?.manualPairs || []);
+
     const {
         gameState, setGameState,
         topic, setTopic,
@@ -59,11 +62,12 @@ const MemoryGame = ({ isFullWidth }) => {
     useEffect(() => {
         if (activeActivity && gameState !== 'input') {
             const dataToSave = {
-                gameState, topic, cards, solved, moves, bgImage, cardBackImage, useCardImages
+                gameState, topic, cards, solved, moves, bgImage, cardBackImage, useCardImages,
+                gameMode, manualPairs
             };
             updateActivityData(activeActivity.id, { data: dataToSave });
         }
-    }, [gameState, topic, cards, solved, moves, bgImage, cardBackImage, useCardImages, activeActivity?.id]);
+    }, [gameState, topic, cards, solved, moves, bgImage, cardBackImage, useCardImages, gameMode, manualPairs, activeActivity?.id]);
 
 
     const handleConfigConfirm = (configData) => {
@@ -232,26 +236,25 @@ const MemoryGame = ({ isFullWidth }) => {
                         onClick={() => setExpandedCard(null)}
                     >
                         <div 
-                            className="relative bg-white rounded-2xl w-full max-w-4xl aspect-[3/4] sm:aspect-auto sm:h-[85vh] flex flex-col items-center justify-center overflow-hidden shadow-2xl ring-4 ring-white/20"
+                            className="relative bg-gradient-to-br from-brown-700 to-brown-950 rounded-2xl w-full max-w-4xl aspect-[3/4] sm:aspect-auto sm:h-[85vh] flex flex-col items-center justify-center overflow-hidden shadow-2xl ring-4 ring-white/20"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <button 
                                 onClick={() => setExpandedCard(null)}
-                                className="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-black/80 text-white rounded-full transition-colors"
+                                className="absolute top-4 right-4 z-50 p-2 bg-black/30 hover:bg-black/60 text-white rounded-full transition-colors"
                             >
                                 <X size={28} />
                             </button>
                             
                             {useCardImages && expandedCard.customImage && (
                                 <div className="absolute inset-0 z-0">
-                                    <img src={expandedCard.customImage} alt="" className="w-full h-full object-cover opacity-60" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/80" />
+                                    <img src={expandedCard.customImage} alt="" className="w-full h-full object-contain" />
                                 </div>
                             )}
                             
-                            <div className="relative z-10 p-6 sm:p-12 flex flex-col items-center justify-center h-full w-full">
-                                <span className={`font-bold text-center leading-relaxed
-                                    ${useCardImages && expandedCard.customImage ? 'text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]' : 'text-brown-900'}
+                            <div className={`relative z-10 p-6 sm:p-12 flex flex-col items-center w-full h-full ${useCardImages && expandedCard.customImage ? 'justify-end pb-12' : 'justify-center'}`}>
+                                <span className={`font-bold text-center leading-relaxed text-white
+                                    ${useCardImages && expandedCard.customImage ? 'bg-black/50 px-6 py-4 rounded-2xl backdrop-blur-sm shadow-xl' : 'drop-shadow-md'}
                                     text-3xl sm:text-5xl md:text-6xl`}
                                 >
                                     {expandedCard.content}
@@ -270,7 +273,9 @@ const MemoryGame = ({ isFullWidth }) => {
                     // Logic to start game based on data type
                     let cardsToPlay = data.cards;
 
+                    setGameMode(data.type);
                     if (data.type === 'manual' && data.pairs) {
+                        setManualPairs(data.pairs);
                         cardsToPlay = [];
                         data.pairs.forEach(p => {
                             cardsToPlay.push({ id: p.id + '_1', pairId: p.id, type: 'text', content: p.text1, customImage: p.image1 });
@@ -292,7 +297,9 @@ const MemoryGame = ({ isFullWidth }) => {
                     gameState,
                     topic,
                     cards,
-                    cardBackImage
+                    cardBackImage,
+                    gameMode,
+                    manualPairs
                 }}
             />
 

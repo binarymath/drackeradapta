@@ -15,7 +15,7 @@ const MemoryCard = ({ card, isFlipped, isSolved, onClick, onExpand, cardBackImag
                 <div className="absolute inset-0 [backface-visibility:hidden] bg-white border-4 border-white shadow-sm ring-1 ring-brown-200 rounded-xl flex items-center justify-center hover:shadow-md transition-all z-20 overflow-hidden bg-pattern-dots">
                     {cardBackImage ? (
                         <>
-                            <img src={cardBackImage} alt="Capa" className="w-full h-full object-cover" />
+                            <img src={cardBackImage} alt="Capa" className="w-full h-full object-contain bg-white" />
                             <div className="absolute inset-0 bg-black/5 hover:bg-transparent transition-colors" />
                         </>
                     ) : (
@@ -32,9 +32,8 @@ const MemoryCard = ({ card, isFlipped, isSolved, onClick, onExpand, cardBackImag
             bg-white border-2 border-slate-100 shadow-md`}
                 >
                     {useCardImages && contentImageUrl && (
-                        <div className="absolute inset-0 z-0">
-                            <img src={contentImageUrl} alt="" className="w-full h-full object-cover transition-opacity" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <div className="absolute inset-0 z-0 bg-white">
+                            <img src={contentImageUrl} alt="" className="w-full h-full object-contain transition-opacity" />
                         </div>
                     )}
                     
@@ -51,9 +50,9 @@ const MemoryCard = ({ card, isFlipped, isSolved, onClick, onExpand, cardBackImag
                         </button>
                     )}
 
-                    <div className="relative z-10 p-2 flex flex-col items-center justify-center h-full w-full">
-                        <span className={`font-bold leading-tight select-none
-                ${contentImageUrl ? 'text-white shadow-black drop-shadow-md' : 'text-brown-800'}
+                    <div className={`relative z-10 p-2 flex flex-col items-center w-full h-full ${contentImageUrl ? 'justify-end pb-3' : 'justify-center'}`}>
+                        <span className={`font-bold text-center leading-tight select-none
+                ${contentImageUrl ? 'text-white bg-black/60 px-2 py-1 rounded backdrop-blur-sm shadow-md' : 'text-brown-800'}
                 ${card.content.length > 20 ? 'text-xs sm:text-sm' : 'text-sm sm:text-lg'}`}
                         >
                             {card.content}
