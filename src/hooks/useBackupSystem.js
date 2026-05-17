@@ -20,7 +20,7 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, expeditions = [],
                 expeditions: expeditions, // Include expeditions
                 allMembers: allMembers // Include centralized members
             };
-            const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;

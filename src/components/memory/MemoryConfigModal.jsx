@@ -6,6 +6,44 @@ import { Brain, Image as ImageIcon, Plus, Trash2, Wand2, Upload, AlertCircle } f
 import { memoryService } from './memoryService';
 import { useGemini } from '../../contexts/GeminiContext';
 
+const compressImage = (file, maxWidth = 600, maxHeight = 600) => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                
+                // Scale down maintaining aspect ratio if it exceeds max bounds
+                if (width > maxWidth || height > maxHeight) {
+                    const ratio = Math.min(maxWidth / width, maxHeight / height);
+                    width = Math.round(width * ratio);
+                    height = Math.round(height * ratio);
+                }
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Try WebP first for drastic size reduction (up to 80% smaller than JPEG)
+                const dataUrl = canvas.toDataURL('image/webp', 0.5);
+                
+                // If browser doesn't support WebP, it returns PNG. Fallback to JPEG.
+                if (dataUrl.startsWith('data:image/png')) {
+                    resolve(canvas.toDataURL('image/jpeg', 0.5));
+                } else {
+                    resolve(dataUrl);
+                }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+};
+
 const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) => {
     const { geminiService, apiKey } = useGemini();
     const [mode, setMode] = useState('ai');
@@ -90,23 +128,17 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
         setManualPairs(manualPairs.map(p => p.id === id ? { ...p, [field]: value } : p));
     };
 
-    const handleImageUpload = (id, field, file) => {
+    const handleImageUpload = async (id, field, file) => {
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                handlePairChange(id, field, reader.result);
-            };
-            reader.readAsDataURL(file);
+            const compressedDataUrl = await compressImage(file);
+            handlePairChange(id, field, compressedDataUrl);
         }
     };
 
-    const handleBackgroundUpload = (file) => {
+    const handleBackgroundUpload = async (file) => {
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setBackgroundFile(reader.result);
-            };
-            reader.readAsDataURL(file);
+            const compressedDataUrl = await compressImage(file);
+            setBackgroundFile(compressedDataUrl);
         }
     }
 
