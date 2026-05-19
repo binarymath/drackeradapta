@@ -51,16 +51,23 @@ export const generateWordSearch = (
   selectedWords,
   rows = 15,
   cols = 15,
-  directions = { horizontal: true, vertical: false, diagonal: false, reverse: false }
+  directions = { horizontal: true, vertical: false, diagonal: false, reverse: false },
+  alphabetType = 'text'
 ) => {
   const grid = Array(rows).fill(null).map(() => Array(cols).fill(''));
   const placedWords = [];
   const placements = [];
-  // Alfabeto estendido para incluir acentos na "sopa" (proporcionalmente menos frequentes)
-  const baseAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const accents = 'ÁÉÍÓÚÂÊÔÃÕÇ';
-  // Mistura: Acentuados aparecem com chance menor
-  const alphabet = baseAlphabet.repeat(4) + accents;
+  
+  let alphabet = '';
+  if (alphabetType === 'numeric') {
+    alphabet = '0123456789';
+  } else {
+    // Alfabeto estendido para incluir acentos na "sopa" (proporcionalmente menos frequentes)
+    const baseAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const accents = 'ÁÉÍÓÚÂÊÔÃÕÇ';
+    // Mistura: Acentuados aparecem com chance menor
+    alphabet = baseAlphabet.repeat(4) + accents;
+  }
 
   // Define vetores de direção conforme configurações
   const dirVecs = [];
@@ -84,8 +91,10 @@ export const generateWordSearch = (
 
   // Coloca palavras maiores primeiro para melhor encaixe
   const words = [...selectedWords]
-    .map(w => w.toUpperCase().replace(/[^A-ZÁÉÍÓÚÂÊÔÃÕÇ]/g, '').slice(0, Math.max(rows, cols)))
-    .filter(w => w.length >= 3)
+    .map(w => alphabetType === 'numeric' 
+        ? w.replace(/[^0-9]/g, '').slice(0, Math.max(rows, cols)) 
+        : w.toUpperCase().replace(/[^A-ZÁÉÍÓÚÂÊÔÃÕÇ]/g, '').slice(0, Math.max(rows, cols)))
+    .filter(w => w.length >= (alphabetType === 'numeric' ? 1 : 3))
     .sort((a, b) => b.length - a.length);
 
   const inBounds = (r, c) => r >= 0 && r < rows && c >= 0 && c < cols;
@@ -147,4 +156,53 @@ export const generateWordSearch = (
   }
 
   return { grid, words: placedWords, placements };
+};
+
+/**
+ * Gera operações matemáticas
+ */
+export const generateMathProblems = (count, maxOrder, operations, multMaxOrder = 1, divMaxOrder = 1) => {
+  const maxNum = Math.pow(10, maxOrder) - 1;
+  const problems = [];
+  const usedAnswers = new Set();
+  
+  // Opções para evitar infinit loop
+  for (let i = 0; i < count * 5 && problems.length < count; i++) {
+      const op = operations[Math.floor(Math.random() * operations.length)];
+      let a, b, answer;
+      
+      if (op === '+') {
+          answer = Math.floor(Math.random() * maxNum) + 1;
+          a = Math.floor(Math.random() * answer);
+          b = answer - a;
+      } else if (op === '-') {
+          answer = Math.floor(Math.random() * maxNum) + 1;
+          b = Math.floor(Math.random() * maxNum) + 1;
+          a = answer + b;
+      } else if (op === '*') {
+          const maxA = Math.pow(10, maxOrder) - 1;
+          const maxB = Math.pow(10, multMaxOrder) - 1;
+          a = Math.floor(Math.random() * maxA) + 1;
+          b = Math.floor(Math.random() * maxB) + 1;
+          answer = a * b;
+      } else if (op === '/') {
+          const maxAnswer = Math.pow(10, maxOrder) - 1;
+          const maxB = Math.pow(10, divMaxOrder) - 1;
+          answer = Math.floor(Math.random() * maxAnswer) + 1;
+          b = Math.floor(Math.random() * maxB) + 1;
+          a = answer * b;
+      }
+      
+      // Evita respostas de um só dígito em wordsearch pois são muito fáceis, exceto se a ordem for 1
+      if (maxOrder > 1 && answer < 10) continue;
+      
+      if (!usedAnswers.has(answer)) {
+          usedAnswers.add(answer);
+          let opSymbol = op;
+          if (op === '*') opSymbol = 'x';
+          if (op === '/') opSymbol = '÷';
+          problems.push({ problem: `${a} ${opSymbol} ${b} = ?`, answer: answer.toString() });
+      }
+  }
+  return problems;
 };

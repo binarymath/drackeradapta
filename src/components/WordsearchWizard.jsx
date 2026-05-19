@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Loader2, AlertCircle, CheckCircle2, ChevronRight, FileText, MousePointerClick, Play, X, Settings2 } from 'lucide-react';
-import { generateWordSearch, extractWords } from '../utils/wordsearchGenerator';
+import { generateWordSearch, extractWords, generateMathProblems } from '../utils/wordsearchGenerator';
 
 // UI Components
 import { Modal } from './ui/Modal';
@@ -41,6 +41,11 @@ export default function WordsearchWizard({
   const [selectedWords, setSelectedWords] = useState([]);
   const [rows, setRows] = useState(16);
   const [cols, setCols] = useState(16);
+  const [gameModeType, setGameModeType] = useState('text'); // 'text' ou 'math'
+  const [mathOperations, setMathOperations] = useState(['+', '-']);
+  const [mathMaxOrder, setMathMaxOrder] = useState(2);
+  const [mathMultMaxOrder, setMathMultMaxOrder] = useState(1);
+  const [mathDivMaxOrder, setMathDivMaxOrder] = useState(1);
   const lastTriggerRef = React.useRef(null);
 
   const maxSelectableWords = (rows >= 18 || cols >= 18) ? 10 : 15;
@@ -69,7 +74,7 @@ export default function WordsearchWizard({
         setGeneratedText(baseStory);
         setEditableText(baseStory);
 
-        const presetWords = (initialData.words || []).map(w => w.toUpperCase());
+        const presetWords = (initialData.words || []).map(w => typeof w === 'string' ? w.toUpperCase() : w);
         setAvailableWords(presetWords);
         setSelectedWords(presetWords.slice(0, Math.min(maxSelectableWords, presetWords.length)));
 
@@ -88,6 +93,25 @@ export default function WordsearchWizard({
   const handleStartWordsearch = async () => {
     if (isEditSession) {
       setStep(1);
+      return;
+    }
+
+    if (gameModeType === 'math') {
+      if (mathOperations.length === 0) {
+        onError('Selecione pelo menos uma operação matemática');
+        return;
+      }
+      setStep('LOADING');
+      setIsLoading(true);
+      setTimeout(() => {
+        const problems = generateMathProblems(20, mathMaxOrder, mathOperations, mathMultMaxOrder, mathDivMaxOrder);
+        const mappedWords = problems.map(p => ({ word: p.answer, clue: p.problem }));
+        setAvailableWords(mappedWords);
+        setSelectedWords(mappedWords.slice(0, Math.min(maxSelectableWords, mappedWords.length)));
+        setEditableText(`Resolva as operações e encontre os resultados no caça-palavras!`);
+        setStep(2);
+        setIsLoading(false);
+      }, 500);
       return;
     }
 
@@ -188,37 +212,57 @@ Texto divertido: `;
 
     setIsLoading(true);
     try {
+      const wordsToGenerate = gameModeType === 'math' ? selectedWords.map(sw => sw.word) : selectedWords;
       const { grid, words: placedWords, placements } = generateWordSearch(
-        selectedWords,
+        wordsToGenerate,
         rows,
         cols,
-        directions
+        directions,
+        gameModeType === 'math' ? 'numeric' : 'text'
       );
 
       const gridText = grid.map(row => row.join(' ')).join('\n');
-      const title = topic.toUpperCase();
+      const title = gameModeType === 'math' ? (topic ? topic.toUpperCase() : 'CAÇA-PALAVRAS NUMÉRICO') : topic.toUpperCase();
 
       // Agrupa palavras em linhas
       const wordsPerLine = 4;
       const wordLines = [];
-      for (let i = 0; i < placedWords.length; i += wordsPerLine) {
-        const chunk = placedWords.slice(i, i + wordsPerLine);
-        wordLines.push(chunk.join('  •  '));
+      
+      const finalWordsObj = gameModeType === 'math' 
+        ? placedWords.map(pw => {
+            const match = selectedWords.find(sw => sw.word === pw);
+            return { word: pw, clue: match ? match.clue : pw };
+          })
+        : placedWords;
+
+      for (let i = 0; i < finalWordsObj.length; i += wordsPerLine) {
+        const chunk = finalWordsObj.slice(i, i + wordsPerLine);
+        if (gameModeType === 'math') {
+          wordLines.push(chunk.map(c => c.clue).join('  •  '));
+        } else {
+          wordLines.push(chunk.join('  •  '));
+        }
       }
       const wordsList = `**🕵️ Palavras para encontrar:**\n${wordLines.join('\n')} `;
 
       const textContent = editableText.toUpperCase();
-      const finalContent = `${gridText} \n\n${wordsList} \n\n________________\n\n${textContent} `;
+      let finalContent = '';
+      if (gameModeType === 'math') {
+          finalContent = `[[TITULO]] ${title}\n\n${gridText} \n\n${wordsList}`;
+      } else {
+          finalContent = `[[TITULO]] ${title}\n\n${gridText} \n\n${wordsList} \n\n________________\n\n${textContent} `;
+      }
 
       onComplete({
         content: finalContent,
-        words: placedWords,
+        words: finalWordsObj,
         placements: placements || [],
         title,
         story: editableText,
         rows,
         cols,
-        directions
+        directions,
+        gameModeType
       });
       setStep(3);
 
@@ -296,15 +340,106 @@ Texto divertido: `;
             <div className="w-24 h-24 bg-brown-100 rounded-full flex items-center justify-center mb-2 animate-bounce">
               <div className="text-4xl">🔮</div>
             </div>
-            <div className="space-y-3 max-w-md">
-              <h3 className="text-2xl font-black text-brown-900">Vamos criar uma história?</h3>
-              <p className="text-brown-700 text-lg">
-                O tema será: <span className="font-bold text-brown-600">"{topic}"</span>
-              </p>
-              {lessonDetails && (
-                <p className="text-sm text-brown-500 bg-white p-3 rounded-lg border border-brown-200 mx-auto italic">
-                  "{lessonDetails.slice(0, 100)}{lessonDetails.length > 100 ? '...' : ''}"
-                </p>
+            <div className="space-y-3 max-w-md w-full">
+              <h3 className="text-2xl font-black text-brown-900">Vamos criar uma atividade?</h3>
+              
+              <div className="flex gap-2 p-1 bg-brown-100 rounded-lg w-full mb-4">
+                  <button 
+                      onClick={() => setGameModeType('text')}
+                      className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${gameModeType === 'text' ? 'bg-white shadow-sm text-brown-900' : 'text-brown-500 hover:bg-brown-50'}`}
+                  >
+                      📖 História (Letras)
+                  </button>
+                  <button 
+                      onClick={() => setGameModeType('math')}
+                      className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${gameModeType === 'math' ? 'bg-white shadow-sm text-brown-900' : 'text-brown-500 hover:bg-brown-50'}`}
+                  >
+                      🔢 Matemática (Números)
+                  </button>
+              </div>
+
+              {gameModeType === 'text' ? (
+                <>
+                  <p className="text-brown-700 text-lg">
+                    O tema será: <span className="font-bold text-brown-600">"{topic}"</span>
+                  </p>
+                  {lessonDetails && (
+                    <p className="text-sm text-brown-500 bg-white p-3 rounded-lg border border-brown-200 mx-auto italic">
+                      "{lessonDetails.slice(0, 100)}{lessonDetails.length > 100 ? '...' : ''}"
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-4 text-left">
+                  <div className="bg-white p-4 rounded-xl border border-brown-200">
+                    <label className="text-sm font-bold text-brown-700 block mb-2">Operações</label>
+                    <div className="flex flex-wrap gap-2">
+                        {[{id: '+', label: 'Adição (+)'}, {id: '-', label: 'Subtração (-)'}, {id: '*', label: 'Multiplicação (x)'}, {id: '/', label: 'Divisão (÷)'}].map(op => (
+                            <label key={op.id} className="flex items-center gap-2 bg-brown-50 px-3 py-2 rounded-lg cursor-pointer hover:bg-brown-100 border border-brown-200 transition-colors">
+                                <input 
+                                    type="checkbox"
+                                    checked={mathOperations.includes(op.id)}
+                                    onChange={(e) => {
+                                        if (e.target.checked) setMathOperations([...mathOperations, op.id]);
+                                        else setMathOperations(mathOperations.filter(o => o !== op.id));
+                                    }}
+                                    className="rounded border-brown-300 text-brown-600 focus:ring-brown-500"
+                                />
+                                <span className="text-sm font-semibold text-brown-800">{op.label}</span>
+                            </label>
+                        ))}
+                    </div>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl border border-brown-200">
+                    <label className="text-sm font-bold text-brown-700 block mb-2">Ordem Numérica Geral (Adição/Subtração/Base)</label>
+                    <div className="flex items-center gap-4">
+                        <input 
+                            type="range" min="1" max="10" step="1"
+                            value={mathMaxOrder}
+                            onChange={(e) => setMathMaxOrder(parseInt(e.target.value))}
+                            className="flex-1 accent-brown-600"
+                        />
+                        <div className="bg-brown-100 text-brown-800 font-bold px-3 py-1 rounded-md min-w-[60px] text-center">
+                            {mathMaxOrder} {mathMaxOrder === 1 ? 'Dígito' : 'Dígitos'}
+                        </div>
+                    </div>
+                    <p className="text-xs text-brown-500 mt-2">Define o tamanho principal dos números (ex: 2 dígitos = até 99).</p>
+                  </div>
+                  
+                  {mathOperations.includes('*') && (
+                  <div className="bg-white p-4 rounded-xl border border-brown-200">
+                    <label className="text-sm font-bold text-brown-700 block mb-2">Ordem do Multiplicador (Ex: 345 x <span className="text-amber-600">12</span>)</label>
+                    <div className="flex items-center gap-4">
+                        <input 
+                            type="range" min="1" max="10" step="1"
+                            value={mathMultMaxOrder}
+                            onChange={(e) => setMathMultMaxOrder(parseInt(e.target.value))}
+                            className="flex-1 accent-brown-600"
+                        />
+                        <div className="bg-brown-100 text-brown-800 font-bold px-3 py-1 rounded-md min-w-[60px] text-center">
+                            {mathMultMaxOrder} {mathMultMaxOrder === 1 ? 'Dígito' : 'Dígitos'}
+                        </div>
+                    </div>
+                  </div>
+                  )}
+
+                  {mathOperations.includes('/') && (
+                  <div className="bg-white p-4 rounded-xl border border-brown-200">
+                    <label className="text-sm font-bold text-brown-700 block mb-2">Ordem do Divisor (Ex: 850 ÷ <span className="text-amber-600">25</span>)</label>
+                    <div className="flex items-center gap-4">
+                        <input 
+                            type="range" min="1" max="10" step="1"
+                            value={mathDivMaxOrder}
+                            onChange={(e) => setMathDivMaxOrder(parseInt(e.target.value))}
+                            className="flex-1 accent-brown-600"
+                        />
+                        <div className="bg-brown-100 text-brown-800 font-bold px-3 py-1 rounded-md min-w-[60px] text-center">
+                            {mathDivMaxOrder} {mathDivMaxOrder === 1 ? 'Dígito' : 'Dígitos'}
+                        </div>
+                    </div>
+                  </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -313,7 +448,7 @@ Texto divertido: `;
               className="px-8 py-4 text-lg font-bold shadow-xl hover:scale-105"
               icon={Play}
             >
-              Criar História Mágica
+              Criar Atividade
             </Button>
           </div>
         )}
@@ -373,24 +508,32 @@ Texto divertido: `;
                 </Button>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
-                {availableWords.map((word, idx) => (
+                {availableWords.map((wordObj, idx) => {
+                  const isMath = gameModeType === 'math';
+                  const wordValue = isMath ? wordObj.word : wordObj;
+                  const displayValue = isMath ? wordObj.clue : wordObj;
+                  
+                  return (
                   <label key={idx} className={`
-                                    flex items-center gap-2 p-2 rounded-lg cursor-pointer border transition-all select-none
-                                    ${selectedWords.includes(word)
+                                    flex flex-col p-2 rounded-lg cursor-pointer border transition-all select-none
+                                    ${selectedWords.some(sw => (isMath ? sw.word === wordValue : sw === wordValue))
                       ? 'bg-brown-500 border-brown-600 text-white shadow-md transform scale-[1.02]'
                       : 'bg-brown-50 border-brown-100 text-brown-600 hover:bg-brown-100'
                     }
 `}>
                     <input
                       type="checkbox"
-                      checked={selectedWords.includes(word)}
-                      onChange={() => handleWordToggle(word)}
+                      checked={selectedWords.some(sw => (isMath ? sw.word === wordValue : sw === wordValue))}
+                      onChange={() => handleWordToggle(wordObj)}
                       className="hidden" // Esconde checkbox nativo e usa estilo do card
                     />
-                    {selectedWords.includes(word) && <CheckCircle2 className="w-3 h-3" />}
-                    <span className="text-sm font-bold truncate">{word}</span>
+                    <div className="flex items-center gap-1">
+                      {selectedWords.some(sw => (isMath ? sw.word === wordValue : sw === wordValue)) && <CheckCircle2 className="w-3 h-3 flex-shrink-0" />}
+                      <span className="text-sm font-bold truncate" title={displayValue}>{displayValue}</span>
+                    </div>
+                    {isMath && <span className="text-xs opacity-80 mt-1 font-mono">{wordValue}</span>}
                   </label>
-                ))}
+                )})}
               </div>
               <p className="text-xs text-brown-400 mt-2 text-center">{selectedWords.length} palavras selecionadas</p>
               {rows >= 18 && (

@@ -521,7 +521,14 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
     // --- PRINT VIEW ---
     function renderPrintView() {
         return (
-            <div className="flex flex-col gap-6 p-4 max-w-6xl mx-auto print:gap-3 print:p-2">
+            <div className="flex flex-col gap-6 p-4 max-w-6xl mx-auto print:gap-2 print:p-0 print:m-0">
+                {/* Cabeçalho exclusivo de impressão */}
+                <div className="hidden print:block text-center mb-2">
+                    <h1 className="text-2xl font-bold text-black uppercase tracking-wider border-b-2 border-black pb-2 inline-block">
+                        {topic || "Palavras Cruzadas"}
+                    </h1>
+                </div>
+
                 <Card className="flex flex-wrap justify-between items-center p-4 print:hidden">
                     <div className="flex items-center gap-4">
                         <h2 className="text-xl font-bold text-brown-900 flex items-center gap-2">
@@ -544,7 +551,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                     </div>
                 </Card>
 
-                <Card className="w-full flex flex-col items-center print:shadow-none print:border-none">
+                <Card className="w-full flex flex-col items-center print:shadow-none print:border-none print:bg-transparent print:p-0 print:m-0 print:mb-4">
                     <div
                         className="grid gap-0 bg-transparent p-0 rounded print:bg-transparent print:!gap-0 print:!p-0 print:!shadow-none print:!border-none"
                         style={{
@@ -555,21 +562,27 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                     >
                         {gridState.map((row, y) => (
                             row.map((cell, x) => {
-                                if (!cell) return <div key={`${x}-${y}`} className="w-8 h-8 sm:w-10 sm:h-10 bg-brown-50/30 print:invisible print:border-none" />;
+                                if (!cell) return <div key={`${x}-${y}`} className="w-8 h-8 sm:w-10 sm:h-10 print:w-8 print:h-8 bg-brown-50/30 print:invisible print:border-none" />;
                                 const isFiller = cell.isFiller;
                                 return (
                                     <div
                                         key={`${x}-${y}`}
-                                        className={`relative w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center ${isFiller ? 'bg-brown-50 print:bg-white' : 'bg-white'} border border-brown-900 print:!border print:!border-black print:z-10`}
-                                        style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}
+                                        className={`relative w-8 h-8 sm:w-10 sm:h-10 print:w-8 print:h-8 flex items-center justify-center ${isFiller ? 'bg-brown-50 print:bg-white print:border-transparent' : 'bg-white'}`}
+                                        style={{ 
+                                            printColorAdjust: 'exact', 
+                                            WebkitPrintColorAdjust: 'exact',
+                                            borderWidth: isFiller ? '0px' : '1.5px',
+                                            borderColor: isFiller ? 'transparent' : '#000000',
+                                            borderStyle: 'solid'
+                                        }}
                                     >
                                         {cell.num && (
-                                            <span className="absolute top-0.5 left-0.5 text-[10px] font-black text-brown-800 leading-none pointer-events-none print:text-black z-20">
+                                            <span className="absolute top-0 left-0.5 text-[10px] sm:text-xs print:text-[10px] font-black text-brown-800 leading-none pointer-events-none print:text-black z-20">
                                                 {cell.num}
                                             </span>
                                         )}
                                         {!isFiller && (
-                                            <span className={`text-lg font-bold uppercase ${showSolution ? 'text-brown-900' : 'text-transparent'}`}>
+                                            <span className={`text-lg print:text-base font-bold uppercase ${showSolution ? 'text-black print:text-black' : 'text-transparent print:text-transparent'}`}>
                                                 {showSolution ? cell.char : ''}
                                             </span>
                                         )}
@@ -580,31 +593,33 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                     </div>
                 </Card>
 
-                {/* Clues Section - Force page break before if necessary, or avoid break inside */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full print:block print:break-inside-avoid">
-                    <Card className="print:shadow-none print:border print:mb-6 print:break-inside-avoid">
-                        <h3 className="font-bold text-brown-900 mb-4 flex items-center gap-2 text-lg border-b border-brown-100 pb-2">
-                            <Badge variant="secondary">HORIZONTAIS</Badge>
+                {/* Clues Section - Two columns on print to save vertical space */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full print:grid-cols-2 print:gap-8 print:mt-4">
+                    <Card className="print:shadow-none print:border-none print:p-0 print:m-0">
+                        <h3 className="font-bold text-brown-900 mb-4 print:mb-3 flex items-center gap-2 text-lg print:text-base border-b border-brown-100 print:border-black pb-2 print:pb-1">
+                            <Badge variant="secondary" className="print:hidden">HORIZONTAIS</Badge>
+                            <span className="hidden print:inline font-black text-black">HORIZONTAIS</span>
                         </h3>
-                        <ul className="space-y-3 text-sm">
+                        <ul className="space-y-3 print:space-y-2 text-sm print:text-xs print:leading-relaxed">
                             {words.filter(w => w.dir === 'H').sort((a, b) => a.num - b.num).map(w => (
-                                <li key={w.num} className="flex items-start gap-3">
-                                    <span className="font-black text-brown-600 min-w-[1.5rem] text-right">{w.num}.</span>
-                                    <span className="text-brown-700 font-medium flex-1 whitespace-normal break-normal hyphens-none">{w.clue}</span>
+                                <li key={w.num} className="flex items-start gap-3 print:gap-2">
+                                    <span className="font-black text-brown-600 print:text-black min-w-[1.5rem] print:min-w-[1.25rem] text-right">{w.num}.</span>
+                                    <span className="text-brown-700 print:text-black font-medium flex-1 whitespace-normal break-normal hyphens-none">{w.clue}</span>
                                 </li>
                             ))}
                         </ul>
                     </Card>
 
-                    <Card className="print:shadow-none print:border print:break-inside-avoid">
-                        <h3 className="font-bold text-brown-900 mb-4 flex items-center gap-2 text-lg border-b border-brown-100 pb-2">
-                            <Badge className="bg-brown-800 text-white border-none">VERTICAIS</Badge>
+                    <Card className="print:shadow-none print:border-none print:p-0 print:m-0">
+                        <h3 className="font-bold text-brown-900 mb-4 print:mb-3 flex items-center gap-2 text-lg print:text-base border-b border-brown-100 print:border-black pb-2 print:pb-1">
+                            <Badge className="bg-brown-800 text-white border-none print:hidden">VERTICAIS</Badge>
+                            <span className="hidden print:inline font-black text-black">VERTICAIS</span>
                         </h3>
-                        <ul className="space-y-3 text-sm">
+                        <ul className="space-y-3 print:space-y-2 text-sm print:text-xs print:leading-relaxed">
                             {words.filter(w => w.dir === 'V').sort((a, b) => a.num - b.num).map(w => (
-                                <li key={w.num} className="flex items-start gap-3">
-                                    <span className="font-black text-brown-800 min-w-[1.5rem] text-right">{w.num}.</span>
-                                    <span className="text-brown-700 font-medium flex-1 whitespace-normal break-normal hyphens-none">{w.clue}</span>
+                                <li key={w.num} className="flex items-start gap-3 print:gap-2">
+                                    <span className="font-black text-brown-800 print:text-black min-w-[1.5rem] print:min-w-[1.25rem] text-right">{w.num}.</span>
+                                    <span className="text-brown-700 print:text-black font-medium flex-1 whitespace-normal break-normal hyphens-none">{w.clue}</span>
                                 </li>
                             ))}
                         </ul>

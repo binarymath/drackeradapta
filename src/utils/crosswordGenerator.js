@@ -9,9 +9,9 @@ export const generateCrossword = (wordsWithClues, gridSize = 15) => {
     const sortedWords = [...wordsWithClues]
         .map(w => ({
             ...w,
-            word: w.word.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z]/g, '')
+            word: w.word.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, '')
         }))
-        .filter(w => w.word.length <= gridSize) // Filter words that don't fit
+        .filter(w => w.word.length > 0 && w.word.length <= gridSize) // Filter words that don't fit
         .sort((a, b) => b.word.length - a.word.length);
 
     let bestResult = null;

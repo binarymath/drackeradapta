@@ -201,6 +201,10 @@ class GeminiService {
       }
     };
 
+    if (options.responseMimeType) {
+        payload.generationConfig.responseMimeType = options.responseMimeType;
+    }
+
     try {
       console.log(`[GeminiService] Tentando modelo: ${MODEL}`);
 

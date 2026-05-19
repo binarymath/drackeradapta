@@ -111,8 +111,8 @@ export const ActivityArea = ({
     // --- Render Logic ---
 
     return (
-        <div className="w-full flex-1 flex flex-col">
-            <div className="bg-white rounded-2xl shadow-xl border border-brown-200 min-h-96 flex flex-col transition-all">
+        <div className="w-full flex-1 flex flex-col print:block">
+            <div className="bg-white rounded-2xl shadow-xl border border-brown-200 min-h-96 flex flex-col transition-all print:block print:shadow-none print:border-none">
 
                 <ActivityHeader
                     hasContent={hasContent}
@@ -127,7 +127,7 @@ export const ActivityArea = ({
                     openManualMusicEditor={openManualMusicEditor}
                 />
 
-                <div className={`flex-1 ${isFullWidth ? 'p-1 sm:p-2' : 'p-4 sm:p-8'} overflow-y-auto custom-scrollbar`} ref={activityAreaRef} id="activity-area-print">
+                <div className={`flex-1 ${isFullWidth ? 'p-1 sm:p-2' : 'p-4 sm:p-8'} overflow-y-auto print:overflow-visible custom-scrollbar print:p-0`} ref={activityAreaRef} id="activity-area-print">
                     {hasContent ? (
                         <>
                             {/* --- SETUP / TOGGLE CARDS --- */}
@@ -217,6 +217,7 @@ export const ActivityArea = ({
                                 <WordSearchGame
                                     content={generatedContent}
                                     wordsToFind={(foundWords || []).map(w => typeof w === 'string' ? w.replace(/\s+/g, '') : (w.word || '').replace(/\s+/g, ''))}
+                                    cluesList={(foundWords || []).map(w => typeof w === 'string' ? w : (w.clue || w.word))}
                                     onRestart={() => setIsGameMode(false)}
                                 />
                             ) : isCrosswordGame ? (

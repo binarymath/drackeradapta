@@ -82,6 +82,12 @@ export const useActivityActions = () => {
             return;
         }
 
+        if (activityType === 'crossword') {
+            setCrosswordEditorData({ words: [], topic: topic });
+            setShowCrosswordEditor(true);
+            return;
+        }
+
         if (activityType === 'video_gallery') {
             addActivityTab({
                 title: "Galeria Drácker",
@@ -189,12 +195,7 @@ export const useActivityActions = () => {
             const levelLabel = difficulty === 'hard' ? 'avançado/difícil' : difficulty === 'easy' ? 'fácil/infantil' : 'médio';
             const context = `Contexto/Detalhes: ${lessonDetails || 'Nenhum detalhe adicional.'}`;
 
-            let prompt = '';
-            if (activityType === 'crossword') {
-                prompt = `Gere um JSON com palavras cruzadas para o tema "${topic}".\n${context}\nNível: ${levelLabel}.\nRetorne apenas o JSON com {\n  "title": string,\n  "words": [{ "word": string, "clue": string }]\n}`;
-            } else {
-                prompt = `${topic}. ${context}`;
-            }
+            let prompt = `${topic}. ${context}`;
 
             let text = await geminiService.generateText(prompt, {
                 model: selectedModel,
@@ -204,37 +205,6 @@ export const useActivityActions = () => {
 
             if (!text || !text.trim()) {
                 throw new Error('A API retornou uma resposta vazia.');
-            }
-
-            if (activityType === 'crossword') {
-                try {
-                    // Import dynamically or if defined above
-                    // We need safeJSONParse here. Since we are inside a hook, we can import it at the top of file
-                    // But wait, imports must be at top level. I will assume it is imported or I will adjust file content.
-                    // For this tool call, I'm replacing lines. I should probably add the import too if missing.
-                    // Let's assume I check imports next. For now, replacing logic.
-
-                    // Use the safe parser
-                    const { safeJSONParse } = await import('../utils/jsonUtils');
-                    const parsedData = safeJSONParse(text);
-
-                    if (!parsedData) throw new Error("JSON inválido ou não encontrado na resposta.");
-
-                    if (parsedData.words) {
-                        parsedData.words = parsedData.words.map(w => ({
-                            ...w,
-                            clue: w.clue || w.hint || "Sem dica"
-                        }));
-                    }
-                    setCrosswordEditorData(parsedData);
-                    setShowCrosswordEditor(true);
-                    setIsLoading(false);
-                    return;
-                } catch (e) {
-                    setError("Erro ao gerar palavras cruzadas: " + e.message);
-                    setIsLoading(false);
-                    return;
-                }
             }
 
             addActivityTab({

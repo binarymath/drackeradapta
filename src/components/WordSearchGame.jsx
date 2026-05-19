@@ -5,7 +5,7 @@ import { Badge } from './ui/Badge';
 import { RefreshCw, Trophy, PartyPopper, Check, X, UserPlus, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-export const WordSearchGame = ({ content, wordsToFind = [], onRestart }) => {
+export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRestart }) => {
     const [grid, setGrid] = useState([]);
     const [selection, setSelection] = useState({ start: null, end: null, cells: [] });
     const [foundWords, setFoundWords] = useState([]); // List of words found
@@ -489,24 +489,30 @@ export const WordSearchGame = ({ content, wordsToFind = [], onRestart }) => {
                         </div>
                     </div>
 
-                    {/* Word List */}
                     <Card className="w-full max-w-2xl bg-white/80">
-                        <h3 className="text-center font-bold text-brown-400 uppercase text-xs tracking-widest mb-4">Palavras para Encontrar</h3>
-                        <div className="flex flex-wrap justify-center gap-3">
+                        <h3 className="text-center font-bold text-brown-400 uppercase text-xs tracking-widest mb-4">
+                            {cluesList && cluesList.length > 0 ? "📝 Resolva as operações e encontre os resultados" : "Palavras para Encontrar"}
+                        </h3>
+                        <div className={cluesList && cluesList.length > 0 ? "grid grid-cols-2 gap-0 border-2 border-brown-300 rounded-xl overflow-hidden shadow-sm" : "flex flex-wrap justify-center gap-3"}>
                             {wordsToFind.map((word, idx) => {
                                 const isFound = foundWords.includes(word);
+                                const isMath = cluesList && cluesList[idx];
                                 return (
                                     <div
                                         key={idx}
                                         className={`
-                                            px-3 py-1 rounded-full border text-sm font-bold transition-all duration-500
+                                            transition-all duration-500
+                                            ${isMath ? 'border border-brown-100 p-3 flex items-center justify-start' : 'px-3 py-2 border rounded-full font-bold text-sm'}
                                             ${isFound
-                                                ? 'bg-green-100 border-green-300 text-green-700 line-through opacity-70'
-                                                : 'bg-white border-brown-200 text-brown-700 Shadow-sm'}
+                                                ? 'bg-green-100 text-green-800 opacity-80'
+                                                : 'bg-white text-brown-800 hover:bg-brown-50'}
                                         `}
                                     >
-                                        {word}
-                                        {isFound && <Check className="inline-block w-3 h-3 ml-1" />}
+                                        {isMath && <span className={`font-bold mr-2 w-6 text-right ${isFound ? 'text-green-600' : 'text-brown-400'}`}>{idx + 1})</span>}
+                                        <span className={`whitespace-nowrap ${isMath ? 'font-mono text-base font-bold' : ''} ${isFound ? "line-through text-green-700" : ""}`}>
+                                            {isMath ? cluesList[idx].replace('?', '') : word}
+                                        </span>
+                                        {isFound && <Check className="ml-auto inline-block w-4 h-4 text-green-600 flex-shrink-0" />}
                                     </div>
                                 )
                             })}
