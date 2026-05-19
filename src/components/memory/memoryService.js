@@ -30,7 +30,7 @@ export const memoryService = {
     // Gera pares via Gemini ou Local (Genérico)
     // Gera pares via Gemini Service (Centralizado)
     // Gera pares via Gemini Service (Centralizado)
-    generatePairs: async (topic, geminiService, model) => {
+    generatePairs: async (topic, details, geminiService, model) => {
         let pairs = [];
         let error = null;
 
@@ -38,6 +38,8 @@ export const memoryService = {
             try {
                 // Prompt para texto plano (Mais robusto que JSON)
                 const prompt = `Gere 12 perguntas e respostas ÚNICAS sobre "${topic}".
+                ${details ? `CONTEXTO ADICIONAL DA AULA: "${details}". Use este contexto para guiar a criação das perguntas.` : ''}
+                
                 Formato OBRIGATÓRIO por linha: PERGUNTA | RESPOSTA
                 
                 REGRAS RÍGIDAS:

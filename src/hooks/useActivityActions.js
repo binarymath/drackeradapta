@@ -160,7 +160,7 @@ export const useActivityActions = () => {
                     title: topic || "Jogo da Memória",
                     type: 'memory',
                     content: 'Jogo da Memória',
-                    data: { openModal: true }
+                    data: { openModal: true, topic, lessonDetails }
                 });
                 setIsLoading(false);
                 return;
