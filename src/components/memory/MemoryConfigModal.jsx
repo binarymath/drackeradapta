@@ -48,12 +48,14 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
     const { geminiService, apiKey } = useGemini();
     const [mode, setMode] = useState('ai');
     const [topic, setTopic] = useState('');
+    const [lessonDetails, setLessonDetails] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
     // Manual Mode State
     const [manualPairs, setManualPairs] = useState([{ id: 1, text1: '', text2: '', image1: null, image2: null }]);
-    const [backgroundFile, setBackgroundFile] = useState(null);
+    const [cardBackQuestion, setCardBackQuestion] = useState(null); // Capa da carta de PERGUNTA
+    const [cardBackAnswer, setCardBackAnswer] = useState(null);     // Capa da carta de RESPOSTA
 
     // Hydrate from initialData for Editing
     const hasInitializedRef = React.useRef(false);
@@ -64,6 +66,7 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
             
             if (initialData) {
                 setTopic(initialData.topic || '');
+                setLessonDetails(initialData.lessonDetails || '');
 
                 // If we explicitly saved manual pairs, use them directly
                 if (initialData.manualPairs && initialData.manualPairs.length > 0) {
@@ -101,15 +104,25 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
                     setMode(initialData.gameMode || 'ai'); // Default to AI if no cards (just topic reuse)
                 }
 
-                if (initialData.cardBackImage) {
-                    setBackgroundFile(initialData.cardBackImage);
+                if (initialData.cardBackQuestion) {
+                    setCardBackQuestion(initialData.cardBackQuestion);
+                }
+                if (initialData.cardBackAnswer) {
+                    setCardBackAnswer(initialData.cardBackAnswer);
+                }
+                // Legacy single back image
+                if (initialData.cardBackImage && !initialData.cardBackQuestion && !initialData.cardBackAnswer) {
+                    setCardBackQuestion(initialData.cardBackImage);
+                    setCardBackAnswer(initialData.cardBackImage);
                 }
             } else {
                 // Reset if opening new
                 setTopic('');
+                setLessonDetails('');
                 setManualPairs([{ id: 1, text1: '', text2: '', image1: null, image2: null }]);
                 setMode('ai');
-                setBackgroundFile(null);
+                setCardBackQuestion(null);
+                setCardBackAnswer(null);
             }
         } else if (!isOpen) {
             hasInitializedRef.current = false;
@@ -135,12 +148,19 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
         }
     };
 
-    const handleBackgroundUpload = async (file) => {
+    const handleBackQuestionUpload = async (file) => {
         if (file) {
-            const compressedDataUrl = await compressImage(file);
-            setBackgroundFile(compressedDataUrl);
+            const url = await compressImage(file);
+            setCardBackQuestion(url);
         }
-    }
+    };
+
+    const handleBackAnswerUpload = async (file) => {
+        if (file) {
+            const url = await compressImage(file);
+            setCardBackAnswer(url);
+        }
+    };
 
     const handleGenerateAI = async () => {
         if (!topic.trim()) {
@@ -156,15 +176,15 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
         setError('');
 
         try {
-            const { cards, error: serviceError } = await memoryService.generatePairs(topic, geminiService);
+            const { cards, error: serviceError } = await memoryService.generatePairs(topic, lessonDetails, geminiService);
             if (serviceError) throw new Error(serviceError);
 
             onConfirm({
                 type: 'ai',
                 topic,
                 cards,
-                bgImage: null,
-                cardBackImage: backgroundFile // Agora passamos a capa personalizada
+                cardBackQuestion,
+                cardBackAnswer,
             });
             onClose();
         } catch (e) {
@@ -185,7 +205,8 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
             type: 'manual',
             topic: topic || 'Jogo Personalizado',
             pairs: validPairs,
-            cardBackImage: backgroundFile
+            cardBackQuestion,
+            cardBackAnswer,
         });
         onClose();
     };
@@ -195,13 +216,14 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
             isOpen={isOpen}
             onClose={onClose}
             title="Configurar Jogo da Memória"
-            className="max-w-4xl" // Aumentei a largura
+            className="max-w-5xl w-full"
         >
-            <div className="flex flex-col h-[650px] lg:h-auto lg:max-h-[85vh]">
+            <div className="flex flex-col h-[700px] lg:h-auto lg:max-h-[88vh]">
 
                 {/* Tabs & Top Controls */}
-                <div className="flex flex-col md:flex-row gap-4 mb-4 items-center">
-                    <div className="flex gap-2 p-1 bg-brown-100/50 rounded-lg flex-1 w-full md:w-auto">
+                <div className="flex flex-col gap-3 mb-4">
+                    {/* Row 1: Mode Tabs */}
+                    <div className="flex gap-2 p-1 bg-brown-100/50 rounded-lg">
                         <button
                             onClick={() => setMode('ai')}
                             className={`flex-1 py-2 px-4 rounded-md font-bold text-sm flex items-center justify-center gap-2 transition-all
@@ -218,22 +240,47 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
                         </button>
                     </div>
 
-                    {/* Capa Personalizada (Available for Both) */}
-                    <div className="flex items-center gap-2 bg-brown-50 px-3 py-1.5 rounded-lg border border-brown-100">
-                        <span className="text-xs font-bold text-brown-600 uppercase mr-2">Capa das Cartas:</span>
-                        {backgroundFile ? (
-                            <div className="flex items-center gap-2">
-                                <div className="h-8 w-8 rounded border border-brown-200 overflow-hidden relative group">
-                                    <img src={backgroundFile} className="w-full h-full object-cover" alt="Verso" />
+                    {/* Row 2: Card Back Images */}
+                    <div className="flex items-center gap-4 bg-brown-50 px-4 py-2.5 rounded-lg border border-brown-100">
+                        <span className="text-xs font-bold text-brown-600 uppercase shrink-0">Capa das Cartas:</span>
+
+                        {/* Pergunta */}
+                        <div className="flex items-center gap-2 flex-1">
+                            <span className="text-xs font-semibold text-brown-500 shrink-0">❓ Pergunta:</span>
+                            {cardBackQuestion ? (
+                                <div className="flex items-center gap-2">
+                                    <div className="h-9 w-9 rounded-lg border-2 border-brown-200 overflow-hidden shadow-sm">
+                                        <img src={cardBackQuestion} className="w-full h-full object-cover" alt="Capa Pergunta" />
+                                    </div>
+                                    <button onClick={() => setCardBackQuestion(null)} className="text-xs text-red-500 hover:underline">Remover</button>
                                 </div>
-                                <button onClick={() => setBackgroundFile(null)} className="text-xs text-red-500 hover:underline">Remover</button>
-                            </div>
-                        ) : (
-                            <label className="cursor-pointer text-xs bg-white border border-brown-300 hover:bg-brown-50 px-3 py-1.5 rounded flex items-center gap-1 text-brown-600 transition-colors">
-                                <Upload size={12} /> Escolher Imagem
-                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBackgroundUpload(e.target.files[0])} />
-                            </label>
-                        )}
+                            ) : (
+                                <label className="cursor-pointer text-xs bg-white border border-brown-300 hover:bg-brown-50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-brown-600 transition-colors shadow-sm">
+                                    <Upload size={12} /> Escolher Imagem
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBackQuestionUpload(e.target.files[0])} />
+                                </label>
+                            )}
+                        </div>
+
+                        <div className="w-px h-8 bg-brown-200 shrink-0" />
+
+                        {/* Resposta */}
+                        <div className="flex items-center gap-2 flex-1">
+                            <span className="text-xs font-semibold text-brown-500 shrink-0">💡 Resposta:</span>
+                            {cardBackAnswer ? (
+                                <div className="flex items-center gap-2">
+                                    <div className="h-9 w-9 rounded-lg border-2 border-brown-200 overflow-hidden shadow-sm">
+                                        <img src={cardBackAnswer} className="w-full h-full object-cover" alt="Capa Resposta" />
+                                    </div>
+                                    <button onClick={() => setCardBackAnswer(null)} className="text-xs text-red-500 hover:underline">Remover</button>
+                                </div>
+                            ) : (
+                                <label className="cursor-pointer text-xs bg-white border border-brown-300 hover:bg-brown-50 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-brown-600 transition-colors shadow-sm">
+                                    <Upload size={12} /> Escolher Imagem
+                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBackAnswerUpload(e.target.files[0])} />
+                                </label>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -252,8 +299,17 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
                                         placeholder="Ex: Curiosidades sobre o Espaço..."
                                         value={topic}
                                         onChange={(e) => setTopic(e.target.value)}
-                                        className="text-lg h-12 bg-white"
+                                        className="text-lg h-12 bg-white mb-4"
                                         autoFocus
+                                    />
+                                    
+                                    <label className="block text-sm font-bold text-brown-800 mb-1">Contexto Adicional (Detalhes)</label>
+                                    <p className="text-xs text-brown-500 mb-3">Detalhes extras da barra lateral usados para guiar a IA.</p>
+                                    <textarea
+                                        placeholder="Ex: Focar em planetas gasosos, para alunos do 5º ano..."
+                                        value={lessonDetails}
+                                        onChange={(e) => setLessonDetails(e.target.value)}
+                                        className="w-full text-sm bg-white border border-brown-300 rounded-lg p-3 outline-none focus:border-amber-500 resize-none h-20 custom-scrollbar"
                                     />
                                 </div>
 
