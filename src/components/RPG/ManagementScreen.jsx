@@ -5,7 +5,6 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { CLASS_ROLES, generateGuildNames } from './RPGUtils.jsx';
 import { useSystemState } from '../../contexts/SystemStateContext';
-import TeamView from '../Expedicao/TeamView'; // We can reuse TeamView or parts of it? 
 // Actually, ManagementScreen is for the teacher/RPG view. 
 // Let's implement a specific view for RPG Guilds Management using the shared state.
 
@@ -58,7 +57,7 @@ export const ManagementScreen = ({ onBack }) => {
                     {/* Left: Guild List */}
                     <div className="md:col-span-1 space-y-4">
                         <h3 className="font-bold text-brown-700 border-b border-brown-200 pb-2">Guildas Ativas</h3>
-                        {activeGuilds.length === 0 && <p className="text-sm text-gray-500 italic">Nenhuma guilda criada na Expedição.</p>}
+                        {activeGuilds.length === 0 && <p className="text-sm text-gray-500 italic">Nenhuma guilda criada no Conselho.</p>}
 
                         <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                             {activeGuilds.map(guild => (

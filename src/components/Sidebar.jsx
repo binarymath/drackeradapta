@@ -154,10 +154,12 @@ export const Sidebar = ({
                     />
 
                     <TextArea
-                        label="Detalhes"
+                        label="Contexto Específico (Detalhes da Aula)"
                         value={lessonDetails}
                         onChange={(e) => setLessonDetails(e.target.value)}
-                        placeholder="Detalhes..."
+                        placeholder="Ex: Focar na fotossíntese; Nível 3º ano; Apenas continentes da Ásia..."
+                        rows={4}
+                        className="!resize-none"
                     />
 
                     <div>
@@ -168,7 +170,8 @@ export const Sidebar = ({
                                     key={opt.id}
                                     onClick={() => setDifficulty(opt.id)}
                                     variant={difficulty === opt.id ? 'primary' : 'ghost'}
-                                    className={`flex-1 py-2 text-sm ${difficulty === opt.id ? '' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'}`}
+                                    className={`flex-1 py-2 text-xs font-bold ${difficulty === opt.id ? '' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'}`}
+                                    title={opt.tooltip}
                                 >
                                     {opt.label}
                                 </Button>
@@ -178,6 +181,19 @@ export const Sidebar = ({
 
                     <div>
                         <label className={theme.text.label}>Tipo</label>
+                        {/* Fixed "About System" Link */}
+                        <button
+                            onClick={() => setActivityType('about_system')}
+                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'about_system'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
+                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
+                                }`}
+                        >
+                            <div className="w-6 flex justify-center">
+                                <span className="text-lg">ℹ️</span>
+                            </div>
+                            Sobre o Sistema
+                        </button>
                         <div className="space-y-2">
                             {orderedActivities.map((opt, index) => (
                                 opt.url ? (
@@ -218,19 +234,6 @@ export const Sidebar = ({
                                 )
                             ))}
                         </div>
-                        {/* Fixed "About System" Link */}
-                        <button
-                            onClick={() => setActivityType('about_system')}
-                            className={`w-full px-2 py-2 mt-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'about_system'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center">
-                                <span className="text-lg">ℹ️</span>
-                            </div>
-                            Sobre o Sistema
-                        </button>
                     </div>
 
                     {activityType === 'image_ai' && (
@@ -241,7 +244,7 @@ export const Sidebar = ({
                                 value={imagePrompt}
                                 onChange={(e) => setImagePrompt(e.target.value)}
                                 placeholder="Descreva o desenho..."
-                                className="bg-white"
+                                className="bg-white !resize-none"
                             />
                             <div className="grid grid-cols-2 gap-3">
                                 <Select

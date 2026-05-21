@@ -192,7 +192,7 @@ export const useActivityActions = () => {
                 return;
             }
 
-            const levelLabel = difficulty === 'hard' ? 'avançado/difícil' : difficulty === 'easy' ? 'fácil/infantil' : 'médio';
+            const levelLabel = difficulty === 'hard' ? 'Ensino Médio (linguagem avançada, conceitos aprofundados)' : difficulty === 'easy' ? 'Anos Iniciais do Ensino Fundamental (linguagem lúdica, infantil e super fácil)' : 'Anos Finais do Ensino Fundamental (linguagem padrão, conceitos intermediários)';
             const context = `Contexto/Detalhes: ${lessonDetails || 'Nenhum detalhe adicional.'}`;
 
             let prompt = `${topic}. ${context}`;

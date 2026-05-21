@@ -38,7 +38,7 @@ export const memoryService = {
             try {
                 // Prompt para texto plano (Mais robusto que JSON)
                 const prompt = `Gere 12 perguntas e respostas ÚNICAS sobre "${topic}".
-                ${details ? `CONTEXTO ADICIONAL DA AULA: "${details}". Use este contexto para guiar a criação das perguntas.` : ''}
+                ${details ? `\nATENÇÃO MÁXIMA AO CONTEXTO: O foco destas perguntas DEVE SER obrigatoriamente: "${details}". Não gere perguntas genéricas, as perguntas devem testar o que está nos detalhes/contexto.` : ''}
                 
                 Formato OBRIGATÓRIO por linha: PERGUNTA | RESPOSTA
                 

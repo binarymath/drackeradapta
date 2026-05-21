@@ -141,7 +141,8 @@ export default function WordsearchWizard({
   REGRAS:
 - Escreva 3 parágrafos curtos.
 - Use linguagem simples para crianças.
-- ${safeDetails || 'Fale coisas interessantes.'}
+- Baseie-se ESTRITAMENTE neste contexto: "${safeDetails || 'Fale coisas interessantes.'}"
+- O texto DEVE incorporar o contexto acima de forma muito clara.
 - Destaque palavras legais.
 - O texto deve estar completo.
 

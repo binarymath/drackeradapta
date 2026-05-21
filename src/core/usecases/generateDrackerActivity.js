@@ -36,7 +36,7 @@ function normalizeActivities(rawActivities = [], topic) {
     .filter(Boolean);
 
   const filled = [...base];
-  while (filled.length < 5) {
+  while (filled.length < 3) {
     const templateIdx = filled.length % SIMPLE_MATERIAL_FALLBACKS.length;
     // Parse the fallback string into object parts loosely or just provide a generic object
     const fallbackString = SIMPLE_MATERIAL_FALLBACKS[templateIdx];
@@ -44,13 +44,13 @@ function normalizeActivities(rawActivities = [], topic) {
     // We'll just put that in materials.
 
     filled.push({
-      title: `Explorando ${topic || 'o tema'} (${filled.length + 1})`,
+      title: `Construindo o Saber: ${topic || 'O Tema'}`,
       materials: fallbackString.replace('Materiais:', '').trim(),
-      steps: 'Crie livremente com a turma usando os materiais disponíveis.'
+      steps: '1. Organize a turma em pequenos grupos e entregue os materiais. 2. Peça que discutam e esbocem uma ideia prática ligada ao que foi aprendido. 3. Cada grupo terá 15 minutos para montar seu projeto. 4. Ao final, forme uma roda de conversa onde cada grupo apresentará o que produziu, explicando a relação com a aula de hoje.'
     });
   }
 
-  return filled.slice(0, 5);
+  return filled.slice(0, 3);
 }
 
 function ensureDrackerStory(rawStory, topic) {
@@ -67,14 +67,9 @@ function ensureDrackerStory(rawStory, topic) {
 }
 
 export async function generateDrackerActivity({ topic, lessonDetails, difficulty, model, geminiService }) {
-  const difficultyLabel =
-    difficulty === 'hard'
-      ? 'avançado, mas ainda acolhedor'
-      : difficulty === 'easy'
-        ? 'infantil e simples'
-        : 'claro e explicativo';
+  const levelLabel = difficulty === 'hard' ? 'Ensino Médio (Avançado - linguagem mais aprofundada)' : difficulty === 'easy' ? 'Anos Iniciais (Fácil - linguagem lúdica, fantasia e muito simples)' : 'Anos Finais (Médio - linguagem escolar e prática)';
 
-  const prompt = buildDrackerPrompt(topic, lessonDetails, difficultyLabel);
+  const prompt = buildDrackerPrompt(topic, lessonDetails, levelLabel);
   const raw = await geminiService.generateText(prompt, {
     model,
     fallbackModel: null,
