@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText } from 'lucide-react';
 import { QuizGame } from './QuizGame';
+import { QuizPrint } from './QuizPrint';
 import { WordSearchGame } from './WordSearchGame';
 import { MusicGame } from './MusicGame';
 import RichTextRenderer from './RichTextRenderer';
@@ -50,6 +51,7 @@ export const ActivityArea = ({
     drackerData,
     crosswordData,
     quizData,
+    quizTitle,
     onCrosswordUpdate,
     connectDotsData,
     rpgData,
@@ -238,6 +240,12 @@ export const ActivityArea = ({
                                 <QuizGame
                                     quizData={quizData}
                                     onRestart={() => setIsGameMode(true)}
+                                />
+                            ) : activityType === 'quiz' && quizData && !isGameMode ? (
+                                <QuizPrint
+                                    quizData={quizData}
+                                    title={quizTitle}
+                                    showAnswers={showAnswers}
                                 />
                             ) : isMusicGame && musicData ? (
                                 <MusicGame

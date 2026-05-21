@@ -50,6 +50,16 @@ export const ActivityHeader = ({
                                 {activityType === 'quiz' ? 'Quiz' : 'Editar'}
                             </Button>
                         )}
+                        {activityType === 'quiz' && (
+                            <Button
+                                onClick={() => setShowAnswers(!showAnswers)}
+                                variant={showAnswers ? "primary" : "secondary"}
+                                className={`h-8 text-sm px-3 ${showAnswers ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+                                icon={showAnswers ? Check : undefined}
+                            >
+                                {showAnswers ? 'Gabarito ✓' : 'Gabarito'}
+                            </Button>
+                        )}
                         {activityType === 'wordsearch' && foundWords && foundWords.length > 0 && (
                             <Button
                                 onClick={() => setShowAnswers(!showAnswers)}

@@ -146,6 +146,7 @@ export const AppModals = ({
                 <CrosswordListEditor
                     initialData={crosswordEditorData}
                     topic={topic}
+                    lessonDetails={lessonDetails}
                     onConfirm={handleCrosswordConfirm}
                     onCancel={() => setShowCrosswordEditor(false)}
                 />

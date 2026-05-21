@@ -5,13 +5,32 @@
 
 export const generateCrossword = (wordsWithClues, gridSize = 15) => {
     // wordsWithClues: [{ word: 'MELANCIA', clue: 'Fruta...' }, ...]
-    // Ordena as palavras da maior para a menor para facilitar o encaixe inicial
-    const sortedWords = [...wordsWithClues]
+
+    // ── 1. Sanitização e deduplicação ──────────────────────────────────────
+    // Remove entradas com palavra ou dica vazia
+    const cleaned = (wordsWithClues || [])
+        .filter(w => w.word && w.word.toString().trim() !== '' && w.clue && w.clue.toString().trim() !== '')
         .map(w => ({
             ...w,
-            word: w.word.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, '')
+            word: w.word.toString().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, ''),
+            clue: w.clue.toString().trim(),
         }))
-        .filter(w => w.word.length > 0 && w.word.length <= gridSize) // Filter words that don't fit
+        .filter(w => w.word.length > 0); // Remove palavras que viraram string vazia após normalização
+
+    // Remove duplicatas de palavra (mantém a primeira ocorrência)
+    const seenWords = new Set();
+    const seenClues = new Set();
+    const unique = cleaned.filter(w => {
+        if (seenWords.has(w.word)) return false;
+        if (seenClues.has(w.clue.toLowerCase())) return false;
+        seenWords.add(w.word);
+        seenClues.add(w.clue.toLowerCase());
+        return true;
+    });
+
+    // ── 2. Ordena da maior para menor para facilitar encaixe ────────────────
+    const sortedWords = [...unique]
+        .filter(w => w.word.length > 0 && w.word.length <= gridSize)
         .sort((a, b) => b.word.length - a.word.length);
 
     let bestResult = null;
@@ -22,14 +41,15 @@ export const generateCrossword = (wordsWithClues, gridSize = 15) => {
         const grid = Array(gridSize).fill(null).map(() => Array(gridSize).fill(null)); // null = vazio
         const placed = [];
 
-        // 1. Coloca a primeira palavra no meio (Horizontal)
+        // 1. Coloca a primeira palavra no meio (Alterna H e V para dar mais chances de balanceamento)
         if (sortedWords.length > 0) {
             const first = sortedWords[0];
-            const startCol = Math.floor((gridSize - first.word.length) / 2);
-            const startRow = Math.floor(gridSize / 2);
+            const startDir = attempt % 2 === 0 ? 'H' : 'V';
+            const startCol = startDir === 'H' ? Math.floor((gridSize - first.word.length) / 2) : Math.floor(gridSize / 2);
+            const startRow = startDir === 'V' ? Math.floor((gridSize - first.word.length) / 2) : Math.floor(gridSize / 2);
 
-            if (placeWord(grid, first.word, startCol, startRow, 'H')) {
-                placed.push({ ...first, x: startCol, y: startRow, dir: 'H' });
+            if (placeWord(grid, first.word, startCol, startRow, startDir)) {
+                placed.push({ ...first, x: startCol, y: startRow, dir: startDir });
             }
         }
 
@@ -89,9 +109,14 @@ export const generateCrossword = (wordsWithClues, gridSize = 15) => {
             }
         }
 
-        if (placed.length > maxWordsPlaced) {
+        const countH = placed.filter(p => p.dir === 'H').length;
+        const countV = placed.length - countH;
+        const balance = Math.abs(countH - countV);
+
+        // Escolhe a tentativa que colocou mais palavras. Em caso de empate, escolhe a mais balanceada entre H e V.
+        if (placed.length > maxWordsPlaced || (placed.length === maxWordsPlaced && bestResult && balance < bestResult.balance)) {
             maxWordsPlaced = placed.length;
-            bestResult = { grid, placed };
+            bestResult = { grid, placed, balance };
         }
 
         // Se encaixou todas, para de tentar
@@ -100,9 +125,36 @@ export const generateCrossword = (wordsWithClues, gridSize = 15) => {
 
     if (!bestResult) return { grid: [], placed: [] };
 
-    // Limpa a grade final para retornar apenas células ativas com chars, ou null onde vazio
-    // A função placeWord já preencheu a grade temporária com chars.
-    // Vamos converter cell { char: 'A' } para padronizar
+    // 3. Tenta encaixar as palavras não cruzadas ("ilhas") na melhor grade gerada
+    const initiallyUnplaced = sortedWords.filter(sw => !bestResult.placed.find(pw => pw.word === sw.word));
+    for (const sw of initiallyUnplaced) {
+        let inserted = false;
+        
+        // Prioriza a direção que tem MENOS palavras atualmente para manter a grade compacta e balanceada
+        const numH = bestResult.placed.filter(p => p.dir === 'H').length;
+        const numV = bestResult.placed.length - numH;
+        const dirs = numH > numV ? ['V', 'H'] : ['H', 'V'];
+        const coords = [];
+        for (let r = 0; r < gridSize; r++) {
+            for (let c = 0; c < gridSize; c++) {
+                coords.push({r, c});
+            }
+        }
+        // Embaralha coordenadas para que as ilhas não fiquem todas presas no topo esquerdo
+        coords.sort(() => Math.random() - 0.5);
+
+        for (const dir of dirs) {
+            if (inserted) break;
+            for (const {r, c} of coords) {
+                if (canPlace(bestResult.grid, sw.word, c, r, dir, gridSize)) {
+                    placeWord(bestResult.grid, sw.word, c, r, dir);
+                    bestResult.placed.push({ ...sw, x: c, y: r, dir });
+                    inserted = true;
+                    break;
+                }
+            }
+        }
+    }
 
     // Normalização final das coordenadas e numeração
     // Ordena por posição Y depois X para numerar questões de cima para baixo, esq para direita
