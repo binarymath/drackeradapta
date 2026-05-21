@@ -348,6 +348,7 @@ export const MainLayout = () => {
                         connectDotsData={activeActivity?.data}
                         rpgData={activeActivity?.type === 'rpg' ? activeActivity.data : null}
                         quizData={activeActivity?.quizData}
+                        quizTitle={activeActivity?.title || ''}
                         onCrosswordUpdate={(newData) => {
                             setTabs(prev => prev.map(t => {
                                 if (t.id === activeTabId) return { ...t, data: newData };

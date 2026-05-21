@@ -14,16 +14,19 @@ export const CrosswordListEditor = ({
     initialData,
     onConfirm,
     onCancel,
-    topic
+    topic,
+    lessonDetails
 }) => {
     const [words, setWords] = useState([]);
     const [topicInput, setTopicInput] = useState(topic || '');
+    const [detailsInput, setDetailsInput] = useState(lessonDetails || '');
     const [editingIndices, setEditingIndices] = useState(new Set());
     const [gameModeType, setGameModeType] = useState('text'); // 'text' ou 'math'
     const [mathOperations, setMathOperations] = useState(['+', '-']);
     const [mathMaxOrder, setMathMaxOrder] = useState(2);
     const [mathMultMaxOrder, setMathMultMaxOrder] = useState(1);
     const [mathDivMaxOrder, setMathDivMaxOrder] = useState(1);
+    const [mathSpecificDivisor, setMathSpecificDivisor] = useState('random');
     const [mathCount, setMathCount] = useState(10);
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
@@ -33,7 +36,10 @@ export const CrosswordListEditor = ({
         if (initialData && initialData.words) {
             setWords(initialData.words);
         }
-    }, [initialData]);
+        // Pré-carrega tema e detalhes da sidebar (igual ao Memory Game)
+        setTopicInput(initialData?.topic || topic || '');
+        setDetailsInput(initialData?.lessonDetails || lessonDetails || '');
+    }, [initialData, topic, lessonDetails]);
 
     const handleAddWord = () => {
         const newIdx = words.length;
@@ -78,13 +84,41 @@ export const CrosswordListEditor = ({
     };
 
     const handleConfirm = () => {
-        // Filter empty entries
-        const validWords = words.filter(w => w.word && w.word.toString().trim() !== '' && w.clue && w.clue.toString().trim() !== '');
-        if (validWords.length < 2) {
-            alert("Adicione pelo menos 2 palavras/números válidos.");
+        // 1. Normaliza: trim em todos os campos
+        const trimmed = words.map(w => ({
+            word: (w.word || '').toString().trim(),
+            clue: (w.clue || '').toString().trim(),
+        }));
+
+        // 2. Remove entradas com palavra OU dica vazia
+        const nonEmpty = trimmed.filter(w => w.word !== '' && w.clue !== '');
+
+        if (nonEmpty.length < 2) {
+            alert('Adicione pelo menos 2 entradas válidas (com palavra/número E dica preenchidos).');
             return;
         }
-        onConfirm({ words: validWords, topic: topicInput || (gameModeType === 'math' ? 'CRUZADINHA NUMÉRICA' : '') });
+
+        // 3. Remove duplicatas de palavra (mantém a primeira ocorrência, case-insensitive)
+        const seenWords = new Set();
+        const deduped = nonEmpty.filter(w => {
+            const key = w.word.toUpperCase();
+            if (seenWords.has(key)) return false;
+            seenWords.add(key);
+            return true;
+        });
+
+        // 4. Avisa se havia duplicatas
+        if (deduped.length < nonEmpty.length) {
+            const removed = nonEmpty.length - deduped.length;
+            console.info(`[CrosswordListEditor] ${removed} entrada(s) duplicada(s) removida(s).`);
+        }
+
+        if (deduped.length < 2) {
+            alert('Após remover duplicatas, restaram menos de 2 entradas. Revise a lista.');
+            return;
+        }
+
+        onConfirm({ words: deduped, topic: topicInput || (gameModeType === 'math' ? 'CRUZADINHA NUMÉRICA' : '') });
     };
 
     const handleGenerateMath = () => {
@@ -92,7 +126,7 @@ export const CrosswordListEditor = ({
             alert("Selecione pelo menos uma operação matemática.");
             return;
         }
-        const problems = generateMathProblems(mathCount, mathMaxOrder, mathOperations, mathMultMaxOrder, mathDivMaxOrder);
+        const problems = generateMathProblems(mathCount, mathMaxOrder, mathOperations, mathMultMaxOrder, mathDivMaxOrder, mathSpecificDivisor);
         const mappedWords = problems.map(p => ({ word: p.answer.toString(), clue: p.problem }));
         setWords(mappedWords);
         setEditingIndices(new Set());
@@ -113,19 +147,30 @@ export const CrosswordListEditor = ({
 
         setIsGeneratingAI(true);
         try {
-            const prompt = `Gere ${mathCount} situações-problema (problemas matemáticos em formato de texto/história) simples.
-Tema opcional: ${topicInput || 'Geral'}.
-As operações permitidas são: ${mathOperations.join(', ')}.
+            const contextBlock = detailsInput
+                ? `\nContexto/Detalhes adicionais: ${detailsInput}` : '';
 
-REGRAS DE DIFICULDADE (Siga ESTRITAMENTE o número de dígitos solicitados):
-- Para Adição/Subtração: Os números da conta e a resposta devem ter no máximo ${mathMaxOrder} dígito(s).
-${mathOperations.includes('*') ? `- Para Multiplicação: O multiplicando deve ter no máximo ${mathMaxOrder} dígito(s) e o multiplicador (ex: vezes X) deve ter no máximo ${mathMultMaxOrder} dígito(s).` : ''}
-${mathOperations.includes('/') ? `- Para Divisão: O dividendo e quociente devem estar no limite de ${mathMaxOrder} dígito(s) e o divisor deve ter no máximo ${mathDivMaxOrder} dígito(s). A divisão deve ser exata.` : ''}
+            const prompt = `Você é um gerador de atividades educativas de matemática.
+Gere ${mathCount} problemas matemáticos educativos.
+Tema/Contexto: ${topicInput || 'Matemática Geral'}${contextBlock}
 
-A resposta (resultado) de cada problema DEVE ser APENAS UM NÚMERO INTEIRO POSITIVO.
-Retorne APENAS um JSON estrito no seguinte formato:
+CRIE PROBLEMAS VARIADOS E ADEQUADOS AO CONTEXTO. Pode incluir:
+- Situações-problema com ${mathOperations.join(', ')}
+- Frações (ex: "1/2 + 1/4 = ?"), se o tema sugerir
+- Formas geométricas (ex: lados de um triângulo), se o tema sugerir
+- Tabuada, medidas, porcentagem ou sequências numéricas
+- Problemas de lógica matemática simples
+
+REGRAS DE DIFICULDADE (para operações numéricas):
+- Adição/Subtração: números com no máximo ${mathMaxOrder} dígito(s)
+${mathOperations.includes('*') ? `- Multiplicação: multiplicando até ${mathMaxOrder} dígito(s), multiplicador até ${mathMultMaxOrder} dígito(s)` : ''}
+${mathOperations.includes('/') ? `- Divisão: dividendo até ${mathMaxOrder} dígito(s), divisor até ${mathDivMaxOrder} dígito(s), resultado exato` : ''}
+
+A resposta ("answer") de cada problema DEVE ser APENAS UM NÚMERO INTEIRO POSITIVO.
+Retorne SOMENTE um array JSON:
 [
-  { "answer": 25, "problem": "João tinha 10 maçãs e ganhou mais 15. Quantas maçãs ele tem agora?" }
+  { "answer": 25, "problem": "João tinha 10 maçãs e ganhou mais 15. Quantas maçãs ele tem agora?" },
+  { "answer": 3, "problem": "Um triângulo tem quantos lados?" }
 ]`;
 
             // Import dynamically to use the safe parser just in case
@@ -191,7 +236,9 @@ Retorne APENAS um JSON estrito no seguinte formato:
 
         setIsGeneratingAI(true);
         try {
-            const prompt = `Você é um gerador de atividades educativas.\nGere 10 palavras cruzadas criativas e educativas para o tema: "${topicInput}".\nRetorne APENAS um JSON estrito. Não use formatação markdown.\nO JSON DEVE ser um array de objetos com este formato exato:\n[{"word": "RESPOSTA", "clue": "Dica ou pergunta"}]`;
+            const contextBlock = detailsInput
+                ? `\nContexto/Detalhes: ${detailsInput}` : '';
+            const prompt = `Você é um gerador de atividades educativas.\nGere 10 palavras cruzadas criativas e educativas para o tema: "${topicInput}".${contextBlock}\nRetorne APENAS um JSON estrito. Não use formatação markdown.\nO JSON DEVE ser um array de objetos com este formato exato:\n[{"word": "RESPOSTA", "clue": "Dica ou pergunta"}]`;
 
             const { safeJSONParse } = await import('../utils/jsonUtils');
             
@@ -251,7 +298,7 @@ Retorne APENAS um JSON estrito no seguinte formato:
                     <Button 
                         variant={gameModeType === 'text' ? 'primary' : 'ghost'} 
                         onClick={() => setGameModeType('text')}
-                        className={`rounded-lg ${gameModeType === 'text' ? 'bg-white shadow-sm text-brown-900 hover:bg-white' : 'text-brown-600 hover:bg-brown-100'}`}
+                        className={`rounded-lg ${gameModeType === 'text' ? 'bg-brown-600 shadow-sm text-white hover:bg-brown-700' : 'text-brown-600 hover:bg-brown-100'}`}
                         icon={Type}
                     >
                         História (Letras)
@@ -266,15 +313,28 @@ Retorne APENAS um JSON estrito no seguinte formato:
                     </Button>
                 </div>
 
-                {/* Topic Input */}
-                <Card>
+                {/* Topic + Details Input — pré-carregado da sidebar */}
+                <Card className="space-y-3">
                     <Input
                         label="Título / Tema"
                         value={topicInput}
                         onChange={(e) => setTopicInput(e.target.value)}
                         className="text-lg font-bold"
-                        placeholder={gameModeType === 'math' ? "Ex: Cruzadinha Numérica" : "Ex: Sistema Solar"}
+                        placeholder={gameModeType === 'math' ? "Ex: Frações, Geometria, Tabuada..." : "Ex: Sistema Solar"}
                     />
+                    <div>
+                        <label className="block text-sm font-semibold mb-1 text-brown-800">
+                            Contexto / Detalhes
+                            <span className="ml-2 text-xs font-normal text-brown-400">(pré-carregado da barra lateral)</span>
+                        </label>
+                        <textarea
+                            value={detailsInput}
+                            onChange={(e) => setDetailsInput(e.target.value)}
+                            rows={2}
+                            placeholder="Ex: alunos do 4º ano, foco em frações simples, relacionar com culinária..."
+                            className="w-full p-2 bg-brown-50 border border-brown-200 rounded-lg text-sm text-brown-900 placeholder:text-brown-400 resize-none outline-none focus:border-brown-500 focus:ring-1 focus:ring-brown-500 transition-all"
+                        />
+                    </div>
                 </Card>
 
                 {gameModeType === 'text' && (
@@ -305,94 +365,137 @@ Retorne APENAS um JSON estrito no seguinte formato:
                             Gerador de Problemas Matemáticos
                         </h3>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div className="bg-white p-3 rounded-lg border border-amber-100">
-                                <label className="text-xs font-bold text-amber-800 block mb-2">Operações</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {[
-                                        { op: '+', label: 'Adição' },
-                                        { op: '-', label: 'Subtração' },
-                                        { op: '*', label: 'Multiplicação' },
-                                        { op: '/', label: 'Divisão' }
-                                    ].map(({op, label}) => (
-                                        <button
-                                            key={op}
-                                            onClick={() => toggleMathOp(op)}
-                                            className={`px-3 py-1.5 rounded-md text-sm font-bold border transition-colors ${
-                                                mathOperations.includes(op) 
-                                                ? 'bg-amber-100 border-amber-400 text-amber-900' 
-                                                : 'bg-white border-brown-200 text-brown-500 hover:bg-brown-50'
-                                            }`}
-                                        >
-                                            {op} {label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            
-                            <div className="bg-white p-3 rounded-lg border border-amber-100">
-                                <label className="text-xs font-bold text-amber-800 block mb-2">Quantidade de Contas</label>
-                                <div className="flex items-center gap-4">
-                                    <input 
-                                        type="range" min="5" max="30" step="1"
-                                        value={mathCount}
-                                        onChange={(e) => setMathCount(parseInt(e.target.value))}
-                                        className="flex-1 accent-amber-600"
-                                    />
-                                    <div className="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-md min-w-[60px] text-center">
-                                        {mathCount}
+                        <div className="space-y-4 mb-4">
+                            {/* Primeira linha: Operações e Quantidade */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-white p-3 rounded-lg border border-amber-100 shadow-sm">
+                                    <label className="text-xs font-bold text-amber-800 block mb-2">Operações (Sem IA)</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[
+                                            { op: '+', label: 'Adição' },
+                                            { op: '-', label: 'Subtração' },
+                                            { op: '*', label: 'Multiplicação' },
+                                            { op: '/', label: 'Divisão' }
+                                        ].map(({op, label}) => (
+                                            <button
+                                                key={op}
+                                                onClick={() => toggleMathOp(op)}
+                                                className={`px-3 py-1.5 rounded-md text-sm font-bold border transition-colors ${
+                                                    mathOperations.includes(op) 
+                                                    ? 'bg-amber-100 border-amber-400 text-amber-900' 
+                                                    : 'bg-white border-brown-200 text-brown-500 hover:bg-brown-50'
+                                                }`}
+                                            >
+                                                {op} {label}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <div className="bg-white p-3 rounded-lg border border-amber-100">
-                                <label className="text-xs font-bold text-amber-800 block mb-2">Ordem Numérica (Adição/Base)</label>
-                                <div className="flex items-center gap-4">
-                                    <input 
-                                        type="range" min="1" max="10" step="1"
-                                        value={mathMaxOrder}
-                                        onChange={(e) => setMathMaxOrder(parseInt(e.target.value))}
-                                        className="flex-1 accent-amber-600"
-                                    />
-                                    <div className="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-md min-w-[60px] text-center">
-                                        {mathMaxOrder} {mathMaxOrder === 1 ? 'Dígito' : 'Dígitos'}
+                                
+                                <div className="bg-white p-3 rounded-lg border border-amber-100 shadow-sm">
+                                    <label className="text-xs font-bold text-amber-800 block mb-2">Quantidade (Contas ou IA)</label>
+                                    <div className="flex items-center gap-4">
+                                        <input 
+                                            type="range" min="5" max="30" step="1"
+                                            value={mathCount}
+                                            onChange={(e) => setMathCount(parseInt(e.target.value))}
+                                            className="flex-1 accent-amber-600"
+                                        />
+                                        <div className="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-md min-w-[60px] text-center">
+                                            {mathCount}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {mathOperations.includes('*') && (
-                                <div className="bg-white p-3 rounded-lg border border-amber-100">
-                                    <label className="text-xs font-bold text-amber-800 block mb-2">Ordem Multiplicador (Ex: x 12)</label>
-                                    <div className="flex items-center gap-4">
-                                        <input 
-                                            type="range" min="1" max="10" step="1"
-                                            value={mathMultMaxOrder}
-                                            onChange={(e) => setMathMultMaxOrder(parseInt(e.target.value))}
-                                            className="flex-1 accent-amber-600"
-                                        />
-                                        <div className="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-md min-w-[60px] text-center">
-                                            {mathMultMaxOrder} {mathMultMaxOrder === 1 ? 'Dígito' : 'Dígitos'}
+                            {/* Ordens Numéricas */}
+                            <div className="bg-white p-4 rounded-lg border border-amber-200 shadow-sm">
+                                <h4 className="text-sm font-bold text-amber-900 mb-3 border-b border-amber-100 pb-2">Controle de Dificuldade (Ordem de Dígitos)</h4>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="col-span-1 md:col-span-2 space-y-2">
+                                        <label className="text-xs font-bold text-amber-800 flex justify-between">
+                                            <span>Ordem Numérica da Resposta / Base</span>
+                                            <span className="text-amber-600 bg-amber-100 px-2 py-0.5 rounded text-[10px]">Todas as operações</span>
+                                        </label>
+                                        <div className="flex items-center gap-4">
+                                            <input 
+                                                type="range" min="1" max="10" step="1"
+                                                value={mathMaxOrder}
+                                                onChange={(e) => setMathMaxOrder(parseInt(e.target.value))}
+                                                className="flex-1 accent-amber-600"
+                                            />
+                                            <div className="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-md min-w-[60px] text-center text-sm">
+                                                {mathMaxOrder} {mathMaxOrder === 1 ? 'Dígito' : 'Dígitos'}
+                                            </div>
                                         </div>
+                                        <p className="text-[10px] text-amber-700/70 leading-tight">Controla o limite de dígitos do resultado para Adição/Subtração, e o tamanho do multiplicando/dividendo para as outras.</p>
                                     </div>
-                                </div>
-                            )}
 
-                            {mathOperations.includes('/') && (
-                                <div className="bg-white p-3 rounded-lg border border-amber-100">
-                                    <label className="text-xs font-bold text-amber-800 block mb-2">Ordem Divisor (Ex: ÷ 25)</label>
-                                    <div className="flex items-center gap-4">
-                                        <input 
-                                            type="range" min="1" max="10" step="1"
-                                            value={mathDivMaxOrder}
-                                            onChange={(e) => setMathDivMaxOrder(parseInt(e.target.value))}
-                                            className="flex-1 accent-amber-600"
-                                        />
-                                        <div className="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-md min-w-[60px] text-center">
-                                            {mathDivMaxOrder} {mathDivMaxOrder === 1 ? 'Dígito' : 'Dígitos'}
+                                    {mathOperations.includes('*') && (
+                                        <div className="space-y-2 pt-2 border-t md:border-t-0 md:border-l border-amber-50 md:pl-6">
+                                            <label className="text-xs font-bold text-amber-800 flex justify-between">
+                                                <span>Ordem do Multiplicador</span>
+                                                <span className="text-amber-600 bg-amber-100 px-2 py-0.5 rounded text-[10px]">Multiplicação (x)</span>
+                                            </label>
+                                            <div className="flex items-center gap-4">
+                                                <input 
+                                                    type="range" min="1" max="10" step="1"
+                                                    value={mathMultMaxOrder}
+                                                    onChange={(e) => setMathMultMaxOrder(parseInt(e.target.value))}
+                                                    className="flex-1 accent-amber-600"
+                                                />
+                                                <div className="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-md min-w-[60px] text-center text-sm">
+                                                    {mathMultMaxOrder} {mathMultMaxOrder === 1 ? 'Dígito' : 'Dígitos'}
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] text-amber-700/70">Quantos dígitos tem o número que multiplica (Ex: x 12).</p>
                                         </div>
-                                    </div>
+                                    )}
+
+                                    {mathOperations.includes('/') && (
+                                        <div className="space-y-2 pt-2 border-t md:border-t-0 md:border-l border-amber-50 md:pl-6">
+                                            <label className="text-xs font-bold text-amber-800 flex justify-between">
+                                                <span>Ordem do Divisor</span>
+                                                <span className="text-amber-600 bg-amber-100 px-2 py-0.5 rounded text-[10px]">Divisão (÷)</span>
+                                            </label>
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex items-center gap-4">
+                                                    <input 
+                                                        type="range" min="1" max="10" step="1"
+                                                        value={mathDivMaxOrder}
+                                                        onChange={(e) => {
+                                                            setMathDivMaxOrder(parseInt(e.target.value));
+                                                            if (parseInt(e.target.value) > 1) setMathSpecificDivisor('random');
+                                                        }}
+                                                        className="flex-1 accent-amber-600"
+                                                    />
+                                                    <div className="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-md min-w-[60px] text-center text-sm">
+                                                        {mathDivMaxOrder} {mathDivMaxOrder === 1 ? 'Dígito' : 'Dígitos'}
+                                                    </div>
+                                                </div>
+                                                
+                                                {mathDivMaxOrder === 1 && (
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="text-xs font-bold text-amber-700">Dígito exato:</span>
+                                                        <select 
+                                                            value={mathSpecificDivisor} 
+                                                            onChange={(e) => setMathSpecificDivisor(e.target.value)}
+                                                            className="flex-1 text-sm p-1 rounded border border-amber-300 bg-white text-amber-900 outline-none"
+                                                        >
+                                                            <option value="random">Aleatório (2 a 9)</option>
+                                                            {[2, 3, 4, 5, 6, 7, 8, 9].map(n => (
+                                                                <option key={n} value={n.toString()}>Dividir apenas por {n}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <p className="text-[10px] text-amber-700/70">Quantos dígitos tem o número que divide (Ex: ÷ 25).</p>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </div>
                         
                         <div className="flex gap-4 w-full">

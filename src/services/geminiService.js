@@ -213,9 +213,15 @@ class GeminiService {
         initialDelay: 2000
       });
 
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      // O gemini-2.5-flash (v1alpha) pode retornar múltiplas partes:
+      // partes com "thought: true" são raciocínio interno (ignorar)
+      // partes sem "thought" ou com "thought: false" são o texto final
+      const parts = data.candidates?.[0]?.content?.parts || [];
+      const textParts = parts.filter(p => p.text && !p.thought).map(p => p.text);
+      const text = textParts.join('') || parts.find(p => p.text)?.text || '';
 
       if (!text) {
+        console.warn('[GeminiService] Partes recebidas:', JSON.stringify(parts).slice(0, 500));
         throw new Error('Resposta vazia da API');
       }
 

@@ -36,7 +36,7 @@ export const CrosswordGrid = ({
                 row.map((cell, x) => {
                     // Empty Cell
                     if (!cell) {
-                        return <div key={`${x}-${y}`} className="w-8 h-8 sm:w-10 sm:h-10 bg-brown-50/30 print:invisible print:border-none" />;
+                        return <div key={`${x}-${y}`} className="w-8 h-8 sm:w-10 sm:h-10 print:!w-[1.4rem] print:!h-[1.4rem] bg-brown-50/30 print:invisible print:border-none" />;
                     }
 
                     const isFiller = cell.isFiller;
@@ -45,6 +45,7 @@ export const CrosswordGrid = ({
                     // Base classes shared
                     const baseClasses = `
                         relative w-8 h-8 sm:w-10 sm:h-10 
+                        print:!w-[1.4rem] print:!h-[1.4rem]
                         flex items-center justify-center 
                         border border-brown-900
                         print:!border print:!border-black print:z-10
@@ -67,7 +68,7 @@ export const CrosswordGrid = ({
                         >
                             {/* Number */}
                             {cell.num && (
-                                <span className="absolute top-0.5 left-0.5 text-[10px] font-black text-brown-800 leading-none pointer-events-none print:text-black z-20">
+                                <span className="absolute top-0.5 left-0.5 text-[10px] print:text-[8px] font-black text-brown-800 leading-none pointer-events-none print:text-black z-20">
                                     {cell.num}
                                 </span>
                             )}
@@ -93,9 +94,9 @@ export const CrosswordGrid = ({
                                 />
                             ) : (
                                 <span className={`
-                                    text-lg font-bold uppercase 
+                                    text-lg print:text-xs font-bold uppercase 
                                     ${isFiller ? 'text-brown-300 font-sans select-none print:text-slate-200' : ''}
-                                    ${!isFiller && showSolution ? 'text-brown-900' : !isFiller ? 'text-transparent' : ''}
+                                    ${!isFiller && showSolution ? 'text-brown-900 print:text-black' : !isFiller ? 'text-transparent' : ''}
                                 `}>
                                     {isFiller ? cell.char : (showSolution ? cell.char : '')}
                                 </span>

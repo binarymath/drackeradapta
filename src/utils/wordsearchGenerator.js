@@ -159,50 +159,72 @@ export const generateWordSearch = (
 };
 
 /**
- * Gera operações matemáticas
+ * Gera operações matemáticas sem duplicatas de resposta nem de enunciado.
  */
-export const generateMathProblems = (count, maxOrder, operations, multMaxOrder = 1, divMaxOrder = 1) => {
+export const generateMathProblems = (count, maxOrder, operations, multMaxOrder = 1, divMaxOrder = 1, specificDivisor = 'random') => {
   const maxNum = Math.pow(10, maxOrder) - 1;
   const problems = [];
   const usedAnswers = new Set();
-  
-  // Opções para evitar infinit loop
-  for (let i = 0; i < count * 5 && problems.length < count; i++) {
-      const op = operations[Math.floor(Math.random() * operations.length)];
-      let a, b, answer;
+  const usedProblems = new Set();
+
+  const MAX_ATTEMPTS = count * 20; // Limite de tentativas para evitar loop infinito
+
+  for (let i = 0; i < MAX_ATTEMPTS && problems.length < count; i++) {
+    const op = operations[Math.floor(Math.random() * operations.length)];
+    let a, b, answer;
+
+    if (op === '+') {
+      answer = Math.floor(Math.random() * maxNum) + 1;
+      a = Math.floor(Math.random() * answer);
+      b = answer - a;
+    } else if (op === '-') {
+      answer = Math.floor(Math.random() * maxNum) + 1;
+      b = Math.floor(Math.random() * (answer)); // b < answer para resultado positivo
+      a = answer + b;
+      // Garante que a fica dentro do limite de dígitos
+      if (a > Math.pow(10, maxOrder + 1) - 1) continue;
+    } else if (op === '*') {
+      const maxA = Math.pow(10, maxOrder) - 1;
+      const maxB = Math.pow(10, multMaxOrder) - 1;
+      a = Math.floor(Math.random() * maxA) + 1;
+      b = Math.floor(Math.random() * maxB) + 1;
+      answer = a * b;
+    } else if (op === '/') {
+      const maxAnswer = Math.pow(10, maxOrder) - 1;
       
-      if (op === '+') {
-          answer = Math.floor(Math.random() * maxNum) + 1;
-          a = Math.floor(Math.random() * answer);
-          b = answer - a;
-      } else if (op === '-') {
-          answer = Math.floor(Math.random() * maxNum) + 1;
-          b = Math.floor(Math.random() * maxNum) + 1;
-          a = answer + b;
-      } else if (op === '*') {
-          const maxA = Math.pow(10, maxOrder) - 1;
-          const maxB = Math.pow(10, multMaxOrder) - 1;
-          a = Math.floor(Math.random() * maxA) + 1;
-          b = Math.floor(Math.random() * maxB) + 1;
-          answer = a * b;
-      } else if (op === '/') {
-          const maxAnswer = Math.pow(10, maxOrder) - 1;
+      if (divMaxOrder === 1 && specificDivisor !== 'random') {
+          b = parseInt(specificDivisor);
+      } else {
           const maxB = Math.pow(10, divMaxOrder) - 1;
-          answer = Math.floor(Math.random() * maxAnswer) + 1;
-          b = Math.floor(Math.random() * maxB) + 1;
-          a = answer * b;
+          // Divisores devem ser a partir de 2, caso contrário a divisão por 1 ou 0 não é muito útil educacionalmente
+          // Se maxB for 1, a matemática vai forçar divisor 1 se não ajustarmos, mas o código anterior usava floor(random * maxB) + 1
+          // Vamos manter a partir de 2 se o limite permitir, ou 1 a 9.
+          b = Math.floor(Math.random() * (maxB - 1)) + 2; 
+          // Correção de fallback se maxB for 1, embora maxB = 10^1 - 1 = 9
       }
       
-      // Evita respostas de um só dígito em wordsearch pois são muito fáceis, exceto se a ordem for 1
-      if (maxOrder > 1 && answer < 10) continue;
-      
-      if (!usedAnswers.has(answer)) {
-          usedAnswers.add(answer);
-          let opSymbol = op;
-          if (op === '*') opSymbol = 'x';
-          if (op === '/') opSymbol = '÷';
-          problems.push({ problem: `${a} ${opSymbol} ${b} = ?`, answer: answer.toString() });
-      }
+      answer = Math.floor(Math.random() * maxAnswer) + 1;
+      a = answer * b;
+    }
+
+    // Descarta respostas de 1 dígito se ordem > 1 (muito fácil para cruzadinha)
+    if (maxOrder > 1 && answer < 10) continue;
+
+    const answerStr = answer.toString();
+    let opSymbol = op;
+    if (op === '*') opSymbol = 'x';
+    if (op === '/') opSymbol = '÷';
+
+    const problemStr = `${a} ${opSymbol} ${b} = ?`;
+
+    // Descarta se a resposta OU o enunciado já foram usados
+    if (usedAnswers.has(answerStr)) continue;
+    if (usedProblems.has(problemStr)) continue;
+
+    usedAnswers.add(answerStr);
+    usedProblems.add(problemStr);
+    problems.push({ problem: problemStr, answer: answerStr });
   }
+
   return problems;
 };
