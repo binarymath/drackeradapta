@@ -321,7 +321,7 @@ class GeminiService {
   async generateHangmanWordsBatch(theme, details = '') {
     let contextPrompt = `O tema escolhido pelo usuário é: "${theme}".`;
     if (details && details.trim()) {
-      contextPrompt += `\n    CONTEXTO ADICIONAL (Detalhes da lição): "${details}". Use este contexto para escolher palavras muito relevantes.`;
+      contextPrompt += `\n    ATENÇÃO CRÍTICA: Baseie as palavras EXCLUSIVAMENTE ou fortemente neste contexto: "${details}". Não use palavras genéricas sobre o tema amplo.`;
     }
 
     const prompt = `Gere uma lista de exatamente 50 palavras secretas para um jogo de forca (hangman) em Português do Brasil.
@@ -425,7 +425,7 @@ class GeminiService {
     const prompt = `
       Você é um assistente pedagógico inteligente.
       Sua tarefa é gerar 5 pares de correspondência baseados no tema: "${topic}".
-      ${details ? `\nCONTEXTO ADICIONAL (Detalhes da lição): "${details}". Use este contexto para tornar os pares mais relevantes.\n` : ''}
+      ${details ? `\nATENÇÃO CRÍTICA: Os pares DEVEM SER baseados EXCLUSIVAMENTE ou fortemente neste contexto/detalhe: "${details}". Não faça perguntas genéricas sobre o tema.\n` : ''}
       
       DIRETRIZES PARA O CONTEÚDO:
       1. Para o campo 'text': Crie uma pergunta curta ou afirmação clara (máximo 4-5 palavras).
@@ -483,7 +483,7 @@ class GeminiService {
     const prompt = `
       Você é um Mestre de RPG Educacional criativo.
       Crie uma mini-aventura de 5 etapas para ensinar sobre: "${topic}".
-      ${details ? `\nCONTEXTO: "${details}". A aventura deve se adaptar a este contexto/nível.\n` : ''}
+      ${details ? `\nATENÇÃO CRÍTICA: A aventura INTEIRA (locais, enigmas, perguntas) DEVE ser focada EXCLUSIVAMENTE ou fortemente sobre: "${details}". Não faça uma aventura genérica sobre o tema.\n` : ''}
       
       PERSONAGENS OBRIGATÓRIOS:
       - HEROI/GUIA: Drácker (um dragãozinho marrom com asas marrons, amigável, com grandes olhos azuis). Ele guia os jogadores.

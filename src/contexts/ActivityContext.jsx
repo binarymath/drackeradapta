@@ -130,15 +130,14 @@ export const ActivityProvider = ({ children }) => {
         { id: 'connect_dots', label: 'Liga Pontos', icon: <BrainCircuit className="w-4 h-4" /> },
         { id: 'video_gallery', label: 'Galeria Drácker', icon: <Play className="w-4 h-4" /> },
         { id: 'rpg', label: 'Drácker RPG', icon: <Compass className="w-4 h-4" /> },
-        { id: 'expedition', label: 'Expedição Drácker', icon: <Compass className="w-4 h-4" /> },
         { id: 'hangman', label: 'Jogo da Forca', icon: <Gamepad2 className="w-4 h-4" /> },
         { id: 'merge_pdf', label: 'Unir PDFs', icon: <Files className="w-4 h-4" /> },
     ], []);
 
     const difficultyOptions = useMemo(() => [
-        { id: 'easy', label: 'Leve e Simples' },
-        { id: 'medium', label: 'Padrão e Claro' },
-        { id: 'hard', label: 'Avançado e Rico' },
+        { id: 'easy', label: 'Anos Iniciais', tooltip: 'Linguagem lúdica, infantil e muito simples.' },
+        { id: 'medium', label: 'Anos Finais', tooltip: 'Linguagem escolar padrão, clara e direta.' },
+        { id: 'hard', label: 'Ensino Médio', tooltip: 'Linguagem formal, mais aprofundada e conceitual.' },
     ], []);
 
     // Sync Form with Active Activity

@@ -8,7 +8,7 @@ import RichTextRenderer from './RichTextRenderer';
 import { CrosswordActivity } from './CrosswordActivity';
 import ConnectDotsGame from './ConnectDotsGame';
 import DrackerVideoGallery from './DrackerVideoGallery';
-import ExpedicaoDracker from './ExpedicaoDracker';
+
 import { PDFMergerTool } from './PDFMergerTool';
 import { AboutSystem } from './AboutSystem';
 import MemoryGame from './memory/MemoryGame';
@@ -53,6 +53,7 @@ export const ActivityArea = ({
     quizData,
     quizTitle,
     onCrosswordUpdate,
+    onDrackerUpdate,
     connectDotsData,
     rpgData,
     drackerState,
@@ -75,7 +76,6 @@ export const ActivityArea = ({
         (activityType === 'connect_dots' && connectDotsData) ||
         (activityType === 'video_gallery') ||
         (activityType === 'merge_pdf') ||
-        (activityType === 'expedition') ||
         (activityType === 'about_system') ||
         (activityType === 'rpg' && rpgData) ||
         (activityType === 'hangman');
@@ -254,7 +254,7 @@ export const ActivityArea = ({
                                     onExitToPrint={() => setIsGameMode(false)}
                                 />
                             ) : activityType === 'summary' && drackerData ? (
-                                <DrackerStoryRenderer drackerData={drackerData} />
+                                <DrackerStoryRenderer drackerData={drackerData} onUpdate={onDrackerUpdate} />
                             ) : activityType === 'simplify' && musicData ? (
                                 <MusicActivityRenderer
                                     musicData={musicData}
@@ -269,8 +269,6 @@ export const ActivityArea = ({
                                 <DrackerVideoGallery />
                             ) : activityType === 'about_system' ? (
                                 <AboutSystem />
-                            ) : activityType === 'expedition' ? (
-                                <ExpedicaoDracker drackerState={drackerState} />
                             ) : activityType === 'merge_pdf' ? (
                                 <PDFMergerTool />
                             ) : activityType === 'connect_dots' && connectDotsData ? (

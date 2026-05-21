@@ -20,7 +20,7 @@ export const theme = {
     // Interactive Elements
     input: {
         text: "w-full p-2 bg-brown-50 border border-brown-200 rounded-lg text-sm text-brown-900 placeholder:text-brown-400 focus:border-brown-500 focus:ring-1 focus:ring-brown-500 outline-none transition-all",
-        textarea: "w-full p-2 bg-brown-50 border border-brown-200 rounded-lg text-sm text-brown-900 placeholder:text-brown-400 h-16 resize-none focus:border-brown-500 focus:ring-1 focus:ring-brown-500 outline-none transition-all",
+        textarea: "w-full p-2 bg-brown-50 border border-brown-200 rounded-lg text-sm text-brown-900 placeholder:text-brown-400 min-h-[4rem] resize-y focus:border-brown-500 focus:ring-1 focus:ring-brown-500 outline-none transition-all",
         select: "w-full border border-brown-300 rounded-lg p-2 text-sm text-brown-900 bg-white",
         checkbox: "rounded text-brown-600 focus:ring-brown-500",
     },

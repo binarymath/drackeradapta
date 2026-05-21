@@ -2,8 +2,8 @@ import { buildQuizPrompt } from '../prompts/quizPrompt';
 import { safeJSONParse } from '../../utils/jsonUtils';
 
 export async function generateQuizActivity({ topic, lessonDetails, difficulty, model, geminiService }) {
-  const difficultyLabel = difficulty === 'hard' ? 'Difícil' : difficulty === 'easy' ? 'Fácil/Infantil' : 'Médio';
-  const prompt = buildQuizPrompt(topic, lessonDetails, difficultyLabel);
+  const levelLabel = difficulty === 'hard' ? 'Ensino Médio (Avançado - linguagem formal e conceitual)' : difficulty === 'easy' ? 'Anos Iniciais (Fácil - linguagem lúdica, simples e infantil)' : 'Anos Finais (Médio - linguagem padrão escolar)';
+  const prompt = buildQuizPrompt(topic, lessonDetails, levelLabel);
 
   // Tenta primeiro com responseMimeType JSON (força saída JSON pura, sem markdown nem texto extra)
   let text = null;

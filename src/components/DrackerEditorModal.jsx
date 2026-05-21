@@ -65,7 +65,7 @@ export const DrackerEditorModal = ({ isOpen, onClose, onSave, initialData }) => 
         });
 
         const paddedActivities = [...mappedActivities];
-        while (paddedActivities.length < 5) {
+        while (paddedActivities.length < 3) {
             const label = paddedActivities.length + 1;
             paddedActivities.push({
                 id: `act-${timestamp}-placeholder-${label}`,
@@ -208,8 +208,8 @@ export const DrackerEditorModal = ({ isOpen, onClose, onSave, initialData }) => 
                                                     placeholder="Passo a passo detalhado..."
                                                     value={act.steps}
                                                     onChange={(e) => handleActivityChange(act.id, 'steps', e.target.value)}
-                                                    className="text-sm min-h-[80px]"
-                                                    rows={3}
+                                                    className="text-sm leading-relaxed min-h-[200px]"
+                                                    rows={12}
                                                     label="Como fazer:"
                                                 />
                                             </div>

@@ -355,6 +355,12 @@ export const MainLayout = () => {
                                 return t;
                             }));
                         }}
+                        onDrackerUpdate={(newData) => {
+                            setTabs(prev => prev.map(t => {
+                                if (t.id === activeTabId) return { ...t, drackerData: newData };
+                                return t;
+                            }));
+                        }}
                         drackerState={drackerState}
                         isFullWidth={isFullWidth}
                         toggleFullWidth={() => setIsFullWidth(!isFullWidth)}
