@@ -2,6 +2,7 @@
 import React from 'react';
 import { FileText, Check, Pencil, Maximize2, Minimize2, PenSquare, Printer } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
 
 export const ActivityHeader = ({
     hasContent,
@@ -13,15 +14,27 @@ export const ActivityHeader = ({
     foundWords,
     isFullWidth,
     toggleFullWidth,
-    openManualMusicEditor
+    openManualMusicEditor,
+    activityTitle,
+    setActivityTitle
 }) => {
     return (
         <div className="p-4 border-b border-brown-100 flex items-center justify-between bg-brown-50/50 no-print rounded-t-2xl">
-            <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${hasContent ? 'bg-green-500' : 'bg-brown-300'}`}></span>
-                <span className="text-xs font-bold text-brown-500 uppercase">
-                    {hasContent ? 'Pronto' : 'Aguardando'}
-                </span>
+            <div className="flex items-center gap-4 flex-1">
+                <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${hasContent ? 'bg-green-500' : 'bg-brown-300'}`}></span>
+                    <span className="text-xs font-bold text-brown-500 uppercase whitespace-nowrap">
+                        {hasContent ? 'Pronto' : 'Aguardando'}
+                    </span>
+                </div>
+                {hasContent && (
+                    <Input
+                        value={activityTitle || ''}
+                        onChange={(e) => setActivityTitle && setActivityTitle(e.target.value)}
+                        placeholder="Título da Atividade"
+                        className="h-8 text-sm font-bold bg-transparent border-transparent hover:border-brown-200 focus:bg-white focus:border-brown-400 max-w-sm transition-all text-brown-800"
+                    />
+                )}
             </div>
 
             <div className="flex gap-2">

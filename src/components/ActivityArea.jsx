@@ -51,7 +51,8 @@ export const ActivityArea = ({
     drackerData,
     crosswordData,
     quizData,
-    quizTitle,
+    activityTitle,
+    setActivityTitle,
     onCrosswordUpdate,
     onDrackerUpdate,
     connectDotsData,
@@ -127,6 +128,8 @@ export const ActivityArea = ({
                     isFullWidth={isFullWidth}
                     toggleFullWidth={toggleFullWidth}
                     openManualMusicEditor={openManualMusicEditor}
+                    activityTitle={activityTitle}
+                    setActivityTitle={setActivityTitle}
                 />
 
                 <div className={`flex-1 ${isFullWidth ? 'p-1 sm:p-2' : 'p-4 sm:p-8'} overflow-y-auto print:overflow-visible custom-scrollbar print:p-0`} ref={activityAreaRef} id="activity-area-print">
@@ -144,12 +147,6 @@ export const ActivityArea = ({
                                     color="amber"
                                 >
                                     <div className="flex flex-col gap-2 mr-4 md:mr-8 min-w-[200px]">
-                                        <Input
-                                            value={wordsearchTitle}
-                                            onChange={(e) => setWordsearchTitle(e.target.value)}
-                                            placeholder="Título da Atividade"
-                                            className="h-8 text-sm"
-                                        />
                                         <div className="flex flex-col gap-1">
                                             <label className="flex items-center gap-2 cursor-pointer">
                                                 <input
@@ -244,7 +241,7 @@ export const ActivityArea = ({
                             ) : activityType === 'quiz' && quizData && !isGameMode ? (
                                 <QuizPrint
                                     quizData={quizData}
-                                    title={quizTitle}
+                                    title={activityTitle}
                                     showAnswers={showAnswers}
                                 />
                             ) : isMusicGame && musicData ? (

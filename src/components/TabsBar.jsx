@@ -20,14 +20,14 @@ const SortableTab = ({ tab, activeTabId, onSelect, onClose, getTabLabel }) => {
       {...attributes}
       {...listeners}
       onClick={() => onSelect(tab.id)}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-colors border select-none ${isActive ? 'bg-brown-100 border-brown-300 text-brown-800 font-bold shadow-sm' : 'bg-brown-50 border-brown-100 text-brown-600 hover:bg-brown-100'}`}
+      className={`group flex items-center gap-2 px-4 py-2 rounded-t-xl cursor-pointer whitespace-nowrap transition-all select-none relative ${isActive ? 'bg-white text-brown-800 font-bold shadow-[0_-4px_12px_rgba(146,64,14,0.08)] z-10 before:absolute before:top-0 before:left-0 before:right-0 before:h-[3px] before:bg-brown-500 before:rounded-t-xl' : 'bg-brown-100/40 text-brown-500 hover:bg-brown-100/80 hover:text-brown-700 mt-1'}`}
     >
-      <span className="text-sm max-w-[120px] truncate" title={tab.title}>
+      <span className="text-sm max-w-[140px] truncate" title={tab.title}>
         {getTabLabel(tab)}
       </span>
       <button
         onClick={(e) => onClose(tab.id, e)}
-        className="text-brown-400 hover:text-red-500 transition-colors ml-1 p-0.5 rounded-full hover:bg-brown-200/50"
+        className={`p-0.5 rounded-full transition-colors ml-1 ${isActive ? 'text-brown-400 hover:text-red-500 hover:bg-red-50' : 'text-transparent group-hover:text-brown-400 hover:!text-red-500 hover:bg-red-50'}`}
       >
         <X className="w-3 h-3" />
       </button>
@@ -35,7 +35,9 @@ const SortableTab = ({ tab, activeTabId, onSelect, onClose, getTabLabel }) => {
   );
 };
 
-export const TabsBar = ({ tabs, activeTabId, onSelect, onClose, onReorder, getTabLabel }) => {
+export const TabsBar = ({ tabs, activeTabId, activityType, onSelect, onClose, onReorder, getTabLabel }) => {
+  const visibleTabs = tabs.filter(t => !t.hidden && t.type === activityType);
+  
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
@@ -43,18 +45,21 @@ export const TabsBar = ({ tabs, activeTabId, onSelect, onClose, onReorder, getTa
   const handleDragEnd = (event) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIndex = tabs.findIndex(t => t.id === active.id);
-    const newIndex = tabs.findIndex(t => t.id === over.id);
-    const reordered = arrayMove(tabs, oldIndex, newIndex);
-    onReorder(reordered);
+    const oldIndex = visibleTabs.findIndex(t => t.id === active.id);
+    const newIndex = visibleTabs.findIndex(t => t.id === over.id);
+    const reorderedVisible = arrayMove(visibleTabs, oldIndex, newIndex);
+    
+    // Reconstruct the full array preserving hidden and other-type tabs
+    const otherTabs = tabs.filter(t => t.hidden || t.type !== activityType);
+    onReorder([...reorderedVisible, ...otherTabs]);
   };
 
   return (
-    <div className="flex flex-col gap-2 bg-white p-2 rounded-xl shadow-sm border border-brown-200">
+    <div className="flex flex-col w-full px-2 pt-2 bg-gradient-to-t from-white to-brown-50/50 rounded-t-2xl border-b border-brown-200">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={tabs.map(t => t.id)} strategy={horizontalListSortingStrategy}>
-          <div className="flex gap-2 overflow-x-auto pb-2 px-1 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent">
-            {tabs.map(tab => (
+        <SortableContext items={visibleTabs.map(t => t.id)} strategy={horizontalListSortingStrategy}>
+          <div className="flex items-end gap-1 overflow-x-auto px-2 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent">
+            {visibleTabs.map(tab => (
               <SortableTab
                 key={tab.id}
                 tab={tab}
@@ -64,7 +69,7 @@ export const TabsBar = ({ tabs, activeTabId, onSelect, onClose, onReorder, getTa
                 getTabLabel={getTabLabel}
               />
             ))}
-            {tabs.length === 0 && <span className="text-sm text-brown-400 italic px-4 py-2">Nenhuma atividade gerada ainda...</span>}
+            {visibleTabs.length === 0 && <span className="text-[13px] text-brown-400 italic px-4 py-2">Nenhuma atividade gerada ainda...</span>}
           </div>
         </SortableContext>
       </DndContext>

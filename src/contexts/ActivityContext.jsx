@@ -50,7 +50,6 @@ export const ActivityProvider = ({ children }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [tabSelectionModal, setTabSelectionModal] = useState({
         isOpen: false,
-        tabs: [],
         type: ''
     });
 
@@ -79,12 +78,28 @@ export const ActivityProvider = ({ children }) => {
 
     const closeTab = (id, e) => {
         if (e) e.stopPropagation();
-        const newTabs = tabs.filter(t => t.id !== id);
-        setTabs(newTabs);
-        if (activeTabId === id) {
-            if (newTabs.length > 0) setActiveTabId(newTabs[newTabs.length - 1].id);
-            else setActiveTabId(null);
-        }
+        setTabs(prev => {
+            const newTabs = prev.map(t => t.id === id ? { ...t, hidden: true } : t);
+            const visibleTabs = newTabs.filter(t => !t.hidden);
+            if (activeTabId === id) {
+                if (visibleTabs.length > 0) setActiveTabId(visibleTabs[visibleTabs.length - 1].id);
+                else setActiveTabId(null);
+            }
+            return newTabs;
+        });
+    };
+
+    const deleteTab = (id, e) => {
+        if (e) e.stopPropagation();
+        setTabs(prev => {
+            const newTabs = prev.filter(t => t.id !== id);
+            const visibleTabs = newTabs.filter(t => !t.hidden);
+            if (activeTabId === id) {
+                if (visibleTabs.length > 0) setActiveTabId(visibleTabs[visibleTabs.length - 1].id);
+                else setActiveTabId(null);
+            }
+            return newTabs;
+        });
     };
 
     const handleTabsReorder = (reorderedTabs) => setTabs(reorderedTabs);
@@ -96,7 +111,7 @@ export const ActivityProvider = ({ children }) => {
             setActiveTabId(existingTabs[0].id);
             setActivityType(type); // Ensure sidebar highlight updates
         } else if (existingTabs.length > 1) {
-            setTabSelectionModal({ isOpen: true, tabs: existingTabs, type: type });
+            setTabSelectionModal({ isOpen: true, type: type });
         } else {
             setActivityType(type);
             setActiveTabId(null);
@@ -110,13 +125,13 @@ export const ActivityProvider = ({ children }) => {
             setActivityType(selectedTab.type);
             setTopic(selectedTab.title || '');
         }
-        setTabSelectionModal({ isOpen: false, tabs: [], type: '' });
+        setTabSelectionModal({ isOpen: false, type: '' });
     };
 
     const handleCreateNewFromModal = () => {
         setActivityType(tabSelectionModal.type);
         setActiveTabId(null);
-        setTabSelectionModal({ isOpen: false, tabs: [], type: '' });
+        setTabSelectionModal({ isOpen: false, type: '' });
     };
 
     // --- CONSTANTS ---
@@ -164,7 +179,7 @@ export const ActivityProvider = ({ children }) => {
             tabs, setTabs,
             activeTabId, setActiveTabId,
             activeActivity,
-            addActivityTab, closeTab, handleTabsReorder,
+            addActivityTab, closeTab, deleteTab, handleTabsReorder,
             updateActivityData,
 
             topic, setTopic,

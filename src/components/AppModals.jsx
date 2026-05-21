@@ -44,8 +44,11 @@ export const AppModals = ({
     // Tab Selection
     tabSelectionModal,
     setTabSelectionModal,
+    tabs,
     handleTabSelection,
     handleCreateNewFromModal,
+    deleteTab,
+    updateActivityData,
 
     // Import Dialog
     importDialog,
@@ -95,9 +98,11 @@ export const AppModals = ({
 
             <TabSelectionModal
                 isOpen={tabSelectionModal.isOpen}
-                tabs={tabSelectionModal.tabs}
+                tabs={tabs.filter(t => t.type === tabSelectionModal.type)}
                 onSelect={handleTabSelection}
                 onCreateNew={handleCreateNewFromModal}
+                onDelete={deleteTab}
+                onUpdate={updateActivityData}
                 onClose={() => setTabSelectionModal(prev => ({ ...prev, isOpen: false }))}
             />
 
