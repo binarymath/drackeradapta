@@ -24,7 +24,8 @@ export const MainLayout = () => {
         tabs, setTabs,
         activeTabId, setActiveTabId,
         activeActivity,
-        addActivityTab, closeTab, handleTabsReorder,
+        addActivityTab, closeTab, deleteTab, handleTabsReorder,
+        updateActivityData,
         topic, setTopic,
         lessonDetails, setLessonDetails,
         activityType, setActivityType,
@@ -228,9 +229,8 @@ export const MainLayout = () => {
     } = useBackupSystem(tabs, setTabs, setActiveTabId, drackerState.expeditions, drackerState.actions.setExpeditions, drackerState.allMembers, drackerState.setAllMembers);
 
     const getTabLabel = (tab) => {
-        const labels = { quiz: 'Quiz', summary: 'Drácker', simplify: 'Música', wordsearch: 'Caça-P.', connect_dots: 'Pontos', video_gallery: 'Vídeos', crossword: 'Cruzadas' };
         const title = tab.title || 'Sem título';
-        return `${labels[tab.type] || 'Ativ.'}: ${title.substring(0, 15) + (title.length > 15 ? '...' : '')}`;
+        return title.length > 25 ? title.substring(0, 25) + '...' : title;
     };
 
     // Combined System Status
@@ -304,6 +304,7 @@ export const MainLayout = () => {
                             <TabsBar
                                 tabs={tabs}
                                 activeTabId={activeTabId}
+                                activityType={activityType}
                                 onSelect={setActiveTabId}
                                 onClose={closeTab}
                                 onReorder={handleTabsReorder}
@@ -348,7 +349,24 @@ export const MainLayout = () => {
                         connectDotsData={activeActivity?.data}
                         rpgData={activeActivity?.type === 'rpg' ? activeActivity.data : null}
                         quizData={activeActivity?.quizData}
-                        quizTitle={activeActivity?.title || ''}
+                        activityTitle={activeActivity?.title || ''}
+                        setActivityTitle={(newTitle) => {
+                            setTabs(prev => prev.map(t => {
+                                if (t.id === activeTabId) {
+                                    // Update both the main title and specific data title
+                                    const updatedTab = { ...t, title: newTitle };
+                                    if (t.type === 'wordsearch' && t.wordsearchData) {
+                                        updatedTab.wordsearchData = { ...t.wordsearchData, title: newTitle };
+                                    }
+                                    if (t.type === 'wordsearch' && t.data) {
+                                        updatedTab.data = { ...t.data, title: newTitle };
+                                    }
+                                    return updatedTab;
+                                }
+                                return t;
+                            }));
+                            setWordsearchTitle(newTitle); // Keep local state in sync
+                        }}
                         onCrosswordUpdate={(newData) => {
                             setTabs(prev => prev.map(t => {
                                 if (t.id === activeTabId) return { ...t, data: newData };
@@ -378,8 +396,11 @@ export const MainLayout = () => {
                     setSpeechSettings={setSpeechSettings}
                     tabSelectionModal={tabSelectionModal}
                     setTabSelectionModal={setTabSelectionModal}
+                    tabs={tabs}
                     handleTabSelection={handleTabSelection}
                     handleCreateNewFromModal={handleCreateNewFromModal}
+                    deleteTab={deleteTab}
+                    updateActivityData={updateActivityData}
                     importDialog={importDialog}
                     handleMergeImport={handleMergeImport}
                     handleReplaceImport={handleReplaceImport}
