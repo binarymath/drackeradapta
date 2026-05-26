@@ -84,7 +84,7 @@ export default function DrackerVideoGallery() {
                     </div>
                     <div>
                         <h2 className="font-bold text-lg text-brown-900 tracking-tight leading-none">{currentPlaylistTitle}</h2>
-                        <p className="text-xs text-brown-500 font-medium">Galeria Drácker</p>
+                        <p className="text-xs text-brown-500 font-medium">Vídeos Pedagógicos</p>
                     </div>
                 </div>
             </div>
