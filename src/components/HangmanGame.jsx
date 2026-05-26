@@ -513,7 +513,7 @@ export default function HangmanGame() {
                                                 <ArrowLeft className="w-4 h-4" /> Voltar para Lista
                                             </Button>
 
-                                            {hangmanBatch.words.length > 0 && currentWordIndex < hangmanBatch.words.length - 1 && (
+                                            {hangmanBatch && hangmanBatch.words.length > 0 && currentWordIndex < hangmanBatch.words.length - 1 && (
                                                 <Button
                                                     onClick={() => handleSelectWord(currentWordIndex + 1)}
                                                     className="gap-2 shadow-md bg-brown-600 hover:bg-brown-700 text-white"

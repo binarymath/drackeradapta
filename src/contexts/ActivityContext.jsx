@@ -140,10 +140,10 @@ export const ActivityProvider = ({ children }) => {
         { id: 'wordsearch', label: 'Caça-Palavras', icon: <Grid className="w-4 h-4" /> },
         { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-4 h-4" /> },
         { id: 'summary', label: 'Aprenda com o Drácker', icon: <MessageSquare className="w-4 h-4" /> },
-        { id: 'simplify', label: 'Música do Drácker', icon: <Music className="w-4 h-4" /> },
+
         { id: 'memory', label: 'Jogo da Memória', icon: <Brain className="w-4 h-4" /> },
         { id: 'connect_dots', label: 'Liga Pontos', icon: <BrainCircuit className="w-4 h-4" /> },
-        { id: 'video_gallery', label: 'Galeria Drácker', icon: <Play className="w-4 h-4" /> },
+
         { id: 'rpg', label: 'Drácker RPG', icon: <Compass className="w-4 h-4" /> },
         { id: 'hangman', label: 'Jogo da Forca', icon: <Gamepad2 className="w-4 h-4" /> },
         { id: 'merge_pdf', label: 'Unir PDFs', icon: <Files className="w-4 h-4" /> },

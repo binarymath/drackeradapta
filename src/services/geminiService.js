@@ -424,30 +424,32 @@ class GeminiService {
   async generateConnectDots(topic, details = '') {
     const prompt = `
       Você é um assistente pedagógico inteligente.
-      Sua tarefa é gerar 5 pares de correspondência baseados no tema: "${topic}".
+      Sua tarefa é gerar 7 pares de correspondência baseados no tema: "${topic}".
       ${details ? `\nATENÇÃO CRÍTICA: Os pares DEVEM SER baseados EXCLUSIVAMENTE ou fortemente neste contexto/detalhe: "${details}". Não faça perguntas genéricas sobre o tema.\n` : ''}
       
       DIRETRIZES PARA O CONTEÚDO:
-      1. Para o campo 'text': Crie uma pergunta curta ou afirmação clara (máximo 4-5 palavras).
-      2. Para o campo 'emoji' (que será a RESPOSTA):
+      1. COESÃO LÓGICA E PADRONIZAÇÃO (CRÍTICO): Todos os pares devem seguir estritamente o mesmo padrão de raciocínio. Não misture tipos de associações. Por exemplo, se o tema for "Animais", escolha apenas UM tipo de relação (ex: Animal -> Onde vive, OU Animal -> O que come) e mantenha essa mesma lógica para os 7 pares. A atividade precisa fazer sentido como um conjunto coeso.
+      2. Para o campo 'text': Crie o primeiro lado do par (Pergunta, Termo ou Conceito). Seja direto e claro (máximo 4-5 palavras).
+      3. Para o campo 'emoji' (que será a RESPOSTA correspondente):
          - GERE UMA RESPOSTA CURTA (Texto/Número) SEGUIDA DE UM EMOJI ILUSTRATIVO.
          - Formato: "Resposta [Emoji]"
          - O objetivo é ajudar a associação visual.
          - Ex: Tema "Capitais": Pergunta "França", Resposta "Paris 🗼".
          - Ex: Tema "Matemática": Pergunta "5 x 5", Resposta "25 🔢".
          - Ex: Tema "Inglês": Pergunta "Azul", Resposta "Blue 🔵".
-         - Ex: Tema "Química": Pergunta "Água", Resposta "H2O 💧".
 
-      CRITÉRIO CRÍTICO DE UNICIDADE:
+      CRITÉRIO CRÍTICO DE UNICIDADE E ANTI-AMBIGUIDADE:
       - NUNCA repita perguntas (campo 'text').
       - NUNCA repita respostas (campo 'emoji').
-      - Cada par deve ser TOTALMENTE DISTINTO dos outros. Se necessário, busque sub-temas variados dentro do tópico principal.
+      - NÃO gere perguntas parecidas ou respostas que possam se sobrepor. Cada pergunta deve ter UMA e SOMENTE UMA resposta possível e óbvia no conjunto, sem gerar dupla interpretação.
+      - EVITE ESTRITAMENTE o uso de sinônimos ou conceitos idênticos com nomes diferentes (Ex: não use "Soma" e "Adição", "Produto" e "Multiplicação", "Cachorro" e "Cão" na mesma atividade). Termos muito próximos confundem o aluno e geram ambiguidade.
+      - Cada par deve ser TOTALMENTE DISTINTO dos outros, mas mantendo a mesma coesão lógica definida na regra 1.
       
       IMPORTANTE:
-      - Gere EXATAMENTE 5 pares.
-      - As cores devem ser variadas entre: 'bg-blue-100 border-blue-400', 'bg-green-100 border-green-400', 'bg-red-100 border-red-400', 'bg-yellow-100 border-yellow-400', 'bg-purple-100 border-purple-400', 'bg-orange-100 border-orange-400'.
+      - Gere EXATAMENTE 7 pares.
+      - As cores devem ser variadas entre: 'bg-blue-100 border-blue-400', 'bg-green-100 border-green-400', 'bg-red-100 border-red-400', 'bg-yellow-100 border-yellow-400', 'bg-purple-100 border-purple-400', 'bg-orange-100 border-orange-400', 'bg-cyan-100 border-cyan-400', 'bg-pink-100 border-pink-400'.
       
-      Retorne APENAS um JSON array válido. Sem markdown.
+      Retorne APENAS um array JSON puro (na raiz, sem encapsular em objetos). Sem markdown.
       Estrutura:
       [
         { "id": 1, "text": "Pergunta", "emoji": "Resposta 💡", "color": "bg-blue-100 border-blue-400" }
@@ -455,11 +457,22 @@ class GeminiService {
     `;
 
     try {
-      const text = await this.generateText(prompt, { temperature: 0.8 });
+      const text = await this.generateText(prompt, { 
+          temperature: 0.8,
+          responseMimeType: "application/json"
+      });
 
       // Use centralized safe parser
       const { safeJSONParse } = await import('../utils/jsonUtils');
-      const data = safeJSONParse(text);
+      const parsed = safeJSONParse(text);
+
+      let data = parsed;
+      // Caso a IA tenha retornado um objeto como { "pares": [...] } em vez do array direto
+      if (parsed && !Array.isArray(parsed)) {
+          const values = Object.values(parsed);
+          const arrayValue = values.find(v => Array.isArray(v));
+          if (arrayValue) data = arrayValue;
+      }
 
       if (!Array.isArray(data)) throw new Error("Formato inválido recebido da IA");
 

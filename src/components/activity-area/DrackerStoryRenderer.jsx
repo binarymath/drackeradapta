@@ -235,23 +235,9 @@ export const DrackerStoryRenderer = ({ drackerData, onUpdate }) => {
                                 {act.steps && (
                                     <div className="ml-11 text-brown-800 text-sm leading-relaxed border-l-2 border-brown-200 pl-4 py-1">
                                         <span className="font-bold text-brown-500 text-xs uppercase mb-1 block">Como fazer:</span>
-                                        {act.steps.split(/(\d+\.\s+)/).filter(Boolean).reduce((acc, part, i, arr) => {
-                                            if (/^\d+\.\s+$/.test(part)) {
-                                                const text = arr[i + 1];
-                                                if (text) {
-                                                    acc.push(
-                                                        <div key={i} className="mb-2 flex items-start">
-                                                            <span className="font-bold mr-1 min-w-[20px]">{part.trim()}</span>
-                                                            <span>{renderBoldText(text.trim())}</span>
-                                                        </div>
-                                                    );
-                                                    arr[i + 1] = '';
-                                                }
-                                            } else if (part !== '' && i === 0 && !/^\d+\.\s+$/.test(arr[0])) {
-                                                acc.push(<div key={i} className="mb-2">{renderBoldText(part)}</div>);
-                                            }
-                                            return acc;
-                                        }, [])}
+                                        <div className="whitespace-pre-wrap">
+                                            {renderBoldText(act.steps)}
+                                        </div>
                                     </div>
                                 )}
                             </li>
