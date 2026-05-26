@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Sparkles, AlertCircle, GripVertical } from 'lucide-react';
+import { Loader2, Sparkles, AlertCircle, GripVertical, Music, Play } from 'lucide-react';
 import { theme } from '../styles/theme';
 import { Button } from './ui/Button';
 import { Input, TextArea, Select } from './ui/Input';
@@ -353,6 +353,32 @@ export const Sidebar = ({
                                 <span className="text-lg">ℹ️</span>
                             </div>
                             Sobre o Sistema
+                        </button>
+                        {/* Fixed "Canal do Drácker" Link */}
+                        <button
+                            onClick={() => setActivityType('video_gallery')}
+                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'video_gallery'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
+                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
+                                }`}
+                        >
+                            <div className="w-6 flex justify-center text-brown-500">
+                                <Play className="w-4 h-4" />
+                            </div>
+                            Canal do Drácker
+                        </button>
+                        {/* Fixed "Rádio Drácker" Link */}
+                        <button
+                            onClick={() => setActivityType('simplify')}
+                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'simplify'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
+                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
+                                }`}
+                        >
+                            <div className="w-6 flex justify-center text-brown-500">
+                                <Music className="w-4 h-4" />
+                            </div>
+                            Rádio Drácker
                         </button>
                         <div className="space-y-2">
                             {orderedActivities.map((opt, index) => (

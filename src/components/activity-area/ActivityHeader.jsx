@@ -19,22 +19,34 @@ export const ActivityHeader = ({
     setActivityTitle
 }) => {
     return (
-        <div className="p-4 border-b border-brown-100 flex items-center justify-between bg-brown-50/50 no-print rounded-t-2xl">
+        <div className="p-4 border-b border-brown-100 flex items-center justify-between bg-gradient-to-r from-brown-50 to-white no-print rounded-t-2xl shadow-sm">
             <div className="flex items-center gap-4 flex-1">
-                <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${hasContent ? 'bg-green-500' : 'bg-brown-300'}`}></span>
-                    <span className="text-xs font-bold text-brown-500 uppercase whitespace-nowrap">
-                        {hasContent ? 'Pronto' : 'Aguardando'}
-                    </span>
-                </div>
-                {hasContent && (
-                    <Input
-                        value={activityTitle || ''}
-                        onChange={(e) => setActivityTitle && setActivityTitle(e.target.value)}
-                        placeholder="Título da Atividade"
-                        className="h-8 text-sm font-bold bg-transparent border-transparent hover:border-brown-200 focus:bg-white focus:border-brown-400 max-w-sm transition-all text-brown-800"
+                {/* Logo do Drácker no Cabeçalho */}
+                <div className="relative group shrink-0">
+                    <div className="absolute inset-0 bg-amber-200 rounded-full blur-md opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                    <img 
+                        src="/dracker_character.png" 
+                        alt="Drácker" 
+                        className="w-10 h-10 object-contain relative z-10 drop-shadow-sm transform group-hover:scale-110 transition-transform"
                     />
-                )}
+                </div>
+
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-2 mb-0.5">
+                        <span className={`w-2 h-2 rounded-full ${hasContent ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-brown-300'}`}></span>
+                        <span className="text-[10px] font-extrabold text-brown-500 uppercase tracking-widest">
+                            {hasContent ? 'Atividade Pronta' : 'Aguardando Geração'}
+                        </span>
+                    </div>
+                    {hasContent && (
+                        <Input
+                            value={activityTitle || ''}
+                            onChange={(e) => setActivityTitle && setActivityTitle(e.target.value)}
+                            placeholder="Título da Atividade"
+                            className="h-7 px-2 text-sm font-bold bg-transparent border-transparent hover:border-brown-200 focus:bg-white focus:border-brown-400 max-w-sm transition-all text-brown-900 rounded-md -ml-2"
+                        />
+                    )}
+                </div>
             </div>
 
             <div className="flex gap-2">

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Play, Check, X, RefreshCcw, Trophy, UserPlus, Trash2, Music, Printer } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
+import { SunoNativePlayer } from './activity-area/SunoNativePlayer';
 
 const shuffleArray = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
@@ -170,98 +171,74 @@ export const MusicGame = ({ musicData, onRestart, onExitToPrint }) => {
         </Button>
     );
 
-    // Tela inicial (antes de começar)
     if (!hasStarted && !isFinished) {
         return (
             <div className="space-y-4">
-                {/* Destaque da Playlist */}
-                <Card className="max-w-2xl mx-auto border-2 border-purple-300 bg-gradient-to-r from-purple-50 to-pink-50 shadow-lg overflow-hidden">
-                    <div className="p-4 space-y-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-purple-200 flex items-center justify-center text-purple-600 font-bold">
-                                🎵
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-purple-900">Playlist Oficial: Músicas do Drácker</h3>
-                                <p className="text-xs text-purple-700">Acesse todas as músicas criadas com Drácker no Producer.ai</p>
-                            </div>
-                        </div>
-                        <a
-                            href="https://www.producer.ai/professornerd"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block w-full p-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg text-center transition-colors"
-                        >
-                            🎧 Ouvir Playlist Completa
-                        </a>
-                    </div>
-                </Card>
+                {/* Destaque da Playlist Oficial com Player Nativo */}
+                <SunoNativePlayer />
 
-                <Card className="max-w-2xl mx-auto border-2 border-amber-200 shadow-xl overflow-hidden">
-                    <div className="p-3 flex justify-end no-print">
+                <Card className="max-w-2xl mx-auto border-2 border-amber-200 shadow-xl overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100 rounded-bl-full opacity-50 -z-10 pointer-events-none"></div>
+                    <div className="p-3 flex justify-end no-print relative z-10">
                         <ExitButton />
                     </div>
-                    <div className="p-6 pt-2 space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-                                <UserPlus className="w-6 h-6" />
+                    <div className="p-6 pt-2 space-y-6 relative z-10">
+                        <div className="flex items-center gap-4 border-b border-amber-100 pb-4">
+                            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white shadow-lg shrink-0 transform hover:scale-110 transition-transform">
+                                <Music className="w-7 h-7" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-bold text-brown-900">Jogo da Música do Drácker</h2>
-                                <p className="text-sm text-brown-700">Digite seu nome para jogar e responder as perguntas.</p>
+                                <h2 className="text-xl font-black text-amber-900 drop-shadow-sm">Música com o Drácker</h2>
+                                <p className="text-sm font-medium text-amber-700 mt-1">Aperte o play, teste seus ouvidos e divirta-se!</p>
                             </div>
                         </div>
 
-                    <input
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
-                        placeholder="Seu nome"
-                        className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
+                        <Button
+                            onClick={() => {
+                                setPlayerName('Estudante');
+                                startGame();
+                            }}
+                            disabled={!totalQuestions}
+                            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg text-lg py-4 border-0"
+                            icon={Play}
+                        >
+                            Começar Desafio Musical
+                        </Button>
 
-                    <Button
-                        onClick={startGame}
-                        disabled={!totalQuestions || !playerName.trim()}
-                        className="w-full bg-amber-600 hover:bg-amber-700 text-white shadow-lg disabled:opacity-50"
-                        icon={Play}
-                    >
-                        Começar Jogo
-                    </Button>
+                        <Button
+                            onClick={() => setShowRanking(!showRanking)}
+                            variant="ghost"
+                            className="w-full text-amber-700 hover:bg-amber-50 hover:text-amber-900 border border-transparent hover:border-amber-200 transition-colors"
+                            icon={Trophy}
+                        >
+                            {showRanking ? 'Esconder Ranking Local' : 'Ver Ranking de Pontuações'}
+                        </Button>
 
-                    <Button
-                        onClick={() => setShowRanking(!showRanking)}
-                        variant="secondary"
-                        className="w-full border-amber-200 text-amber-800 hover:bg-amber-100"
-                        icon={Trophy}
-                    >
-                        {showRanking ? 'Esconder Ranking' : 'Mostrar Ranking'}
-                    </Button>
-
-                    {showRanking && rankings.length > 0 && (
-                        <div className="mt-4 p-4 rounded-lg bg-amber-50 border border-amber-200">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Trophy className="w-4 h-4 text-amber-600" />
-                                <span className="text-sm font-semibold text-amber-800">Ranking Local</span>
-                            </div>
-                            <div className="space-y-1 text-sm text-amber-900">
-                                {rankings.map((r, idx) => (
-                                    <div key={idx} className="flex justify-between items-center">
-                                        <span>{idx + 1}. {r.name}</span>
-                                        <div className="flex items-center gap-2">
-                                            <span>{r.score}/{r.total} ({r.percent}%) • {formatTime(r.timeMs)}</span>
-                                            <button
-                                                onClick={() => deleteRankingEntry(idx)}
-                                                className="p-1 text-amber-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                                title="Deletar participante"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                        {showRanking && rankings.length > 0 && (
+                            <div className="mt-4 p-4 rounded-xl bg-amber-50/80 border border-amber-200 text-left backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
+                                <div className="flex items-center gap-2 mb-3 border-b border-amber-200/50 pb-2">
+                                    <Trophy className="w-5 h-5 text-amber-600" />
+                                    <span className="text-sm font-bold text-amber-800 uppercase tracking-wider">Ranking Local</span>
+                                </div>
+                                <div className="space-y-2 text-sm text-amber-900">
+                                    {rankings.map((r, idx) => (
+                                        <div key={idx} className="flex justify-between items-center bg-white/60 p-2 rounded-lg border border-white/50">
+                                            <span className="font-bold">{idx + 1}. {r.name}</span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="bg-amber-200/50 px-2 py-0.5 rounded text-amber-800 font-mono text-xs">{r.score}/{r.total} ({r.percent}%) • {formatTime(r.timeMs)}</span>
+                                                <button
+                                                    onClick={() => deleteRankingEntry(idx)}
+                                                    className="p-1.5 text-amber-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                                                    title="Deletar participante"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
                     </div>
                 </Card>
             </div>

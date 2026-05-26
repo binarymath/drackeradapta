@@ -27,6 +27,7 @@ import { ActivityHeader } from './activity-area/ActivityHeader';
 import { DrackerStoryRenderer } from './activity-area/DrackerStoryRenderer';
 import { MusicActivityRenderer } from './activity-area/MusicActivityRenderer';
 import { GameToggleCard } from './activity-area/GameToggleCard';
+import { SunoNativePlayer } from './activity-area/SunoNativePlayer';
 
 export const ActivityArea = ({
     generatedContent,
@@ -65,7 +66,7 @@ export const ActivityArea = ({
     // --- State ---
     const [printMode, setPrintMode] = useState('all'); // 'all', 'lyrics', 'questions'
     const [isGameMode, setIsGameMode] = useState(false);
-    const [pdfShowAlternatives, setPdfShowAlternatives] = useState(false);
+    const [pdfShowAlternatives, setPdfShowAlternatives] = useState(true);
     const [quizPrintMode, setQuizPrintMode] = useState('full');  // 'full' | 'text-only'
     const [quizShowDifficulty, setQuizShowDifficulty] = useState(true);
 
@@ -367,29 +368,9 @@ export const ActivityArea = ({
                         /* --- EMPTY / LOADING STATE --- */
                         <div className="h-full flex flex-col items-center justify-center text-brown-300 p-8">
                             {!isLoading && activityType === 'simplify' && (
-                                <Card className="w-full max-w-2xl mb-8 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 shadow-xl overflow-hidden animate-in fade-in zoom-in duration-300">
-                                    <div className="p-0 flex flex-col sm:flex-row">
-                                        <div className="w-full sm:w-40 h-40 sm:h-auto relative">
-                                            <img
-                                                src="/cover_musica_dracker.jpg"
-                                                alt="Músicas do Drácker"
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                        <div className="p-5 flex flex-col justify-center flex-1">
-                                            <h3 className="font-bold text-purple-900 text-xl mb-1">Playlist Oficial</h3>
-                                            <p className="text-sm text-purple-700 mb-4">Conheça as músicas do Drácker!</p>
-                                            <a
-                                                href="https://suno.com/@drackermusic"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center justify-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors gap-2 self-start"
-                                            >
-                                                🎧 Ouvir no Suno
-                                            </a>
-                                        </div>
-                                    </div>
-                                </Card>
+                                <div className="w-full mb-8 animate-in fade-in zoom-in duration-300">
+                                    <SunoNativePlayer />
+                                </div>
                             )}
 
                             {isLoading ? (
