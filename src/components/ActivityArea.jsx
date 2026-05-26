@@ -66,6 +66,8 @@ export const ActivityArea = ({
     const [printMode, setPrintMode] = useState('all'); // 'all', 'lyrics', 'questions'
     const [isGameMode, setIsGameMode] = useState(false);
     const [pdfShowAlternatives, setPdfShowAlternatives] = useState(false);
+    const [quizPrintMode, setQuizPrintMode] = useState('full');  // 'full' | 'text-only'
+    const [quizShowDifficulty, setQuizShowDifficulty] = useState(true);
 
     // Derived Booleans for Game Modes
     const isWordsearchGame = isGameMode && activityType === 'wordsearch';
@@ -85,6 +87,8 @@ export const ActivityArea = ({
     useEffect(() => {
         setIsGameMode(false);
         setPdfShowAlternatives(false);
+        setQuizPrintMode('full');
+        setQuizShowDifficulty(true);
     }, [generatedContent, activityType]);
 
     // Used by MusicActivityRenderer
@@ -185,7 +189,47 @@ export const ActivityArea = ({
                                     isGameMode={isGameMode}
                                     onToggle={() => setIsGameMode(!isGameMode)}
                                     color="amber"
-                                />
+                                >
+                                    {/* Controles de impressão – visíveis só quando não está em modo jogo */}
+                                    {!isGameMode && (
+                                        <div className="flex flex-col gap-1.5 mr-3">
+                                            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Layout de Impressão</span>
+                                            <div className="flex gap-1.5">
+                                                <button
+                                                    onClick={() => setQuizPrintMode('full')}
+                                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                                        quizPrintMode === 'full'
+                                                            ? 'bg-amber-600 text-white border-amber-700'
+                                                            : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-50'
+                                                    }`}
+                                                    title="Cards com alternativas A/B/C/D"
+                                                >
+                                                    📋 Com Alternativas
+                                                </button>
+                                                <button
+                                                    onClick={() => setQuizPrintMode('text-only')}
+                                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                                        quizPrintMode === 'text-only'
+                                                            ? 'bg-amber-600 text-white border-amber-700'
+                                                            : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-50'
+                                                    }`}
+                                                    title="Apenas enunciado + linhas para resposta. Cabe mais questões por página."
+                                                >
+                                                    ✏️ Só Enunciado
+                                                </button>
+                                            </div>
+                                            <label className="flex items-center gap-1.5 cursor-pointer select-none mt-0.5">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={quizShowDifficulty}
+                                                    onChange={e => setQuizShowDifficulty(e.target.checked)}
+                                                    className="w-3 h-3 accent-amber-600"
+                                                />
+                                                <span className="text-[10px] font-bold text-amber-700">Mostrar dificuldade</span>
+                                            </label>
+                                        </div>
+                                    )}
+                                </GameToggleCard>
                             )}
 
                             {/* Crossword Toggle */}
@@ -243,6 +287,8 @@ export const ActivityArea = ({
                                     quizData={quizData}
                                     title={activityTitle}
                                     showAnswers={showAnswers}
+                                    printMode={quizPrintMode}
+                                    showDifficulty={quizShowDifficulty}
                                 />
                             ) : isMusicGame && musicData ? (
                                 <MusicGame

@@ -294,6 +294,10 @@ export const MainLayout = () => {
                             openManualMusicEditor={actions.openManualMusicEditor}
                             systemStatus={displayedSystemStatus}
                             error={actions.error}
+                            questionCount={actions.questionCount}
+                            setQuestionCount={actions.setQuestionCount}
+                            difficultyDist={actions.difficultyDist}
+                            setDifficultyDist={actions.setDifficultyDist}
                         />
                     </div>
                 )}

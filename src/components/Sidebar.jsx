@@ -38,7 +38,11 @@ export const Sidebar = ({
     systemStatus,
     error,
     openSaveLoad,
-    openManualMusicEditor
+    openManualMusicEditor,
+    questionCount,
+    setQuestionCount,
+    difficultyDist,
+    setDifficultyDist
 }) => {
     const [orderedActivities, setOrderedActivities] = useState([]);
     const [draggedItem, setDraggedItem] = useState(null);
@@ -178,6 +182,162 @@ export const Sidebar = ({
                             ))}
                         </div>
                     </div>
+
+                    {/* Quiz: configurações de perguntas */}
+                    {activityType === 'quiz' && (
+                        <div className="space-y-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                            {/* Quantidade */}
+                            <div>
+                                <label className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Quantidade de Perguntas</label>
+                                <div className="flex gap-1.5 flex-wrap mt-1.5">
+                                    {[5, 10, 15, 20].map(n => (
+                                        <button
+                                            key={n}
+                                            onClick={() => setQuestionCount(n)}
+                                            className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
+                                                questionCount === n
+                                                    ? 'bg-amber-600 text-white border-amber-700 shadow-sm'
+                                                    : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-100'
+                                            }`}
+                                        >
+                                            {n}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Divisor */}
+                            <div className="border-t border-amber-200" />
+
+                            {/* Distribuição de dificuldade */}
+                            <div>
+                                <label className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Distribuição de Dificuldade</label>
+
+                                {/* Barra visual */}
+                                <div className="flex h-3 rounded-full overflow-hidden mt-2 mb-3 border border-amber-200">
+                                    <div
+                                        className="bg-green-400 transition-all duration-200"
+                                        style={{ width: `${difficultyDist.easy}%` }}
+                                        title={`Fácil: ${difficultyDist.easy}%`}
+                                    />
+                                    <div
+                                        className="bg-amber-400 transition-all duration-200"
+                                        style={{ width: `${difficultyDist.medium}%` }}
+                                        title={`Médio: ${difficultyDist.medium}%`}
+                                    />
+                                    <div
+                                        className="bg-red-400 transition-all duration-200"
+                                        style={{ width: `${difficultyDist.hard}%` }}
+                                        title={`Difícil: ${difficultyDist.hard}%`}
+                                    />
+                                </div>
+
+                                {/* Sliders */}
+                                <div className="space-y-2">
+                                    {[
+                                        { key: 'easy',   label: '🟢 Fácil',   color: 'accent-green-500',  text: 'text-green-700'  },
+                                        { key: 'medium', label: '🟡 Médio',   color: 'accent-amber-500',  text: 'text-amber-700'  },
+                                        { key: 'hard',   label: '🔴 Difícil', color: 'accent-red-500',    text: 'text-red-700'    },
+                                    ].map(({ key, label, color, text }) => {
+                                        const val = difficultyDist[key];
+                                        // Contagem aproximada para preview
+                                        const total = (difficultyDist.easy + difficultyDist.medium + difficultyDist.hard) || 100;
+                                        const cnt = Math.round(questionCount * val / total);
+
+                                        return (
+                                            <div key={key}>
+                                                <div className="flex justify-between items-center mb-0.5">
+                                                    <span className={`text-[11px] font-bold ${text}`}>{label}</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className={`text-[10px] font-bold ${text}`}>{cnt} questão{cnt !== 1 ? 'ões' : ''}</span>
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            max={100}
+                                                            value={val}
+                                                            onChange={e => {
+                                                                const newVal = Math.min(100, Math.max(0, Number(e.target.value) || 0));
+                                                                // Ajusta os outros dois proporcionalmente
+                                                                const others = ['easy','medium','hard'].filter(k => k !== key);
+                                                                const remaining = 100 - newVal;
+                                                                const currentOthersSum = others.reduce((s,k) => s + difficultyDist[k], 0);
+                                                                const updated = { ...difficultyDist, [key]: newVal };
+                                                                if (currentOthersSum === 0) {
+                                                                    updated[others[0]] = Math.floor(remaining / 2);
+                                                                    updated[others[1]] = remaining - updated[others[0]];
+                                                                } else {
+                                                                    others.forEach(k => {
+                                                                        updated[k] = Math.round(remaining * difficultyDist[k] / currentOthersSum);
+                                                                    });
+                                                                    // Ajuste de arredondamento
+                                                                    const diff = 100 - Object.values(updated).reduce((s,v) => s+v, 0);
+                                                                    updated[others[1]] = Math.max(0, updated[others[1]] + diff);
+                                                                }
+                                                                setDifficultyDist(updated);
+                                                            }}
+                                                            className={`w-11 px-1.5 py-0.5 rounded text-[11px] font-bold border border-amber-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400 text-center ${text}`}
+                                                        />
+                                                        <span className={`text-[10px] ${text}`}>%</span>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min={0}
+                                                    max={100}
+                                                    value={val}
+                                                    onChange={e => {
+                                                        const newVal = Number(e.target.value);
+                                                        const others = ['easy','medium','hard'].filter(k => k !== key);
+                                                        const remaining = 100 - newVal;
+                                                        const currentOthersSum = others.reduce((s,k) => s + difficultyDist[k], 0);
+                                                        const updated = { ...difficultyDist, [key]: newVal };
+                                                        if (currentOthersSum === 0) {
+                                                            updated[others[0]] = Math.floor(remaining / 2);
+                                                            updated[others[1]] = remaining - updated[others[0]];
+                                                        } else {
+                                                            others.forEach(k => {
+                                                                updated[k] = Math.round(remaining * difficultyDist[k] / currentOthersSum);
+                                                            });
+                                                            const diff = 100 - Object.values(updated).reduce((s,v) => s+v, 0);
+                                                            updated[others[1]] = Math.max(0, updated[others[1]] + diff);
+                                                        }
+                                                        setDifficultyDist(updated);
+                                                    }}
+                                                    className={`w-full h-2 rounded-full appearance-none cursor-pointer ${color}`}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Presets rápidos */}
+                                <div className="flex gap-1.5 flex-wrap mt-2.5">
+                                    <span className="text-[10px] text-amber-600 font-bold self-center mr-0.5">Presets:</span>
+                                    {[
+                                        { label: 'Simples',     dist: { easy: 70, medium: 20, hard: 10 } },
+                                        { label: 'Balanceado',  dist: { easy: 40, medium: 40, hard: 20 } },
+                                        { label: 'Desafiador',  dist: { easy: 20, medium: 40, hard: 40 } },
+                                        { label: 'Avançado',    dist: { easy: 0,  medium: 30, hard: 70 } },
+                                    ].map(p => {
+                                        const active = p.dist.easy === difficultyDist.easy && p.dist.medium === difficultyDist.medium && p.dist.hard === difficultyDist.hard;
+                                        return (
+                                            <button
+                                                key={p.label}
+                                                onClick={() => setDifficultyDist(p.dist)}
+                                                className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                                    active
+                                                        ? 'bg-amber-600 text-white border-amber-700'
+                                                        : 'bg-white text-amber-700 border-amber-300 hover:bg-amber-100'
+                                                }`}
+                                            >
+                                                {p.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div>
                         <label className={theme.text.label}>Tipo</label>

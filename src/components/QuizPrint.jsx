@@ -2,25 +2,38 @@ import React from 'react';
 
 /**
  * QuizPrint – Layout de impressão/PDF do Quiz em cards estilizados.
- * Cabeçalho: branco, econômico de tinta.
- * Cards: estilizados com bordas âmbar/dourado, números e letras com identidade visual.
  * Props:
- *   quizData    – { intro_text, questions: [{ statement, correct_answer, distractors }] }
+ *   quizData    – { intro_text, questions: [{ statement, correct_answer, distractors, difficulty? }] }
  *   title       – Título da atividade
  *   showAnswers – Se true, destaca a alternativa correta
+ *   printMode   – 'full' (cards com alternativas, padrão) | 'text-only' (sem alternativas, compacto)
+ *   showDifficulty – Se true, mostra badge de dificuldade em cada questão
  */
-export const QuizPrint = ({ quizData, title, showAnswers = false }) => {
+export const QuizPrint = ({
+    quizData,
+    title,
+    showAnswers = false,
+    printMode = 'full',
+    showDifficulty = true,
+}) => {
     if (!quizData?.questions?.length) return null;
 
+    const isTextOnly = printMode === 'text-only';
     const LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
     const buildOptions = (q) =>
         [q.correct_answer, ...(q.distractors || [])].slice(0, 5);
 
+    const difficultyMeta = {
+        easy:   { label: 'Fácil',  cls: 'qp-diff--easy' },
+        medium: { label: 'Médio',  cls: 'qp-diff--medium' },
+        hard:   { label: 'Difícil', cls: 'qp-diff--hard' },
+    };
+
     return (
         <div className="qp-wrap">
 
-            {/* ===== CABEÇALHO – branco, sem fundo colorido ===== */}
+            {/* ===== CABEÇALHO ===== */}
             <div className="qp-header">
                 <div className="qp-header-top">
                     <div className="qp-header-left">
@@ -55,43 +68,61 @@ export const QuizPrint = ({ quizData, title, showAnswers = false }) => {
 
                 <div className="qp-meta-pills">
                     <span className="qp-pill">📋 {quizData.questions.length} questões</span>
+                    {isTextOnly && <span className="qp-pill qp-pill--info">✏️ Resposta dissertativa</span>}
                 </div>
 
                 <div className="qp-divider" />
             </div>
 
-            {/* ===== QUESTÕES – cards estilizados âmbar ===== */}
-            <div className="qp-questions">
+            {/* ===== QUESTÕES ===== */}
+            <div className={`qp-questions${isTextOnly ? ' qp-questions--text-only' : ''}`}>
                 {quizData.questions.map((q, idx) => {
                     const options = buildOptions(q);
+                    const diff = q.difficulty ? difficultyMeta[q.difficulty] : null;
+
                     return (
-                        <div key={idx} className="qp-card">
-                            {/* Número e enunciado */}
+                        <div key={idx} className={`qp-card${isTextOnly ? ' qp-card--text-only' : ''}`}>
+                            {/* Número + badge dificuldade + enunciado */}
                             <div className="qp-card-head">
                                 <span className="qp-num">{idx + 1}</span>
-                                <p className="qp-statement">
-                                    {q.statement.replace(/^\d+[\.\)]\s*/, '')}
-                                </p>
+                                <div className="qp-card-head-text">
+                                    {showDifficulty && diff && (
+                                        <span className={`qp-diff ${diff.cls}`}>{diff.label}</span>
+                                    )}
+                                    <p className="qp-statement">
+                                        {q.statement.replace(/^\d+[.)]\s*/, '')}
+                                    </p>
+                                </div>
                             </div>
 
-                            {/* Alternativas */}
-                            <div className="qp-options">
-                                {options.map((opt, oi) => {
-                                    const isCorrect = showAnswers && opt === q.correct_answer;
-                                    return (
-                                        <div
-                                            key={oi}
-                                            className={`qp-option${isCorrect ? ' qp-option--correct' : ''}`}
-                                        >
-                                            <span className={`qp-letter${isCorrect ? ' qp-letter--correct' : ''}`}>
-                                                {LETTERS[oi]}
-                                            </span>
-                                            <span className="qp-opt-text">{opt}</span>
-                                            {isCorrect && <span className="qp-check">✓</span>}
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            {/* Alternativas (apenas no modo full) */}
+                            {!isTextOnly && (
+                                <div className="qp-options">
+                                    {options.map((opt, oi) => {
+                                        const isCorrect = showAnswers && opt === q.correct_answer;
+                                        return (
+                                            <div
+                                                key={oi}
+                                                className={`qp-option${isCorrect ? ' qp-option--correct' : ''}`}
+                                            >
+                                                <span className={`qp-letter${isCorrect ? ' qp-letter--correct' : ''}`}>
+                                                    {LETTERS[oi]}
+                                                </span>
+                                                <span className="qp-opt-text">{opt}</span>
+                                                {isCorrect && <span className="qp-check">✓</span>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Linhas de resposta dissertativa (apenas no modo text-only) */}
+                            {isTextOnly && (
+                                <div className="qp-answer-lines">
+                                    <div className="qp-answer-line" />
+                                    <div className="qp-answer-line" />
+                                </div>
+                            )}
                         </div>
                     );
                 })}
@@ -118,11 +149,9 @@ export const QuizPrint = ({ quizData, title, showAnswers = false }) => {
                 }
 
                 /* ══════════════════════════════
-                   CABEÇALHO – sem fundo colorido
+                   CABEÇALHO
                 ══════════════════════════════ */
-                .qp-header {
-                    margin-bottom: 16px;
-                }
+                .qp-header { margin-bottom: 16px; }
                 .qp-header-top {
                     display: flex;
                     align-items: flex-start;
@@ -136,83 +165,58 @@ export const QuizPrint = ({ quizData, title, showAnswers = false }) => {
                     gap: 12px;
                 }
                 .qp-dragon-img {
-                    width: 80px;
-                    height: 80px;
-                    object-fit: contain;
-                    flex-shrink: 0;
+                    width: 80px; height: 80px;
+                    object-fit: contain; flex-shrink: 0;
                 }
                 .qp-tag {
-                    font-size: 9px;
-                    font-weight: 800;
-                    letter-spacing: 2.5px;
-                    text-transform: uppercase;
-                    color: #92400e;
-                    margin-bottom: 3px;
+                    font-size: 9px; font-weight: 800;
+                    letter-spacing: 2.5px; text-transform: uppercase;
+                    color: #92400e; margin-bottom: 3px;
                 }
                 .qp-title {
-                    font-size: 21px;
-                    font-weight: 900;
-                    color: #111;
-                    margin: 0;
-                    line-height: 1.15;
+                    font-size: 21px; font-weight: 900;
+                    color: #111; margin: 0; line-height: 1.15;
                 }
 
                 /* Campos de nome/data/turma */
                 .qp-meta-col {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 7px;
-                    flex-shrink: 0;
-                    min-width: 250px;
+                    display: flex; flex-direction: column;
+                    gap: 7px; flex-shrink: 0; min-width: 250px;
                 }
                 .qp-meta-line {
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                    font-size: 11px;
-                    color: #333;
-                    font-weight: 700;
+                    display: flex; align-items: center;
+                    gap: 5px; font-size: 11px; color: #333; font-weight: 700;
                 }
                 .qp-meta-label { white-space: nowrap; }
                 .qp-meta-blank {
-                    flex: 1;
-                    border-bottom: 1px solid #555;
-                    height: 14px;
-                    display: inline-block;
+                    flex: 1; border-bottom: 1px solid #555;
+                    height: 14px; display: inline-block;
                 }
                 .qp-meta-blank--sm { flex: 0 0 58px; }
 
                 /* Texto introdutório */
                 .qp-intro {
-                    font-size: 11.5px;
-                    color: #555;
-                    line-height: 1.5;
+                    font-size: 11.5px; color: #555; line-height: 1.5;
                     margin: 6px 0 8px;
-                    border-left: 3px solid #d97706;
-                    padding-left: 10px;
+                    border-left: 3px solid #d97706; padding-left: 10px;
                     font-style: italic;
                 }
 
-                /* Pill de contagem */
-                .qp-meta-pills { margin-bottom: 8px; }
+                /* Pills */
+                .qp-meta-pills { margin-bottom: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
                 .qp-pill {
-                    font-size: 10.5px;
-                    font-weight: 700;
-                    color: #92400e;
-                    border: 1px solid #fbbf24;
-                    border-radius: 20px;
-                    padding: 2px 10px;
+                    font-size: 10.5px; font-weight: 700; color: #92400e;
+                    border: 1px solid #fbbf24; border-radius: 20px; padding: 2px 10px;
                 }
+                .qp-pill--info { color: #1d4ed8; border-color: #93c5fd; }
 
                 /* Linha divisória */
                 .qp-divider {
-                    border: none;
-                    border-top: 2px solid #1c1c1c;
-                    margin-bottom: 0;
+                    border: none; border-top: 2px solid #1c1c1c; margin-bottom: 0;
                 }
 
                 /* ══════════════════════════════
-                   CARDS – estilo âmbar/dourado
+                   QUESTÕES — grid base (2 colunas)
                 ══════════════════════════════ */
                 .qp-questions {
                     display: grid;
@@ -221,6 +225,13 @@ export const QuizPrint = ({ quizData, title, showAnswers = false }) => {
                     margin-top: 14px;
                 }
 
+                /* Modo somente texto — 3 colunas mais compactas */
+                .qp-questions--text-only {
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 8px 10px;
+                }
+
+                /* ── Card base ── */
                 .qp-card {
                     background: #fff;
                     border: 2px solid #fde68a;
@@ -231,136 +242,117 @@ export const QuizPrint = ({ quizData, title, showAnswers = false }) => {
                     page-break-inside: avoid;
                 }
 
+                /* Card compacto (text-only) */
+                .qp-card--text-only {
+                    padding: 8px 10px;
+                    border-radius: 9px;
+                }
+
                 .qp-card-head {
                     display: flex;
                     align-items: flex-start;
                     gap: 9px;
-                    margin-bottom: 10px;
+                    margin-bottom: 8px;
+                }
+                .qp-card-head-text {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 3px;
                 }
 
-                /* Número: círculo preenchido âmbar */
+                /* Número: círculo âmbar */
                 .qp-num {
                     flex-shrink: 0;
-                    width: 26px;
-                    height: 26px;
+                    width: 26px; height: 26px;
                     background: linear-gradient(135deg, #78350f, #d97706);
-                    color: #fff;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 12px;
-                    font-weight: 900;
-                    line-height: 1;
+                    color: #fff; border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 12px; font-weight: 900; line-height: 1;
                     box-shadow: 0 2px 5px rgba(120,53,15,0.28);
                     -webkit-print-color-adjust: exact;
                     print-color-adjust: exact;
                 }
 
-                .qp-statement {
-                    font-size: 12.5px;
-                    font-weight: 700;
-                    color: #1c0e03;
-                    line-height: 1.4;
-                    margin: 0;
-                    flex: 1;
+                /* Badge de dificuldade */
+                .qp-diff {
+                    display: inline-block;
+                    font-size: 8.5px; font-weight: 800; letter-spacing: 0.5px;
+                    text-transform: uppercase; padding: 1px 7px;
+                    border-radius: 20px; width: fit-content;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
                 }
+                .qp-diff--easy   { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+                .qp-diff--medium { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+                .qp-diff--hard   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+                .qp-statement {
+                    font-size: 12.5px; font-weight: 700;
+                    color: #1c0e03; line-height: 1.4; margin: 0;
+                }
+                .qp-card--text-only .qp-statement { font-size: 11px; }
 
                 /* ── Alternativas ── */
                 .qp-options {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 5px;
+                    display: flex; flex-direction: column; gap: 5px;
                 }
-
                 .qp-option {
-                    display: flex;
-                    align-items: center;
-                    gap: 7px;
-                    background: #fffbeb;
-                    border: 1.5px solid #fde68a;
-                    border-radius: 7px;
-                    padding: 5px 9px;
-                    font-size: 11.5px;
-                    color: #44230a;
+                    display: flex; align-items: center; gap: 7px;
+                    background: #fffbeb; border: 1.5px solid #fde68a;
+                    border-radius: 7px; padding: 5px 9px;
+                    font-size: 11.5px; color: #44230a;
                     -webkit-print-color-adjust: exact;
                     print-color-adjust: exact;
                 }
-
-                /* Gabarito: destaque verde sem fundo pesado */
                 .qp-option--correct {
-                    background: #f0fdf4;
-                    border-color: #4ade80;
-                    color: #14532d;
+                    background: #f0fdf4; border-color: #4ade80; color: #14532d;
                 }
-
-                /* Letra: badge amarelo */
                 .qp-letter {
-                    flex-shrink: 0;
-                    width: 20px;
-                    height: 20px;
-                    border-radius: 50%;
-                    background: #fde68a;
-                    color: #78350f;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 10px;
-                    font-weight: 900;
-                    line-height: 1;
+                    flex-shrink: 0; width: 20px; height: 20px;
+                    border-radius: 50%; background: #fde68a; color: #78350f;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 10px; font-weight: 900; line-height: 1;
                     -webkit-print-color-adjust: exact;
                     print-color-adjust: exact;
                 }
+                .qp-letter--correct { background: #4ade80; color: #14532d; }
+                .qp-opt-text { flex: 1; font-weight: 600; line-height: 1.3; }
+                .qp-check { color: #16a34a; font-size: 13px; font-weight: 900; }
 
-                /* Letra do gabarito */
-                .qp-letter--correct {
-                    background: #4ade80;
-                    color: #14532d;
+                /* ── Linhas de resposta dissertativa ── */
+                .qp-answer-lines {
+                    display: flex; flex-direction: column; gap: 5px; margin-top: 6px;
                 }
-
-                .qp-opt-text {
-                    flex: 1;
-                    font-weight: 600;
-                    line-height: 1.3;
-                }
-
-                .qp-check {
-                    color: #16a34a;
-                    font-size: 13px;
-                    font-weight: 900;
+                .qp-answer-line {
+                    border-bottom: 1px dashed #bbb; height: 16px; width: 100%;
                 }
 
                 /* ── Rodapé ── */
                 .qp-footer {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-top: 18px;
-                    padding-top: 10px;
+                    display: flex; justify-content: space-between; align-items: center;
+                    margin-top: 18px; padding-top: 10px;
                     border-top: 1.5px dashed #fbbf24;
-                    font-size: 10.5px;
-                    color: #92400e;
-                    font-weight: 600;
+                    font-size: 10.5px; color: #92400e; font-weight: 600;
                 }
 
                 /* ── Impressão ── */
                 @media print {
                     .qp-wrap { max-width: 100%; padding: 0; }
                     .qp-questions { grid-template-columns: 1fr 1fr; }
-                    .qp-card { break-inside: avoid; page-break-inside: avoid; }
-                    .qp-num,
-                    .qp-letter,
-                    .qp-letter--correct,
-                    .qp-option,
-                    .qp-option--correct {
+                    .qp-questions--text-only { grid-template-columns: 1fr 1fr 1fr; }
+                    .qp-card, .qp-num, .qp-letter, .qp-letter--correct,
+                    .qp-option, .qp-option--correct, .qp-diff {
                         -webkit-print-color-adjust: exact;
                         print-color-adjust: exact;
+                        break-inside: avoid;
+                        page-break-inside: avoid;
                     }
                 }
 
                 /* ── Tela pequena ── */
                 @media (max-width: 580px) {
-                    .qp-questions { grid-template-columns: 1fr; }
+                    .qp-questions, .qp-questions--text-only { grid-template-columns: 1fr; }
                     .qp-header-top { flex-direction: column; }
                     .qp-meta-col { min-width: unset; width: 100%; }
                 }

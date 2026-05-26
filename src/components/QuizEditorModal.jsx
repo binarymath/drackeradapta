@@ -65,6 +65,7 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                 return {
                     id: `q-${Date.now()}-${qIndex}`,
                     statement: q.statement || '',
+                    difficulty: q.difficulty || 'medium',
                     options: options
                 };
             });
@@ -95,6 +96,7 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
             {
                 id: `new-q-${Date.now()}`,
                 statement: 'Nova Pergunta',
+                difficulty: 'medium',
                 options: [
                     { text: '', isCorrect: true, id: `new_${Date.now()}_1` },
                     { text: '', isCorrect: false, id: `new_${Date.now()}_2` },
@@ -170,7 +172,8 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                     statement: q.statement,
                     correct_answer: correct ? correct.text : (q.options[0]?.text || ''),
                     distractors: distractors,
-                    ordered_options: q.options.map(o => o.text)
+                    ordered_options: q.options.map(o => o.text),
+                    difficulty: q.difficulty || 'medium'
                 };
             })
         };
@@ -229,14 +232,32 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                                 </div>
 
                                 <div className="flex-1 space-y-4">
-                                    <div>
+                                    <div className="flex gap-3 items-start">
                                         <Input
                                             type="text"
                                             value={q.statement}
                                             onChange={(e) => handleQuestionChange(qIndex, 'statement', e.target.value)}
-                                            className="font-semibold text-brown-900"
+                                            className="font-semibold text-brown-900 flex-1"
                                             placeholder="Digite a pergunta aqui..."
                                         />
+                                        {/* Seletor de dificuldade */}
+                                        <div className="flex-shrink-0 flex gap-1 pt-1" title="Dificuldade desta questão">
+                                            {[{v:'easy',label:'🟢',tip:'Fácil'},{v:'medium',label:'🟡',tip:'Médio'},{v:'hard',label:'🔴',tip:'Difícil'}].map(d => (
+                                                <button
+                                                    key={d.v}
+                                                    type="button"
+                                                    onClick={() => handleQuestionChange(qIndex, 'difficulty', d.v)}
+                                                    title={d.tip}
+                                                    className={`w-7 h-7 rounded-full text-sm flex items-center justify-center border-2 transition-all ${
+                                                        (q.difficulty || 'medium') === d.v
+                                                            ? 'border-brown-500 scale-110 shadow-sm'
+                                                            : 'border-transparent opacity-50 hover:opacity-80'
+                                                    }`}
+                                                >
+                                                    {d.label}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2 pl-2 border-l-2 border-brown-100">

@@ -35,6 +35,11 @@ export const useActivityActions = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // Quiz config
+    const [questionCount, setQuestionCountRaw] = useState(10);
+    const setQuestionCount = (v) => setQuestionCountRaw(Math.min(20, Math.max(5, Number(v) || 10)));
+    const [difficultyDist, setDifficultyDist] = useState({ easy: 40, medium: 40, hard: 20 });
+
     // Editor States
     const [showQuizEditor, setShowQuizEditor] = useState(false);
     const [quizEditorData, setQuizEditorData] = useState(null);
@@ -120,7 +125,9 @@ export const useActivityActions = () => {
                     lessonDetails,
                     difficulty,
                     model: selectedModel,
-                    geminiService
+                    geminiService,
+                    questionCount,
+                    difficultyDist
                 });
                 setQuizEditorData(parsedData);
                 setShowQuizEditor(true);
@@ -474,6 +481,10 @@ export const useActivityActions = () => {
         error,
         setError,
         handleGenerate,
+
+        // Quiz config
+        questionCount, setQuestionCount,
+        difficultyDist, setDifficultyDist,
 
         // Editor States & Setters
         showQuizEditor, setShowQuizEditor, quizEditorData, openEditQuiz, handleQuizConfirm,
