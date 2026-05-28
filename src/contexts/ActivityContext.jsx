@@ -139,7 +139,7 @@ export const ActivityProvider = ({ children }) => {
         { id: 'quiz', label: 'Quiz / Questões', icon: <FileText className="w-4 h-4" /> },
         { id: 'wordsearch', label: 'Caça-Palavras', icon: <Grid className="w-4 h-4" /> },
         { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-4 h-4" /> },
-        { id: 'summary', label: 'Aprenda com o Drácker', icon: <MessageSquare className="w-4 h-4" /> },
+        { id: 'summary', label: 'Drácker Metodologia Ativa', icon: <MessageSquare className="w-4 h-4" /> },
 
         { id: 'memory', label: 'Jogo da Memória', icon: <Brain className="w-4 h-4" /> },
         { id: 'connect_dots', label: 'Liga Pontos', icon: <BrainCircuit className="w-4 h-4" /> },
