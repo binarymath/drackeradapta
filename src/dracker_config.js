@@ -5,7 +5,7 @@
  */
 export const DRACKER_CONFIG = {
     PLAYLISTS: [
-        { title: "Sessão Pipoca com Drácker 🍿", id: "PLU-MOC0yxlOYDsU18sNuWWyHqfUfowK4Y" },
+        { title: "Sessão Pipoca com Drácker 🍿", id: "PLU-MOC0yxlOYX2Ww2Bm1MajpjHwy2COVW" },
         // Adicione mais playlists aqui
         // { title: "Nome da Playlist", id: "ID_DA_PLAYLIST" },
     ]
