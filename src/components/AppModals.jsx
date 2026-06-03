@@ -9,6 +9,7 @@ import { TabSelectionModal } from './TabSelectionModal';
 import { ImportDialog } from './ImportDialog';
 import WordsearchWizard from './WordsearchWizard';
 import { CrosswordListEditor } from './CrosswordListEditor';
+import { DominoEditorModal } from './domino/DominoEditorModal';
 
 export const AppModals = ({
     // Quiz
@@ -78,7 +79,13 @@ export const AppModals = ({
 
     // Audio Recorder
     showAudioRecorder,
-    setShowAudioRecorder
+    setShowAudioRecorder,
+
+    // Domino
+    showDominoEditor,
+    setShowDominoEditor,
+    dominoEditorData,
+    handleDominoConfirm
 }) => {
     return (
         <>
@@ -156,6 +163,13 @@ export const AppModals = ({
                     onCancel={() => setShowCrosswordEditor(false)}
                 />
             )}
+
+            <DominoEditorModal
+                isOpen={showDominoEditor}
+                onClose={() => setShowDominoEditor(false)}
+                onSave={handleDominoConfirm}
+                initialData={dominoEditorData}
+            />
 
             <ConnectDotsEditorModal
                 isOpen={showConnectDotsEditor}

@@ -8,6 +8,8 @@ import RichTextRenderer from './RichTextRenderer';
 import { CrosswordActivity } from './CrosswordActivity';
 import ConnectDotsGame from './ConnectDotsGame';
 import DrackerVideoGallery from './DrackerVideoGallery';
+import DominoGame from './domino/DominoGame';
+import DominoPrint from './domino/DominoPrint';
 
 import { PDFMergerTool } from './PDFMergerTool';
 import { AboutSystem } from './AboutSystem';
@@ -58,6 +60,7 @@ export const ActivityArea = ({
     onDrackerUpdate,
     connectDotsData,
     rpgData,
+    dominoData,
     drackerState,
     isFullWidth,
     toggleFullWidth,
@@ -82,7 +85,8 @@ export const ActivityArea = ({
         (activityType === 'merge_pdf') ||
         (activityType === 'about_system') ||
         (activityType === 'rpg' && rpgData) ||
-        (activityType === 'hangman');
+        (activityType === 'hangman') ||
+        (activityType === 'domino' && dominoData);
 
     // Reset game mode when content changes
     useEffect(() => {
@@ -255,6 +259,17 @@ export const ActivityArea = ({
                                 />
                             )}
 
+                            {/* Domino Toggle */}
+                            {activityType === 'domino' && dominoData && (
+                                <GameToggleCard
+                                    title="Dominó Pedagógico"
+                                    description="Imprima e recorte ou jogue online arrastando as peças!"
+                                    isGameMode={isGameMode}
+                                    onToggle={() => setIsGameMode(!isGameMode)}
+                                    color="amber"
+                                />
+                            )}
+
                             {/* --- GAME / CONTENT RENDERERS --- */}
 
                             {isWordsearchGame ? (
@@ -322,6 +337,12 @@ export const ActivityArea = ({
                                 />
                             ) : activityType === 'hangman' ? (
                                 <HangmanGame />
+                            ) : activityType === 'domino' && dominoData ? (
+                                isGameMode ? (
+                                    <DominoGame data={dominoData} isGameMode={isGameMode} />
+                                ) : (
+                                    <DominoPrint data={dominoData} />
+                                )
                             ) : activityType === 'memory' ? (
                                 <MemoryGame isFullWidth={isFullWidth} />
                             ) : activityType === 'rpg' && rpgData ? (

@@ -180,7 +180,14 @@ export const MainLayout = () => {
     };
     const handleEditConnectDots = () => {
         if (activeActivity?.data) {
+            setIsEditing(true);
             actions.openEditConnectDots(activeActivity.data);
+        }
+    };
+    const handleEditDomino = () => {
+        if (activeActivity?.dominoData) {
+            setIsEditing(true);
+            actions.openEditDomino(activeActivity.dominoData);
         }
     };
     const handleEditWordsearch = () => {
@@ -345,13 +352,15 @@ export const MainLayout = () => {
                                         activeActivity?.type === 'simplify' ? handleEditMusic :
                                             activeActivity?.type === 'wordsearch' ? handleEditWordsearch :
                                                 activeActivity?.type === 'connect_dots' ? handleEditConnectDots :
-                                                    undefined
+                                                    activeActivity?.type === 'domino' ? handleEditDomino :
+                                                        undefined
                         }
                         musicData={activeActivity?.musicData}
                         drackerData={activeActivity?.drackerData}
                         crosswordData={activeActivity?.data}
                         connectDotsData={activeActivity?.data}
                         rpgData={activeActivity?.type === 'rpg' ? activeActivity.data : null}
+                        dominoData={activeActivity?.dominoData}
                         quizData={activeActivity?.quizData}
                         activityTitle={activeActivity?.title || ''}
                         setActivityTitle={(newTitle) => {
