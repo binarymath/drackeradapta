@@ -56,6 +56,9 @@ export const useActivityActions = () => {
     const [showCrosswordEditor, setShowCrosswordEditor] = useState(false);
     const [crosswordEditorData, setCrosswordEditorData] = useState(null);
 
+    const [showDominoEditor, setShowDominoEditor] = useState(false);
+    const [dominoEditorData, setDominoEditorData] = useState(null);
+
     // Wordsearch states
     const [wordsearchTrigger, setWordsearchTrigger] = useState(0);
     const [wordsearchEditData, setWordsearchEditData] = useState(null);
@@ -90,6 +93,12 @@ export const useActivityActions = () => {
         if (activityType === 'crossword') {
             setCrosswordEditorData({ words: [], topic: topic });
             setShowCrosswordEditor(true);
+            return;
+        }
+
+        if (activityType === 'domino') {
+            setDominoEditorData({ pairs: [], topic: topic, lessonDetails: lessonDetails, isCircular: false });
+            setShowDominoEditor(true);
             return;
         }
 
@@ -438,6 +447,26 @@ export const useActivityActions = () => {
         }
     };
 
+    const handleDominoConfirm = (editedData) => {
+        if (isEditing) {
+            setTabs(prev => prev.map(t => {
+                if (t.id === activeTabId) {
+                    return { ...t, dominoData: editedData, title: editedData.topic || t.title };
+                }
+                return t;
+            }));
+        } else {
+            addActivityTab({
+                title: editedData.topic || topic || "Dominó",
+                type: 'domino',
+                content: '',
+                dominoData: editedData
+            });
+        }
+        setShowDominoEditor(false);
+        setDominoEditorData(null);
+    };
+
     // Setters for actions from outside
     const openEditQuiz = (data) => {
         setQuizEditorData(data);
@@ -457,6 +486,11 @@ export const useActivityActions = () => {
     const openEditConnectDots = (data) => {
         setConnectDotsEditorData(data);
         setShowConnectDotsEditor(true);
+    };
+
+    const openEditDomino = (data) => {
+        setDominoEditorData(data);
+        setShowDominoEditor(true);
     };
 
     const openManualMusicEditor = () => {
@@ -492,6 +526,7 @@ export const useActivityActions = () => {
         showMusicEditor, setShowMusicEditor, musicEditorData, openEditMusic, handleMusicConfirm, openManualMusicEditor,
         showConnectDotsEditor, setShowConnectDotsEditor, connectDotsEditorData, openEditConnectDots, handleConnectDotsConfirm,
         showCrosswordEditor, setShowCrosswordEditor, crosswordEditorData, handleCrosswordConfirm,
+        showDominoEditor, setShowDominoEditor, dominoEditorData, openEditDomino, handleDominoConfirm,
 
         // Wordsearch
         wordsearchTrigger,

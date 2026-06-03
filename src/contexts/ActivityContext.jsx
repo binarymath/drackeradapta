@@ -19,21 +19,22 @@ export const ActivityProvider = ({ children }) => {
     const [tabs, setTabs] = useState(() => {
         const saved = safeLocalStorageGet('atividade_adaptada_tabs');
         try {
-            return saved ? JSON.parse(saved) : [];
+            const parsed = saved ? JSON.parse(saved) : [];
+            return parsed.length > 0 ? parsed : [{ id: 'dashboard', title: 'Drácker - Início', type: 'dashboard', content: '' }];
         } catch (e) {
-            return [];
+            return [{ id: 'dashboard', title: 'Drácker - Início', type: 'dashboard', content: '' }];
         }
     });
 
     const [activeTabId, setActiveTabId] = useState(() => {
         const saved = safeLocalStorageGet('atividade_adaptada_active_tab');
-        return saved || null;
+        return saved || 'dashboard';
     });
 
     // --- FORM STATE ---
     const [topic, setTopic] = useState('');
     const [lessonDetails, setLessonDetails] = useState('');
-    const [activityType, setActivityType] = useState('quiz');
+    const [activityType, setActivityType] = useState('dashboard');
     const [difficulty, setDifficulty] = useState('medium');
 
     // --- IMAGE GENERATION STATE ---
@@ -140,6 +141,7 @@ export const ActivityProvider = ({ children }) => {
         { id: 'wordsearch', label: 'Caça-Palavras', icon: <Grid className="w-4 h-4" /> },
         { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-4 h-4" /> },
         { id: 'summary', label: 'Drácker Metodologia Ativa', icon: <MessageSquare className="w-4 h-4" /> },
+        { id: 'domino', label: 'Dominó Pedagógico', icon: <Grid className="w-4 h-4" /> },
 
         { id: 'memory', label: 'Jogo da Memória', icon: <Brain className="w-4 h-4" /> },
         { id: 'connect_dots', label: 'Liga Pontos', icon: <BrainCircuit className="w-4 h-4" /> },
