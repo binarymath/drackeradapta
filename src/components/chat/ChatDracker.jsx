@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Loader2, Copy, Check, PlusCircle } from 'lucide-react';
 import { useGemini } from '../../contexts/GeminiContext';
 import { useActivity } from '../../contexts/ActivityContext';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export const ChatDracker = () => {
     const { geminiService, apiKey } = useGemini();
@@ -103,50 +105,7 @@ Não use respostas longas demais a menos que seja solicitado. Seja prático.`;
         }
     };
 
-    const formatMessageText = (text) => {
-        if (!text) return null;
-        
-        // Separa por parágrafos
-        const paragraphs = text.split(/\n\n+/);
-        
-        return paragraphs.map((paragraph, pIdx) => {
-            // Verifica se o parágrafo é uma lista
-            const lines = paragraph.split('\n');
-            const isList = lines.every(line => line.trim().startsWith('- ') || line.trim().startsWith('* '));
 
-            const renderInline = (inlineText) => {
-                // Renderiza negrito (**texto**)
-                const parts = inlineText.split(/(\*\*.*?\*\*)/g);
-                return parts.map((part, i) => {
-                    if (part.startsWith('**') && part.endsWith('**')) {
-                        return <strong key={i} className="font-bold text-brown-900">{part.slice(2, -2)}</strong>;
-                    }
-                    return <span key={i}>{part}</span>;
-                });
-            };
-
-            if (isList) {
-                return (
-                    <ul key={pIdx} className="list-disc pl-5 my-3 space-y-1 marker:text-brown-500">
-                        {lines.map((line, lIdx) => (
-                            <li key={lIdx}>{renderInline(line.replace(/^[-*]\s+/, ''))}</li>
-                        ))}
-                    </ul>
-                );
-            }
-
-            return (
-                <p key={pIdx} className="mb-3 last:mb-0">
-                    {lines.map((line, lIdx) => (
-                        <React.Fragment key={lIdx}>
-                            {renderInline(line)}
-                            {lIdx < lines.length - 1 && <br />}
-                        </React.Fragment>
-                    ))}
-                </p>
-            );
-        });
-    };
 
     return (
         <div className="flex flex-col h-[calc(100vh-200px)] max-h-[800px] w-full bg-[#fdfaf6] rounded-2xl overflow-hidden border border-brown-100 relative">
@@ -205,8 +164,37 @@ Não use respostas longas demais a menos que seja solicitado. Seja prático.`;
                                     <div className="absolute -right-[10px] bottom-6 w-5 h-5 bg-brown-600 transform rotate-45 z-10"></div>
                                 )}
                                 
-                                <div className="font-medium relative z-20 mt-1">
-                                    {formatMessageText(msg.parts[0].text)}
+                                <div className="font-medium relative z-20 mt-1 flex flex-col markdown-container">
+                                    <ReactMarkdown 
+                                        remarkPlugins={[remarkGfm]}
+                                        components={{
+                                            p: ({node, ...props}) => <p className="mb-3 last:mb-0" {...props} />,
+                                            ul: ({node, ...props}) => <ul className={`list-disc pl-5 my-3 space-y-1 ${isUser ? 'marker:text-brown-200' : 'marker:text-brown-500'}`} {...props} />,
+                                            ol: ({node, ...props}) => <ol className={`list-decimal pl-5 my-3 space-y-1 ${isUser ? 'marker:text-brown-200' : 'marker:text-brown-500'}`} {...props} />,
+                                            strong: ({node, ...props}) => <strong className={`font-bold ${isUser ? 'text-white' : 'text-brown-900'}`} {...props} />,
+                                            h1: ({node, ...props}) => <h1 className={`text-xl font-bold mb-3 mt-4 ${isUser ? 'text-white' : 'text-brown-900'}`} {...props} />,
+                                            h2: ({node, ...props}) => <h2 className={`text-lg font-bold mb-3 mt-4 ${isUser ? 'text-white' : 'text-brown-900'}`} {...props} />,
+                                            h3: ({node, ...props}) => <h3 className={`text-base font-bold mb-2 mt-3 ${isUser ? 'text-white' : 'text-brown-900'}`} {...props} />,
+                                            a: ({node, ...props}) => <a className={`underline hover:opacity-80 ${isUser ? 'text-white' : 'text-brown-700 hover:text-brown-900'}`} target="_blank" rel="noopener noreferrer" {...props} />,
+                                            blockquote: ({node, ...props}) => <blockquote className={`border-l-4 pl-4 py-1 my-3 italic ${isUser ? 'border-brown-300 bg-brown-700/50 text-white' : 'border-brown-300 bg-brown-50/50 text-brown-700'}`} {...props} />,
+                                            code: ({node, inline, className, children, ...props}) => {
+                                                const match = /language-(\w+)/.exec(className || '');
+                                                return !inline ? (
+                                                    <pre className={`p-4 rounded-xl my-4 overflow-x-auto custom-scrollbar font-mono text-sm ${isUser ? 'bg-brown-800 text-brown-50' : 'bg-brown-800 text-brown-50'}`}>
+                                                        <code className={className} {...props}>
+                                                            {children}
+                                                        </code>
+                                                    </pre>
+                                                ) : (
+                                                    <code className={`px-1.5 py-0.5 rounded text-sm font-mono ${isUser ? 'bg-brown-700/50 text-white' : 'bg-brown-100/50 text-brown-800'}`} {...props}>
+                                                        {children}
+                                                    </code>
+                                                )
+                                            }
+                                        }}
+                                    >
+                                        {msg.parts[0].text}
+                                    </ReactMarkdown>
                                 </div>
                             </div>
                         </div>
