@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useActivity } from '../contexts/ActivityContext';
 import { FileText } from 'lucide-react';
 import { QuizGame } from './QuizGame';
 import { QuizPrint } from './QuizPrint';
@@ -14,8 +15,11 @@ import DominoPrint from './domino/DominoPrint';
 import { PDFMergerTool } from './PDFMergerTool';
 import { AboutSystem } from './AboutSystem';
 import MemoryGame from './memory/MemoryGame';
-import DrackerRPG from './RPG/DrackerRPG';
+import { DrackerSummaryRenderer } from './activity-area/DrackerSummaryRenderer';
+
 import HangmanGame from './HangmanGame';
+import DetectiveRPG from './rpg/DetectiveRPG';
+import ChatDracker from './chat/ChatDracker';
 
 import html2pdf from 'html2pdf.js';
 
@@ -26,7 +30,7 @@ import { Input } from './ui/Input'; // Used in Wordsearch customization
 
 // Sub-components
 import { ActivityHeader } from './activity-area/ActivityHeader';
-import { DrackerStoryRenderer } from './activity-area/DrackerStoryRenderer';
+
 import { MusicActivityRenderer } from './activity-area/MusicActivityRenderer';
 import { GameToggleCard } from './activity-area/GameToggleCard';
 import { SunoNativePlayer } from './activity-area/SunoNativePlayer';
@@ -57,15 +61,16 @@ export const ActivityArea = ({
     activityTitle,
     setActivityTitle,
     onCrosswordUpdate,
-    onDrackerUpdate,
+
     connectDotsData,
-    rpgData,
+
     dominoData,
-    drackerState,
+
     isFullWidth,
     toggleFullWidth,
     openManualMusicEditor
 }) => {
+    const { topic, lessonDetails, activeTabId } = useActivity();
     // --- State ---
     const [printMode, setPrintMode] = useState('all'); // 'all', 'lyrics', 'questions'
     const [isGameMode, setIsGameMode] = useState(false);
@@ -84,8 +89,9 @@ export const ActivityArea = ({
         (activityType === 'video_gallery') ||
         (activityType === 'merge_pdf') ||
         (activityType === 'about_system') ||
-        (activityType === 'rpg' && rpgData) ||
+
         (activityType === 'hangman') ||
+        (activityType === 'chat_dracker') ||
         (activityType === 'domino' && dominoData);
 
     // Reset game mode when content changes
@@ -312,8 +318,6 @@ export const ActivityArea = ({
                                     onRestart={() => setIsGameMode(true)}
                                     onExitToPrint={() => setIsGameMode(false)}
                                 />
-                            ) : activityType === 'summary' && drackerData ? (
-                                <DrackerStoryRenderer drackerData={drackerData} onUpdate={onDrackerUpdate} />
                             ) : activityType === 'simplify' && musicData ? (
                                 <MusicActivityRenderer
                                     musicData={musicData}
@@ -326,6 +330,8 @@ export const ActivityArea = ({
                                 />
                             ) : activityType === 'video_gallery' ? (
                                 <DrackerVideoGallery />
+                            ) : activityType === 'rpg' ? (
+                                <DetectiveRPG key={activeTabId || 'new_rpg'} topic={topic} context={lessonDetails} isFullWidth={isFullWidth} />
                             ) : activityType === 'about_system' ? (
                                 <AboutSystem />
                             ) : activityType === 'merge_pdf' ? (
@@ -345,8 +351,10 @@ export const ActivityArea = ({
                                 )
                             ) : activityType === 'memory' ? (
                                 <MemoryGame isFullWidth={isFullWidth} />
-                            ) : activityType === 'rpg' && rpgData ? (
-                                <DrackerRPG data={rpgData} />
+                            ) : activityType === 'chat_dracker' ? (
+                                <ChatDracker />
+                            ) : activityType === 'summary' && drackerData ? (
+                                <DrackerSummaryRenderer data={drackerData} title={activityTitle} />
                             ) : (
                                 /* Default Text Renderer (Quiz Print Mode / Wordsearch Print Mode) */
                                 <>

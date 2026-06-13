@@ -27,6 +27,14 @@ export const AboutSystem = () => {
 
     const modules = [
         {
+            id: 'chat_dracker',
+            title: 'Conversar com Drácker',
+            desc: 'Converse, tire dúvidas e peça dicas pedagógicas',
+            icon: <MessageSquare className="w-8 h-8" />,
+            color: 'from-amber-400 to-orange-400',
+            bg: 'bg-amber-50'
+        },
+        {
             id: 'quiz',
             title: 'Quiz e Provas',
             desc: 'Crie questionários com IA instantaneamente',
@@ -57,14 +65,6 @@ export const AboutSystem = () => {
             icon: <Play className="w-8 h-8" />,
             color: 'from-red-500 to-rose-500',
             bg: 'bg-red-50'
-        },
-        {
-            id: 'rpg',
-            title: 'Mestre de RPG',
-            desc: 'Narre aventuras lúdicas baseadas em aula',
-            icon: <Users className="w-8 h-8" />,
-            color: 'from-indigo-500 to-violet-500',
-            bg: 'bg-indigo-50'
         },
         {
             id: 'connect_dots',
@@ -144,7 +144,7 @@ export const AboutSystem = () => {
                         { step: 1, title: "Configure o Cérebro", desc: "No menu superior, insira sua chave da API do Google Gemini. Sem ela, o Drácker não consegue pensar." },
                         { step: 2, title: "Detalhe o Contexto", desc: "Na barra lateral, digite o tema. No campo 'Contexto', seja bem específico." },
                         { step: 3, title: "Ajuste a Linguagem", desc: "Alterne a dificuldade na barra lateral. O Drácker ajustará o tom de voz para a faixa etária." },
-                        { step: 4, title: "Gere a Atividade", desc: "Escolha o jogo (RPG, Caça-Palavras, etc) e clique em Gerar. Edite clicando no texto." },
+                        { step: 4, title: "Gere a Atividade", desc: "Escolha o jogo (Caça-Palavras, Dominó, etc) e clique em Gerar. Edite clicando no texto." },
                         { step: 5, title: "Organize o PDF", desc: "Gere quantas abas quiser. No final, use Unir PDFs para juntar todas as atividades em uma apostila." },
                         { step: 6, title: "Salve Tudo", desc: "Para não perder o progresso das turmas e guildas, use o botão de Backup para salvar os dados." }
                     ].map((item) => (

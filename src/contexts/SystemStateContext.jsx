@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { useDrackerState } from '../hooks/useDrackerState';
+import { useGeminiState } from '../hooks/useGeminiState';
 
 const SystemStateContext = createContext();
 
@@ -12,12 +12,12 @@ export const useSystemState = () => {
 };
 
 export const SystemProvider = ({ children }) => {
-    const drackerState = useDrackerState();
+    const geminiState = useGeminiState();
 
     const value = useMemo(() => ({
-        ...drackerState, // Spread for direct access (e.g. { determineArchetype } = useSystemState())
-        drackerState // Keep for nested access (e.g. { drackerState } = useSystemState())
-    }), [drackerState]);
+        ...geminiState, // Spread for direct access (e.g. { loading, error } = useSystemState())
+        geminiState    // Keep for nested access if needed
+    }), [geminiState]);
 
     return (
         <SystemStateContext.Provider value={value}>

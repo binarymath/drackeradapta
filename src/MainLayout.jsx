@@ -6,7 +6,7 @@ import { useAudio } from './contexts/AudioContext';
 
 import { useActivityActions } from './hooks/useActivityActions';
 // import { useDrackerState } from './hooks/useDrackerState'; // Deprecated in favor of Context
-import { useSystemState } from './contexts/SystemStateContext';
+
 import { useBackupSystem } from './hooks/useBackupSystem';
 import { ExportService } from './services/ExportService';
 
@@ -77,7 +77,7 @@ export const MainLayout = () => {
     } = useAudio();
 
     const actions = useActivityActions();
-    const { drackerState } = useSystemState();
+
     const activityAreaRef = useRef(null);
 
     // --- LOCAL VIEW STATE (Wordsearch/Display) ---
@@ -166,12 +166,6 @@ export const MainLayout = () => {
             actions.openEditQuiz(activeActivity.quizData);
         }
     };
-    const handleEditDracker = () => {
-        if (activeActivity?.drackerData) {
-            setIsEditing(true);
-            actions.openEditDracker(activeActivity.drackerData);
-        }
-    };
     const handleEditMusic = () => {
         if (activeActivity?.musicData) {
             setIsEditing(true);
@@ -233,7 +227,7 @@ export const MainLayout = () => {
         handleMergeImport,
         handleReplaceImport,
         closeImportDialog
-    } = useBackupSystem(tabs, setTabs, setActiveTabId, drackerState.expeditions, drackerState.actions.setExpeditions, drackerState.allMembers, drackerState.setAllMembers);
+    } = useBackupSystem(tabs, setTabs, setActiveTabId);
 
     const getTabLabel = (tab) => {
         const title = tab.title || 'Sem título';
@@ -348,7 +342,6 @@ export const MainLayout = () => {
                         onEdit={
                             activityType === 'wordsearch' ? handleEditWordsearch :
                                 activeActivity?.type === 'quiz' ? handleEditQuiz :
-                                    activeActivity?.type === 'summary' ? handleEditDracker :
                                         activeActivity?.type === 'simplify' ? handleEditMusic :
                                             activeActivity?.type === 'wordsearch' ? handleEditWordsearch :
                                                 activeActivity?.type === 'connect_dots' ? handleEditConnectDots :
@@ -356,10 +349,11 @@ export const MainLayout = () => {
                                                         undefined
                         }
                         musicData={activeActivity?.musicData}
-                        drackerData={activeActivity?.drackerData}
+
                         crosswordData={activeActivity?.data}
                         connectDotsData={activeActivity?.data}
-                        rpgData={activeActivity?.type === 'rpg' ? activeActivity.data : null}
+                        drackerData={activeActivity?.data}
+
                         dominoData={activeActivity?.dominoData}
                         quizData={activeActivity?.quizData}
                         activityTitle={activeActivity?.title || ''}
@@ -388,11 +382,10 @@ export const MainLayout = () => {
                         }}
                         onDrackerUpdate={(newData) => {
                             setTabs(prev => prev.map(t => {
-                                if (t.id === activeTabId) return { ...t, drackerData: newData };
-                                return t;
+                                if (t.id === activeTabId) return { ...t, content: newData };
                             }));
                         }}
-                        drackerState={drackerState}
+
                         isFullWidth={isFullWidth}
                         toggleFullWidth={() => setIsFullWidth(!isFullWidth)}
                         openManualMusicEditor={actions.openManualMusicEditor}

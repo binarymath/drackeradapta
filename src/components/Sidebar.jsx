@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Sparkles, AlertCircle, GripVertical, Music, Play, MessageSquare } from 'lucide-react';
+import { Loader2, Sparkles, AlertCircle, GripVertical, Music, Play, MessageSquare, Compass } from 'lucide-react';
 import { theme } from '../styles/theme';
 import { Button } from './ui/Button';
 import { Input, TextArea, Select } from './ui/Input';
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
+import { useActivity } from '../contexts/ActivityContext';
 
 export const Sidebar = ({
     showSettings,
@@ -46,6 +47,7 @@ export const Sidebar = ({
 }) => {
     const [orderedActivities, setOrderedActivities] = useState([]);
     const [draggedItem, setDraggedItem] = useState(null);
+    const { tabs, setActiveTabId } = useActivity();
 
     useEffect(() => {
         // Carrega ordem salva no localStorage ou usa ordem padrão
@@ -354,6 +356,19 @@ export const Sidebar = ({
                             </div>
                             Drácker Página Inicial
                         </button>
+                        {/* Fixed "Conversar com o Drácker" Link */}
+                        <button
+                            onClick={() => setActivityType('chat_dracker')}
+                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'chat_dracker'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
+                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
+                                }`}
+                        >
+                            <div className="w-6 flex justify-center text-brown-500">
+                                <MessageSquare className="w-4 h-4" />
+                            </div>
+                            Conversar com o Drácker
+                        </button>
                         {/* Fixed "Canal do Drácker" Link */}
                         <button
                             onClick={() => setActivityType('video_gallery')}
@@ -393,8 +408,21 @@ export const Sidebar = ({
                             </div>
                             Drácker Metodologia Ativa
                         </button>
+                        {/* Fixed "Drácker Mestre RPG" Link */}
+                        <button
+                            onClick={() => setActivityType('rpg')}
+                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'rpg'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
+                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
+                                }`}
+                        >
+                            <div className="w-6 flex justify-center text-brown-500">
+                                <Compass className="w-4 h-4" />
+                            </div>
+                            Drácker Mestre RPG
+                        </button>
                         <div className="space-y-2">
-                            {orderedActivities.filter(opt => opt.id !== 'summary').map((opt, index) => (
+                            {orderedActivities.filter(opt => opt.id !== 'summary' && opt.id !== 'rpg').map((opt, index) => (
                                 opt.url ? (
                                     <a
                                         key={opt.id}
@@ -490,10 +518,15 @@ export const Sidebar = ({
                     <Button
                         onClick={handleGenerate}
                         isLoading={isLoading}
-                        icon={!isLoading ? Sparkles : undefined}
-                        className="w-full py-3 text-white shadow-md hover:-translate-y-0.5"
+                        disabled={activityType === 'chat_dracker' || isLoading}
+                        icon={!isLoading && activityType !== 'chat_dracker' ? Sparkles : undefined}
+                        className={`w-full py-3 text-white shadow-md transition-all ${
+                            activityType === 'chat_dracker' 
+                                ? 'bg-brown-300 cursor-not-allowed opacity-60' 
+                                : 'hover:-translate-y-0.5 bg-brown-500 hover:bg-brown-600'
+                        }`}
                     >
-                        {isLoading ? 'Criando...' : 'Gerar'}
+                        {activityType === 'chat_dracker' ? 'Use a tela de Chat' : isLoading ? 'Criando...' : 'Gerar'}
                     </Button>
 
                     {isLoading && (

@@ -95,7 +95,7 @@ export const ActivityHeader = ({
                                 {showAnswers ? 'Respostas' : 'Respostas'}
                             </Button>
                         )}
-                        {activityType !== 'memory' && activityType !== 'rpg' && (
+                        {activityType !== 'memory' && (
                             <>
                                 <Button onClick={handleDownloadPdf} variant="ghost" className="h-8 w-8 p-0" icon={Printer} title="Imprimir" />
                             </>

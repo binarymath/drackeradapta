@@ -177,9 +177,6 @@ class GeminiService {
   }
 
   /**
-   * Gera texto usando o modelo especificado
-   */
-  /**
    * Gera texto usando rotação inteligente de modelos para evitar erros de Rate Limit
    */
   async generateText(prompt, options = {}) {
@@ -198,11 +195,17 @@ class GeminiService {
       generationConfig: {
         maxOutputTokens,
         temperature
-      }
+      },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+      ]
     };
 
     if (options.responseMimeType) {
-        payload.generationConfig.responseMimeType = options.responseMimeType;
+      payload.generationConfig.responseMimeType = options.responseMimeType;
     }
 
     try {
@@ -213,10 +216,17 @@ class GeminiService {
         initialDelay: 2000
       });
 
+      const candidate = data.candidates?.[0];
+      const finishReason = candidate?.finishReason;
+      
+      if (finishReason && finishReason !== 'STOP') {
+        console.warn(`[GeminiService] Aviso: finishReason é ${finishReason}`);
+      }
+
       // O gemini-2.5-flash (v1alpha) pode retornar múltiplas partes:
       // partes com "thought: true" são raciocínio interno (ignorar)
       // partes sem "thought" ou com "thought: false" são o texto final
-      const parts = data.candidates?.[0]?.content?.parts || [];
+      const parts = candidate?.content?.parts || [];
       const textParts = parts.filter(p => p.text && !p.thought).map(p => p.text);
       const text = textParts.join('') || parts.find(p => p.text)?.text || '';
 
@@ -229,6 +239,57 @@ class GeminiService {
 
     } catch (error) {
       console.error(`[GeminiService] Erro com modelo ${MODEL}:`, error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Responde ao chat (sessão Conversar com Drácker) mantendo histórico.
+   * history: Array de { role: "user" | "model", parts: [{ text: string }] }
+   */
+  async generateChatReply(history, systemInstruction = '', options = {}) {
+    const {
+      maxOutputTokens = 4000,
+      temperature = 0.7
+    } = options;
+
+    const MODEL = 'gemini-2.5-flash';
+
+    await this.enforceRateLimit();
+
+    const payload = {
+      contents: history,
+      generationConfig: {
+        maxOutputTokens,
+        temperature
+      },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+      ]
+    };
+
+    if (systemInstruction) {
+      payload.systemInstruction = {
+        parts: [{ text: systemInstruction }]
+      };
+    }
+
+    try {
+      console.log(`[GeminiService] Chat request com modelo: ${MODEL}`);
+      const data = await this.request(MODEL, payload, { maxRetries: 2, initialDelay: 2000 });
+      
+      const candidate = data.candidates?.[0];
+      const parts = candidate?.content?.parts || [];
+      const textParts = parts.filter(p => p.text && !p.thought).map(p => p.text);
+      const text = textParts.join('') || parts.find(p => p.text)?.text || '';
+
+      if (!text) throw new Error('Resposta vazia da API no chat');
+      return text;
+    } catch (error) {
+      console.error(`[GeminiService] Erro no Chat com ${MODEL}:`, error.message);
       throw error;
     }
   }
@@ -457,9 +518,9 @@ class GeminiService {
     `;
 
     try {
-      const text = await this.generateText(prompt, { 
-          temperature: 0.8,
-          responseMimeType: "application/json"
+      const text = await this.generateText(prompt, {
+        temperature: 0.8,
+        responseMimeType: "application/json"
       });
 
       // Use centralized safe parser
@@ -469,9 +530,9 @@ class GeminiService {
       let data = parsed;
       // Caso a IA tenha retornado um objeto como { "pares": [...] } em vez do array direto
       if (parsed && !Array.isArray(parsed)) {
-          const values = Object.values(parsed);
-          const arrayValue = values.find(v => Array.isArray(v));
-          if (arrayValue) data = arrayValue;
+        const values = Object.values(parsed);
+        const arrayValue = values.find(v => Array.isArray(v));
+        if (arrayValue) data = arrayValue;
       }
 
       if (!Array.isArray(data)) throw new Error("Formato inválido recebido da IA");
@@ -490,83 +551,120 @@ class GeminiService {
   }
 
   /**
-   * Gera uma aventura de RPG educacional gamificada
+   * Gera a Parte 1 do Livro-Jogo (Abertura + Etapa 1)
    */
-  async generateRPGAdventure(topic, details = '') {
+  async generateRPGPart1(topic, details, teams, questionType) {
     const prompt = `
-      Você é um Mestre de RPG Educacional criativo.
-      Crie uma mini-aventura de 5 etapas para ensinar sobre: "${topic}".
-      ${details ? `\nATENÇÃO CRÍTICA: A aventura INTEIRA (locais, enigmas, perguntas) DEVE ser focada EXCLUSIVAMENTE ou fortemente sobre: "${details}". Não faça uma aventura genérica sobre o tema.\n` : ''}
+      Você é o mestre de um RPG Educacional Investigativo infantil/juvenil.
+      O TEMA da aula é: "${topic}". O CONTEXTO é: "${details}".
+      O formato das perguntas deve ser: ${questionType === 'multiple_choice' ? 'Múltipla Escolha (com 4 alternativas A, B, C, D e a resposta certa)' : 'Dissertativa (pergunta aberta e a resposta esperada)'}.
       
-      PERSONAGENS OBRIGATÓRIOS:
-      - HEROI/GUIA: Drácker (um dragãozinho marrom com asas marrons, amigável, com grandes olhos azuis). Ele guia os jogadores.
-      - ALIADOS: Os "Animaizinhos da Floresta Encantada" (coelhos, esquilos, corujas sábias) que ajudam ou pedem ajuda.
+      EQUIPES NA PARTIDA: ${teams.map(t => t.name).join(', ')}.
       
-      ESTRUTURA DA RESPOSTA (JSON ÚNICO):
+      PERSONAGENS:
+      - Drácker: Um dragãozinho marrom, detetive da natureza, curioso e esperto.
+      - Amigos: Esquilo, coruja, raposa, coelho (ATENÇÃO: Não dê nomes próprios aos animais, chame-os apenas pela espécie).
+
+      Crie APENAS a introdução e a ETAPA 1 do jogo. As demais etapas serão geradas depois.
+      Para a etapa 1, crie uma pergunta direcionada e DIFERENTE para cada equipe.
+      
+      MUITO IMPORTANTE: O JOGO PRECISA SER RÁPIDO. SEJA EXTREMAMENTE CONCISO!
+      - A "historia_abertura" deve ter NO MÁXIMO 4 frases curtas.
+      - A "narrativa_avanco" deve ter NO MÁXIMO 2 frases.
+      - As perguntas devem ser bem curtas e diretas.
+      1. As perguntas de todas as equipes dentro da MESMA ETAPA devem ter rigorosamente o MESMO GRAU DE DIFICULDADE.
+      2. Não crie perguntas com margem para múltiplas respostas corretas ou equivalentes (exemplo: não use "3/6" se a resposta esperada for "1/2"). A resposta correta deve ser única e inconfundível.
+      
+      ESTRUTURA DA RESPOSTA (JSON PURO, SEM MARKDOWN):
       {
-        "title": "Título Criativo (Ex: Drácker e a Lenda de...)",
-        "theme": "${topic}",
-        "villain": "Nome do Vilão Temático (Ex: Dr. Poluição)",
-        "intro": "Uma frase de introdução onde o Drácker convoca os alunos e os animais da floresta para resolver o problema causado pelo vilão.",
-        "plot": "O que o vilão fez? (Ex: roubou as cores da Floresta Encantada, poluiu o rio mágico)",
-        "encounters": [
+        "historia_abertura": "A introdução épica da história detalhando o mistério...",
+        "etapas": [
           {
-            "id": 1,
-            "title": "Título da Fase 1 (Início)",
-            "difficulty": "Fácil",
-            "desc": "O Drácker aponta o primeiro desafio na Floresta ou local do tema. Os animais estão preocupados. O que os heróis veem?",
-            "question": "Uma pergunta inicial sobre o tema para abrir o caminho."
-          },
-          {
-            "id": 2,
-            "title": "Título da Fase 2",
-            "difficulty": "Médio",
-            "desc": "Os animaizinhos encontram um obstáculo ou minion do vilão.",
-            "question": "Uma pergunta de nível médio sobre o tema."
-          },
-          {
-            "id": 3,
-            "title": "Título da Fase 3 (Enigma)",
-            "difficulty": "Médio",
-            "desc": "O Drácker encontra um enigma antigo bloqueando o caminho.",
-            "question": "Uma pergunta que exige raciocínio sobre o tema."
-          },
-          {
-            "id": 4,
-            "title": "Título da Fase 4 (Armadilha)",
-            "difficulty": "Difícil",
-            "desc": "Uma armadilha do vilão prende os animais ou o Drácker!",
-            "question": "Uma pergunta difícil ou detalhe específico do tema para salvá-los."
-          },
-          {
-            "id": 5,
-            "title": "Título da Fase 5 (Chefe Final)",
-            "difficulty": "Chefe",
-            "desc": "Confronto final! Drácker e os animais se unem aos alunos contra o vilão.",
-            "question": "A pergunta mais importante ou abrangente para derrotar o vilão."
+            "round": 1,
+            "narrativa_avanco": "O início da investigação...",
+            "enigmas": [
+              {
+                "team": "Nome da Equipe 1",
+                "question": "A pergunta específica para esta equipe.",
+                "options": ["A) ...", "B) ...", "C) ...", "D) ..."], // Somente se for múltipla escolha, senão []
+                "correct_answer": "O texto exato da alternativa correta ou o conceito esperado."
+              }
+            ]
           }
         ]
       }
-
-      DIRETRIZES:
-      - O MUNDO DEVE SER MÁGICO, mesmo que o tema seja ciência ou história (ex: Drácker viaja no tempo ou o vilão invadiu a floresta com tecnologia).
-      - SEMPRE mencione "Drácker" e os "Animaizinhos" nas descrições.
-      - As perguntas DEVEM ser educativas e relacionadas ao tema "${topic}"${details ? ` e ao contexto: "${details}"` : ''}.
-      - Retorne APENAS o JSON válido.
     `;
-
     try {
-      const text = await this.generateText(prompt, { temperature: 0.9, maxOutputTokens: 5000 });
-
+      const text = await this.generateText(prompt, { temperature: 0.8, responseMimeType: "application/json", maxOutputTokens: 8192 });
       const { safeJSONParse } = await import('../utils/jsonUtils');
       const data = safeJSONParse(text);
-
-      if (!data || !data.encounters) throw new Error("Formato inválido de aventura");
-
+      if (!data || !data.etapas) throw new Error("Formato inválido");
       return data;
     } catch (e) {
-      console.error("Erro ao gerar RPG:", e);
-      throw new Error("Falha ao criar aventura RPG. Tente novamente.");
+      console.error("Erro Full RPG Parte 1:", e);
+      throw new Error("Falha ao gerar o livro-jogo (Parte 1): " + e.message);
+    }
+  }
+
+  /**
+   * Gera a Parte 2 do Livro-Jogo (Etapas 2, 3, 4 + Finais)
+   */
+  async generateRPGPart2(topic, details, teams, questionType, historiaAnterior) {
+    const prompt = `
+      Você é o mestre de um RPG Educacional Investigativo infantil/juvenil.
+      O TEMA da aula é: "${topic}". O CONTEXTO é: "${details}".
+      O formato das perguntas deve ser: ${questionType === 'multiple_choice' ? 'Múltipla Escolha (com 4 alternativas A, B, C, D)' : 'Dissertativa'}.
+      EQUIPES NA PARTIDA: ${teams.map(t => t.name).join(', ')}.
+      
+      HISTÓRIA ATÉ AGORA (Resumo da Etapa 1 para manter contexto):
+      "${historiaAnterior}"
+
+      Crie as ETAPAS 2, 3 e 4 do jogo, o REFORÇO PEDAGÓGICO e os FINAIS.
+      Para CADA uma das 3 etapas, crie uma pergunta direcionada e DIFERENTE para cada equipe. As etapas devem evoluir a história do mistério gradativamente até a grande revelação na etapa 4.
+      
+      MUITO IMPORTANTE: ECONOMIZE TOKENS E SEJA EXTREMAMENTE CONCISO PARA GERAR RÁPIDO!
+      - As "narrativa_avanco" de cada etapa devem ter NO MÁXIMO 2 frases.
+      - As perguntas e opções devem ser o mais curtas possíveis, diretas ao ponto.
+      - O "reforco_pedagogico" deve ter NO MÁXIMO 3 frases.
+      - Os finais devem ter NO MÁXIMO 3 frases curtas cada.
+      
+      REGRAS PEDAGÓGICAS IMPORTANTES:
+      1. As perguntas de todas as equipes dentro da MESMA ETAPA devem ter rigorosamente o MESMO GRAU DE DIFICULDADE.
+      2. Não crie perguntas com margem para múltiplas respostas corretas ou equivalentes.
+      
+      ESTRUTURA DA RESPOSTA (JSON PURO, SEM MARKDOWN):
+      {
+        "etapas": [
+          {
+            "round": 2,
+            "narrativa_avanco": "A continuação da investigação após passarem pela primeira parte...",
+            "enigmas": [
+              {
+                "team": "Nome da Equipe 1",
+                "question": "A pergunta específica.",
+                "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+                "correct_answer": "Resposta correta"
+              }
+            ]
+          },
+          // repetir para round 3 e round 4
+        ],
+        "reforco_pedagogico": "Um balão de fala do Drácker explicando de forma simples e lúdica a base do TEMA para ajudar alunos que erraram.",
+        "finais": {
+          "vitoria_epica": "Narrativa final caso a turma tenha pontuação alta.",
+          "vitoria_com_ajuda": "Narrativa final caso a turma tenha pontuação baixa."
+        }
+      }
+    `;
+    try {
+      const text = await this.generateText(prompt, { temperature: 0.8, responseMimeType: "application/json", maxOutputTokens: 8192 });
+      const { safeJSONParse } = await import('../utils/jsonUtils');
+      const data = safeJSONParse(text);
+      if (!data || !data.etapas) throw new Error("Formato inválido");
+      return data;
+    } catch (e) {
+      console.error("Erro Full RPG Parte 2:", e);
+      throw new Error("Falha ao gerar o livro-jogo (Parte 2): " + e.message);
     }
   }
 
