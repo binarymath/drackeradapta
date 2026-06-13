@@ -44,8 +44,7 @@ export const useActivityActions = () => {
     const [showQuizEditor, setShowQuizEditor] = useState(false);
     const [quizEditorData, setQuizEditorData] = useState(null);
 
-    const [showDrackerEditor, setShowDrackerEditor] = useState(false);
-    const [drackerEditorData, setDrackerEditorData] = useState(null);
+
 
     const [showMusicEditor, setShowMusicEditor] = useState(false);
     const [musicEditorData, setMusicEditorData] = useState(null);
@@ -157,6 +156,16 @@ export const useActivityActions = () => {
                 return;
             }
 
+            if (activityType === 'rpg') {
+                addActivityTab({
+                    title: topic || "Drácker RPG",
+                    type: 'rpg',
+                    content: "Aventura do Drácker"
+                });
+                setIsLoading(false);
+                return;
+            }
+
             if (activityType === 'summary') {
                 const parsedData = await generateDrackerActivity({
                     topic,
@@ -165,8 +174,12 @@ export const useActivityActions = () => {
                     model: selectedModel,
                     geminiService
                 });
-                setDrackerEditorData(parsedData);
-                setShowDrackerEditor(true);
+                addActivityTab({
+                    title: topic || "Resumo",
+                    type: 'summary',
+                    content: JSON.stringify(parsedData),
+                    data: parsedData
+                });
                 setIsLoading(false);
                 return;
             }
@@ -195,18 +208,7 @@ export const useActivityActions = () => {
                 return;
             }
 
-            if (activityType === 'rpg') {
-                const data = await geminiService.generateRPGAdventure(topic, lessonDetails);
-                addActivityTab({
-                    title: data.title || topic,
-                    type: 'rpg',
-                    content: data.intro || `Aventura RPG sobre ${topic}`,
-                    data: data
-                });
-                generateAudio(data.intro);
-                setIsLoading(false);
-                return;
-            }
+
 
             const levelLabel = difficulty === 'hard' ? 'Ensino Médio (linguagem avançada, conceitos aprofundados)' : difficulty === 'easy' ? 'Anos Iniciais do Ensino Fundamental (linguagem lúdica, infantil e super fácil)' : 'Anos Finais do Ensino Fundamental (linguagem padrão, conceitos intermediários)';
             const context = `Contexto/Detalhes: ${lessonDetails || 'Nenhum detalhe adicional.'}`;
@@ -292,43 +294,6 @@ export const useActivityActions = () => {
             setError("Erro ao formatar quiz editado.");
         }
         setShowQuizEditor(false);
-    };
-
-    const handleDrackerConfirm = (data) => {
-        const newDrackerData = {
-            story: data.story,
-            activities: data.activities
-        };
-
-        let formattedOutput = `## Aprenda com o Drácker: ${topic}\n\n`;
-        formattedOutput += `${newDrackerData.story}\n\n`;
-        formattedOutput += `### 🐉 Atividades Práticas na Floresta\n\n`;
-
-        newDrackerData.activities.forEach((act, index) => {
-            formattedOutput += `${index + 1}. ${act.title}\n`;
-            if (act.materials) formattedOutput += `   Materiais: ${act.materials}\n`;
-            if (act.steps) formattedOutput += `   Como fazer: ${act.steps}\n`;
-            formattedOutput += `\n`;
-        });
-
-        if (isEditing) {
-            setTabs(prev => prev.map(t => {
-                if (t.id === activeTabId) {
-                    return { ...t, content: formattedOutput, drackerData: newDrackerData };
-                }
-                return t;
-            }));
-        } else {
-            addActivityTab({
-                title: topic || "Aprenda com o Drácker",
-                type: 'summary',
-                content: formattedOutput,
-                drackerData: newDrackerData
-            });
-        }
-
-        generateAudio(newDrackerData.story);
-        setShowDrackerEditor(false);
     };
 
     const handleMusicConfirm = (editedData) => {
@@ -473,10 +438,7 @@ export const useActivityActions = () => {
         setShowQuizEditor(true);
     };
 
-    const openEditDracker = (data) => {
-        setDrackerEditorData(data);
-        setShowDrackerEditor(true);
-    };
+
 
     const openEditMusic = (data) => {
         setMusicEditorData(data);
@@ -522,7 +484,7 @@ export const useActivityActions = () => {
 
         // Editor States & Setters
         showQuizEditor, setShowQuizEditor, quizEditorData, openEditQuiz, handleQuizConfirm,
-        showDrackerEditor, setShowDrackerEditor, drackerEditorData, openEditDracker, handleDrackerConfirm,
+
         showMusicEditor, setShowMusicEditor, musicEditorData, openEditMusic, handleMusicConfirm, openManualMusicEditor,
         showConnectDotsEditor, setShowConnectDotsEditor, connectDotsEditorData, openEditConnectDots, handleConnectDotsConfirm,
         showCrosswordEditor, setShowCrosswordEditor, crosswordEditorData, handleCrosswordConfirm,

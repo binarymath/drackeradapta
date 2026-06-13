@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, Repeat, Music } from 'lucide-react';
+import { Play, Pause, Repeat, Music, Download } from 'lucide-react';
 import { Card } from '../ui/Card';
 
 const drackerPlaylist = [
@@ -111,6 +111,26 @@ export const SunoNativePlayer = () => {
         }
     }, [currentIdx, isPlaying]);
 
+    const handleDownload = async (url, title) => {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Falha no download');
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp3`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('Erro ao baixar, abrindo em nova guia:', error);
+            window.open(url, '_blank');
+        }
+    };
+
     const track = drackerPlaylist[currentIdx];
 
     return (
@@ -123,14 +143,25 @@ export const SunoNativePlayer = () => {
             />
 
             {/* Cabeçalho da Playlist (Light Theme) */}
-            <div className="p-5 border-b border-purple-200 flex items-center gap-4 bg-white/50 backdrop-blur-sm">
-                <div className="w-12 h-12 rounded-full bg-purple-200 flex items-center justify-center text-purple-600 shadow-inner shrink-0">
-                    <Music className="w-6 h-6" />
+            <div className="p-5 border-b border-purple-200 flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 bg-white/50 backdrop-blur-sm">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-purple-200 flex items-center justify-center text-purple-600 shadow-inner shrink-0">
+                        <Music className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-xl text-purple-900">Rádio Drácker</h3>
+                        <p className="text-purple-700 text-xs font-medium">Músicas pedagógicas para a turma</p>
+                    </div>
                 </div>
-                <div>
-                    <h3 className="font-bold text-xl text-purple-900">Rádio Drácker</h3>
-                    <p className="text-purple-700 text-xs font-medium">Músicas pedagógicas para a turma</p>
-                </div>
+                {track?.audioUrl && (
+                    <button
+                        onClick={() => handleDownload(track.audioUrl, track.title)}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold text-xs rounded-full border border-purple-300 transition-colors shadow-sm ml-auto sm:ml-0"
+                        title="Baixar arquivo de áudio"
+                    >
+                        <Download className="w-4 h-4" /> Baixar MP3
+                    </button>
+                )}
             </div>
 
             {/* Barra de Progresso Global (Para a música atual) */}
@@ -192,6 +223,13 @@ export const SunoNativePlayer = () => {
                                             <div className="w-1 bg-purple-500 animate-bounce h-4/5 rounded-sm" style={{animationDelay: '300ms'}}></div>
                                         </div>
                                     )}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleDownload(item.audioUrl, item.title); }}
+                                        className="p-1.5 rounded-full transition-all text-purple-400 hover:text-purple-800 hover:bg-purple-200"
+                                        title="Baixar MP3"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                    </button>
                                     <button
                                         onClick={(e) => toggleLoop(e, item.id)}
                                         className={`p-1.5 rounded-full transition-all ${

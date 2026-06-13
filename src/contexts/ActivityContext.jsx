@@ -141,12 +141,13 @@ export const ActivityProvider = ({ children }) => {
         { id: 'wordsearch', label: 'Caça-Palavras', icon: <Grid className="w-4 h-4" /> },
         { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-4 h-4" /> },
         { id: 'summary', label: 'Drácker Metodologia Ativa', icon: <MessageSquare className="w-4 h-4" /> },
+        { id: 'rpg', label: 'Drácker Mestre RPG', icon: <Compass className="w-4 h-4" /> },
         { id: 'domino', label: 'Dominó Pedagógico', icon: <Grid className="w-4 h-4" /> },
 
         { id: 'memory', label: 'Jogo da Memória', icon: <Brain className="w-4 h-4" /> },
         { id: 'connect_dots', label: 'Liga Pontos', icon: <BrainCircuit className="w-4 h-4" /> },
 
-        { id: 'rpg', label: 'Drácker RPG', icon: <Compass className="w-4 h-4" /> },
+
         { id: 'hangman', label: 'Jogo da Forca', icon: <Gamepad2 className="w-4 h-4" /> },
         { id: 'merge_pdf', label: 'Unir PDFs', icon: <Files className="w-4 h-4" /> },
     ], []);
@@ -161,7 +162,15 @@ export const ActivityProvider = ({ children }) => {
     useEffect(() => {
         if (activeActivity) {
             setTopic(activeActivity.title || '');
-            if (['quiz', 'wordsearch', 'crossword', 'summary', 'simplify', 'connect_dots', 'video_gallery', 'memory', 'rpg'].includes(activeActivity.type)) {
+            
+            // Atualiza o título da aba do navegador
+            if (activeActivity.title && activeActivity.title !== 'Sem título') {
+                document.title = `${activeActivity.title} - Drácker Adapta`;
+            } else {
+                document.title = 'Drácker Adapta';
+            }
+
+            if (['quiz', 'wordsearch', 'crossword', 'summary', 'simplify', 'connect_dots', 'video_gallery', 'memory', 'rpg', 'chat_dracker', 'about_system'].includes(activeActivity.type)) {
                 setActivityType(activeActivity.type);
             }
         }

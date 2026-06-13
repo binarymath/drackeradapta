@@ -37,9 +37,10 @@ export const safeJSONParse = (text) => {
     }
 
     // ── Tentativa 1: parse nativo ──────────────────────────────
+    let lastError = null;
     try {
         return JSON.parse(clean);
-    } catch (_) { /* continua */ }
+    } catch (e) { lastError = e; }
 
     // ── Tentativa 2: fix trailing commas ──────────────────────
     let fixed = clean
@@ -101,8 +102,10 @@ export const safeJSONParse = (text) => {
 
     console.warn(
         '[safeJSONParse] Falhou após todas as tentativas.\n' +
-        'Raw (primeiros 600 chars):', text?.slice(0, 600), '\n' +
-        'Cleaned:', clean?.slice(0, 600)
+        'Parse Error original: ' + (lastError ? lastError.message : 'N/A') + '\n' +
+        'Text length: ' + (text ? text.length : 0) + '\n' +
+        'Start of text: ' + text?.slice(0, 200) + '\n' +
+        'End of text: ' + text?.slice(-300)
     );
     return null;
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { QuizEditorModal } from './QuizEditorModal';
-import { DrackerEditorModal } from './DrackerEditorModal';
+
 import { VoiceSettingsModal } from './VoiceSettingsModal';
 import { MusicEditorModal } from './MusicEditorModal';
 import { AudioRecorderModal } from './AudioRecorderModal';
@@ -18,11 +18,7 @@ export const AppModals = ({
     handleQuizConfirm,
     quizEditorData,
 
-    // Dracker
-    showDrackerEditor,
-    setShowDrackerEditor,
-    handleDrackerConfirm,
-    drackerEditorData,
+
 
     // Connect Dots
     showConnectDotsEditor,
@@ -96,12 +92,7 @@ export const AppModals = ({
                 initialData={quizEditorData}
             />
 
-            <DrackerEditorModal
-                isOpen={showDrackerEditor}
-                onClose={() => setShowDrackerEditor(false)}
-                onSave={handleDrackerConfirm}
-                initialData={drackerEditorData}
-            />
+
 
             <TabSelectionModal
                 isOpen={tabSelectionModal.isOpen}

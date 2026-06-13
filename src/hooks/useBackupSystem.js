@@ -1,11 +1,9 @@
 import { useState } from 'react';
 
-export const useBackupSystem = (tabs, setTabs, setActiveTabId, expeditions = [], setExpeditions = () => { }, allMembers = [], setAllMembers = () => { }) => {
+export const useBackupSystem = (tabs, setTabs, setActiveTabId) => {
     const [importDialog, setImportDialog] = useState({
         isOpen: false,
         importedTabs: [],
-        importedExpeditions: [],
-        importedAllMembers: [], // Centralized members
         importedDate: null,
         importedVersion: null
     });
@@ -13,125 +11,86 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, expeditions = [],
     const exportSystemState = () => {
         try {
             const state = {
-                version: '1.2', // Bump version
+                version: '2.0',
                 exportDate: new Date().toISOString(),
                 exportTime: new Date().getTime(),
-                tabs: tabs,
-                expeditions: expeditions, // Include expeditions
-                allMembers: allMembers // Include centralized members
+                tabs: tabs
             };
             const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `backup_dracker_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}_v1.2.json`;
+            link.download = `backup_dracker_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}_v2.0.json`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            URL.revokeObjectURL(url);
         } catch (error) {
-            console.error("Erro ao fazer backup:", error);
-            alert("Erro ao criar arquivo de backup (.json): " + error.message);
+            console.error('Failed to export state:', error);
+            alert('Erro ao gerar backup.');
         }
     };
 
-    const importSystemState = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    const importSystemState = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedState = JSON.parse(e.target.result);
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const importedState = JSON.parse(event.target.result);
+                    if (importedState.tabs && Array.isArray(importedState.tabs)) {
+                        const isSystemEmpty = tabs.length === 0;
 
-                // Validate if it has tabs OR expeditions (valid backup)
-                if ((importedState.tabs && Array.isArray(importedState.tabs)) || (importedState.expeditions && Array.isArray(importedState.expeditions))) {
-
-                    const hasExpeditions = importedState.expeditions && importedState.expeditions.length > 0;
-                    const hasTabs = importedState.tabs && importedState.tabs.length > 0;
-                    const hasAllMembers = importedState.allMembers && Array.isArray(importedState.allMembers);
-
-                    // If system is empty (no tabs and default/empty expeditions), restore directly
-                    const isSystemEmpty = tabs.length === 0 && (!expeditions || expeditions.length <= 1); // <=1 assuming default 'Turma Principal' is empty
-
-                    if (isSystemEmpty) {
-                        if (hasTabs) {
+                        if (isSystemEmpty) {
                             setTabs(importedState.tabs);
-                            setActiveTabId(importedState.tabs[0].id);
+                            if (importedState.tabs.length > 0) {
+                                setActiveTabId(importedState.tabs[importedState.tabs.length - 1].id);
+                            }
+                            alert('Sistema restaurado com sucesso!');
+                        } else {
+                            setImportDialog({
+                                isOpen: true,
+                                importedTabs: importedState.tabs,
+                                importedDate: importedState.exportDate,
+                                importedVersion: importedState.version
+                            });
                         }
-                        if (hasExpeditions) {
-                            setExpeditions(importedState.expeditions);
-                        }
-                        if (hasAllMembers) {
-                            setAllMembers(importedState.allMembers);
-                        }
-                        alert('Sistema restaurado com sucesso!');
                     } else {
-                        // Show merge/replace dialog
-                        setImportDialog({
-                            isOpen: true,
-                            importedTabs: importedState.tabs || [],
-                            importedExpeditions: importedState.expeditions || [],
-                            importedAllMembers: importedState.allMembers || [],
-                            importedDate: importedState.exportDate,
-                            importedVersion: importedState.version
-                        });
+                        alert('Arquivo de backup inválido ou incompatível.');
                     }
-                } else {
-                    alert('Arquivo de backup inválido ou antigo.');
+                } catch (error) {
+                    console.error('Failed to parse backup file:', error);
+                    alert('Erro ao ler arquivo de backup. Certifique-se de que é um arquivo JSON válido.');
                 }
-            } catch (err) {
-                console.error("Erro ao importar", err);
-                alert('Erro ao ler arquivo.');
-            }
-        };
-        reader.readAsText(file);
-        e.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+        event.target.value = null; // Reset input so same file can be selected again
     };
 
     const handleMergeImport = () => {
-        // Merge Tabs
         const existingTabIds = new Set(tabs.map(t => t.id));
         const newTabs = importDialog.importedTabs.filter(t => !existingTabIds.has(t.id));
-        if (newTabs.length > 0) setTabs([...tabs, ...newTabs]);
-
-        // Merge Expeditions (avoid duplicate IDs)
-        if (importDialog.importedExpeditions.length > 0) {
-            const existingExpIds = new Set(expeditions.map(e => e.id));
-            const newExps = importDialog.importedExpeditions.filter(e => !existingExpIds.has(e.id));
-            if (newExps.length > 0) setExpeditions([...expeditions, ...newExps]);
+        if (newTabs.length > 0) {
+            setTabs([...tabs, ...newTabs]);
         }
-
-        // Merge Members (avoid duplicate IDs)
-        if (importDialog.importedAllMembers.length > 0) {
-            const existingMemberIds = new Set(allMembers.map(m => m.id));
-            const newMembers = importDialog.importedAllMembers.filter(m => !existingMemberIds.has(m.id));
-            if (newMembers.length > 0) setAllMembers([...allMembers, ...newMembers]);
-        }
-
-        setImportDialog({ isOpen: false, importedTabs: [], importedExpeditions: [], importedAllMembers: [], importedDate: null, importedVersion: null });
-        alert('Importação concluída (Mesclado)!');
+        closeImportDialog();
+        alert('Abas mescladas com sucesso!');
     };
 
     const handleReplaceImport = () => {
-        // Replace All
         setTabs(importDialog.importedTabs);
-        if (importDialog.importedTabs.length > 0) setActiveTabId(importDialog.importedTabs[0].id);
-
-        if (importDialog.importedExpeditions.length > 0) {
-            setExpeditions(importDialog.importedExpeditions);
+        if (importDialog.importedTabs.length > 0) {
+            setActiveTabId(importDialog.importedTabs[importDialog.importedTabs.length - 1].id);
+        } else {
+            setActiveTabId('dashboard');
         }
-
-        if (importDialog.importedAllMembers.length > 0) {
-            setAllMembers(importDialog.importedAllMembers);
-        }
-
-        setImportDialog({ isOpen: false, importedTabs: [], importedExpeditions: [], importedAllMembers: [], importedDate: null, importedVersion: null });
-        alert('Sistema restaurado (Substituído)!');
+        closeImportDialog();
+        alert('Sistema substituído com sucesso!');
     };
 
     const closeImportDialog = () => {
-        setImportDialog({ isOpen: false, importedTabs: [], importedExpeditions: [], importedAllMembers: [], importedDate: null, importedVersion: null });
+        setImportDialog(prev => ({ ...prev, isOpen: false }));
     };
 
     return {

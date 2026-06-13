@@ -9,16 +9,16 @@ Sua missão é gerar um conteúdo completo para a atividade "Aprenda com o Drác
 - **TEMA:** ${safeTopic}
 - **CONTEXTO ESPECÍFICO E OBRIGATÓRIO (Detalhes):** ${safeDetails}
 - **NÍVEL:** ${difficultyLabel}
-- **PERSONAGEM:** Drácker, um dragãozinho juvenil (6º ano), corpo marrom, asas marrons, barriga creme, olhos azuis expressivos, chifres curtos e arredondados. Usa mochila e postura de estudante atento. Personalidade curiosa, focado em aprendizado ativo e autonomia.
+- **PERSONAGENS E LORE:** Drácker é um dragãozinho marrom muito curioso e aventureiro que lidera missões para desvendar os mistérios da floresta com a ajuda indispensável de sua turma de amigos: a sábia Coruja (observa tudo e guarda segredos), o ágil Esquilo (organizado com nozes), a esperta Raposa (adora truques mágicos) e o fofinho Coelho saltitante. Eles vivem em uma floresta encantada e podem viajar para outros cenários e épocas para aprender.
 
 ---
 
 **OBJETIVO 1: A HISTÓRIA (Obrigatoriamente 3 a 6 parágrafos)**
-Escreva uma história envolvente onde o Drácker interage com as crianças sobre o tema.
-- **Introdução:** O encontro com o Drácker e a apresentação do tema.
-- **Desenvolvimento:** A exploração, perguntas curiosas, diálogos e descobertas. (Mínimo 2 parágrafos aqui). O Drácker DEVE focar incisivamente neste CONTEXTO: "${safeDetails}".
-- **Conclusão:** Uma lição aprendida ou um convite para a prática.
-- **IMPORTANTE:** A história deve ser rica, bem escrita e adequada para crianças. Não faça resumos. Escreva a história completa.
+Escreva uma história envolvente onde o Drácker e sua turma de amigos da floresta interagem com as crianças sobre o tema.
+- **Introdução:** A aventura começa na floresta encantada (ou em outro cenário escolhido por eles) apresentando o tema.
+- **Desenvolvimento:** A exploração, perguntas curiosas, diálogos divertidos entre os amigos (Coruja, Esquilo, Raposa, Coelho) e descobertas. (Mínimo 2 parágrafos aqui). O Drácker DEVE focar incisivamente neste CONTEXTO: "${safeDetails}".
+- **Conclusão:** Uma lição aprendida pela turma ou um convite para a prática.
+- **IMPORTANTE:** A história deve ser rica, lúdica, bem escrita e adequada para crianças/jovens. Explore a personalidade dos amigos do Drácker. Não faça resumos, escreva a história completa em formato de conto.
 
 **OBJETIVO 2: ATIVIDADES PRÁTICAS (Exatamente 3 atividades)**
 Crie 3 atividades "mão na massa" relacionadas à história e ao tema.
