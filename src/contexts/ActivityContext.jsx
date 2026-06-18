@@ -108,10 +108,7 @@ export const ActivityProvider = ({ children }) => {
     // Activity Switch Logic
     const handleActivityTypeChange = (type) => {
         const existingTabs = tabs.filter(t => t.type === type);
-        if (existingTabs.length === 1) {
-            setActiveTabId(existingTabs[0].id);
-            setActivityType(type); // Ensure sidebar highlight updates
-        } else if (existingTabs.length > 1) {
+        if (existingTabs.length > 0) {
             setTabSelectionModal({ isOpen: true, type: type });
         } else {
             setActivityType(type);
@@ -140,6 +137,7 @@ export const ActivityProvider = ({ children }) => {
         { id: 'quiz', label: 'Quiz / Questões', icon: <FileText className="w-4 h-4" /> },
         { id: 'wordsearch', label: 'Caça-Palavras', icon: <Grid className="w-4 h-4" /> },
         { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-4 h-4" /> },
+        { id: 'trading_cards', label: 'Criador de Cards', icon: <Grid className="w-4 h-4" /> },
         { id: 'summary', label: 'Drácker Metodologia Ativa', icon: <MessageSquare className="w-4 h-4" /> },
         { id: 'rpg', label: 'Drácker Mestre RPG', icon: <Compass className="w-4 h-4" /> },
         { id: 'domino', label: 'Dominó Pedagógico', icon: <Grid className="w-4 h-4" /> },
@@ -170,7 +168,7 @@ export const ActivityProvider = ({ children }) => {
                 document.title = 'Drácker Adapta';
             }
 
-            if (['quiz', 'wordsearch', 'crossword', 'summary', 'simplify', 'connect_dots', 'video_gallery', 'memory', 'rpg', 'chat_dracker', 'about_system'].includes(activeActivity.type)) {
+            if (['quiz', 'wordsearch', 'crossword', 'trading_cards', 'summary', 'simplify', 'connect_dots', 'video_gallery', 'memory', 'rpg', 'chat_dracker', 'about_system'].includes(activeActivity.type)) {
                 setActivityType(activeActivity.type);
             }
         }
