@@ -20,6 +20,7 @@ import { DrackerSummaryRenderer } from './activity-area/DrackerSummaryRenderer';
 import HangmanGame from './HangmanGame';
 import DetectiveRPG from './rpg/DetectiveRPG';
 import ChatDracker from './chat/ChatDracker';
+import { TradingCardMaker } from './trading-cards/TradingCardMaker';
 
 import html2pdf from 'html2pdf.js';
 
@@ -91,6 +92,7 @@ export const ActivityArea = ({
         (activityType === 'about_system') ||
 
         (activityType === 'hangman') ||
+        (activityType === 'trading_cards') ||
         (activityType === 'chat_dracker') ||
         (activityType === 'domino' && dominoData);
 
@@ -353,6 +355,8 @@ export const ActivityArea = ({
                                 <MemoryGame isFullWidth={isFullWidth} />
                             ) : activityType === 'chat_dracker' ? (
                                 <ChatDracker />
+                            ) : activityType === 'trading_cards' ? (
+                                <TradingCardMaker />
                             ) : activityType === 'summary' && drackerData ? (
                                 <DrackerSummaryRenderer data={drackerData} title={activityTitle} />
                             ) : (
