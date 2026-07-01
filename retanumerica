@@ -1,0 +1,132 @@
+# Planejamento Técnico e Pedagógico: Drácker - Crie sua Reta Numérica
+
+---
+
+## 📌 1. Visão Geral e Proposta Pedagógica
+
+O módulo **Drácker: Crie sua Reta Numérica** (ID interno: `number_line`) é uma nova ferramenta visual, interativa e altamente customizável integrada à plataforma **Drácker Adapta**. Seu objetivo é capacitar educadores a projetar, explorar e gerar atividades pedagógicas envolvendo a **Reta Numérica**, facilitando a compreensão visual de:
+- **Números Inteiros ($\mathbb{Z}$)**: Números positivos, negativos, zero e seus simétricos/opostos.
+- **Frações ($\mathbb{Q}$)**: Frações próprias, impróprias, números mistos e equivalência fracionária.
+- **Números Decimais**: Décimos, centésimos e interpolação entre inteiros.
+- **Operações na Reta**: Ilustração visual de adição, subtração e distância (módulo/valor absoluto) através de arcos de salto.
+
+O sistema seguirá rigorosamente a identidade visual e o padrão de arquitetura das demais ferramentas do ecossistema Drácker (como *DominoGame*, *TradingCardMaker* e *CrosswordActivity*), oferecendo suporte a instâncias em abas (`TabsBar`), integração com inteligência artificial (Gemini API), modo interativo para Lousa Digital/Projeção e exportação otimizada para impressão em A4/PDF.
+
+---
+
+## 🎨 2. Integração com a Interface e Menu Lateral (Sidebar)
+
+A ferramenta será posicionada como uma sessão pedagógica de destaque no painel lateral do sistema:
+
+### 2.1 Adição ao `Sidebar.jsx`
+- **Ícone Sugerido**: `<ArrowLeftRight />` ou `<GitCommitHorizontal />` da biblioteca `lucide-react`.
+- **Rótulo no Sidebar**: **"Drácker: Reta Numérica"** ou dentro das opções rápidas de geração pedagógica.
+- **Comportamento**: Ao clicar, o sistema ativa o módulo `number_line`, abrindo uma instância inicial com suporte ao gerenciamento multi-abas.
+
+### 2.2 Atualização no `ActivityContext.jsx`
+Registro oficial na lista `activityOptions`:
+```javascript
+{ 
+    id: 'number_line', 
+    label: 'Reta Numérica Interativa', 
+    icon: <ArrowLeftRight className="w-4 h-4" /> 
+}
+```
+
+---
+
+## ⚙️ 3. Especificações Funcionais do Construtor
+
+O painel do educador permitirá o controle total ou a geração automática por IA da reta numérica e de suas atividades:
+
+### 3.1 Painel de Configuração Manual (Controle Granular)
+1. **Domínio Numérico**:
+   - *Inteiros*: Foco em saltos inteiros (ex: $-10$ a $+10$).
+   - *Frações*: Definição do denominador comum ou subdivisões fracionárias (ex: meios $1/2$, terços $1/3$, quartos $1/4$, quintos $1/5$, décimos $1/10$).
+   - *Decimais*: Visualização com casas decimais (ex: $0.0$ a $2.0$ com passo de $0.1$).
+2. **Intervalo da Reta**:
+   - **Início (Mínimo)** e **Fim (Máximo)** customizáveis.
+   - **Passo Principal (Escala)** e **Subdivisões Secundárias** (ex: traços maiores para inteiros, traços menores para frações).
+3. **Gerenciador de Pinos / Marcadores (Destaques)**:
+   - Capacidade de adicionar pontos específicos na reta (ex: marcar o ponto $A = -\frac{3}{4}$ ou $B = 5$).
+   - Personalização de cor do pino (verde, âmbar, vermelho, azul, roxo).
+   - Opção de **Ocultar Valor** (modo enigma/questão para o aluno descobrir qual número o pino representa).
+4. **Saltos e Operações (Arcos de Deslocamento)**:
+   - Criação de setas curvas conectando dois pontos na reta para ilustrar raciocínio aditivo/subtrativo (ex: de $-2$ pulando $+5$ para chegar a $+3$).
+
+### 3.2 Geração via Inteligência Artificial (Drácker IA)
+- **Entrada do Professor**: O professor digita o tema ou habilidade (ex: *BNCC EF06MA01 - Ordenação de frações e números negativos*).
+- **Saída da IA**:
+  - Parâmetros ideais para a reta (mínimo, máximo, subdivisão).
+  - Conjunto de pinos/questões automáticas.
+  - Enunciado pedagógico contextualizado e questões discursivas/objetivas de interpretação.
+
+---
+
+## 🖥️ 4. Modos de Exibição e Interatividade
+
+O módulo contará com três modos de uso visual, selecionáveis por cards de alternância (`GameToggleCard`):
+
+### 4.1 Modo Estudo / Edição (Visualização Padrão)
+- Exibe a reta numérica renderizada em **SVG de alta fidelidade** e escalável.
+- Painel lateral ou superior para edição em tempo real dos pontos e rótulos.
+- Design responsivo e com suporte a zoom horizontal.
+
+### 4.2 Modo Lousa Interativa / Jogo (Para Sala de Aula e Projeção)
+- **Dinâmica de Drag-and-Drop (Arrastar e Soltar)**: O sistema gera cards soltos com frações ou números inteiros na parte inferior da tela. O aluno (ou turma na lousa digital) deve arrastar cada card até o ponto exato da reta numérica.
+- **Modo "Descubra o Ponto"**: Pinos com pontos de interrogação ($?$) onde o aluno clica e digita a fração ou inteiro correspondente.
+- **Feedback Imediato**: Efeitos visuais e sonoros (animações de acerto, celebração com confetes ou dica pedagógica em caso de erro).
+
+### 4.3 Modo Impressão / Avaliação (Folha A4 PDF)
+- **Gabarito vs. Folha do Aluno**: Opção de alternar com um clique entre mostrar respostas (gabarito do professor) ou ocultar os valores dos pinos para impressão.
+- **Layout Limpo**: Cabeçalho oficial da escola/Drácker, enunciado formatado em tipografia clara, retas numéricas nítidas (sem perda de qualidade na impressão) e espaço para resolução de exercícios.
+
+---
+
+## 📂 5. Arquitetura e Estrutura de Arquivos
+
+Para garantir manutenibilidade e modularidade, o código será organizado da seguinte forma:
+
+```text
+src/
+├── components/
+│   ├── number-line/
+│   │   ├── NumberLineMaker.jsx       # Componente principal (Gerencia abas, estado, IA e navegação)
+│   │   ├── NumberLineRenderer.jsx    # Motor de renderização SVG da reta (eixos, traços, pinos e arcos)
+│   │   ├── NumberLineEditor.jsx      # Formulário de configuração de intervalo, frações e marcadores
+│   │   ├── NumberLineGame.jsx        # Modo interativo de arrastar e soltar (Drag and Drop / Lousa)
+│   │   └── NumberLinePrint.jsx       # Layout otimizado para exportação em folha de atividade A4/PDF
+│   ├── Sidebar.jsx                   # Atualizado com o novo botão de acesso à Reta Numérica
+│   └── ActivityArea.jsx              # Roteamento visual para exibir o NumberLineMaker
+├── contexts/
+│   └── ActivityContext.jsx           # Inclusão da opção 'number_line' no ecossistema
+└── core/
+    └── prompts/
+        └── numberLinePrompt.js       # Prompt do Gemini para criar retas e problemas fracionários
+```
+
+---
+
+## 🚀 6. Fases e Roteiro de Implementação (Roadmap)
+
+### Fase 1: Fundação e Conectividade
+- [x] Registrar o tipo `number_line` no `ActivityContext.jsx`.
+- [x] Adicionar o link **"Drácker: Reta Numérica"** na barra lateral (`Sidebar.jsx`).
+- [x] Criar o esqueleto do componente `NumberLineMaker.jsx` com suporte ao sistema de abas Drácker.
+
+### Fase 2: Motor Visual (SVG Number Line Renderer)
+- [x] Implementar `NumberLineRenderer.jsx` com desenho vetorial SVG puro.
+- [x] Suporte algorítmico ao cálculo de posições relativas e marcações de traços (primários e secundários para frações como $1/2, 1/3, 1/4$).
+- [x] Sistema de renderização de pinos interativos e rótulos fracionários em formato matemático limpo ($\frac{a}{b}$).
+
+### Fase 3: Painel de Controle e Customização
+- [x] Desenvolver `NumberLineMaker.jsx` com controles para mudar limites (mín/máx), denominadores e adicionar/remover pinos dinamicamente.
+- [x] Adicionar controles para arcos de salto (ilustração de soma e subtração de frações/inteiros na reta).
+
+### Fase 4: Integração com Inteligência Artificial
+- [x] Criar `numberLinePrompt.js` capaz de gerar JSON estruturado com exercícios pedagógicos de reta numérica.
+- [x] Conectar o botão "Gerar" ao Gemini API para auto-preenchimento da atividade.
+
+### Fase 5: Modo Interativo (Lousa) e Impressão (PDF)
+- [x] Implementar `NumberLineGame.jsx` com interatividade de arraste ou clique para adivinhar frações/inteiros.
+- [x] Criar `NumberLinePrint.jsx` com formatação impecável para impressão em folha A4 com ou sem gabarito.

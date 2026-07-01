@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input, TextArea } from '../ui/Input';
@@ -33,12 +33,35 @@ export const TradingCardMaker = () => {
         skillDescAlign: 'left',
         footerDescAlign: 'center',
         imageUrl: '',
+        hideImage: false,
         skills: [{ name: '', desc: '', val: '' }],
         description: ''
     });
 
     const [isEditingList, setIsEditingList] = useState(false);
     const [cardsToPrint, setCardsToPrint] = useState([]);
+
+    const [previewRotation, setPreviewRotation] = useState({ x: 0, y: 0, active: false });
+    const previewRef = useRef(null);
+
+    const handlePreviewMouseMove = (e) => {
+        if (!previewRef.current) return;
+        const rect = previewRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        
+        const rotateX = ((y - centerY) / centerY) * -15; // Max 15 deg
+        const rotateY = ((x - centerX) / centerX) * 15;
+        
+        setPreviewRotation({ x: rotateX, y: rotateY, active: true });
+    };
+
+    const handlePreviewMouseLeave = () => {
+        setPreviewRotation({ x: 0, y: 0, active: false });
+    };
 
     // Sync cardsToPrint with savedCards on first load or when new cards are added
     useEffect(() => {
@@ -75,7 +98,7 @@ export const TradingCardMaker = () => {
             textColor: '#1f2937', hpBgColor: '#ffffff', hpTextColor: '#dc2626',
             fontFamily: 'sans-serif', titleSize: 20, skillNameSize: 13, skillValSize: 14, skillDescSize: 10, footerDescSize: 10,
             titleAlign: 'left', skillDescAlign: 'left', footerDescAlign: 'center',
-            skills: [{ name: '', desc: '', val: '' }], description: ''
+            hideImage: false, skills: [{ name: '', desc: '', val: '' }], description: ''
         });
     };
 
@@ -114,6 +137,7 @@ export const TradingCardMaker = () => {
         loadedCard.titleAlign = loadedCard.titleAlign || 'left';
         loadedCard.skillDescAlign = loadedCard.skillDescAlign || 'left';
         loadedCard.footerDescAlign = loadedCard.footerDescAlign || 'center';
+        loadedCard.hideImage = loadedCard.hideImage || false;
         
         setCurrentCard(loadedCard);
         setIsEditingList(false);
@@ -188,12 +212,23 @@ export const TradingCardMaker = () => {
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
-                        <div className="flex flex-col gap-1">
-                            <Input label="URL da Imagem" value={currentCard.imageUrl} onChange={e => setCurrentCard({...currentCard, imageUrl: e.target.value})} placeholder="https://..." />
-                            {(currentCard.imageUrl.includes('photos.app.goo.gl') || currentCard.imageUrl.includes('photos.google.com')) && (
-                                <div className="text-[11px] text-blue-700 bg-blue-50 border border-blue-200 p-2 rounded flex flex-col gap-1 mt-1">
-                                    <span className="font-bold flex items-center gap-1">ℹ️ Como usar imagens do Google Fotos:</span>
-                                    <span>O link de compartilhamento não funciona direto. Você precisa abrir esse link no navegador, clicar com o <b>botão direito</b> em cima da foto e escolher <b>"Copiar endereço da imagem"</b>. Depois cole aqui!</span>
+                        <div className="flex flex-col gap-1 border border-brown-200 p-3 rounded-lg bg-brown-50/50">
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-bold text-brown-500 uppercase tracking-wider">Imagem do Card</span>
+                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="checkbox" checked={!currentCard.hideImage} onChange={e => setCurrentCard({...currentCard, hideImage: !e.target.checked})} className="w-3.5 h-3.5 accent-amber-600 cursor-pointer" />
+                                    <span className="text-xs font-bold text-brown-700">Incluir Imagem</span>
+                                </label>
+                            </div>
+                            {!currentCard.hideImage && (
+                                <div className="flex flex-col gap-1 mt-1">
+                                    <Input value={currentCard.imageUrl} onChange={e => setCurrentCard({...currentCard, imageUrl: e.target.value})} placeholder="URL da Imagem (https://...)" />
+                                    {(currentCard.imageUrl.includes('photos.app.goo.gl') || currentCard.imageUrl.includes('photos.google.com')) && (
+                                        <div className="text-[11px] text-blue-700 bg-blue-50 border border-blue-200 p-2 rounded flex flex-col gap-1 mt-1">
+                                            <span className="font-bold flex items-center gap-1">ℹ️ Como usar imagens do Google Fotos:</span>
+                                            <span>O link de compartilhamento não funciona direto. Você precisa abrir esse link no navegador, clicar com o <b>botão direito</b> em cima da foto e escolher <b>"Copiar endereço da imagem"</b>. Depois cole aqui!</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -408,10 +443,40 @@ export const TradingCardMaker = () => {
                 </Card>
 
                 {/* Visual Preview */}
-                <div className="flex flex-col items-center justify-center p-8 bg-brown-100 rounded-2xl border-2 border-dashed border-brown-300 relative">
-                    <span className="absolute top-4 left-4 text-xs font-bold text-brown-400 uppercase tracking-wider">Preview em Tempo Real</span>
-                    <div className="scale-100 transform origin-top hover:scale-105 transition-transform">
-                        <TradingCard data={currentCard} />
+                <div className="flex flex-col items-center justify-center p-8 bg-brown-100 rounded-2xl border-2 border-dashed border-brown-300 relative overflow-hidden" style={{ perspective: '1000px' }}>
+                    <span className="absolute top-4 left-4 text-xs font-bold text-brown-400 uppercase tracking-wider z-10 pointer-events-none">Preview em Tempo Real</span>
+                    <div 
+                        ref={previewRef}
+                        className="w-full h-full flex items-center justify-center min-h-[500px]"
+                        onMouseMove={handlePreviewMouseMove}
+                        onMouseLeave={handlePreviewMouseLeave}
+                    >
+                        <div 
+                            className={`relative transition-all ${previewRotation.active ? 'duration-75 ease-out' : 'duration-500 ease-out'}`}
+                            style={{
+                                transform: previewRotation.active 
+                                    ? `rotateX(${previewRotation.x}deg) rotateY(${previewRotation.y}deg) scale(1.05)`
+                                    : 'rotateX(0deg) rotateY(0deg) scale(1)',
+                                transformStyle: 'preserve-3d'
+                            }}
+                        >
+                            {/* Reflexo de luz (Shine effect) */}
+                            {previewRotation.active && (
+                                <div 
+                                    className="absolute inset-0 z-50 pointer-events-none rounded-2xl"
+                                    style={{
+                                        background: `linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.4) 25%, transparent 30%)`,
+                                        backgroundPosition: `${(previewRotation.y * -3) + 50}% ${(previewRotation.x * -3) + 50}%`,
+                                        backgroundSize: '300% 300%',
+                                        mixBlendMode: 'overlay',
+                                        transition: 'background-position 0.1s ease-out'
+                                    }}
+                                />
+                            )}
+                            <div className="shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-2xl">
+                                <TradingCard data={currentCard} />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

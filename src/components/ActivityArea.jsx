@@ -21,6 +21,7 @@ import HangmanGame from './HangmanGame';
 import DetectiveRPG from './rpg/DetectiveRPG';
 import ChatDracker from './chat/ChatDracker';
 import { TradingCardMaker } from './trading-cards/TradingCardMaker';
+import { NumberLineMaker } from './number-line/NumberLineMaker';
 
 import html2pdf from 'html2pdf.js';
 
@@ -94,6 +95,7 @@ export const ActivityArea = ({
         (activityType === 'hangman') ||
         (activityType === 'trading_cards') ||
         (activityType === 'chat_dracker') ||
+        (activityType === 'number_line') ||
         (activityType === 'domino' && dominoData);
 
     // Reset game mode when content changes
@@ -357,6 +359,8 @@ export const ActivityArea = ({
                                 <ChatDracker />
                             ) : activityType === 'trading_cards' ? (
                                 <TradingCardMaker />
+                            ) : activityType === 'number_line' ? (
+                                <NumberLineMaker />
                             ) : activityType === 'summary' && drackerData ? (
                                 <DrackerSummaryRenderer data={drackerData} title={activityTitle} />
                             ) : (
