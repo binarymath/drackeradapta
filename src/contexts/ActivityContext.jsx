@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { safeLocalStorageGet, safeLocalStorageSet, safeLocalStorageRemove } from '../utils/storage';
 import {
-    FileText, MessageSquare, Grid, Music, BrainCircuit, Play, Files, Compass, Brain, Gamepad2
+    FileText, MessageSquare, Grid, Music, BrainCircuit, Play, Files, Compass, Brain, Gamepad2, ArrowLeftRight
 } from 'lucide-react';
 
 const ActivityContext = createContext();
@@ -148,6 +148,7 @@ export const ActivityProvider = ({ children }) => {
 
         { id: 'hangman', label: 'Jogo da Forca', icon: <Gamepad2 className="w-4 h-4" /> },
         { id: 'merge_pdf', label: 'Unir PDFs', icon: <Files className="w-4 h-4" /> },
+        { id: 'number_line', label: 'Drácker: Reta Numérica', icon: <ArrowLeftRight className="w-4 h-4" /> },
     ], []);
 
     const difficultyOptions = useMemo(() => [
@@ -168,7 +169,7 @@ export const ActivityProvider = ({ children }) => {
                 document.title = 'Drácker Adapta';
             }
 
-            if (['quiz', 'wordsearch', 'crossword', 'trading_cards', 'summary', 'simplify', 'connect_dots', 'video_gallery', 'memory', 'rpg', 'chat_dracker', 'about_system'].includes(activeActivity.type)) {
+            if (['quiz', 'wordsearch', 'crossword', 'trading_cards', 'summary', 'simplify', 'connect_dots', 'video_gallery', 'memory', 'rpg', 'chat_dracker', 'about_system', 'number_line'].includes(activeActivity.type)) {
                 setActivityType(activeActivity.type);
             }
         }

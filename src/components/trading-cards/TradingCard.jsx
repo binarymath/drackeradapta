@@ -71,16 +71,18 @@ export const TradingCard = ({ data }) => {
                 </div>
 
                 {/* Image */}
-                <div className="w-full h-40 bg-white border-4 rounded-sm shadow-inner mb-3 overflow-hidden flex items-center justify-center relative" style={{ borderColor: innerBorderColor }}>
-                    {finalImageUrl ? (
-                        <img src={finalImageUrl} alt={title} className="w-full h-full object-fill" referrerPolicy="no-referrer" />
-                    ) : (
-                        <div className="text-gray-400 font-bold flex flex-col items-center">
-                            <span>Sem Imagem</span>
-                            <span className="text-xs font-normal">Use o gerador de IA</span>
-                        </div>
-                    )}
-                </div>
+                {!data?.hideImage && (
+                    <div className="w-full h-40 bg-white border-4 rounded-sm shadow-inner mb-3 overflow-hidden flex items-center justify-center relative shrink-0" style={{ borderColor: innerBorderColor }}>
+                        {finalImageUrl ? (
+                            <img src={finalImageUrl} alt={title} className="w-full h-full object-fill" referrerPolicy="no-referrer" />
+                        ) : (
+                            <div className="text-gray-400 font-bold flex flex-col items-center">
+                                <span>Sem Imagem</span>
+                                <span className="text-xs font-normal">Use o gerador de IA</span>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Skills */}
                 <div className="flex-1 flex flex-col gap-1 px-1 overflow-y-auto overflow-x-hidden justify-start my-1 custom-scrollbar">
