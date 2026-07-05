@@ -1,13 +1,27 @@
 import React from 'react';
 
+/** Converte URLs do Google Drive para URL direta embutível */
+function toDirectImageUrl(url) {
+    if (!url) return url;
+    const fileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (fileMatch) return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
+    const openMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+    if (openMatch) return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
+    const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
+    if (ucMatch) return `https://drive.google.com/uc?export=view&id=${ucMatch[1]}`;
+    return url;
+}
+
 /**
  * QuizPrint – Layout de impressão/PDF do Quiz em cards estilizados.
  * Props:
- *   quizData    – { intro_text, questions: [{ statement, correct_answer, distractors, difficulty? }] }
- *   title       – Título da atividade
- *   showAnswers – Se true, destaca a alternativa correta
- *   printMode   – 'full' (cards com alternativas, padrão) | 'text-only' (sem alternativas, compacto)
- *   showDifficulty – Se true, mostra badge de dificuldade em cada questão
+ *   quizData         – { intro_text, questions: [{ statement, correct_answer, distractors, difficulty?, image_url? }] }
+ *   title            – Título da atividade
+ *   showAnswers      – Se true, destaca a alternativa correta
+ *   printMode        – 'full' (cards com alternativas, padrão) | 'text-only' (sem alternativas, compacto)
+ *   showDifficulty   – Se true, mostra badge de dificuldade em cada questão
+ *   selectedIndexes  – Set ou Array de índices das questões selecionadas (undefined = todas)
+ *   imageMaxHeight   – Altura máxima das imagens em px (padrão 160). 0 = automático (sem limite)
  */
 export const QuizPrint = ({
     quizData,
@@ -15,20 +29,59 @@ export const QuizPrint = ({
     showAnswers = false,
     printMode = 'full',
     showDifficulty = true,
+    selectedIndexes,
+    imageMaxHeight = 160,
+    questionRepeats,
+    imageBgColor = 'transparent',
 }) => {
     if (!quizData?.questions?.length) return null;
 
     const isTextOnly = printMode === 'text-only';
     const LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
+    // Resolve quais questões mostrar
+    const selectedSet = selectedIndexes
+        ? new Set(Array.from(selectedIndexes).map(Number))
+        : null;
+
+    // Questões filtradas com seu índice original preservado
+    const filteredQuestions = quizData.questions
+        .map((q, idx) => ({ q, originalIdx: idx }))
+        .filter(({ originalIdx }) => !selectedSet || selectedSet.has(originalIdx));
+
+    // Expande questões conforme o repeat count (padrão = 1)
+    const visibleQuestions = filteredQuestions.flatMap(({ q, originalIdx }) => {
+        const count = (questionRepeats instanceof Map
+            ? (questionRepeats.get(originalIdx) ?? 1)
+            : 1);
+        return Array.from({ length: Math.max(1, count) }, (_, copyIdx) => ({
+            q, originalIdx, copyIdx
+        }));
+    });
+
     const buildOptions = (q) =>
         [q.correct_answer, ...(q.distractors || [])].slice(0, 5);
 
     const difficultyMeta = {
-        easy:   { label: 'Fácil',  cls: 'qp-diff--easy' },
-        medium: { label: 'Médio',  cls: 'qp-diff--medium' },
+        easy:   { label: 'Fácil',   cls: 'qp-diff--easy' },
+        medium: { label: 'Médio',   cls: 'qp-diff--medium' },
         hard:   { label: 'Difícil', cls: 'qp-diff--hard' },
     };
+
+    // Detecta se alguma questão visível tem imagem (para ajustar grid)
+    const hasAnyImage = visibleQuestions.some(({ q }) => !!q.image_url);
+
+    // Grid: se houver imagens, 1 coluna no modo full para dar espaço
+    const gridClass = isTextOnly
+        ? 'qp-questions--text-only'
+        : hasAnyImage
+            ? 'qp-questions--with-img'
+            : '';
+
+    // Estilo inline para a imagem (respeita prop imageMaxHeight)
+    const imgStyle = imageMaxHeight > 0
+        ? { maxHeight: `${imageMaxHeight}px`, width: '100%', objectFit: 'contain', display: 'block' }
+        : { width: '100%', objectFit: 'contain', display: 'block' };
 
     return (
         <div className="qp-wrap">
@@ -67,7 +120,7 @@ export const QuizPrint = ({
                 )}
 
                 <div className="qp-meta-pills">
-                    <span className="qp-pill">📋 {quizData.questions.length} questões</span>
+                    <span className="qp-pill">📋 {visibleQuestions.length} questões</span>
                     {isTextOnly && <span className="qp-pill qp-pill--info">✏️ Resposta dissertativa</span>}
                 </div>
 
@@ -75,16 +128,17 @@ export const QuizPrint = ({
             </div>
 
             {/* ===== QUESTÕES ===== */}
-            <div className={`qp-questions${isTextOnly ? ' qp-questions--text-only' : ''}`}>
-                {quizData.questions.map((q, idx) => {
+            <div className={`qp-questions ${gridClass}`}>
+                {visibleQuestions.map(({ q, originalIdx }, printNum) => {
                     const options = buildOptions(q);
                     const diff = q.difficulty ? difficultyMeta[q.difficulty] : null;
+                    const imgSrc = q.image_url ? toDirectImageUrl(q.image_url) : null;
 
                     return (
-                        <div key={idx} className={`qp-card${isTextOnly ? ' qp-card--text-only' : ''}`}>
+                        <div key={originalIdx} className={`qp-card${isTextOnly ? ' qp-card--text-only' : ''}${imgSrc ? ' qp-card--has-img' : ''}`}>
                             {/* Número + badge dificuldade + enunciado */}
                             <div className="qp-card-head">
-                                <span className="qp-num">{idx + 1}</span>
+                                <span className="qp-num">{printNum + 1}</span>
                                 <div className="qp-card-head-text">
                                     {showDifficulty && diff && (
                                         <span className={`qp-diff ${diff.cls}`}>{diff.label}</span>
@@ -94,6 +148,24 @@ export const QuizPrint = ({
                                     </p>
                                 </div>
                             </div>
+
+                            {/* Imagem opcional da questão — sem overflow hidden, altura natural */}
+                            {imgSrc && (() => {
+                                // Prioridade: cor da própria questão → prop global → transparent
+                                const bg = q.image_bg_color && q.image_bg_color !== 'transparent'
+                                    ? q.image_bg_color
+                                    : (imageBgColor && imageBgColor !== 'transparent' ? imageBgColor : 'transparent');
+                                return (
+                                    <div className="qp-question-img-wrap" style={{ background: bg }}>
+                                        <img
+                                            src={imgSrc}
+                                            alt="Imagem da questão"
+                                            style={imgStyle}
+                                            onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                                        />
+                                    </div>
+                                );
+                            })()}
 
                             {/* Alternativas (apenas no modo full) */}
                             {!isTextOnly && (
@@ -116,11 +188,22 @@ export const QuizPrint = ({
                                 </div>
                             )}
 
-                            {/* Linhas de resposta dissertativa (apenas no modo text-only) */}
+                            {/* Modo só enunciado: linhas para resposta ou gabarito */}
                             {isTextOnly && (
                                 <div className="qp-answer-lines">
-                                    <div className="qp-answer-line" />
-                                    <div className="qp-answer-line" />
+                                    {showAnswers ? (
+                                        /* Gabarito: exibe a resposta correta destacada */
+                                        <div className="qp-answer-correct">
+                                            <span className="qp-answer-correct-label">✓ Resposta:</span>
+                                            <span className="qp-answer-correct-text">{q.correct_answer}</span>
+                                        </div>
+                                    ) : (
+                                        /* Sem gabarito: linhas para o aluno escrever */
+                                        <>
+                                            <div className="qp-answer-line" />
+                                            <div className="qp-answer-line" />
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -140,7 +223,7 @@ export const QuizPrint = ({
 
                 /* ── BASE ── */
                 .qp-wrap {
-                    max-width: 740px;
+                    max-width: 960px;
                     margin: 0 auto;
                     padding: 2px;
                     background: #fff;
@@ -231,6 +314,11 @@ export const QuizPrint = ({
                     gap: 8px 10px;
                 }
 
+                /* Quando há imagens — 1 coluna para não cortar */
+                .qp-questions--with-img {
+                    grid-template-columns: 1fr 1fr;
+                }
+
                 /* ── Card base ── */
                 .qp-card {
                     background: #fff;
@@ -240,6 +328,12 @@ export const QuizPrint = ({
                     box-shadow: 0 2px 8px rgba(217,119,6,0.10);
                     break-inside: avoid;
                     page-break-inside: avoid;
+                    /* Sem overflow:hidden para a imagem não ser cortada */
+                }
+
+                /* Card que tem imagem ocupa a coluna inteira */
+                .qp-card--has-img {
+                    grid-column: span 1;
                 }
 
                 /* Card compacto (text-only) */
@@ -293,6 +387,18 @@ export const QuizPrint = ({
                 }
                 .qp-card--text-only .qp-statement { font-size: 11px; }
 
+                /* ── Imagem da questão ── */
+                .qp-question-img-wrap {
+                    margin: 6px 0 8px;
+                    border-radius: 8px;
+                    border: 1px solid #fde68a;
+                    background: #fffbeb;
+                    /* SEM overflow:hidden e SEM max-height fixo aqui — controlado inline via prop */
+                    break-inside: avoid;
+                    page-break-inside: avoid;
+                    text-align: center;
+                }
+
                 /* ── Alternativas ── */
                 .qp-options {
                     display: flex; flex-direction: column; gap: 5px;
@@ -328,6 +434,23 @@ export const QuizPrint = ({
                     border-bottom: 1px dashed #bbb; height: 16px; width: 100%;
                 }
 
+                /* ── Gabarito no modo só enunciado ── */
+                .qp-answer-correct {
+                    display: flex; align-items: baseline; gap: 6px;
+                    background: #eff6ff; border: 1.5px solid #60a5fa;
+                    border-radius: 7px; padding: 5px 9px; margin-top: 2px;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                .qp-answer-correct-label {
+                    font-size: 10px; font-weight: 900;
+                    color: #1d4ed8; white-space: nowrap; flex-shrink: 0;
+                }
+                .qp-answer-correct-text {
+                    font-size: 11.5px; font-weight: 700;
+                    color: #1e3a8a; line-height: 1.3;
+                }
+
                 /* ── Rodapé ── */
                 .qp-footer {
                     display: flex; justify-content: space-between; align-items: center;
@@ -341,6 +464,7 @@ export const QuizPrint = ({
                     .qp-wrap { max-width: 100%; padding: 0; }
                     .qp-questions { grid-template-columns: 1fr 1fr; }
                     .qp-questions--text-only { grid-template-columns: 1fr 1fr 1fr; }
+                    .qp-questions--with-img { grid-template-columns: 1fr 1fr; }
                     .qp-card, .qp-num, .qp-letter, .qp-letter--correct,
                     .qp-option, .qp-option--correct, .qp-diff {
                         -webkit-print-color-adjust: exact;
@@ -348,11 +472,15 @@ export const QuizPrint = ({
                         break-inside: avoid;
                         page-break-inside: avoid;
                     }
+                    .qp-question-img-wrap {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
                 }
 
                 /* ── Tela pequena ── */
                 @media (max-width: 580px) {
-                    .qp-questions, .qp-questions--text-only { grid-template-columns: 1fr; }
+                    .qp-questions, .qp-questions--text-only, .qp-questions--with-img { grid-template-columns: 1fr; }
                     .qp-header-top { flex-direction: column; }
                     .qp-meta-col { min-width: unset; width: 100%; }
                 }

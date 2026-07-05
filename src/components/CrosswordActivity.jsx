@@ -8,6 +8,8 @@ import { Badge } from './ui/Badge';
 import { Card } from './ui/Card';
 import { Input, Select, TextArea } from './ui/Input';
 import { Modal } from './ui/Modal';
+import { ActivityPrintHeader } from './ui/ActivityPrintHeader';
+import { LatexRenderer } from './ui/LatexRenderer';
 
 export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, onRestart }) => {
     // --- STATE ---
@@ -23,6 +25,8 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
     const [showRanking, setShowRanking] = useState(false);
     const [showSolution, setShowSolution] = useState(false);
     const [isCompleted, setIsCompleted] = useState(false);
+    const [textFontSize, setTextFontSize] = useState(data?.textFontSize || data?.fontSizePx || 14);
+    const [mathFontSize, setMathFontSize] = useState(data?.mathFontSize || data?.fontSizePx || 18);
 
     const displayTopic = topic || data?.topic || "Palavras Cruzadas";
 
@@ -522,72 +526,146 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
 
     // --- PRINT VIEW ---
     function renderPrintView() {
+        // Encontrar bounding box das palavras para cortar linhas/colunas vazias ao redor da grade
+        let minX = gridSize, maxX = 0, minY = gridSize, maxY = 0;
+        let hasActive = false;
+
+        gridState.forEach((row, y) => {
+            row.forEach((cell, x) => {
+                if (cell && !cell.isFiller) {
+                    hasActive = true;
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            });
+        });
+
+        if (!hasActive) {
+            minX = 0; maxX = gridSize - 1;
+            minY = 0; maxY = gridSize - 1;
+        }
+
+        const colsCount = maxX - minX + 1;
+        const croppedGrid = gridState
+            .slice(minY, maxY + 1)
+            .map(row => row.slice(minX, maxX + 1));
+
+        // Dimensionamento dinâmico para impressão e tela para deixar a grade muito mais fluida e espaçada
+        const printCellSize = colsCount <= 9 ? 'print:w-[2.6rem] print:h-[2.6rem] w-10 h-10 sm:w-12 sm:h-12' : colsCount <= 12 ? 'print:w-[2.2rem] print:h-[2.2rem] w-9 h-9 sm:w-11 sm:h-11' : 'print:w-[1.9rem] print:h-[1.9rem] w-8 h-8 sm:w-10 sm:h-10';
+        const printFontSize = colsCount <= 9 ? 'print:text-xl text-lg sm:text-xl' : colsCount <= 12 ? 'print:text-lg text-base sm:text-lg' : 'print:text-base text-sm sm:text-base';
+        const printNumSize = colsCount <= 9 ? 'print:text-[11px] text-[10px] sm:text-xs' : 'print:text-[10px] text-[9px] sm:text-[11px]';
+
         return (
             <div className="flex flex-col gap-6 p-4 max-w-6xl mx-auto print:gap-4 print:p-0 print:m-0 print:max-h-[28.5cm] print:overflow-hidden">
-                {/* Cabeçalho exclusivo de impressão */}
-                <div className="hidden print:block text-center mb-2">
-                    <h1 className="text-xl font-bold text-black uppercase tracking-wider border-b-2 border-black pb-2 inline-block">
-                        {displayTopic}
-                    </h1>
-                </div>
-
-                <Card className="flex flex-wrap justify-between items-center p-4 print:hidden">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-xl font-bold text-brown-900 flex items-center gap-2">
-                            <Sparkles className="text-brown-500" />
-                            {displayTopic}
-                        </h2>
-                        <Badge variant="outline">{words.length} Palavras</Badge>
+                <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 sm:p-3 bg-slate-50/80 border border-slate-200/70 rounded-xl no-print mb-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                        <span className="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-2xs text-slate-700">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                            Painel de Edição
+                        </span>
+                        <span className="text-[11px] font-semibold text-slate-500 hidden sm:inline">
+                            • {words.length} palavras na grade
+                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
+                                <span>📝 Texto:</span>
+                                <select
+                                    value={textFontSize}
+                                    onChange={(e) => setTextFontSize(Number(e.target.value))}
+                                    className="bg-slate-50 border border-slate-300 rounded px-1 py-0.5 text-xs font-black text-brown-900 cursor-pointer focus:outline-none"
+                                >
+                                    <option value={12}>12 px</option>
+                                    <option value={14}>14 px (Padrão)</option>
+                                    <option value={16}>16 px</option>
+                                    <option value={18}>18 px</option>
+                                    <option value={20}>20 px</option>
+                                    <option value={24}>24 px</option>
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
+                                <span>🧮 Fórmula:</span>
+                                <select
+                                    value={mathFontSize}
+                                    onChange={(e) => setMathFontSize(Number(e.target.value))}
+                                    className="bg-slate-50 border border-slate-300 rounded px-1 py-0.5 text-xs font-black text-brown-900 cursor-pointer focus:outline-none"
+                                >
+                                    <option value={14}>14 px</option>
+                                    <option value={16}>16 px</option>
+                                    <option value={18}>18 px (Padrão)</option>
+                                    <option value={20}>20 px</option>
+                                    <option value={24}>24 px</option>
+                                    <option value={28}>28 px</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex gap-2 no-print flex-wrap sm:flex-nowrap">
-                        <Button onClick={() => setShowEditor(true)} icon={Edit2} className="whitespace-nowrap">
+                    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap ml-auto">
+                        <Button 
+                            onClick={() => setShowEditor(true)} 
+                            icon={Edit2} 
+                            variant="secondary"
+                            className="h-8 text-xs px-3 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-semibold whitespace-nowrap shadow-2xs"
+                        >
                             Editar / Adicionar
                         </Button>
                         <Button
                             onClick={() => setShowSolution(!showSolution)}
                             variant={showSolution ? "primary" : "secondary"}
-                            className={`whitespace-nowrap min-w-[170px] text-center ${showSolution ? 'bg-green-600 text-white' : ''}`}
+                            className={`h-8 text-xs px-3.5 font-semibold whitespace-nowrap shadow-2xs transition-all ${
+                                showSolution 
+                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-none' 
+                                    : 'bg-white hover:bg-slate-100 border border-slate-300 text-slate-700'
+                            }`}
                         >
-                            {showSolution ? 'Ocultar Solução' : 'Mostrar Solução'}
+                            {showSolution ? 'Ocultar Gabarito' : 'Mostrar Gabarito'}
                         </Button>
                     </div>
-                </Card>
+                </div>
 
-                <Card className="w-full flex flex-col items-center print:shadow-none print:border-none print:bg-transparent print:p-0 print:m-0 print:mb-4">
+                {/* Cabeçalho de Avaliação / Impressão */}
+                <ActivityPrintHeader
+                    title={displayTopic || 'Palavras Cruzadas'}
+                    subtitle="ATIVIDADE DE AVALIAÇÃO"
+                    pills={[`📝 ${words.length} Palavras`]}
+                />
+
+                <Card className="w-full flex flex-col items-center bg-transparent border-none shadow-none print:shadow-none print:border-none print:bg-transparent p-2 sm:p-4 print:p-0 print:m-0 print:mb-6">
                     <div
-                        className="grid gap-0 bg-transparent p-0 rounded print:bg-transparent print:!gap-0 print:!p-0 print:!shadow-none print:!border-none"
+                        className="grid gap-0 bg-transparent p-0 rounded print:bg-transparent print:!gap-0 print:!p-0 print:!shadow-none print:!border-none mx-auto"
                         style={{
-                            gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+                            gridTemplateColumns: `repeat(${colsCount}, minmax(0, 1fr))`,
                             width: 'fit-content',
                             maxWidth: '100%'
                         }}
                     >
-                        {gridState.map((row, y) => (
-                            row.map((cell, x) => {
-                                if (!cell) return <div key={`${x}-${y}`} className="w-8 h-8 sm:w-10 sm:h-10 print:w-[1.8rem] print:h-[1.8rem] bg-brown-50/30 print:invisible print:border-none" />;
-                                const isFiller = cell.isFiller;
+                        {croppedGrid.map((row, cy) => (
+                            row.map((cell, cx) => {
+                                if (!cell || cell.isFiller) {
+                                    return <div key={`${cx}-${cy}`} className={`${printCellSize} bg-transparent border-transparent pointer-events-none`} />;
+                                }
                                 return (
                                     <div
-                                        key={`${x}-${y}`}
-                                        className={`relative w-8 h-8 sm:w-10 sm:h-10 print:w-[1.8rem] print:h-[1.8rem] flex items-center justify-center ${isFiller ? 'bg-brown-50 print:bg-white print:border-transparent' : 'bg-white'}`}
+                                        key={`${cx}-${cy}`}
+                                        className={`relative ${printCellSize} flex items-center justify-center bg-white shadow-sm print:shadow-none transition-all`}
                                         style={{ 
                                             printColorAdjust: 'exact', 
                                             WebkitPrintColorAdjust: 'exact',
-                                            borderWidth: isFiller ? '0px' : '1.5px',
-                                            borderColor: isFiller ? 'transparent' : '#000000',
-                                            borderStyle: 'solid'
+                                            borderWidth: '2px',
+                                            borderColor: '#1e293b',
+                                            borderStyle: 'solid',
+                                            borderRadius: '3px'
                                         }}
                                     >
                                         {cell.num && (
-                                            <span className="absolute top-0 left-[2px] text-[10px] sm:text-xs print:text-[9px] font-black text-brown-800 leading-none pointer-events-none print:text-black z-20">
+                                            <span className={`absolute top-[2px] left-[3px] ${printNumSize} font-black text-slate-800 leading-none pointer-events-none print:text-black z-20`}>
                                                 {cell.num}
                                             </span>
                                         )}
-                                        {!isFiller && (
-                                            <span className={`text-lg print:text-sm font-bold uppercase ${showSolution ? 'text-black print:text-black' : 'text-transparent print:text-transparent'}`}>
-                                                {showSolution ? cell.char : ''}
-                                            </span>
-                                        )}
+                                        <span className={`${printFontSize} font-black uppercase ${showSolution ? 'text-slate-900 print:text-black' : 'text-transparent print:text-transparent'}`}>
+                                            {showSolution ? cell.char : ''}
+                                        </span>
                                     </div>
                                 );
                             })
@@ -606,7 +684,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                             {words.filter(w => w.dir === 'H').sort((a, b) => a.num - b.num).map(w => (
                                 <li key={w.num} className="flex items-start gap-3 print:gap-2">
                                     <span className="font-black text-brown-600 print:text-black min-w-[1.5rem] print:min-w-[1.2rem] text-right">{w.num}.</span>
-                                    <span className="text-brown-700 print:text-black font-medium flex-1 whitespace-normal break-normal hyphens-none">{w.clue}</span>
+                                    <LatexRenderer content={w.clue} mathFontSize={mathFontSize} textFontSize={textFontSize} className="text-brown-700 print:text-black font-medium flex-1 whitespace-normal break-normal hyphens-none" />
                                 </li>
                             ))}
                         </ul>
@@ -621,7 +699,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                             {words.filter(w => w.dir === 'V').sort((a, b) => a.num - b.num).map(w => (
                                 <li key={w.num} className="flex items-start gap-3 print:gap-2">
                                     <span className="font-black text-brown-800 print:text-black min-w-[1.5rem] print:min-w-[1.2rem] text-right">{w.num}.</span>
-                                    <span className="text-brown-700 print:text-black font-medium flex-1 whitespace-normal break-normal hyphens-none">{w.clue}</span>
+                                    <LatexRenderer content={w.clue} mathFontSize={mathFontSize} textFontSize={textFontSize} className="text-brown-700 print:text-black font-medium flex-1 whitespace-normal break-normal hyphens-none" />
                                 </li>
                             ))}
                         </ul>
@@ -699,7 +777,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                                                 ) : (
                                                     <>
                                                         <div className="font-bold text-brown-800">{w.word}</div>
-                                                        <div className="text-xs text-brown-500">{w.clue}</div>
+                                                        <LatexRenderer content={w.clue} className="text-xs text-brown-500" />
                                                     </>
                                                 )}
                                             </div>

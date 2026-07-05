@@ -4,6 +4,7 @@ import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { RefreshCw, Trophy, PartyPopper, Check, X, UserPlus, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { LatexRenderer } from './ui/LatexRenderer';
 
 export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRestart }) => {
     const [grid, setGrid] = useState([]);
@@ -510,7 +511,7 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
                                     >
                                         {isMath && <span className={`font-bold mr-2 w-6 text-right ${isFound ? 'text-green-600' : 'text-brown-400'}`}>{idx + 1})</span>}
                                         <span className={`whitespace-nowrap ${isMath ? 'font-mono text-base font-bold' : ''} ${isFound ? "line-through text-green-700" : ""}`}>
-                                            {isMath ? cluesList[idx].replace('?', '') : word}
+                                            {isMath ? <LatexRenderer content={cluesList[idx].replace('?', '')} /> : word}
                                         </span>
                                         {isFound && <Check className="ml-auto inline-block w-4 h-4 text-green-600 flex-shrink-0" />}
                                     </div>

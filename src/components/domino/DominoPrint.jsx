@@ -1,13 +1,17 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import { toDirectImageUrl } from './DominoEditorModal';
+import { LatexRenderer } from '../ui/LatexRenderer';
 
 const DominoPrint = ({ data }) => {
     const { pairs = [], isCircular = false, topic = '' } = data || {};
-
+    const [textFontSize, setTextFontSize] = useState(data?.textFontSize || data?.fontSizePx || 14);
+    const [mathFontSize, setMathFontSize] = useState(data?.mathFontSize || data?.fontSizePx || 18);
+    
     const pieces = useMemo(() => {
         if (!pairs || pairs.length === 0) return [];
-
+        
         let generatedPieces = [];
-
+        
         if (isCircular) {
             // Ciclo Fechado: A primeira peça recebe a resposta da última
             for (let i = 0; i < pairs.length; i++) {
@@ -25,7 +29,7 @@ const DominoPrint = ({ data }) => {
                 left: { type: 'text', content: 'INÍCIO' },
                 right: pairs[0].question
             });
-
+            
             for (let i = 1; i < pairs.length; i++) {
                 generatedPieces.push({
                     id: "piece-" + i,
@@ -33,21 +37,21 @@ const DominoPrint = ({ data }) => {
                     right: pairs[i].question
                 });
             }
-
+            
             generatedPieces.push({
                 id: 'piece-end',
                 left: pairs[pairs.length - 1].answer,
                 right: { type: 'text', content: 'FIM' }
             });
         }
-
+        
         // Embaralhar as peças para a folha de impressão
         const shuffled = [...generatedPieces];
         for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
-
+        
         return shuffled;
     }, [pairs, isCircular]);
 
@@ -68,25 +72,32 @@ const DominoPrint = ({ data }) => {
 
         if (sideData.type === 'image' && sideData.content) {
             return (
-                <div className="w-full h-full p-2 flex items-center justify-center">
-                    <img src={sideData.content} alt="Domino side" className="max-w-full max-h-full object-contain" />
+                <div className="w-full h-full overflow-hidden flex items-center justify-center bg-white">
+                    <img src={toDirectImageUrl(sideData.content)} alt="Domino side" className="w-full h-full object-fill" />
                 </div>
             );
         }
 
-        if (sideData.type === 'math') {
+        const contentStr = (sideData.content || '').toString();
+        const hasLatex = /\$\$.*?\$\$|\$.*?\$|\\\[.*?\\\]|\\\(.*?\\\)|\\frac|\\sqrt|\\sin|\\cos|\^|_|\\alpha|\\beta|\\pi/.test(contentStr);
+        if (sideData.type === 'formula' || sideData.type === 'math' || hasLatex) {
             return (
-                <div className="w-full h-full p-2 flex items-center justify-center">
-                    <span className="font-mono font-bold text-xl print:text-2xl text-brown-900 text-center break-words w-full px-1">
-                        {sideData.content}
-                    </span>
+                <div className="w-full h-full p-2 flex items-center justify-center overflow-hidden">
+                    <LatexRenderer content={sideData.content} mathFontSize={mathFontSize} textFontSize={textFontSize} className="font-bold text-brown-900 text-center flex items-center justify-center" />
                 </div>
             );
+        }
+        const len = contentStr.length;
+        let textSizeClass = 'text-xs print:text-[13px] leading-tight font-bold';
+        if (len <= 6) {
+            textSizeClass = 'text-base print:text-lg font-black';
+        } else if (len <= 18) {
+            textSizeClass = 'text-xs print:text-sm font-bold leading-snug';
         }
 
         return (
-            <div className="w-full h-full p-3 flex items-center justify-center">
-                <span lang="pt-BR" className="font-bold text-sm print:text-base text-brown-900 text-center break-words hyphens-auto w-full">
+            <div className="w-full h-full p-2 flex items-center justify-center overflow-hidden">
+                <span className="text-brown-900 text-center break-normal w-full px-1 font-bold leading-snug" style={{ fontSize: `${textFontSize}px` }}>
                     {sideData.content}
                 </span>
             </div>
@@ -100,8 +111,44 @@ const DominoPrint = ({ data }) => {
                     <img src="/dracker_character.png" alt="Drácker" className="w-20 h-20 md:w-24 md:h-24 object-contain drop-shadow-md" />
                     <h1 className="text-2xl md:text-3xl font-bold text-brown-800 uppercase tracking-wider">{topic || 'Dominó Educativo'}</h1>
                 </div>
-                <div className="mt-4 p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-sm font-semibold">
-                    Total de Peças a Imprimir: {pieces.length}
+                <div className="mt-4 p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-sm font-semibold w-full flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
+                    <span>Total de Peças a Imprimir: <strong>{pieces.length}</strong></span>
+                    <div className="flex flex-wrap items-center gap-3 font-bold text-amber-900">
+                        <div className="flex items-center gap-1.5 bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs shadow-2xs">
+                            <span>📝 Texto:</span>
+                            <select
+                                value={textFontSize}
+                                onChange={(e) => setTextFontSize(Number(e.target.value))}
+                                className="bg-transparent font-black text-brown-900 cursor-pointer focus:outline-none"
+                            >
+                                <option value={12}>12 px</option>
+                                <option value={14}>14 px</option>
+                                <option value={16}>16 px</option>
+                                <option value={18}>18 px</option>
+                                <option value={20}>20 px</option>
+                                <option value={22}>22 px</option>
+                                <option value={24}>24 px</option>
+                                <option value={28}>28 px</option>
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs shadow-2xs">
+                            <span>🧮 Fórmula:</span>
+                            <select
+                                value={mathFontSize}
+                                onChange={(e) => setMathFontSize(Number(e.target.value))}
+                                className="bg-transparent font-black text-brown-900 cursor-pointer focus:outline-none"
+                            >
+                                <option value={14}>14 px</option>
+                                <option value={16}>16 px</option>
+                                <option value={18}>18 px</option>
+                                <option value={20}>20 px</option>
+                                <option value={22}>22 px</option>
+                                <option value={24}>24 px</option>
+                                <option value={28}>28 px</option>
+                                <option value={32}>32 px</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
