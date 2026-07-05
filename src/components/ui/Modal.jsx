@@ -9,12 +9,16 @@ export const Modal = ({ isOpen, onClose, title, children, footer, icon: Icon, si
         sm: 'max-w-md',
         md: 'max-w-2xl',
         lg: 'max-w-4xl',
-        xl: 'max-w-6xl'
-    }[size];
+        xl: 'max-w-6xl',
+        '2xl': 'max-w-[1400px]',
+        'full': 'max-w-[95vw]'
+    }[size] || 'max-w-2xl';
+
+    const containerClasses = theme.modal.container.replace('max-w-2xl', '').trim();
 
     return (
         <div className={theme.modal.overlay}>
-            <div className={`${theme.modal.container} ${maxWidthClass}`}>
+            <div className={`${containerClasses} ${maxWidthClass}`}>
                 {/* Header */}
                 <div className={theme.modal.header}>
                     <div className="flex items-center gap-2">

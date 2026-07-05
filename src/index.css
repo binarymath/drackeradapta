@@ -167,3 +167,16 @@ code {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #a1887f;
 }
+
+/* Escala de fonte independente para LaTeX / KaTeX e Texto */
+.latex-renderer .katex {
+  font-size: var(--katex-font-size, 1em) !important;
+}
+
+.latex-renderer .inline-text {
+  font-size: var(--text-font-size, 1em) !important;
+}
+
+.latex-renderer {
+  font-size: var(--text-font-size, var(--katex-font-size, inherit));
+}

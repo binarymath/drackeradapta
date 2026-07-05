@@ -3,6 +3,8 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { toDirectImageUrl } from './DominoEditorModal';
+import { LatexRenderer } from '../ui/LatexRenderer';
 
 const DominoGame = ({ data, isGameMode }) => {
     const { pairs = [], isCircular = false } = data || {};
@@ -51,6 +53,8 @@ const DominoGame = ({ data, isGameMode }) => {
     const [chain, setChain] = useState([]);
     const [errorMsg, setErrorMsg] = useState('');
     const [gameWon, setGameWon] = useState(false);
+    const [textFontSize, setTextFontSize] = useState(data?.textFontSize || data?.fontSizePx || 14);
+    const [mathFontSize, setMathFontSize] = useState(data?.mathFontSize || data?.fontSizePx || 18);
 
     useEffect(() => {
         if (isGameMode && allPieces.length > 0) {
@@ -160,12 +164,22 @@ const DominoGame = ({ data, isGameMode }) => {
             return <div className="font-black text-brown-800 uppercase tracking-wider">{sideData.content}</div>;
         }
         if (sideData.type === 'image') {
-            return <img src={sideData.content} alt="Domino side" className="max-w-full max-h-20 p-1 object-contain" />;
+            return <div className="w-full h-full overflow-hidden flex items-center justify-center bg-white"><img src={toDirectImageUrl(sideData.content)} alt="Domino side" className="w-full h-full object-fill" /></div>;
         }
-        if (sideData.type === 'math') {
-            return <div className="font-mono font-bold text-brown-900 text-sm md:text-base px-2 break-words w-full text-center overflow-y-auto max-h-full custom-scrollbar">{sideData.content}</div>;
+        const contentStr = (sideData.content || '').toString();
+        const hasLatex = /\$\$.*?\$\$|\$.*?\$|\\\[.*?\\\]|\\\(.*?\\\)|\\frac|\\sqrt|\\sin|\\cos|\^|_|\\alpha|\\beta|\\pi/.test(contentStr);
+        if (sideData.type === 'formula' || sideData.type === 'math' || hasLatex) {
+            return (
+                <div className="w-full h-full p-2 flex items-center justify-center overflow-y-auto max-h-full custom-scrollbar">
+                    <LatexRenderer content={sideData.content} mathFontSize={mathFontSize} textFontSize={textFontSize} className="font-bold text-brown-900 text-center" />
+                </div>
+            );
         }
-        return <div lang="pt-BR" className="font-bold text-xs md:text-sm text-brown-900 text-center px-2 break-words hyphens-auto w-full overflow-y-auto max-h-full custom-scrollbar">{sideData.content}</div>;
+        return (
+            <div className="text-brown-900 text-center px-2 break-normal w-full overflow-y-auto max-h-full custom-scrollbar flex items-center justify-center font-bold leading-snug" style={{ fontSize: `${textFontSize}px` }}>
+                {sideData.content}
+            </div>
+        );
     };
 
     const renderPiece = (piece, actionHandler, type = 'none') => {
@@ -206,13 +220,48 @@ const DominoGame = ({ data, isGameMode }) => {
         <div className="flex flex-col gap-6 w-full p-4 md:p-6 bg-brown-50 rounded-xl min-h-[60vh]">
             
             {/* Header */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-brown-100">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-4 rounded-xl shadow-sm border border-brown-100 gap-3">
                 <div>
                     <h2 className="text-xl font-bold text-brown-800">Dominó Interativo</h2>
                     <p className="text-sm text-brown-500">Conecte as perguntas com as respostas corretas!</p>
                 </div>
-                <div className="flex gap-4 items-center">
-                    <div className="bg-amber-100 text-amber-800 px-4 py-2 rounded-lg font-bold">
+                <div className="flex flex-wrap gap-3 items-center">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg text-xs font-bold text-amber-900 shadow-2xs">
+                            <span>📝 Texto:</span>
+                            <select
+                                value={textFontSize}
+                                onChange={(e) => setTextFontSize(Number(e.target.value))}
+                                className="bg-white border border-amber-300 rounded px-1 py-0.5 text-xs font-black text-brown-900 cursor-pointer focus:outline-none"
+                            >
+                                <option value={12}>12 px</option>
+                                <option value={14}>14 px</option>
+                                <option value={16}>16 px</option>
+                                <option value={18}>18 px</option>
+                                <option value={20}>20 px</option>
+                                <option value={22}>22 px</option>
+                                <option value={24}>24 px</option>
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg text-xs font-bold text-amber-900 shadow-2xs">
+                            <span>🧮 Fórmula:</span>
+                            <select
+                                value={mathFontSize}
+                                onChange={(e) => setMathFontSize(Number(e.target.value))}
+                                className="bg-white border border-amber-300 rounded px-1 py-0.5 text-xs font-black text-brown-900 cursor-pointer focus:outline-none"
+                            >
+                                <option value={14}>14 px</option>
+                                <option value={16}>16 px</option>
+                                <option value={18}>18 px</option>
+                                <option value={20}>20 px</option>
+                                <option value={22}>22 px</option>
+                                <option value={24}>24 px</option>
+                                <option value={28}>28 px</option>
+                                <option value={32}>32 px</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="bg-amber-100 text-amber-800 px-4 py-2 rounded-lg font-bold text-sm">
                         Faltam: {hand.length} peças
                     </div>
                     <Button onClick={startGame} variant="outline" icon={RefreshCw}>Recomeçar</Button>

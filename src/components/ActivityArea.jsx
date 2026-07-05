@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useActivity } from '../contexts/ActivityContext';
-import { FileText } from 'lucide-react';
+import { FileText, Sparkles } from 'lucide-react';
 import { QuizGame } from './QuizGame';
 import { QuizPrint } from './QuizPrint';
 import { WordSearchGame } from './WordSearchGame';
@@ -79,6 +79,13 @@ export const ActivityArea = ({
     const [pdfShowAlternatives, setPdfShowAlternatives] = useState(true);
     const [quizPrintMode, setQuizPrintMode] = useState('full');  // 'full' | 'text-only'
     const [quizShowDifficulty, setQuizShowDifficulty] = useState(true);
+    const [quizImageMaxHeight, setQuizImageMaxHeight] = useState(160); // px
+    const [quizImageBgColor, setQuizImageBgColor] = useState('#ffffff');
+    // null = todas as questões; Set<number> = índices selecionados
+    const [selectedQuizIndexes, setSelectedQuizIndexes] = useState(null);
+    const [showQuestionPicker, setShowQuestionPicker] = useState(false);
+    // Map<idx, count> — quantas vezes imprimir cada questão (padrão 1)
+    const [quizQuestionRepeats, setQuizQuestionRepeats] = useState(new Map());
 
     // Derived Booleans for Game Modes
     const isWordsearchGame = isGameMode && activityType === 'wordsearch';
@@ -104,6 +111,11 @@ export const ActivityArea = ({
         setPdfShowAlternatives(false);
         setQuizPrintMode('full');
         setQuizShowDifficulty(true);
+        setSelectedQuizIndexes(null);
+        setShowQuestionPicker(false);
+        setQuizImageMaxHeight(160);
+        setQuizImageBgColor('#ffffff');
+        setQuizQuestionRepeats(new Map());
     }, [generatedContent, activityType]);
 
     // Used by MusicActivityRenderer
@@ -164,87 +176,225 @@ export const ActivityArea = ({
                                     isGameMode={isWordsearchGame}
                                     onToggle={() => setIsGameMode(!isGameMode)}
                                     color="amber"
-                                >
-                                    <div className="flex flex-col gap-2 mr-4 md:mr-8 min-w-[200px]">
-                                        <div className="flex flex-col gap-1">
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={wordsearchHideText}
-                                                    onChange={(e) => {
-                                                        setWordsearchHideText(e.target.checked);
-                                                        if (e.target.checked) setWordsearchHideGrid(false);
-                                                    }}
-                                                    className="w-3 h-3 rounded text-brown-600 focus:ring-brown-500 accent-brown-600"
-                                                />
-                                                <span className="text-[10px] font-bold text-brown-700">Só Jogo (Esconder Texto)</span>
-                                            </label>
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={wordsearchHideGrid}
-                                                    onChange={(e) => {
-                                                        setWordsearchHideGrid(e.target.checked);
-                                                        if (e.target.checked) setWordsearchHideText(false);
-                                                    }}
-                                                    className="w-3 h-3 rounded text-brown-600 focus:ring-brown-500 accent-brown-600"
-                                                />
-                                                <span className="text-[10px] font-bold text-brown-700">Só História (Esconder Jogo)</span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                </GameToggleCard>
+                                />
                             )}
 
                             {/* Quiz Toggle */}
                             {activityType === 'quiz' && quizData && (
-                                <GameToggleCard
-                                    title="Modo Jogo Interativo"
-                                    description="Transforme este quiz em um jogo divertido agora!"
-                                    isGameMode={isGameMode}
-                                    onToggle={() => setIsGameMode(!isGameMode)}
-                                    color="amber"
-                                >
-                                    {/* Controles de impressão – visíveis só quando não está em modo jogo */}
+                                <>
+                                    <GameToggleCard
+                                        isGameMode={isGameMode}
+                                        onToggle={() => setIsGameMode(!isGameMode)}
+                                        color="blue"
+                                        toggleLabel="Jogar Online"
+                                    />
+
+                                    {/* Controles de formatação de impressão – Painel dedicado abaixo do card */}
                                     {!isGameMode && (
-                                        <div className="flex flex-col gap-1.5 mr-3">
-                                            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Layout de Impressão</span>
-                                            <div className="flex gap-1.5">
-                                                <button
-                                                    onClick={() => setQuizPrintMode('full')}
-                                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
-                                                        quizPrintMode === 'full'
-                                                            ? 'bg-amber-600 text-white border-amber-700'
-                                                            : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-50'
-                                                    }`}
-                                                    title="Cards com alternativas A/B/C/D"
-                                                >
-                                                    📋 Com Alternativas
-                                                </button>
-                                                <button
-                                                    onClick={() => setQuizPrintMode('text-only')}
-                                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
-                                                        quizPrintMode === 'text-only'
-                                                            ? 'bg-amber-600 text-white border-amber-700'
-                                                            : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-50'
-                                                    }`}
-                                                    title="Apenas enunciado + linhas para resposta. Cabe mais questões por página."
-                                                >
-                                                    ✏️ Só Enunciado
-                                                </button>
+                                        <div className="flex flex-col gap-4 p-4 bg-slate-50/90 border border-slate-200/80 rounded-2xl no-print mb-6 shadow-sm">
+                                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/60 pb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1 rounded-lg shadow-2xs text-slate-800 text-xs font-bold">
+                                                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                                        Configuração da Folha de Questões
+                                                    </span>
+                                                    <span className="text-xs font-semibold text-slate-500 hidden sm:inline">
+                                                        • Personalize o formato e o layout da avaliação
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <label className="flex items-center gap-1.5 cursor-pointer select-none mt-0.5">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={quizShowDifficulty}
-                                                    onChange={e => setQuizShowDifficulty(e.target.checked)}
-                                                    className="w-3 h-3 accent-amber-600"
-                                                />
-                                                <span className="text-[10px] font-bold text-amber-700">Mostrar dificuldade</span>
-                                            </label>
+
+                                            <div className="flex flex-wrap items-center justify-between gap-4">
+                                                {/* Grupo 1: Modo de Exibição */}
+                                                <div className="flex flex-wrap items-center gap-3">
+                                                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                                        Layout:
+                                                    </span>
+                                                    <div className="flex items-center gap-1.5 bg-slate-200/60 p-1 rounded-xl">
+                                                        <button
+                                                            onClick={() => setQuizPrintMode('full')}
+                                                            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                                                quizPrintMode === 'full'
+                                                                    ? 'bg-white text-blue-700 shadow-sm'
+                                                                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                                                            }`}
+                                                            title="Cards com alternativas A/B/C/D"
+                                                        >
+                                                            <span>📋</span> Com Alternativas
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setQuizPrintMode('text-only')}
+                                                            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                                                                quizPrintMode === 'text-only'
+                                                                    ? 'bg-white text-blue-700 shadow-sm'
+                                                                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                                                            }`}
+                                                            title="Apenas enunciado + linhas para resposta"
+                                                        >
+                                                            <span>✏️</span> Só Enunciado
+                                                        </button>
+                                                    </div>
+
+                                                    <label className="flex items-center gap-2 cursor-pointer select-none bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-50 transition-all shadow-2xs whitespace-nowrap">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={quizShowDifficulty}
+                                                            onChange={e => setQuizShowDifficulty(e.target.checked)}
+                                                            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 accent-blue-600"
+                                                        />
+                                                        <span className="text-xs font-bold text-slate-700">Mostrar Nível de Dificuldade</span>
+                                                    </label>
+                                                </div>
+
+                                                {/* Grupo 2: Seleção de Questões */}
+                                                <div className="relative ml-auto">
+                                                    <button
+                                                        onClick={() => setShowQuestionPicker(p => !p)}
+                                                        className={`px-4 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 shadow-2xs whitespace-nowrap ${
+                                                            showQuestionPicker || selectedQuizIndexes
+                                                                ? 'bg-blue-600 text-white border-blue-700 hover:bg-blue-700'
+                                                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                                                        }`}
+                                                    >
+                                                        <span>🗂</span>
+                                                        <span>
+                                                            Selecionar Questões {selectedQuizIndexes ? `(${selectedQuizIndexes.size}/${quizData.questions.length})` : '(Todas)'}
+                                                        </span>
+                                                    </button>
+
+                                                    {showQuestionPicker && (
+                                                        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xl z-50 max-h-72 overflow-y-auto space-y-2">
+                                                            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={selectedQuizIndexes === null}
+                                                                        onChange={() => setSelectedQuizIndexes(null)}
+                                                                        className="w-4 h-4 accent-blue-600 rounded"
+                                                                    />
+                                                                    <span className="text-xs font-bold text-slate-800">Todas as questões ({quizData.questions.length})</span>
+                                                                </label>
+                                                                <button
+                                                                    onClick={() => setShowQuestionPicker(false)}
+                                                                    className="text-xs font-bold text-slate-400 hover:text-slate-600 px-2 py-0.5 rounded hover:bg-slate-100"
+                                                                >
+                                                                    Fechar ✕
+                                                                </button>
+                                                            </div>
+                                                            <div className="space-y-1.5 pt-1">
+                                                                {quizData.questions.map((q, idx) => {
+                                                                    const checked = selectedQuizIndexes === null || selectedQuizIndexes.has(idx);
+                                                                    const repeatCount = quizQuestionRepeats.get(idx) ?? 1;
+                                                                    return (
+                                                                        <div key={idx} className="flex items-start gap-2 p-1.5 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={checked}
+                                                                                onChange={() => {
+                                                                                    setSelectedQuizIndexes(prev => {
+                                                                                        const base = prev === null
+                                                                                            ? new Set(quizData.questions.map((_, i) => i))
+                                                                                            : new Set(prev);
+                                                                                        if (base.has(idx)) base.delete(idx);
+                                                                                        else base.add(idx);
+                                                                                        return base.size === quizData.questions.length ? null : base;
+                                                                                    });
+                                                                                }}
+                                                                                className="w-3.5 h-3.5 mt-0.5 accent-blue-600 flex-shrink-0 rounded cursor-pointer"
+                                                                            />
+                                                                            <span className="text-xs text-slate-700 leading-tight flex-1 min-w-0 line-clamp-2">
+                                                                                <strong className="text-slate-900 font-bold">{idx + 1}.</strong> {q.statement.replace(/^\d+[.)\]]?\s*/, '').slice(0, 60)}{q.statement.length > 60 ? '…' : ''}
+                                                                            </span>
+                                                                            <div className="flex items-center gap-1 flex-shrink-0 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200">
+                                                                                <button
+                                                                                    onClick={() => setQuizQuestionRepeats(prev => {
+                                                                                        const next = new Map(prev);
+                                                                                        next.set(idx, Math.max(1, (next.get(idx) ?? 1) - 1));
+                                                                                        return next;
+                                                                                    })}
+                                                                                    className="w-4 h-4 rounded bg-white text-slate-700 text-xs font-bold flex items-center justify-center hover:bg-slate-200 leading-none shadow-2xs"
+                                                                                    title="Imprimir menos vezes"
+                                                                                >−</button>
+                                                                                <span className="text-xs font-bold text-slate-800 w-5 text-center">{repeatCount}×</span>
+                                                                                <button
+                                                                                    onClick={() => setQuizQuestionRepeats(prev => {
+                                                                                        const next = new Map(prev);
+                                                                                        next.set(idx, Math.min(10, (next.get(idx) ?? 1) + 1));
+                                                                                        return next;
+                                                                                    })}
+                                                                                    className="w-4 h-4 rounded bg-white text-slate-700 text-xs font-bold flex items-center justify-center hover:bg-slate-200 leading-none shadow-2xs"
+                                                                                    title="Imprimir mais vezes"
+                                                                                >+</button>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Controles de Imagem (se houver questões com imagem) */}
+                                            {quizData.questions.some(q => q.image_url) && (
+                                                <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-slate-200/60 bg-white/60 p-3 rounded-xl">
+                                                    <div className="flex items-center gap-3 flex-1 min-w-[240px]">
+                                                        <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                                                            📐 Altura das Imagens: <strong className="text-blue-600">{quizImageMaxHeight}px</strong>
+                                                        </span>
+                                                        <input
+                                                            type="range"
+                                                            min={60}
+                                                            max={400}
+                                                            step={10}
+                                                            value={quizImageMaxHeight}
+                                                            onChange={e => setQuizImageMaxHeight(Number(e.target.value))}
+                                                            className="flex-1 accent-blue-600 h-1.5 rounded-lg cursor-pointer"
+                                                            title="Redimensionar imagens nas questões"
+                                                        />
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
+                                                            🎨 Fundo das Imagens:
+                                                        </span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <button
+                                                                onClick={() => setQuizImageBgColor('transparent')}
+                                                                className={`px-2 py-1 rounded-lg text-xs font-bold border transition-all ${
+                                                                    quizImageBgColor === 'transparent'
+                                                                        ? 'bg-blue-600 text-white border-blue-700 shadow-2xs'
+                                                                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                                                                }`}
+                                                                title="Sem fundo (transparente)"
+                                                            >
+                                                                Nenhum
+                                                            </button>
+                                                            <input
+                                                                type="color"
+                                                                value={quizImageBgColor === 'transparent' ? '#ffffff' : quizImageBgColor}
+                                                                onChange={e => setQuizImageBgColor(e.target.value)}
+                                                                className="w-7 h-7 rounded-lg cursor-pointer border border-slate-300 p-0.5 bg-white shadow-2xs"
+                                                                title="Cor personalizada de fundo da imagem"
+                                                            />
+                                                            {['#ffffff','#000000','#fffde7','#e3f2fd','#f3e5f5'].map(c => (
+                                                                <button
+                                                                    key={c}
+                                                                    onClick={() => setQuizImageBgColor(c)}
+                                                                    className={`w-6 h-6 rounded-full border-2 transition-all shadow-2xs ${
+                                                                        quizImageBgColor === c ? 'border-blue-600 scale-110' : 'border-slate-300 hover:border-slate-400'
+                                                                    }`}
+                                                                    style={{ background: c }}
+                                                                    title={c}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
-                                </GameToggleCard>
+                                </>
                             )}
 
                             {/* Crossword Toggle */}
@@ -315,6 +465,10 @@ export const ActivityArea = ({
                                     showAnswers={showAnswers}
                                     printMode={quizPrintMode}
                                     showDifficulty={quizShowDifficulty}
+                                    selectedIndexes={selectedQuizIndexes}
+                                    imageMaxHeight={quizImageMaxHeight}
+                                    imageBgColor={quizImageBgColor}
+                                    questionRepeats={quizQuestionRepeats}
                                 />
                             ) : isMusicGame && musicData ? (
                                 <MusicGame
@@ -367,26 +521,60 @@ export const ActivityArea = ({
                                 /* Default Text Renderer (Quiz Print Mode / Wordsearch Print Mode) */
                                 <>
                                     {activityType === 'wordsearch' && (
-                                        <Card className="mb-6 bg-purple-50 border-purple-200 no-print flex items-center justify-between p-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        onClick={() => setShowAnswers(!showAnswers)}
-                                                        variant={showAnswers ? "primary" : "secondary"}
-                                                        className={`h-8 text-sm px-3 ${showAnswers ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
-                                                    >
-                                                        {showAnswers ? 'Respostas' : 'Soluções'}
-                                                    </Button>
-                                                    <Button
-                                                        onClick={onEdit}
-                                                        variant="secondary"
-                                                        className="h-8 text-sm px-3"
-                                                    >
-                                                        Editar/Adicionar
-                                                    </Button>
-                                                </div>
+                                        <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 sm:p-3 bg-slate-50/80 border border-slate-200/70 rounded-xl no-print mb-4">
+                                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                                                <span className="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-2xs text-slate-700">
+                                                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                                                    Painel de Edição
+                                                </span>
                                             </div>
-                                        </Card>
+                                            <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+                                                <label className="flex items-center gap-1.5 cursor-pointer bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={wordsearchHideText}
+                                                        onChange={(e) => {
+                                                            setWordsearchHideText(e.target.checked);
+                                                            if (e.target.checked) setWordsearchHideGrid(false);
+                                                        }}
+                                                        className="w-3.5 h-3.5 rounded text-purple-600 focus:ring-purple-500 accent-purple-600"
+                                                    />
+                                                    <span>Esconder Texto</span>
+                                                </label>
+                                                <label className="flex items-center gap-1.5 cursor-pointer bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={wordsearchHideGrid}
+                                                        onChange={(e) => {
+                                                            setWordsearchHideGrid(e.target.checked);
+                                                            if (e.target.checked) setWordsearchHideText(false);
+                                                        }}
+                                                        className="w-3.5 h-3.5 rounded text-purple-600 focus:ring-purple-500 accent-purple-600"
+                                                    />
+                                                    <span>Esconder Grade</span>
+                                                </label>
+                                            </div>
+                                            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap ml-auto">
+                                                <Button
+                                                    onClick={onEdit}
+                                                    variant="secondary"
+                                                    className="h-8 text-xs px-3 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-semibold whitespace-nowrap shadow-2xs"
+                                                >
+                                                    Editar / Adicionar
+                                                </Button>
+                                                <Button
+                                                    onClick={() => setShowAnswers(!showAnswers)}
+                                                    variant={showAnswers ? "primary" : "secondary"}
+                                                    className={`h-8 text-xs px-3.5 font-semibold whitespace-nowrap shadow-2xs transition-all ${
+                                                        showAnswers
+                                                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-none'
+                                                            : 'bg-white hover:bg-slate-100 border border-slate-300 text-slate-700'
+                                                    }`}
+                                                >
+                                                    {showAnswers ? 'Ocultar Gabarito' : 'Mostrar Gabarito'}
+                                                </Button>
+                                            </div>
+                                        </div>
                                     )}
                                     <RichTextRenderer
                                         content={generatedContent}

@@ -72,7 +72,7 @@ export const ActivityHeader = ({
                                 className="h-8 text-sm px-3"
                                 icon={Pencil}
                             >
-                                {activityType === 'quiz' ? 'Quiz' : 'Editar'}
+                                Editar
                             </Button>
                         )}
                         {activityType === 'quiz' && (

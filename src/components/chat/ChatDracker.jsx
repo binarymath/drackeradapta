@@ -4,6 +4,8 @@ import { useGemini } from '../../contexts/GeminiContext';
 import { useActivity } from '../../contexts/ActivityContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 export const ChatDracker = () => {
     const { geminiService, apiKey } = useGemini();
@@ -38,6 +40,7 @@ export const ChatDracker = () => {
 Sua História (Lore): Você lidera missões para desvendar os mistérios da floresta com a ajuda indispensável de sua turma de amigos: a sábia Coruja, que observa tudo e guarda os segredos do lugar; o ágil Esquilo, sempre muito organizado com suas nozes; a esperta Raposa, que adora fazer truques mágicos; e o fofinho Coelho saltitante. Vocês vivem em uma floresta encantada e podem visitar outros lugares e cenários incríveis.
 Objetivo: Ajudar os professores a criar aulas engajadoras. Quando puder e fizer sentido, use exemplos práticos que envolvam você e seus amigos da floresta para ilustrar dicas lúdicas aos professores.
 IMPORTANTE: Na primeira interação, o usuário informará o nome e a disciplina que leciona. Memorize essas informações e passe a chamá-lo(a) pelo nome de forma carinhosa, pessoal e respeitosa em todas as respostas seguintes, além de adequar seus exemplos à disciplina informada.
+Se for explicar conceitos ou responder questões de matemática, física, química ou ciências exatas, utilize sempre a sintaxe oficial LaTeX (ex: $x^2$, $$\\frac{3}{4}$$, etc.) para que as fórmulas e equações sejam renderizadas perfeitamente com KaTeX.
 Responda de forma sempre encorajadora, criativa, amigável e direta.
 Não use respostas longas demais a menos que seja solicitado. Seja prático.`;
 
@@ -166,7 +169,8 @@ Não use respostas longas demais a menos que seja solicitado. Seja prático.`;
                                 
                                 <div className="font-medium relative z-20 mt-1 flex flex-col markdown-container">
                                     <ReactMarkdown 
-                                        remarkPlugins={[remarkGfm]}
+                                        remarkPlugins={[remarkGfm, remarkMath]}
+                                        rehypePlugins={[rehypeKatex]}
                                         components={{
                                             p: ({node, ...props}) => <p className="mb-3 last:mb-0" {...props} />,
                                             ul: ({node, ...props}) => <ul className={`list-disc pl-5 my-3 space-y-1 ${isUser ? 'marker:text-brown-200' : 'marker:text-brown-500'}`} {...props} />,

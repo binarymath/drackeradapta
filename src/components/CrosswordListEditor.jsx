@@ -9,6 +9,7 @@ import { Button } from './ui/Button';
 import { Input, TextArea } from './ui/Input';
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
+import { LatexRenderer } from './ui/LatexRenderer';
 
 export const CrosswordListEditor = ({
     initialData,
@@ -309,7 +310,7 @@ Retorne SOMENTE um array JSON:
                         className={`rounded-lg ${gameModeType === 'math' ? 'bg-amber-500 shadow-sm text-white hover:bg-amber-600' : 'text-brown-600 hover:bg-brown-100'}`}
                         icon={Calculator}
                     >
-                        Matemática (Números)
+                        Fórmula / Matemática
                     </Button>
                 </div>
 
@@ -527,8 +528,8 @@ Retorne SOMENTE um array JSON:
                         <thead className="bg-brown-100/50 border-b border-brown-200">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-bold text-brown-600 uppercase w-12">#</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-brown-600 uppercase w-1/3">{gameModeType === 'math' ? 'Resposta (Número)' : 'Palavra (Resposta)'}</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-brown-600 uppercase">{gameModeType === 'math' ? 'Operação (Conta)' : 'Dica (Pergunta)'}</th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-brown-600 uppercase w-1/3">{gameModeType === 'math' ? 'Fórmula / Resposta' : 'Palavra (Resposta)'}</th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-brown-600 uppercase">{gameModeType === 'math' ? 'Fórmula / Operação (LaTeX)' : 'Dica (Pergunta)'}</th>
                                 <th className="px-4 py-3 text-center text-xs font-bold text-brown-600 uppercase w-24">Ação</th>
                             </tr>
                         </thead>
@@ -563,7 +564,7 @@ Retorne SOMENTE um array JSON:
                                                     placeholder={gameModeType === 'math' ? "Ex: 10 + 5" : "Dica para esta palavra..."}
                                                 />
                                             ) : (
-                                                <span className="text-brown-600 pl-2 block leading-snug">{item.clue || '...'}</span>
+                                                <LatexRenderer content={item.clue || '...'} className="text-brown-600 pl-2 block leading-snug" />
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-center">

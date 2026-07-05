@@ -5,13 +5,20 @@ import { ChevronDown, ChevronUp, Key, Copy } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
+import { ActivityPrintHeader } from './ui/ActivityPrintHeader';
+import { LatexRenderer } from './ui/LatexRenderer';
 
 const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], foundPlacements = [], hideText = false, hideGrid = false, title = null }) => {
+    const [textFontSize, setTextFontSize] = useState(16);
+    const [mathFontSize, setMathFontSize] = useState(18);
     if (!content) return null;
 
     const renderInlineStyles = (text) => {
-        const cleanText = text.replace(/\$([^\$]+)\$/g, '$1');
-        const parts = cleanText.split(/(\*\*.*?\*\*)/g);
+        if (!text && text !== 0) return null;
+        if (/\$|\\frac|\\sqrt|\^|_|\\sin|\\cos|\\pi|\\alpha|\\beta|\\times|\\cdot|[+\-x÷=]\s*\d/.test(text.toString())) {
+            return <LatexRenderer content={text} mathFontSize={mathFontSize} textFontSize={textFontSize} />;
+        }
+        const parts = text.toString().split(/(\*\*.*?\*\*)/g);
         return parts.map((part, index) => {
             if (part.startsWith('**') && part.endsWith('**')) {
                 return <strong key={index} className="text-brown-700 font-extrabold">{part.slice(2, -2)}</strong>;
@@ -22,6 +29,16 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
 
     const lines = content.split('\n');
     const elements = [];
+    if (title) {
+        elements.push(
+            <ActivityPrintHeader
+                key="print-header"
+                title={title}
+                subtitle="ATIVIDADE DE AVALIAÇÃO"
+                pills={foundWords?.length ? [`📝 ${foundWords.length} Palavras`] : []}
+            />
+        );
+    }
     // Lista desativada: não renderizamos marcadores
     let listBuffer = [];
     let gridBuffer = [];
@@ -105,8 +122,8 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                     }
 
                     cardContent.push(
-                        <div key="grid-content" className="flex justify-center mb-6 print:mb-2">
-                            <div className="inline-block p-4 print:p-2 bg-brown-50 rounded-lg border border-brown-200 shadow-inner">
+                        <div key="grid-content" className="flex justify-center mb-6 print:mb-4">
+                            <div className="inline-block p-4 print:p-0 bg-brown-50 print:bg-transparent rounded-xl border border-brown-200 print:border-none shadow-inner print:shadow-none">
                                 <div
                                     className="grid"
                                     style={{ gridTemplateColumns: `repeat(${cols}, auto)`, gap: '0px' }}
@@ -117,9 +134,14 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                                             return (
                                                 <div
                                                     key={`${rowIndex}-${colIndex}`}
-                                                    className={`flex items-center justify-center font-mono text-sm font-bold transition-colors cursor-pointer border border-brown-100/50 ${isHighlighted ? 'bg-brown-500 text-white shadow-sm scale-110 z-10 rounded' : 'text-brown-900 bg-white hover:bg-brown-200'
+                                                    className={`flex items-center justify-center font-mono text-sm sm:text-base print:text-base font-bold transition-colors cursor-pointer border border-brown-100/60 print:border-slate-300 ${isHighlighted ? 'bg-brown-500 text-white shadow-sm scale-110 z-10 rounded print:bg-slate-800 print:text-white print:scale-100' : 'text-brown-900 print:text-slate-900 bg-white hover:bg-brown-200'
                                                         }`}
-                                                    style={{ width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' }}
+                                                    style={{ 
+                                                        width: cols <= 10 ? '38px' : cols <= 12 ? '36px' : '33px', 
+                                                        height: cols <= 10 ? '38px' : cols <= 12 ? '36px' : '33px',
+                                                        minWidth: cols <= 10 ? '38px' : cols <= 12 ? '36px' : '33px', 
+                                                        minHeight: cols <= 10 ? '38px' : cols <= 12 ? '36px' : '33px'
+                                                    }}
                                                 >
                                                     {letter.toUpperCase()}
                                                 </div>
@@ -135,7 +157,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
 
             // 2. RENDER WORD LIST
             if (wordListBuffer.length > 0) {
-                const isMathList = wordListBuffer.some(part => /[+\-x÷=]/.test(part) && /\d/.test(part));
+                const isMathList = wordListBuffer.some(part => (/[+\-x÷=]/.test(part) && /\d/.test(part)) || /\\frac|\\sqrt|\^|_|\\sin|\\cos|\\pi|\$/.test(part));
                 
                 if (isMathList) {
                     cardContent.push(
@@ -146,7 +168,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                                     <div key={pIdx} className="flex items-center justify-start border border-brown-100 p-3 print:p-1.5 hover:bg-brown-50">
                                         <span className="font-bold text-brown-400 mr-2 w-6 text-right print:text-sm">{pIdx + 1})</span>
                                         <span className="font-mono text-lg print:text-base font-bold text-brown-900 whitespace-nowrap">
-                                            {part.trim().replace('?', '')}
+                                            <LatexRenderer content={part.trim().replace('?', '')} mathFontSize={mathFontSize} textFontSize={textFontSize} />
                                         </span>
                                     </div>
                                 ))}
@@ -225,10 +247,9 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
             elements.push(
                 <Card key={`story-${elements.length}`} className="relative mb-6 overflow-hidden">
 
-                    {/* Title inside Card (only for the first story block) */}
+                    {/* Copy button inside Card (only for the first story block) */}
                     {title && !hideText && !titleRendered && (
-                        <div className="border-b border-brown-100 pb-4 mb-6 flex justify-between items-start">
-                            <h2 className="text-2xl font-bold text-brown-900 mb-1">{title}</h2>
+                        <div className="pb-2 mb-4 flex justify-end">
                             <Button
                                 onClick={() => {
                                     navigator.clipboard.writeText(currentStoryText);
@@ -539,7 +560,48 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
     flushQuestion();
     flushStory(); // Flusha o resto da história
     flushAnswerKey();
-    return <>{elements}</>;
+    
+    return (
+        <div style={{ fontSize: `${textFontSize}px` }}>
+            <div className="flex items-center justify-end gap-2 mb-4 no-print">
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1 bg-white border border-slate-200 px-2.5 py-1 rounded-xl text-xs font-bold text-slate-700 shadow-2xs">
+                        <span>📝 Texto:</span>
+                        <select
+                            value={textFontSize}
+                            onChange={(e) => setTextFontSize(Number(e.target.value))}
+                            className="bg-slate-50 border border-slate-300 rounded-lg px-2 py-0.5 text-xs font-black text-brown-900 cursor-pointer focus:outline-none"
+                        >
+                            <option value={12}>12 px</option>
+                            <option value={14}>14 px</option>
+                            <option value={16}>16 px (Padrão)</option>
+                            <option value={18}>18 px</option>
+                            <option value={20}>20 px</option>
+                            <option value={22}>22 px</option>
+                            <option value={24}>24 px</option>
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-1 bg-white border border-slate-200 px-2.5 py-1 rounded-xl text-xs font-bold text-slate-700 shadow-2xs">
+                        <span>🧮 Fórmula:</span>
+                        <select
+                            value={mathFontSize}
+                            onChange={(e) => setMathFontSize(Number(e.target.value))}
+                            className="bg-slate-50 border border-slate-300 rounded-lg px-2 py-0.5 text-xs font-black text-brown-900 cursor-pointer focus:outline-none"
+                        >
+                            <option value={14}>14 px</option>
+                            <option value={16}>16 px</option>
+                            <option value={18}>18 px (Padrão)</option>
+                            <option value={20}>20 px</option>
+                            <option value={22}>22 px</option>
+                            <option value={24}>24 px</option>
+                            <option value={28}>28 px</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            {elements}
+        </div>
+    );
 };
 
 // Componente Isolado para o Card de Gabarito

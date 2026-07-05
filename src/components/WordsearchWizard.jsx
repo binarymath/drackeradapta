@@ -355,7 +355,7 @@ Texto divertido: `;
                       onClick={() => setGameModeType('math')}
                       className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${gameModeType === 'math' ? 'bg-white shadow-sm text-brown-900' : 'text-brown-500 hover:bg-brown-50'}`}
                   >
-                      🔢 Matemática (Números)
+                      🔢 Fórmula / Matemática
                   </button>
               </div>
 

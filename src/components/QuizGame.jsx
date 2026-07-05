@@ -3,6 +3,18 @@ import { Play, Check, X, RefreshCcw, Trophy, ChevronRight, UserPlus, Trash2 } fr
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 
+/** Converte URLs do Google Drive para URL direta embutível */
+function toDirectImageUrl(url) {
+    if (!url) return url;
+    const fileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (fileMatch) return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
+    const openMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+    if (openMatch) return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
+    const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
+    if (ucMatch) return `https://drive.google.com/uc?export=view&id=${ucMatch[1]}`;
+    return url;
+}
+
 export const QuizGame = ({ quizData, onRestart }) => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [score, setScore] = useState(0);
@@ -294,9 +306,30 @@ export const QuizGame = ({ quizData, onRestart }) => {
 
             {/* Content */}
             <div className="p-4 sm:p-6 flex-1 flex flex-col overflow-y-auto max-h-[85vh]">
-                <h3 className="text-lg sm:text-xl font-bold text-brown-900 mb-6 leading-relaxed text-center">
+                <h3 className="text-lg sm:text-xl font-bold text-brown-900 mb-4 leading-relaxed text-center">
                     {currentQuestion.statement.replace(/^\d+[\.\)]\s*/, '')}
                 </h3>
+
+                {/* Imagem da questão (opcional) */}
+                {currentQuestion.image_url && (() => {
+                    const bg = currentQuestion.image_bg_color && currentQuestion.image_bg_color !== 'transparent'
+                        ? currentQuestion.image_bg_color
+                        : 'transparent';
+                    return (
+                        <div
+                            className="mb-4 rounded-xl border border-brown-100 flex items-center justify-center"
+                            style={{ maxHeight: '240px', background: bg }}
+                        >
+                            <img
+                                src={toDirectImageUrl(currentQuestion.image_url)}
+                                alt="Imagem da questão"
+                                className="max-w-full object-contain"
+                                style={{ maxHeight: '240px' }}
+                                onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                            />
+                        </div>
+                    );
+                })()}
 
                 <div className="grid grid-cols-1 gap-3 w-full max-w-xl mx-auto">
                     {options.map((option, idx) => {
