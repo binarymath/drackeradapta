@@ -5,6 +5,7 @@ export const NumberLineRenderer = ({
     showAnswers = true,
     isPrint = false,
     interactiveMode = false,
+    isFullscreen = false,
     onPointClick,
     selectedDropPoint,
     onDropCard
@@ -18,10 +19,11 @@ export const NumberLineRenderer = ({
         denominatorColors = {},
         points = [],
         arcs = [],
-        fontSizePx = 16
+        fontSizePx = 16,
+        axisNumberMode = 'all'
     } = data || {};
 
-    const basePx = Math.max(10, Math.min(48, Number(fontSizePx) || 16));
+    const basePx = Math.max(10, Math.min(72, Number(fontSizePx) || 16));
     const majorTick = basePx;
     const normalTick = Math.max(11, Math.round(basePx * 0.88));
     const fracTick = Math.max(11, Math.round(basePx * 0.78));
@@ -153,14 +155,19 @@ export const NumberLineRenderer = ({
     }
 
     return (
-        <div className={`w-full overflow-x-auto ${isPrint ? '' : 'py-4 select-none'}`}>
-            <div className="min-w-[700px] max-w-5xl mx-auto bg-white rounded-2xl p-4 shadow-sm border border-brown-100">
+        <div className={`w-full ${isFullscreen ? 'h-full flex items-center justify-center overflow-hidden' : 'overflow-x-auto'} ${isPrint ? '' : 'py-4 select-none'}`}>
+            <div className={isFullscreen ? "w-full h-full flex items-center justify-center bg-transparent p-0 border-0 shadow-none max-w-none" : "min-w-[700px] max-w-5xl mx-auto bg-white rounded-2xl p-4 shadow-sm border border-brown-100"}>
                 <svg
                     id="number-line-svg"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox={`0 0 ${svgWidth} ${svgHeight}`}
                     className="w-full h-auto overflow-visible"
-                    style={{ maxHeight: isPrint ? '200px' : '320px', fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                    style={{
+                        maxHeight: isFullscreen ? '75vh' : (isPrint ? '200px' : '320px'),
+                        width: '100%',
+                        height: isFullscreen ? '100%' : 'auto',
+                        fontFamily: 'system-ui, -apple-system, sans-serif'
+                    }}
                 >
                     <defs>
                         <marker
@@ -270,51 +277,61 @@ export const NumberLineRenderer = ({
 
 
                                 {/* Tick Label below axis */}
-                                {t.label && !points.some(p => (p.position === 'bottom' || p.position === 'tick') && Math.abs(p.val - t.val) < 0.0001) && (
-                                    <g transform={`translate(${t.x}, ${axisY + (t.label.type === 'int' ? sizes.intOffsetY : sizes.fracOffsetY)})`}>
-                                        {t.label.type === 'int' ? (
-                                            <text
-                                                textAnchor="middle"
-                                                fill={t.isMajor ? "#78350f" : tickColor}
-                                                fontSize={t.isMajor ? sizes.majorTick : sizes.normalTick}
-                                                fontWeight={t.isMajor ? "800" : "600"}
-                                            >
-                                                {t.label.text}
-                                            </text>
-                                        ) : (
-                                            <g transform="translate(0, 0)">
+                                {(() => {
+                                    const isPointColliding = points.some(p => (p.position === 'bottom' || p.position === 'tick') && Math.abs(p.val - t.val) < 0.0001);
+                                    if (!t.label || isPointColliding) return null;
+                                    if (axisNumberMode === 'none' || axisNumberMode === 'hidden') return null;
+                                    if (axisNumberMode === 'extremes' || axisNumberMode === 'first_last') {
+                                        const isFirst = idx === 0 || Math.abs(t.val - min) < 0.0001;
+                                        const isLast = idx === ticks.length - 1 || Math.abs(t.val - max) < 0.0001;
+                                        if (!isFirst && !isLast) return null;
+                                    }
+                                    return (
+                                        <g transform={`translate(${t.x}, ${axisY + (t.label.type === 'int' ? sizes.intOffsetY : sizes.fracOffsetY)})`}>
+                                            {t.label.type === 'int' ? (
                                                 <text
-                                                    x="0"
-                                                    y="0"
                                                     textAnchor="middle"
-                                                    fill={tickColor}
-                                                    fontSize={sizes.fracTick}
-                                                    fontWeight="bold"
+                                                    fill={t.isMajor ? "#78350f" : tickColor}
+                                                    fontSize={t.isMajor ? sizes.majorTick : sizes.normalTick}
+                                                    fontWeight={t.isMajor ? "800" : "600"}
                                                 >
-                                                    {t.label.num}
+                                                    {t.label.text}
                                                 </text>
-                                                <line
-                                                    x1={-sizes.fracLineW}
-                                                    y1={sizes.fracBarY}
-                                                    x2={sizes.fracLineW}
-                                                    y2={sizes.fracBarY}
-                                                    stroke={tickColor}
-                                                    strokeWidth="1.5"
-                                                />
-                                                <text
-                                                    x="0"
-                                                    y={sizes.fracDenY}
-                                                    textAnchor="middle"
-                                                    fill={tickColor}
-                                                    fontSize={sizes.fracTick}
-                                                    fontWeight="bold"
-                                                >
-                                                    {t.label.den}
-                                                </text>
-                                            </g>
-                                        )}
-                                    </g>
-                                )}
+                                            ) : (
+                                                <g transform="translate(0, 0)">
+                                                    <text
+                                                        x="0"
+                                                        y="0"
+                                                        textAnchor="middle"
+                                                        fill={tickColor}
+                                                        fontSize={sizes.fracTick}
+                                                        fontWeight="bold"
+                                                    >
+                                                        {t.label.num}
+                                                    </text>
+                                                    <line
+                                                        x1={-sizes.fracLineW}
+                                                        y1={sizes.fracBarY}
+                                                        x2={sizes.fracLineW}
+                                                        y2={sizes.fracBarY}
+                                                        stroke={tickColor}
+                                                        strokeWidth="1.5"
+                                                    />
+                                                    <text
+                                                        x="0"
+                                                        y={sizes.fracDenY}
+                                                        textAnchor="middle"
+                                                        fill={tickColor}
+                                                        fontSize={sizes.fracTick}
+                                                        fontWeight="bold"
+                                                    >
+                                                        {t.label.den}
+                                                    </text>
+                                                </g>
+                                            )}
+                                        </g>
+                                    );
+                                })()}
                             </g>
                         );
                     })}

@@ -22,6 +22,7 @@ import DetectiveRPG from './rpg/DetectiveRPG';
 import ChatDracker from './chat/ChatDracker';
 import { TradingCardMaker } from './trading-cards/TradingCardMaker';
 import { NumberLineMaker } from './number-line/NumberLineMaker';
+import { FractionsMaker } from './fractions/FractionsMaker';
 
 import html2pdf from 'html2pdf.js';
 
@@ -103,6 +104,7 @@ export const ActivityArea = ({
         (activityType === 'trading_cards') ||
         (activityType === 'chat_dracker') ||
         (activityType === 'number_line') ||
+        (activityType === 'fractions') ||
         (activityType === 'domino' && dominoData);
 
     // Reset game mode when content changes
@@ -515,6 +517,8 @@ export const ActivityArea = ({
                                 <TradingCardMaker />
                             ) : activityType === 'number_line' ? (
                                 <NumberLineMaker />
+                            ) : activityType === 'fractions' ? (
+                                <FractionsMaker />
                             ) : activityType === 'summary' && drackerData ? (
                                 <DrackerSummaryRenderer data={drackerData} title={activityTitle} />
                             ) : (

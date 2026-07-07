@@ -5,7 +5,7 @@ import { NumberLineGame } from './NumberLineGame';
 import { NumberLinePrint } from './NumberLinePrint';
 import {
     Sparkles, Plus, Trash2, Eye, EyeOff, Play, Printer, Settings,
-    ArrowLeftRight, HelpCircle, Loader2, Download
+    ArrowLeftRight, HelpCircle, Loader2, Download, Maximize2, Minimize2
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input, Select, TextArea } from '../ui/Input';
@@ -21,6 +21,7 @@ const defaultPresets = {
         maxVal: 2,
         step: 1,
         denominator: 4,
+        axisNumberMode: 'all',
         title: 'Reta Numérica com Frações (Quartos)',
         description: 'Observe a divisão da reta numérica e encontre os valores correspondentes.',
         points: [
@@ -42,6 +43,7 @@ const defaultPresets = {
         maxVal: 6,
         step: 1,
         denominator: 1,
+        axisNumberMode: 'all',
         title: 'Reta Numérica de Números Inteiros',
         description: 'Encontre a posição dos números positivos e negativos na reta.',
         points: [
@@ -63,6 +65,7 @@ const defaultPresets = {
         maxVal: 1.5,
         step: 0.1,
         denominator: 10,
+        axisNumberMode: 'all',
         title: 'Reta Numérica com Números Decimais',
         description: 'Identifique os décimos marcados na reta numérica.',
         points: [
@@ -83,6 +86,17 @@ export const NumberLineMaker = () => {
     const [viewMode, setViewMode] = useState('editor'); // 'editor' | 'game' | 'print'
     const [isGenerating, setIsGenerating] = useState(false);
     const [statusMsg, setStatusMsg] = useState({ text: '', type: '' });
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isFullscreen) {
+                setIsFullscreen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isFullscreen]);
 
     const [localData, setLocalData] = useState(() => activeActivity?.numberLineData || defaultPresets.fractions);
 
@@ -235,6 +249,7 @@ export const NumberLineMaker = () => {
                 maxVal: max,
                 step: 1,
                 denominator: 1,
+                axisNumberMode: 'all',
                 title: `Reta Numérica dos Inteiros (-${max} a +${max})`,
                 description: 'Analise a posição dos números positivos, negativos e o ponto de origem na reta.',
                 points: [
@@ -257,6 +272,7 @@ export const NumberLineMaker = () => {
                 maxVal: 2,
                 step: 0.2,
                 denominator: 10,
+                axisNumberMode: 'all',
                 title: 'Desafio na Reta Decimal (Décimos e Quintos)',
                 description: 'Identifique os valores em notação decimal marcados na escala.',
                 points: [
@@ -280,6 +296,7 @@ export const NumberLineMaker = () => {
                 maxVal: 2,
                 step: 1,
                 denominator: den,
+                axisNumberMode: 'all',
                 title: `Explorando Frações na Reta (Subdivisão em ${den} partes)`,
                 description: `A reta numérica entre cada número inteiro está dividida em ${den} partes iguais. Encontre as frações!`,
                 points: [
@@ -498,6 +515,9 @@ export const NumberLineMaker = () => {
                                             <option value={28}>28 px</option>
                                             <option value={32}>32 px</option>
                                             <option value={36}>36 px</option>
+                                            <option value={48}>48 px (Grande)</option>
+                                            <option value={56}>56 px (Extra Grande)</option>
+                                            <option value={64}>64 px (Gigante)</option>
                                         </select>
                                     </div>
 
@@ -509,9 +529,19 @@ export const NumberLineMaker = () => {
                                         <Download className="w-3.5 h-3.5" />
                                         <span>Baixar PNG Transparente</span>
                                     </button>
+
                                     <span className="text-xs bg-brown-100 text-brown-700 px-2 py-1 rounded font-bold">
                                         {currentData.domainType === 'fraction' ? 'Fração' : currentData.domainType === 'integer' ? 'Inteiros' : 'Decimais'}
                                     </span>
+
+                                    {/* Botão Tela Cheia (Apenas o ícone no canto superior direito) */}
+                                    <button
+                                        onClick={() => setIsFullscreen(true)}
+                                        className="flex items-center justify-center p-1.5 text-amber-950 bg-amber-300 hover:bg-amber-400 rounded-lg transition-all shadow-xs cursor-pointer active:scale-95 border border-amber-500 ml-1"
+                                        title="Expandir para 100% da tela (Tela Cheia)"
+                                    >
+                                        <Maximize2 className="w-4 h-4 text-amber-900" />
+                                    </button>
                                 </div>
                             </div>
 
@@ -635,6 +665,17 @@ export const NumberLineMaker = () => {
                                     { value: 'fraction', label: 'Frações (Ex: 1/2, 3/4)' },
                                     { value: 'integer', label: 'Inteiros (Ex: -5, 0, +5)' },
                                     { value: 'decimal', label: 'Decimais (Ex: 0.1, 1.5)' }
+                                ]}
+                            />
+
+                            <Select
+                                label="Exibição dos Números no Eixo"
+                                value={currentData.axisNumberMode || 'all'}
+                                onChange={(e) => handleUpdate({ axisNumberMode: e.target.value })}
+                                options={[
+                                    { value: 'all', label: '👁️ Exibir todos os números na escala (Padrão)' },
+                                    { value: 'extremes', label: '↔️ Exibir apenas o primeiro e o último número' },
+                                    { value: 'none', label: '🙈 Ocultar todos os números do eixo (Apenas traços)' }
                                 ]}
                             />
 
@@ -870,6 +911,102 @@ export const NumberLineMaker = () => {
                             )}
                         </Card>
                     </div>
+                </div>
+            )}
+
+            {/* FULLSCREEN OVERLAY (100% LARGURA E ALTURA DA TELA) */}
+            {isFullscreen && (
+                <div className="fixed inset-0 z-[9999] bg-white flex flex-col justify-between p-4 md:p-8 overflow-y-auto animate-in fade-in duration-200 shadow-2xl">
+                    {/* Top Bar / Controls in Fullscreen */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b-2 border-brown-200 pb-4 shrink-0 bg-brown-50/80 p-4 rounded-2xl shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-amber-500 text-white rounded-xl shadow-md">
+                                <Maximize2 className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg md:text-xl font-black text-brown-900">
+                                    {currentData.title || 'Reta Numérica em Tela Cheia (100%)'}
+                                </h2>
+                                <p className="text-xs font-semibold text-brown-600">
+                                    Apresentação expandida • Pressione <kbd className="px-1.5 py-0.5 bg-white border border-brown-300 rounded font-mono text-[10px] shadow-2xs">ESC</kbd> ou o botão ao lado para sair
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end">
+                            {/* Seletor de Pixels para Fonte no Modo Tela Cheia */}
+                            <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-brown-300 text-xs font-bold text-brown-800 shadow-2xs">
+                                <span>Fonte:</span>
+                                <select
+                                    value={currentData.fontSizePx || 16}
+                                    onChange={(e) => handleUpdate({ fontSizePx: Number(e.target.value) })}
+                                    className="bg-transparent border-0 font-extrabold text-brown-900 focus:outline-none cursor-pointer text-xs"
+                                >
+                                    <option value={16}>16 px</option>
+                                    <option value={20}>20 px</option>
+                                    <option value={24}>24 px</option>
+                                    <option value={28}>28 px</option>
+                                    <option value={32}>32 px</option>
+                                    <option value={36}>36 px</option>
+                                    <option value={48}>48 px (Grande)</option>
+                                    <option value={56}>56 px (Extra Grande)</option>
+                                    <option value={64}>64 px (Gigante)</option>
+                                </select>
+                            </div>
+
+                            {/* Seletor de Exibição dos Números no Eixo */}
+                            <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-brown-300 text-xs font-bold text-brown-800 shadow-2xs">
+                                <span>Números:</span>
+                                <select
+                                    value={currentData.axisNumberMode || 'all'}
+                                    onChange={(e) => handleUpdate({ axisNumberMode: e.target.value })}
+                                    className="bg-transparent border-0 font-extrabold text-brown-900 focus:outline-none cursor-pointer text-xs"
+                                >
+                                    <option value="all">👁️ Todos</option>
+                                    <option value="extremes">↔️ 1º e Último</option>
+                                    <option value="none">🙈 Ocultos</option>
+                                </select>
+                            </div>
+
+                            <button
+                                onClick={handleDownloadTransparentPNG}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-brown-700 bg-white hover:bg-brown-100 rounded-xl border border-brown-300 transition-colors shadow-2xs cursor-pointer"
+                                title="Baixar imagem PNG de alta resolução"
+                            >
+                                <Download className="w-4 h-4 text-brown-600" />
+                                <span className="hidden sm:inline">Baixar PNG</span>
+                            </button>
+
+                            <button
+                                onClick={() => setIsFullscreen(false)}
+                                className="flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-black text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all shadow-md hover:shadow-lg cursor-pointer active:scale-95"
+                                title="Sair da Tela Cheia (ESC)"
+                            >
+                                <Minimize2 className="w-4 h-4 md:w-5 md:h-5" />
+                                <span>Sair (100%)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Main Fullscreen Number Line Area */}
+                    <div className="flex-1 flex flex-col items-center justify-center my-4 md:my-8 w-full h-full overflow-hidden">
+                        <div className="w-full h-full flex items-center justify-center bg-white rounded-3xl p-4 md:p-12 border-4 border-brown-200/60 shadow-inner">
+                            <NumberLineRenderer
+                                data={currentData}
+                                showAnswers={true}
+                                isFullscreen={true}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Bottom Enunciado / Descrição no Modo Tela Cheia */}
+                    {currentData.description && (
+                        <div className="shrink-0 bg-gradient-to-r from-amber-50 to-brown-50 p-4 md:p-6 rounded-2xl border border-amber-300/80 shadow-md text-center">
+                            <p className="text-sm md:text-base font-bold text-brown-900 leading-relaxed">
+                                📢 {currentData.description}
+                            </p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
