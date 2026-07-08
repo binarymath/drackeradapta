@@ -17,6 +17,7 @@ import { TabsBar } from './components/TabsBar';
 import { AppModals } from './components/AppModals';
 import { Footer } from './components/Footer';
 import { CookieBanner } from './components/CookieBanner';
+import { BackupVersionCenterModal } from './components/BackupVersionCenterModal';
 
 export const MainLayout = () => {
     // --- CONTEXTS ---
@@ -220,11 +221,16 @@ export const MainLayout = () => {
         document.body.removeChild(link);
     };
 
-    // Backup
+    // Backup (.dracker Versionado e Legado)
     const {
         exportSystemState,
         importSystemState,
         importDialog,
+        backupCenterModal,
+        openBackupCenter,
+        closeBackupCenter,
+        restoreTabsVersioned,
+        mergeTabsVersioned,
         handleMergeImport,
         handleReplaceImport,
         closeImportDialog
@@ -271,6 +277,7 @@ export const MainLayout = () => {
                     setShowSettings={setShowSettings}
                     onBackup={exportSystemState}
                     onRestore={importSystemState}
+                    onOpenBackupCenter={openBackupCenter}
                     openAudioRecorder={() => setShowAudioRecorder(true)}
                 />
             )}
@@ -408,6 +415,16 @@ export const MainLayout = () => {
                         openManualMusicEditor={actions.openManualMusicEditor}
                     />
                 </div>
+
+                <BackupVersionCenterModal
+                    isOpen={backupCenterModal.isOpen}
+                    onClose={closeBackupCenter}
+                    currentTabs={tabs}
+                    onRestoreTabs={restoreTabsVersioned}
+                    onMergeTabs={mergeTabsVersioned}
+                    initialTab={backupCenterModal.initialTab}
+                    initialFileContent={backupCenterModal.initialFileContent}
+                />
 
                 <AppModals
                     {...actions}

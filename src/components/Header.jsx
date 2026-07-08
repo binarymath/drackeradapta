@@ -11,6 +11,7 @@ import {
     SlidersHorizontal,
     Save,
     Upload,
+    History,
     Menu,
     X
 } from 'lucide-react';
@@ -35,6 +36,7 @@ export const Header = ({
     openVoiceSettings,
     onBackup,
     onRestore,
+    onOpenBackupCenter,
     openAudioRecorder
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -89,19 +91,27 @@ export const Header = ({
 
             <div className="h-6 w-px bg-brown-200 mx-1"></div>
 
-            {/* Backup / Restore */}
-            <div className="flex items-center gap-2">
+            {/* Backup / Restore / Versões */}
+            <div className="flex items-center gap-1.5">
+                <Button
+                    onClick={() => onOpenBackupCenter ? onOpenBackupCenter('timeline') : onBackup()}
+                    variant="secondary"
+                    className="text-xs font-bold bg-white hover:bg-brown-50 border border-brown-300 text-brown-900 shadow-2xs"
+                    title="Central de Versões (.dracker) e Snapshots"
+                >
+                    <History className="w-3.5 h-3.5 mr-1.5 text-amber-600" /> Versões
+                </Button>
                 <Button
                     onClick={onBackup}
                     variant="ghost"
                     className="text-xs font-bold text-brown-700"
-                    title="Fazer backup de tudo"
+                    title="Exportar rápido para .dracker"
                 >
-                    <Save className="w-3 h-3 mr-2" /> Backup
+                    <Save className="w-3 h-3 mr-1.5" /> Backup `.dracker`
                 </Button>
                 <label className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${theme.button.primary}`}>
-                    <Upload className="w-3 h-3 mr-2" /> Restaurar
-                    <input type="file" accept=".json" onChange={onRestore} className="hidden" />
+                    <Upload className="w-3 h-3 mr-1.5" /> Restaurar
+                    <input type="file" accept=".dracker,.json" onChange={onRestore} className="hidden" />
                 </label>
             </div>
 
@@ -167,7 +177,7 @@ export const Header = ({
                         </div>
 
                         {/* Quick Actions Grid - Friendly & Intuitive */}
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-5 gap-1.5">
                             <Button variant="ghost" onClick={openVoiceSettings} className="flex-col h-auto py-2 gap-1 text-brown-700 bg-white border border-brown-100 shadow-sm hover:bg-brown-50 hover:border-brown-300">
                                 <SlidersHorizontal className="w-5 h-5" />
                                 <span className="text-[10px] font-bold">Voz</span>
@@ -178,6 +188,11 @@ export const Header = ({
                                 <span className="text-[10px] font-bold">Config</span>
                             </Button>
 
+                            <Button variant="ghost" onClick={() => onOpenBackupCenter ? onOpenBackupCenter('timeline') : onBackup()} className="flex-col h-auto py-2 gap-1 text-brown-700 bg-white border border-brown-100 shadow-sm hover:bg-brown-50 hover:border-brown-300">
+                                <History className="w-5 h-5 text-amber-600" />
+                                <span className="text-[10px] font-bold">Versões</span>
+                            </Button>
+
                             <Button variant="ghost" onClick={onBackup} className="flex-col h-auto py-2 gap-1 text-brown-700 bg-white border border-brown-100 shadow-sm hover:bg-brown-50 hover:border-brown-300">
                                 <Save className="w-5 h-5" />
                                 <span className="text-[10px] font-bold">Backup</span>
@@ -186,7 +201,7 @@ export const Header = ({
                             <label className="flex flex-col items-center justify-center h-auto py-2 rounded-lg cursor-pointer bg-white border border-brown-100 shadow-sm hover:bg-brown-50 hover:border-brown-300 transition-all text-brown-700 gap-1 active:scale-95">
                                 <Upload className="w-5 h-5" />
                                 <span className="text-[10px] font-bold">Restaurar</span>
-                                <input type="file" accept=".json" onChange={onRestore} className="hidden" />
+                                <input type="file" accept=".dracker,.json" onChange={onRestore} className="hidden" />
                             </label>
                         </div>
                     </div>
