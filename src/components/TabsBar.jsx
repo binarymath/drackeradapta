@@ -261,14 +261,14 @@ export const TabsBar = ({ tabs, activeTabId, activityType, onSelect, onClose, on
       {/* Botões do Canto Direito */}
       <div className="flex items-center gap-1.5 shrink-0">
         
-        {/* Botão Gaveta 'Todas as Abas (X)' */}
+        {/* Botão Gaveta 'Atividades' */}
         <button
           onClick={() => setIsDrawerOpen(true)}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brown-900 hover:bg-brown-950 text-white text-xs font-extrabold shadow-2xs transition-all border border-brown-700/60"
-          title="Abrir gerenciador avançado de abas (Todas as atividades abertas e histórico)"
+          title="Abrir gerenciador de atividades (atividades abertas e histórico)"
         >
           <Layers className="w-3.5 h-3.5 text-amber-300" />
-          <span>Todas ({visibleTabs.length})</span>
+          <span>Atividades</span>
         </button>
 
       </div>
