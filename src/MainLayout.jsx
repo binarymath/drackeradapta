@@ -304,7 +304,7 @@ export const MainLayout = () => {
                 )}
 
                 <div className={`${isFullWidth ? 'w-full' : 'lg:col-span-8'} flex flex-col gap-4 transition-all duration-300`}>
-                    {!isFullWidth && activityType !== 'about_system' && activityType !== 'dashboard' && (
+                    {!isFullWidth && activityType !== 'about_system' && activityType !== 'dashboard' && activityType !== 'merge_pdf' && (
                         <div className="no-print">
                             <TabsBar
                                 tabs={tabs}

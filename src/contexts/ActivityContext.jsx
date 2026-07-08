@@ -69,6 +69,7 @@ export const ActivityProvider = ({ children }) => {
 
     // --- DERIVED STATE ---
     const activeActivity = useMemo(() => {
+        if (activityType === 'about_system' || activityType === 'dashboard' || activityType === 'merge_pdf') return null;
         const foundActive = tabs.find(t => t.id === activeTabId && !t.hidden);
         if (foundActive) return foundActive;
         const foundAnyVisibleOfSameType = tabs.find(t => !t.hidden && t.type === activityType);
@@ -268,6 +269,11 @@ export const ActivityProvider = ({ children }) => {
 
     // Activity Switch Logic
     const handleActivityTypeChange = (type) => {
+        if (type === 'about_system' || type === 'dashboard' || type === 'merge_pdf') {
+            setActivityType(type);
+            setActiveTabId(null);
+            return;
+        }
         const existingTabs = tabs.filter(t => t.type === type);
         if (existingTabs.length > 0) {
             setTabSelectionModal({ isOpen: true, type: type });

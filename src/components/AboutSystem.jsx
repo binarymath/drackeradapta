@@ -29,11 +29,15 @@ import { Card } from './ui/Card';
 import { useActivity } from '../contexts/ActivityContext';
 
 export const AboutSystem = () => {
-    const { setActivityType, setActiveTabId } = useActivity();
+    const { handleActivityTypeChange, setActivityType, setActiveTabId } = useActivity();
 
     const navigateTo = (type) => {
-        setActivityType(type);
-        setActiveTabId(null);
+        if (handleActivityTypeChange) {
+            handleActivityTypeChange(type);
+        } else {
+            setActivityType(type);
+            setActiveTabId(null);
+        }
     };
 
     const categories = [
