@@ -238,6 +238,20 @@ export const MainLayout = () => {
     // Combined System Status
     const displayedSystemStatus = geminiSystemStatus || actions.systemStatus;
 
+    // Rolagem automática para o topo da área de atividade ao alternar no sidebar
+    useEffect(() => {
+        setTimeout(() => {
+            if (window.innerWidth < 1024) {
+                const container = document.getElementById('activity-area-container');
+                if (container) {
+                    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }, 30);
+    }, [activityType]);
+
     return (
         <div className="min-h-screen bg-brown-50 font-sans text-brown-900">
             {!isFullWidth && (
@@ -304,7 +318,7 @@ export const MainLayout = () => {
                     </div>
                 )}
 
-                <div className={`${isFullWidth ? 'w-full' : 'w-full lg:w-[73%] flex-1'} flex flex-col gap-4 transition-all duration-300`}>
+                <div id="activity-area-container" className={`${isFullWidth ? 'w-full' : 'w-full lg:w-[73%] flex-1'} flex flex-col gap-4 transition-all duration-300`}>
                     {!isFullWidth && activityType !== 'about_system' && activityType !== 'dashboard' && activityType !== 'merge_pdf' && (
                         <div className="no-print">
                             <TabsBar

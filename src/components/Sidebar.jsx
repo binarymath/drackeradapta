@@ -49,6 +49,20 @@ export const Sidebar = ({
     const [draggedItem, setDraggedItem] = useState(null);
     const { tabs, setActiveTabId } = useActivity();
 
+    const handleActivitySelect = (type) => {
+        setActivityType(type);
+        setTimeout(() => {
+            if (window.innerWidth < 1024) {
+                const container = document.getElementById('activity-area-container');
+                if (container) {
+                    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }, 30);
+    };
+
     useEffect(() => {
         // Carrega ordem salva no localStorage ou usa ordem padrão
         const saved = localStorage.getItem('activityOrder');
@@ -345,7 +359,7 @@ export const Sidebar = ({
                         <label className={theme.text.label}>Tipo</label>
                         {/* Fixed "About System" Link */}
                         <button
-                            onClick={() => setActivityType('about_system')}
+                            onClick={() => handleActivitySelect('about_system')}
                             className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'about_system'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
@@ -358,7 +372,7 @@ export const Sidebar = ({
                         </button>
                         {/* Fixed "Conversar com o Drácker" Link */}
                         <button
-                            onClick={() => setActivityType('chat_dracker')}
+                            onClick={() => handleActivitySelect('chat_dracker')}
                             className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'chat_dracker'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
@@ -371,7 +385,7 @@ export const Sidebar = ({
                         </button>
                         {/* Fixed "Canal do Drácker" Link */}
                         <button
-                            onClick={() => setActivityType('video_gallery')}
+                            onClick={() => handleActivitySelect('video_gallery')}
                             className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'video_gallery'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
@@ -384,7 +398,7 @@ export const Sidebar = ({
                         </button>
                         {/* Fixed "Rádio Drácker" Link */}
                         <button
-                            onClick={() => setActivityType('simplify')}
+                            onClick={() => handleActivitySelect('simplify')}
                             className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'simplify'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
@@ -397,7 +411,7 @@ export const Sidebar = ({
                         </button>
                         {/* Fixed "Metodologia Ativa" Link */}
                         <button
-                            onClick={() => setActivityType('summary')}
+                            onClick={() => handleActivitySelect('summary')}
                             className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'summary'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
@@ -410,7 +424,7 @@ export const Sidebar = ({
                         </button>
                         {/* Fixed "Mestre RPG" Link */}
                         <button
-                            onClick={() => setActivityType('rpg')}
+                            onClick={() => handleActivitySelect('rpg')}
                             className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'rpg'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
@@ -423,7 +437,7 @@ export const Sidebar = ({
                         </button>
                         {/* Fixed "Reta Numérica" Link */}
                         <button
-                            onClick={() => setActivityType('number_line')}
+                            onClick={() => handleActivitySelect('number_line')}
                             className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'number_line'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
@@ -436,7 +450,7 @@ export const Sidebar = ({
                         </button>
                         {/* Fixed "Frações e Operações" Link */}
                         <button
-                            onClick={() => setActivityType('fractions')}
+                            onClick={() => handleActivitySelect('fractions')}
                             className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'fractions'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
@@ -470,7 +484,7 @@ export const Sidebar = ({
                                 ) : (
                                     <button
                                         key={opt.id}
-                                        onClick={() => setActivityType(opt.id)}
+                                        onClick={() => handleActivitySelect(opt.id)}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, index)}
                                         onDragOver={handleDragOver}
