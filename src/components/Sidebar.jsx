@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Sparkles, AlertCircle, GripVertical, Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart } from 'lucide-react';
+import { Loader2, Sparkles, AlertCircle, Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart } from 'lucide-react';
 import { theme } from '../styles/theme';
 import { Button } from './ui/Button';
 import { Input, TextArea, Select } from './ui/Input';
@@ -45,62 +45,42 @@ export const Sidebar = ({
     difficultyDist,
     setDifficultyDist
 }) => {
-    const [orderedActivities, setOrderedActivities] = useState([]);
-    const [draggedItem, setDraggedItem] = useState(null);
     const { tabs, setActiveTabId } = useActivity();
 
-    useEffect(() => {
-        // Carrega ordem salva no localStorage ou usa ordem padrão
-        const saved = localStorage.getItem('activityOrder');
-        if (saved) {
-            try {
-                const savedOrder = JSON.parse(saved);
-
-                // Reconstruct the full object list using the saved order of IDs
-                const rehydratedItems = savedOrder
-                    .map(savedItem => activityOptions.find(opt => opt.id === savedItem.id))
-                    .filter(item => item !== undefined); // Remove invalid/removed IDs
-
-                // Find any NEW items in activityOptions that weren't in the saved order
-                const newItems = activityOptions.filter(opt => !rehydratedItems.find(r => r.id === opt.id));
-
-                setOrderedActivities([...rehydratedItems, ...newItems]);
-            } catch {
-                setOrderedActivities(activityOptions);
+    const handleActivitySelect = (type) => {
+        setActivityType(type);
+        setTimeout(() => {
+            if (window.innerWidth < 1024) {
+                const container = document.getElementById('activity-area-container');
+                if (container) {
+                    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
-        } else {
-            setOrderedActivities(activityOptions);
-        }
-    }, [activityOptions]);
-
-    const handleDragStart = (e, index) => {
-        setDraggedItem(index);
-        e.dataTransfer.effectAllowed = 'move';
+        }, 30);
     };
 
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-    };
-
-    const handleDrop = (e, targetIndex) => {
-        e.preventDefault();
-        if (draggedItem === null || draggedItem === targetIndex) return;
-
-        const newOrder = [...orderedActivities];
-        const [movedItem] = newOrder.splice(draggedItem, 1);
-        newOrder.splice(targetIndex, 0, movedItem);
-
-        setOrderedActivities(newOrder);
-        setDraggedItem(null);
-
-        // Salva no localStorage
-        localStorage.setItem('activityOrder', JSON.stringify(newOrder));
-    };
-
-    const handleDragEnd = () => {
-        setDraggedItem(null);
-    };
+    const navLinks = [
+        { id: 'about_system', label: 'Página Inicial', icon: <span className="text-xl">ℹ️</span> },
+        { id: 'chat_dracker', label: 'Conversar com o Drácker', icon: <MessageSquare className="w-5 h-5" /> },
+        { id: 'video_gallery', label: 'Canal do Drácker', icon: <Play className="w-5 h-5" /> },
+        { id: 'simplify', label: 'Rádio Drácker', icon: <Music className="w-5 h-5" /> },
+        { id: 'summary', label: 'Metodologia Ativa', icon: <MessageSquare className="w-5 h-5" /> },
+        { id: 'rpg', label: 'Mestre RPG', icon: <Compass className="w-5 h-5" /> },
+        { id: 'number_line', label: 'Reta Numérica', icon: <ArrowLeftRight className="w-5 h-5" /> },
+        { id: 'fractions', label: 'Frações e Operações', icon: <PieChart className="w-5 h-5" /> },
+        ...activityOptions.filter(opt => 
+            opt.id !== 'summary' && 
+            opt.id !== 'rpg' && 
+            opt.id !== 'number_line' && 
+            opt.id !== 'fractions' && 
+            opt.id !== 'about_system' && 
+            opt.id !== 'chat_dracker' && 
+            opt.id !== 'video_gallery' && 
+            opt.id !== 'simplify'
+        )
+    ];
 
     return (
         <div className={theme.layout.sidebar}>
@@ -150,14 +130,14 @@ export const Sidebar = ({
                     <h2 className={theme.text.title}>Nova Atividade</h2>
                 </div>
 
-                <div className="space-y-4">
-                    <Input
-                        label="Tema"
-                        type="text"
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        placeholder="Ex: Cores primárias..."
-                    />
+                    <div className="space-y-4">
+                        <Input
+                            label="Tema"
+                            type="text"
+                            value={topic}
+                            onChange={(e) => setTopic(e.target.value)}
+                            placeholder="Ex: Cores primárias..."
+                        />
 
                     <TextArea
                         label="Contexto Específico (Detalhes da Aula)"
@@ -176,7 +156,7 @@ export const Sidebar = ({
                                     key={opt.id}
                                     onClick={() => setDifficulty(opt.id)}
                                     variant={difficulty === opt.id ? 'primary' : 'ghost'}
-                                    className={`flex-1 py-2 text-xs font-bold ${difficulty === opt.id ? '' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'}`}
+                                    className={`flex-1 py-2.5 text-[15px] font-bold ${difficulty === opt.id ? '' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'}`}
                                     title={opt.tooltip}
                                 >
                                     {opt.label}
@@ -187,16 +167,16 @@ export const Sidebar = ({
 
                     {/* Quiz: configurações de perguntas */}
                     {activityType === 'quiz' && (
-                        <div className="space-y-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                        <div className="space-y-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
                             {/* Quantidade */}
                             <div>
-                                <label className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Quantidade de Perguntas</label>
-                                <div className="flex gap-1.5 flex-wrap mt-1.5">
+                                <label className="text-[14px] font-bold text-amber-900 uppercase tracking-wide">Quantidade de Perguntas</label>
+                                <div className="flex gap-2 flex-wrap mt-2">
                                     {[5, 10, 15, 20].map(n => (
                                         <button
                                             key={n}
                                             onClick={() => setQuestionCount(n)}
-                                            className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
+                                            className={`flex-1 py-2 rounded-lg text-[15px] font-bold border transition-all ${
                                                 questionCount === n
                                                     ? 'bg-amber-600 text-white border-amber-700 shadow-sm'
                                                     : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-100'
@@ -213,10 +193,10 @@ export const Sidebar = ({
 
                             {/* Distribuição de dificuldade */}
                             <div>
-                                <label className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Distribuição de Dificuldade</label>
+                                <label className="text-[14px] font-bold text-amber-900 uppercase tracking-wide">Distribuição de Dificuldade</label>
 
                                 {/* Barra visual */}
-                                <div className="flex h-3 rounded-full overflow-hidden mt-2 mb-3 border border-amber-200">
+                                <div className="flex h-3.5 rounded-full overflow-hidden mt-2.5 mb-4 border border-amber-200 shadow-inner">
                                     <div
                                         className="bg-green-400 transition-all duration-200"
                                         style={{ width: `${difficultyDist.easy}%` }}
@@ -235,11 +215,11 @@ export const Sidebar = ({
                                 </div>
 
                                 {/* Sliders */}
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     {[
-                                        { key: 'easy',   label: '🟢 Fácil',   color: 'accent-green-500',  text: 'text-green-700'  },
-                                        { key: 'medium', label: '🟡 Médio',   color: 'accent-amber-500',  text: 'text-amber-700'  },
-                                        { key: 'hard',   label: '🔴 Difícil', color: 'accent-red-500',    text: 'text-red-700'    },
+                                        { key: 'easy',   label: '🟢 Fácil',   color: 'accent-green-500',  text: 'text-green-800'  },
+                                        { key: 'medium', label: '🟡 Médio',   color: 'accent-amber-500',  text: 'text-amber-800'  },
+                                        { key: 'hard',   label: '🔴 Difícil', color: 'accent-red-500',    text: 'text-red-800'    },
                                     ].map(({ key, label, color, text }) => {
                                         const val = difficultyDist[key];
                                         // Contagem aproximada para preview
@@ -248,10 +228,10 @@ export const Sidebar = ({
 
                                         return (
                                             <div key={key}>
-                                                <div className="flex justify-between items-center mb-0.5">
-                                                    <span className={`text-[11px] font-bold ${text}`}>{label}</span>
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className={`text-[14px] font-bold ${text}`}>{label}</span>
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className={`text-[10px] font-bold ${text}`}>{cnt} questão{cnt !== 1 ? 'ões' : ''}</span>
+                                                        <span className={`text-[13px] font-bold ${text}`}>{cnt} questão{cnt !== 1 ? 'ões' : ''}</span>
                                                         <input
                                                             type="number"
                                                             min={0}
@@ -277,9 +257,9 @@ export const Sidebar = ({
                                                                 }
                                                                 setDifficultyDist(updated);
                                                             }}
-                                                            className={`w-11 px-1.5 py-0.5 rounded text-[11px] font-bold border border-amber-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400 text-center ${text}`}
+                                                            className={`w-13 px-2 py-1 rounded text-[13px] font-bold border border-amber-300 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400 text-center ${text}`}
                                                         />
-                                                        <span className={`text-[10px] ${text}`}>%</span>
+                                                        <span className={`text-[13px] font-bold ${text}`}>%</span>
                                                     </div>
                                                 </div>
                                                 <input
@@ -305,7 +285,7 @@ export const Sidebar = ({
                                                         }
                                                         setDifficultyDist(updated);
                                                     }}
-                                                    className={`w-full h-2 rounded-full appearance-none cursor-pointer ${color}`}
+                                                    className={`w-full h-2.5 rounded-full appearance-none cursor-pointer ${color}`}
                                                 />
                                             </div>
                                         );
@@ -313,8 +293,8 @@ export const Sidebar = ({
                                 </div>
 
                                 {/* Presets rápidos */}
-                                <div className="flex gap-1.5 flex-wrap mt-2.5">
-                                    <span className="text-[10px] text-amber-600 font-bold self-center mr-0.5">Presets:</span>
+                                <div className="flex gap-2 flex-wrap mt-3 items-center">
+                                    <span className="text-[13px] text-amber-800 font-bold mr-1">Presets:</span>
                                     {[
                                         { label: 'Simples',     dist: { easy: 70, medium: 20, hard: 10 } },
                                         { label: 'Balanceado',  dist: { easy: 40, medium: 40, hard: 20 } },
@@ -326,10 +306,10 @@ export const Sidebar = ({
                                             <button
                                                 key={p.label}
                                                 onClick={() => setDifficultyDist(p.dist)}
-                                                className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                                className={`px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all ${
                                                     active
-                                                        ? 'bg-amber-600 text-white border-amber-700'
-                                                        : 'bg-white text-amber-700 border-amber-300 hover:bg-amber-100'
+                                                        ? 'bg-amber-600 text-white border-amber-700 shadow-sm'
+                                                        : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-100'
                                                 }`}
                                             >
                                                 {p.label}
@@ -343,149 +323,59 @@ export const Sidebar = ({
 
                     <div>
                         <label className={theme.text.label}>Tipo</label>
-                        {/* Fixed "About System" Link */}
-                        <button
-                            onClick={() => setActivityType('about_system')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'about_system'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center">
-                                <span className="text-lg">ℹ️</span>
-                            </div>
-                            Drácker Página Inicial
-                        </button>
-                        {/* Fixed "Conversar com o Drácker" Link */}
-                        <button
-                            onClick={() => setActivityType('chat_dracker')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'chat_dracker'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <MessageSquare className="w-4 h-4" />
-                            </div>
-                            Conversar com o Drácker
-                        </button>
-                        {/* Fixed "Canal do Drácker" Link */}
-                        <button
-                            onClick={() => setActivityType('video_gallery')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'video_gallery'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <Play className="w-4 h-4" />
-                            </div>
-                            Canal do Drácker
-                        </button>
-                        {/* Fixed "Rádio Drácker" Link */}
-                        <button
-                            onClick={() => setActivityType('simplify')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'simplify'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <Music className="w-4 h-4" />
-                            </div>
-                            Rádio Drácker
-                        </button>
-                        {/* Fixed "Drácker Metodologia Ativa" Link */}
-                        <button
-                            onClick={() => setActivityType('summary')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'summary'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <MessageSquare className="w-4 h-4" />
-                            </div>
-                            Drácker Metodologia Ativa
-                        </button>
-                        {/* Fixed "Drácker Mestre RPG" Link */}
-                        <button
-                            onClick={() => setActivityType('rpg')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'rpg'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <Compass className="w-4 h-4" />
-                            </div>
-                            Drácker Mestre RPG
-                        </button>
-                        {/* Fixed "Drácker: Reta Numérica" Link */}
-                        <button
-                            onClick={() => setActivityType('number_line')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'number_line'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <ArrowLeftRight className="w-4 h-4" />
-                            </div>
-                            Drácker: Reta Numérica
-                        </button>
-                        {/* Fixed "Drácker: Frações e Operações" Link */}
-                        <button
-                            onClick={() => setActivityType('fractions')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'fractions'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <PieChart className="w-4 h-4" />
-                            </div>
-                            Drácker: Frações e Operações
-                        </button>
-                        <div className="space-y-2">
-                            {orderedActivities.filter(opt => opt.id !== 'summary' && opt.id !== 'rpg' && opt.id !== 'number_line' && opt.id !== 'fractions').map((opt, index) => (
-                                opt.url ? (
-                                    <a
-                                        key={opt.id}
-                                        href={opt.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 bg-brown-50 hover:bg-brown-100 text-brown-800 transition-colors cursor-pointer"
-                                        draggable
-                                        onDragStart={(e) => handleDragStart(e, index)}
-                                        onDragOver={handleDragOver}
-                                        onDrop={(e) => handleDrop(e, index)}
-                                        onDragEnd={handleDragEnd}
-                                    >
-                                        <div className="cursor-grab p-1 -ml-1 hover:bg-brown-200 rounded text-brown-500">
-                                            <GripVertical className="w-4 h-4" />
-                                        </div>
-                                        {opt.icon} {opt.label}
-                                    </a>
-                                ) : (
+                        <div className="space-y-2 pt-1">
+                            {navLinks.map((opt) => {
+                                const isActive = activityType === opt.id;
+                                if (opt.url) {
+                                    return (
+                                        <a
+                                            key={opt.id}
+                                            href={opt.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full py-3 px-3.5 rounded-2xl text-left flex items-center justify-between transition-all duration-200 cursor-pointer bg-white/70 hover:bg-white text-brown-800 hover:text-brown-950 font-bold border border-brown-200/60 hover:border-brown-300 shadow-2xs hover:shadow-sm group"
+                                        >
+                                            <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
+                                                <div className="w-9 h-9 rounded-xl bg-brown-100/80 group-hover:bg-brown-200/80 text-brown-600 group-hover:text-brown-900 flex items-center justify-center shrink-0 transition-all group-hover:scale-105">
+                                                    <span className="[&>svg]:w-5 [&>svg]:h-5 flex items-center justify-center">{opt.icon}</span>
+                                                </div>
+                                                <span className="truncate text-[16px] tracking-tight">{opt.label}</span>
+                                            </div>
+                                        </a>
+                                    );
+                                }
+                                return (
                                     <button
                                         key={opt.id}
-                                        onClick={() => setActivityType(opt.id)}
-                                        draggable
-                                        onDragStart={(e) => handleDragStart(e, index)}
-                                        onDragOver={handleDragOver}
-                                        onDrop={(e) => handleDrop(e, index)}
-                                        onDragEnd={handleDragEnd}
-                                        className={`w-full px-2 py-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer ${activityType === opt.id ? 'bg-brown-100 border border-brown-400 text-brown-900 font-medium' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                            } ${draggedItem === index ? 'opacity-50' : ''}`}
+                                        onClick={() => handleActivitySelect(opt.id)}
+                                        className={`w-full py-3 px-3.5 rounded-2xl text-left flex items-center justify-between transition-all duration-200 cursor-pointer group ${
+                                            isActive
+                                                ? 'bg-gradient-to-r from-brown-900 via-brown-850 to-brown-800 text-white font-extrabold shadow-md border border-brown-700/90 scale-[1.01]'
+                                                : 'bg-white/70 hover:bg-white text-brown-800 hover:text-brown-950 font-bold border border-brown-200/60 hover:border-brown-300 shadow-2xs hover:shadow-sm hover:scale-[1.005]'
+                                        }`}
                                     >
-                                        <div className="cursor-grab p-1 hover:bg-brown-200 rounded text-brown-500" onClick={(e) => e.stopPropagation()}>
-                                            <GripVertical className="w-4 h-4" />
+                                        <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
+                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                                                isActive
+                                                    ? 'bg-white/20 text-amber-300 shadow-inner scale-105'
+                                                    : 'bg-brown-100/80 group-hover:bg-brown-200/80 text-brown-600 group-hover:text-brown-900 group-hover:scale-105'
+                                            }`}>
+                                                <span className="[&>svg]:w-5 [&>svg]:h-5 flex items-center justify-center">
+                                                    {opt.icon}
+                                                </span>
+                                            </div>
+                                            <span className="truncate text-[16px] tracking-tight">{opt.label}</span>
                                         </div>
-                                        {opt.icon} {opt.label}
+                                        <div className="shrink-0 pl-1">
+                                            <div className={`w-2.5 h-2.5 rounded-full transition-all ${
+                                                isActive
+                                                    ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.9)] scale-110'
+                                                    : 'bg-transparent group-hover:bg-brown-300'
+                                            }`} />
+                                        </div>
                                     </button>
-                                )
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -541,34 +431,24 @@ export const Sidebar = ({
 
 
 
-                    <Button
-                        onClick={handleGenerate}
-                        isLoading={isLoading}
-                        disabled={activityType === 'chat_dracker' || isLoading}
-                        icon={!isLoading && activityType !== 'chat_dracker' ? Sparkles : undefined}
-                        className={`w-full py-3 text-white shadow-md transition-all ${
-                            activityType === 'chat_dracker' 
-                                ? 'bg-brown-300 cursor-not-allowed opacity-60' 
-                                : 'hover:-translate-y-0.5 bg-brown-500 hover:bg-brown-600'
-                        }`}
-                    >
-                        {activityType === 'chat_dracker' ? 'Use a tela de Chat' : isLoading ? 'Criando...' : 'Gerar'}
-                    </Button>
-
-                    {isLoading && (
-                        <div className="mt-3 p-4 rounded-lg bg-brown-50 border border-brown-200 space-y-2 animate-pulse">
-                            <div className="flex items-center gap-2 text-brown-800">
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                <span className="font-semibold">
-                                    {activityType === 'wordsearch' ? '🔄 Gerando Caça-Palavras...' : '📝 Criando Atividade...'}
-                                </span>
-                            </div>
-                            <p className={theme.text.small}>
-                                {activityType === 'wordsearch'
-                                    ? 'Gerando texto educativo...'
-                                    : 'Processando sua solicitação...'}
-                            </p>
-                        </div>
+                    {activityType !== 'about_system' && activityType !== 'dashboard' && activityType !== 'merge_pdf' && (
+                        <>
+                            {isLoading && (
+                                <div className="mt-3 p-4 rounded-lg bg-brown-50 border border-brown-200 space-y-2 animate-pulse">
+                                    <div className="flex items-center gap-2 text-brown-800">
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <span className="font-semibold">
+                                            {activityType === 'wordsearch' ? '🔄 Gerando Caça-Palavras...' : '📝 Criando Atividade...'}
+                                        </span>
+                                    </div>
+                                    <p className={theme.text.small}>
+                                        {activityType === 'wordsearch'
+                                            ? 'Gerando texto educativo...'
+                                            : 'Processando sua solicitação...'}
+                                    </p>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {systemStatus && (

@@ -8,17 +8,43 @@ export const TabSelectionModal = ({ isOpen, tabs, onSelect, onCreateNew, onClose
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
 
-  // Sort tabs by most recent first
-  const sortedTabs = [...tabs].sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10));
+  // Sort tabs by most recent first robustly
+  const sortedTabs = [...tabs].sort((a, b) => {
+    const getTimestamp = (tab) => {
+      if (tab.createdAt && !isNaN(new Date(tab.createdAt).getTime())) {
+        return new Date(tab.createdAt).getTime();
+      }
+      const digits = String(tab.id).replace(/\D/g, '');
+      const num = parseInt(digits, 10);
+      return (!isNaN(num) && num > 1000000000000) ? num : 0;
+    };
+    return getTimestamp(b) - getTimestamp(a);
+  });
 
-  const formatDate = (timestamp) => {
-    const date = new Date(parseInt(timestamp, 10));
-    return new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+  const formatDate = (timestamp, tab) => {
+    let date;
+    if (tab && tab.createdAt && !isNaN(new Date(tab.createdAt).getTime())) {
+      date = new Date(tab.createdAt);
+    } else {
+      const digits = String(timestamp).replace(/\D/g, '');
+      const num = parseInt(digits, 10);
+      if (!isNaN(num) && num > 1000000000000) {
+        date = new Date(num);
+      }
+    }
+    if (!date || isNaN(date.getTime())) {
+      return 'Sessão atual';
+    }
+    try {
+      return new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    } catch (e) {
+      return 'Sessão atual';
+    }
   };
 
   return (
@@ -83,7 +109,7 @@ export const TabSelectionModal = ({ isOpen, tabs, onSelect, onCreateNew, onClose
                     </div>
                   )}
                   <p className="text-xs text-brown-500 font-medium mt-0.5">
-                    Criado em {formatDate(tab.id)}
+                    Criado em {formatDate(tab.id, tab)}
                   </p>
                 </div>
                 {onDelete && (

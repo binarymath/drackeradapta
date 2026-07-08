@@ -35,10 +35,16 @@ export const ActivityHeader = ({
                     <div className="flex items-center gap-2 mb-0.5">
                         <span className={`w-2 h-2 rounded-full ${hasContent ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-brown-300'}`}></span>
                         <span className="text-[10px] font-extrabold text-brown-500 uppercase tracking-widest">
-                            {hasContent ? 'Atividade Pronta' : 'Aguardando Geração'}
+                            {activityType === 'about_system' || activityType === 'dashboard'
+                                ? 'Página Inicial'
+                                : activityType === 'merge_pdf'
+                                ? 'Unir PDF'
+                                : hasContent
+                                ? 'Atividade Pronta'
+                                : 'Aguardando Geração'}
                         </span>
                     </div>
-                    {hasContent && (
+                    {hasContent && activityType !== 'about_system' && activityType !== 'dashboard' && activityType !== 'merge_pdf' && (
                         <Input
                             value={activityTitle || ''}
                             onChange={(e) => setActivityTitle && setActivityTitle(e.target.value)}

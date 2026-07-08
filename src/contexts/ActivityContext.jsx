@@ -20,21 +20,21 @@ export const ActivityProvider = ({ children }) => {
         const saved = safeLocalStorageGet('atividade_adaptada_tabs');
         try {
             const parsed = saved ? JSON.parse(saved) : [];
-            return parsed.length > 0 ? parsed : [{ id: 'dashboard', title: 'Drácker - Início', type: 'dashboard', content: '' }];
+            return parsed.length > 0 ? parsed : [{ id: 'about_system', title: 'Página Inicial', type: 'about_system', content: '' }];
         } catch (e) {
-            return [{ id: 'dashboard', title: 'Drácker - Início', type: 'dashboard', content: '' }];
+            return [{ id: 'about_system', title: 'Página Inicial', type: 'about_system', content: '' }];
         }
     });
 
     const [activeTabId, setActiveTabId] = useState(() => {
         const saved = safeLocalStorageGet('atividade_adaptada_active_tab');
-        return saved || 'dashboard';
+        return saved || 'about_system';
     });
 
     // --- FORM STATE ---
     const [topic, setTopic] = useState('');
     const [lessonDetails, setLessonDetails] = useState('');
-    const [activityType, setActivityType] = useState('dashboard');
+    const [activityType, setActivityType] = useState('about_system');
     const [difficulty, setDifficulty] = useState('medium');
 
     // --- IMAGE GENERATION STATE ---
@@ -68,36 +68,199 @@ export const ActivityProvider = ({ children }) => {
     }, [activeTabId]);
 
     // --- DERIVED STATE ---
-    const activeActivity = useMemo(() => tabs.find(t => t.id === activeTabId) || null, [tabs, activeTabId]);
+    const activeActivity = useMemo(() => {
+        if (activityType === 'about_system' || activityType === 'dashboard' || activityType === 'merge_pdf') return null;
+        const foundActive = tabs.find(t => t.id === activeTabId && !t.hidden);
+        if (foundActive) return foundActive;
+        const foundAnyVisibleOfSameType = tabs.find(t => !t.hidden && t.type === activityType);
+        if (foundAnyVisibleOfSameType) return foundAnyVisibleOfSameType;
+        return tabs.find(t => t.id === activeTabId) || null;
+    }, [tabs, activeTabId, activityType]);
 
     // --- ACTIONS ---
     const addActivityTab = (activityData) => {
-        const newTab = { id: Date.now().toString(), ...activityData };
-        setTabs(prev => [...prev, newTab]);
-        setActiveTabId(newTab.id);
+        const timestamp = Date.now();
+        const tabId = timestamp.toString();
+
+        setTabs(prev => {
+            let finalTitle = activityData.title || 'Atividade';
+            
+            // Lógica de Desambiguação de Título (#N) se já existirem abas no mesmo estúdio com título igual ou similar
+            const baseTitleClean = finalTitle.replace(/\s+#\d+$/, '').trim();
+            const sameTypeTabs = prev.filter(t => t.type === activityData.type && !t.hidden);
+            const matchingTabs = sameTypeTabs.filter(t => {
+                const tBase = (t.title || '').replace(/\s+#\d+$/, '').trim();
+                return tBase.toLowerCase() === baseTitleClean.toLowerCase();
+            });
+
+            if (matchingTabs.length > 0) {
+                let maxNum = 1;
+                matchingTabs.forEach(t => {
+                    const match = (t.title || '').match(/#(\d+)$/);
+                    if (match) {
+                        const num = parseInt(match[1], 10);
+                        if (num >= maxNum) maxNum = num;
+                    } else {
+                        maxNum = Math.max(maxNum, 1);
+                    }
+                });
+                finalTitle = `${baseTitleClean} #${maxNum + 1}`;
+            }
+
+            const newTab = {
+                id: tabId,
+                createdAt: timestamp,
+                lastAccessed: timestamp,
+                isPinned: false,
+                ...activityData,
+                title: finalTitle
+            };
+            return [...prev, newTab];
+        });
+        setActiveTabId(tabId);
+    };
+
+    const renameTab = (id, newTitle) => {
+        setTabs(prev => prev.map(t => t.id === id ? { ...t, title: newTitle } : t));
+        if (activeTabId === id) {
+            setTopic(newTitle);
+        }
+    };
+
+    const pinTab = (id) => {
+        setTabs(prev => prev.map(t => t.id === id ? { ...t, isPinned: !t.isPinned } : t));
+    };
+
+    const duplicateTab = (id) => {
+        const timestamp = Date.now();
+        const tabId = timestamp.toString();
+        setTabs(prev => {
+            const sourceTab = prev.find(t => t.id === id);
+            if (!sourceTab) return prev;
+            const newTab = {
+                ...sourceTab,
+                id: tabId,
+                createdAt: timestamp,
+                isPinned: false,
+                title: `${sourceTab.title || 'Atividade'} (Cópia)`
+            };
+            return [...prev, newTab];
+        });
+        setActiveTabId(tabId);
+    };
+
+    const closeOtherTabs = (id) => {
+        const timestamp = Date.now();
+        setTabs(prev => {
+            const targetTab = prev.find(t => t.id === id);
+            if (!targetTab) return prev;
+            return prev.map(t => {
+                if (t.id === id || t.isPinned || t.type !== targetTab.type) return t;
+                return { ...t, hidden: true, closedAt: timestamp };
+            });
+        });
+        setActiveTabId(id);
+    };
+
+    const closeAllTabs = (type) => {
+        const timestamp = Date.now();
+        setTabs(prev => {
+            const newTabs = prev.map(t => {
+                if (t.isPinned || (type && t.type !== type)) return t;
+                return { ...t, hidden: true, closedAt: timestamp };
+            });
+            const visibleOfCurrent = newTabs.filter(t => !t.hidden && (!type || t.type === type));
+            if (visibleOfCurrent.length > 0) {
+                setActiveTabId(visibleOfCurrent[visibleOfCurrent.length - 1].id);
+                return newTabs;
+            } else if (type) {
+                const fallbackTabId = `${type}-${timestamp}`;
+                const fallbackTab = {
+                    id: fallbackTabId,
+                    title: 'Nova Atividade',
+                    type: type,
+                    content: '',
+                    createdAt: timestamp
+                };
+                setActiveTabId(fallbackTabId);
+                return [...newTabs, fallbackTab];
+            } else {
+                setActiveTabId('about_system');
+                setActivityType('about_system');
+                return newTabs;
+            }
+        });
     };
 
     const closeTab = (id, e) => {
         if (e) e.stopPropagation();
+        const timestamp = Date.now();
         setTabs(prev => {
-            const newTabs = prev.map(t => t.id === id ? { ...t, hidden: true } : t);
-            const visibleTabs = newTabs.filter(t => !t.hidden);
+            const targetTab = prev.find(t => t.id === id);
+            if (!targetTab) return prev;
+
+            const newTabs = prev.map(t => t.id === id ? { ...t, hidden: true, closedAt: timestamp } : t);
+            const visibleOfSameType = newTabs.filter(t => !t.hidden && t.type === targetTab.type);
+
             if (activeTabId === id) {
-                if (visibleTabs.length > 0) setActiveTabId(visibleTabs[visibleTabs.length - 1].id);
-                else setActiveTabId(null);
+                if (visibleOfSameType.length > 0) {
+                    setActiveTabId(visibleOfSameType[visibleOfSameType.length - 1].id);
+                } else {
+                    const fallbackTabId = `${targetTab.type}-${timestamp}`;
+                    const fallbackTab = {
+                        id: fallbackTabId,
+                        title: 'Nova Atividade',
+                        type: targetTab.type,
+                        content: '',
+                        createdAt: timestamp
+                    };
+                    setActiveTabId(fallbackTabId);
+                    return [...newTabs, fallbackTab];
+                }
             }
             return newTabs;
         });
     };
 
+    const reopenTab = (id) => {
+        setTabs(prev => prev.map(t => t.id === id ? { ...t, hidden: false, closedAt: null } : t));
+        setActiveTabId(id);
+    };
+
+    const reopenLastClosedTab = (type) => {
+        const closedOfCurrent = tabs.filter(t => t.hidden && (!type || t.type === type));
+        if (closedOfCurrent.length === 0) return;
+        const lastClosed = [...closedOfCurrent].sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0))[0] || closedOfCurrent[closedOfCurrent.length - 1];
+        if (lastClosed) {
+            reopenTab(lastClosed.id);
+        }
+    };
+
     const deleteTab = (id, e) => {
         if (e) e.stopPropagation();
+        const timestamp = Date.now();
         setTabs(prev => {
+            const targetTab = prev.find(t => t.id === id);
+            if (!targetTab) return prev;
+
             const newTabs = prev.filter(t => t.id !== id);
-            const visibleTabs = newTabs.filter(t => !t.hidden);
+            const visibleOfSameType = newTabs.filter(t => !t.hidden && t.type === targetTab.type);
+
             if (activeTabId === id) {
-                if (visibleTabs.length > 0) setActiveTabId(visibleTabs[visibleTabs.length - 1].id);
-                else setActiveTabId(null);
+                if (visibleOfSameType.length > 0) {
+                    setActiveTabId(visibleOfSameType[visibleOfSameType.length - 1].id);
+                } else {
+                    const fallbackTabId = `${targetTab.type}-${timestamp}`;
+                    const fallbackTab = {
+                        id: fallbackTabId,
+                        title: 'Nova Atividade',
+                        type: targetTab.type,
+                        content: '',
+                        createdAt: timestamp
+                    };
+                    setActiveTabId(fallbackTabId);
+                    return [...newTabs, fallbackTab];
+                }
             }
             return newTabs;
         });
@@ -105,11 +268,35 @@ export const ActivityProvider = ({ children }) => {
 
     const handleTabsReorder = (reorderedTabs) => setTabs(reorderedTabs);
 
+    const selectActivityTab = (tabId) => {
+        const selectedTab = tabs.find(t => t.id === tabId);
+        if (selectedTab) {
+            setActiveTabId(tabId);
+            setActivityType(selectedTab.type);
+            setTopic(selectedTab.title || '');
+            setTabs(prev => prev.map(t => t.id === tabId ? { ...t, lastAccessed: Date.now() } : t));
+        }
+    };
+
     // Activity Switch Logic
     const handleActivityTypeChange = (type) => {
-        const existingTabs = tabs.filter(t => t.type === type);
+        if (type === 'about_system' || type === 'dashboard' || type === 'merge_pdf') {
+            setActivityType(type);
+            setActiveTabId(null);
+            return;
+        }
+        const existingTabs = tabs.filter(t => t.type === type && !t.hidden);
         if (existingTabs.length > 0) {
-            setTabSelectionModal({ isOpen: true, type: type });
+            const getTimestamp = (tab) => {
+                if (tab.lastAccessed && !isNaN(tab.lastAccessed)) return tab.lastAccessed;
+                if (tab.createdAt && !isNaN(new Date(tab.createdAt).getTime())) return new Date(tab.createdAt).getTime();
+                const digits = String(tab.id).replace(/\D/g, '');
+                const num = parseInt(digits, 10);
+                return (!isNaN(num) && num > 1000000000000) ? num : 0;
+            };
+            const sorted = [...existingTabs].sort((a, b) => getTimestamp(b) - getTimestamp(a));
+            const latestTab = sorted[0];
+            selectActivityTab(latestTab.id);
         } else {
             setActivityType(type);
             setActiveTabId(null);
@@ -117,12 +304,7 @@ export const ActivityProvider = ({ children }) => {
     };
 
     const handleTabSelection = (tabId) => {
-        const selectedTab = tabs.find(t => t.id === tabId);
-        if (selectedTab) {
-            setActiveTabId(tabId);
-            setActivityType(selectedTab.type);
-            setTopic(selectedTab.title || '');
-        }
+        selectActivityTab(tabId);
         setTabSelectionModal({ isOpen: false, type: '' });
     };
 
@@ -138,8 +320,8 @@ export const ActivityProvider = ({ children }) => {
         { id: 'wordsearch', label: 'Caça-Palavras', icon: <Grid className="w-4 h-4" /> },
         { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-4 h-4" /> },
         { id: 'trading_cards', label: 'Criador de Cards', icon: <Grid className="w-4 h-4" /> },
-        { id: 'summary', label: 'Drácker Metodologia Ativa', icon: <MessageSquare className="w-4 h-4" /> },
-        { id: 'rpg', label: 'Drácker Mestre RPG', icon: <Compass className="w-4 h-4" /> },
+        { id: 'summary', label: 'Metodologia Ativa', icon: <MessageSquare className="w-4 h-4" /> },
+        { id: 'rpg', label: 'Mestre RPG', icon: <Compass className="w-4 h-4" /> },
         { id: 'domino', label: 'Dominó Pedagógico', icon: <Grid className="w-4 h-4" /> },
 
         { id: 'memory', label: 'Jogo da Memória', icon: <Brain className="w-4 h-4" /> },
@@ -148,8 +330,8 @@ export const ActivityProvider = ({ children }) => {
 
         { id: 'hangman', label: 'Jogo da Forca', icon: <Gamepad2 className="w-4 h-4" /> },
         { id: 'merge_pdf', label: 'Unir PDFs', icon: <Files className="w-4 h-4" /> },
-        { id: 'number_line', label: 'Drácker: Reta Numérica', icon: <ArrowLeftRight className="w-4 h-4" /> },
-        { id: 'fractions', label: 'Drácker: Frações e Operações', icon: <PieChart className="w-4 h-4" /> },
+        { id: 'number_line', label: 'Reta Numérica', icon: <ArrowLeftRight className="w-4 h-4" /> },
+        { id: 'fractions', label: 'Frações e Operações', icon: <PieChart className="w-4 h-4" /> },
     ], []);
 
     const difficultyOptions = useMemo(() => [
@@ -191,6 +373,8 @@ export const ActivityProvider = ({ children }) => {
             activeTabId, setActiveTabId,
             activeActivity,
             addActivityTab, closeTab, deleteTab, handleTabsReorder,
+            renameTab, pinTab, duplicateTab, closeOtherTabs, closeAllTabs,
+            reopenTab, reopenLastClosedTab,
             updateActivityData,
 
             topic, setTopic,
@@ -208,6 +392,7 @@ export const ActivityProvider = ({ children }) => {
             isEditing, setIsEditing,
 
             tabSelectionModal, setTabSelectionModal,
+            selectActivityTab,
             handleActivityTypeChange,
             handleTabSelection,
             handleCreateNewFromModal,

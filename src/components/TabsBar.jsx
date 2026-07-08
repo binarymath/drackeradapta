@@ -1,78 +1,95 @@
-import React from 'react';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Layers, Sparkles, Loader2 } from 'lucide-react';
+import { useActivity } from '../contexts/ActivityContext';
+import { SmartTabsDrawer } from './SmartTabsDrawer';
+import { getSmartActionConfig } from '../utils/smartActionConfig';
 
-const SortableTab = ({ tab, activeTabId, onSelect, onClose, getTabLabel }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: tab.id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+export const TabsBar = ({ 
+    tabs, 
+    activeTabId, 
+    activityType, 
+    onSelect, 
+    onClose, 
+    onReorder, 
+    getTabLabel,
+    onGenerate,
+    isLoading 
+}) => {
+    const {
+        pinTab,
+        duplicateTab,
+        closeOtherTabs,
+        closeAllTabs,
+        reopenTab,
+        deleteTab
+    } = useActivity();
 
-  const isActive = activeTabId === tab.id;
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      onClick={() => onSelect(tab.id)}
-      className={`group flex items-center gap-2 px-4 py-2 rounded-t-xl cursor-pointer whitespace-nowrap transition-all select-none relative ${isActive ? 'bg-white text-brown-800 font-bold shadow-[0_-4px_12px_rgba(146,64,14,0.08)] z-10 before:absolute before:top-0 before:left-0 before:right-0 before:h-[3px] before:bg-brown-500 before:rounded-t-xl' : 'bg-brown-100/40 text-brown-500 hover:bg-brown-100/80 hover:text-brown-700 mt-1'}`}
-    >
-      <span className="text-sm max-w-[140px] truncate" title={tab.title}>
-        {getTabLabel(tab)}
-      </span>
-      <button
-        onClick={(e) => onClose(tab.id, e)}
-        className={`p-0.5 rounded-full transition-colors ml-1 ${isActive ? 'text-brown-400 hover:text-red-500 hover:bg-red-50' : 'text-transparent group-hover:text-brown-400 hover:!text-red-500 hover:bg-red-50'}`}
-      >
-        <X className="w-3 h-3" />
-      </button>
-    </div>
-  );
-};
+    return (
+        <div className="w-full flex items-center justify-between gap-3 p-2 bg-white/80 backdrop-blur-md border border-brown-200/80 rounded-2xl shadow-sm mb-4 transition-all select-none">
+            {/* Botão de Ação / Gerar no Topo da Sessão */}
+            {(() => {
+                const config = getSmartActionConfig(activityType, isLoading);
+                const IconComponent = config.icon || Sparkles;
+                return (
+                    <button
+                        onClick={onGenerate}
+                        disabled={config.disabled || isLoading}
+                        className={`flex-1 py-3 px-4 sm:px-5 rounded-xl flex items-center justify-between transition-all select-none group shadow-sm hover:shadow transition-transform active:scale-[0.99] ${config.className}`}
+                    >
+                        <div className="flex items-center gap-3 sm:gap-4 text-left min-w-0 pr-2">
+                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-inner">
+                                {isLoading ? (
+                                    <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-white" />
+                                ) : (
+                                    <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                                )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <div className="text-sm sm:text-base font-black tracking-tight leading-tight truncate text-white">
+                                    {config.label}
+                                </div>
+                                {config.sublabel && (
+                                    <div className="text-xs sm:text-sm font-medium opacity-95 truncate mt-0.5 text-white/95 hidden sm:block">
+                                        {config.sublabel}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs sm:text-sm font-extrabold shrink-0 transition-colors border border-white/20">
+                            <span>Executar</span>
+                            <span className="text-base leading-none">✨</span>
+                        </div>
+                    </button>
+                );
+            })()}
 
-export const TabsBar = ({ tabs, activeTabId, activityType, onSelect, onClose, onReorder, getTabLabel }) => {
-  const visibleTabs = tabs.filter(t => !t.hidden && t.type === activityType);
-  
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
+            {/* Botão Gaveta 'Atividades' no Canto Direito */}
+            <button
+                onClick={() => setIsDrawerOpen(true)}
+                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 rounded-xl bg-brown-900 hover:bg-brown-950 text-white text-xs sm:text-sm font-extrabold shadow-sm hover:shadow transition-all border border-brown-700/60 shrink-0 self-stretch active:scale-95"
+                title="Abrir gerenciador de atividades (atividades abertas e histórico)"
+            >
+                <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 shrink-0" />
+                <span className="whitespace-nowrap tracking-wide">Atividades</span>
+            </button>
 
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = visibleTabs.findIndex(t => t.id === active.id);
-    const newIndex = visibleTabs.findIndex(t => t.id === over.id);
-    const reorderedVisible = arrayMove(visibleTabs, oldIndex, newIndex);
-    
-    // Reconstruct the full array preserving hidden and other-type tabs
-    const otherTabs = tabs.filter(t => t.hidden || t.type !== activityType);
-    onReorder([...reorderedVisible, ...otherTabs]);
-  };
-
-  return (
-    <div className="flex flex-col w-full px-2 pt-2 bg-gradient-to-t from-white to-brown-50/50 rounded-t-2xl border-b border-brown-200">
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={visibleTabs.map(t => t.id)} strategy={horizontalListSortingStrategy}>
-          <div className="flex items-end gap-1 overflow-x-auto px-2 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent">
-            {visibleTabs.map(tab => (
-              <SortableTab
-                key={tab.id}
-                tab={tab}
+            <SmartTabsDrawer
+                isOpen={isDrawerOpen}
+                onClose={() => setIsDrawerOpen(false)}
+                tabs={tabs}
                 activeTabId={activeTabId}
-                onSelect={onSelect}
-                onClose={onClose}
-                getTabLabel={getTabLabel}
-              />
-            ))}
-            {visibleTabs.length === 0 && <span className="text-[13px] text-brown-400 italic px-4 py-2">Nenhuma atividade gerada ainda...</span>}
-          </div>
-        </SortableContext>
-      </DndContext>
-    </div>
-  );
+                activityType={activityType}
+                onSelectTab={onSelect}
+                onCloseTab={onClose}
+                onPinTab={pinTab}
+                onDuplicateTab={duplicateTab}
+                onCloseOthers={closeOtherTabs}
+                onCloseAll={closeAllTabs}
+                onReopenTab={reopenTab}
+                onDeleteTab={deleteTab}
+            />
+        </div>
+    );
 };

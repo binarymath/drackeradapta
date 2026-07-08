@@ -10,18 +10,18 @@ export const theme = {
 
     // Typography
     text: {
-        title: "text-lg font-bold text-brown-900",
-        subtitle: "text-sm font-bold text-brown-700",
-        label: "block text-sm font-semibold mb-2 text-brown-800",
+        title: "text-xl font-extrabold text-brown-900 tracking-tight",
+        subtitle: "text-base font-bold text-brown-800",
+        label: "block text-[15px] font-bold mb-2 text-brown-800 tracking-wide",
         small: "text-xs text-brown-600",
         link: "text-brown-600 hover:text-brown-800 hover:underline font-bold",
     },
 
     // Interactive Elements
     input: {
-        text: "w-full p-2 bg-brown-50 border border-brown-200 rounded-lg text-sm text-brown-900 placeholder:text-brown-400 focus:border-brown-500 focus:ring-1 focus:ring-brown-500 outline-none transition-all",
-        textarea: "w-full p-2 bg-brown-50 border border-brown-200 rounded-lg text-sm text-brown-900 placeholder:text-brown-400 min-h-[4rem] resize-y focus:border-brown-500 focus:ring-1 focus:ring-brown-500 outline-none transition-all",
-        select: "w-full border border-brown-300 rounded-lg p-2 text-sm text-brown-900 bg-white",
+        text: "w-full p-2.5 bg-brown-50 border border-brown-200 rounded-lg text-[15px] text-brown-900 placeholder:text-brown-400 focus:border-brown-500 focus:ring-1 focus:ring-brown-500 outline-none transition-all",
+        textarea: "w-full p-2.5 bg-brown-50 border border-brown-200 rounded-lg text-[15px] text-brown-900 placeholder:text-brown-400 min-h-[4.5rem] resize-y focus:border-brown-500 focus:ring-1 focus:ring-brown-500 outline-none transition-all",
+        select: "w-full border border-brown-300 rounded-lg p-2.5 text-[15px] text-brown-900 bg-white",
         checkbox: "rounded text-brown-600 focus:ring-brown-500",
     },
 
