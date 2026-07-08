@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Save, Sparkles, FileText, Pencil, Check, Calculator, Type, Brain } from 'lucide-react';
 import { generateMathProblems } from '../utils/wordsearchGenerator';
 import { useGemini } from '../contexts/GeminiContext';
+import { safeJSONParse } from '../utils/jsonUtils';
 
 // UI Components
 import { Modal } from './ui/Modal';
@@ -174,8 +175,7 @@ Retorne SOMENTE um array JSON:
   { "answer": 3, "problem": "Um triângulo tem quantos lados?" }
 ]`;
 
-            // Import dynamically to use the safe parser just in case
-            const { safeJSONParse } = await import('../utils/jsonUtils');
+            
             
             const text = await geminiService.generateText(prompt, {
                 model: selectedModel,
@@ -241,7 +241,7 @@ Retorne SOMENTE um array JSON:
                 ? `\nContexto/Detalhes: ${detailsInput}` : '';
             const prompt = `Você é um gerador de atividades educativas.\nGere 10 palavras cruzadas criativas e educativas para o tema: "${topicInput}".${contextBlock}\nRetorne APENAS um JSON estrito. Não use formatação markdown.\nO JSON DEVE ser um array de objetos com este formato exato:\n[{"word": "RESPOSTA", "clue": "Dica ou pergunta"}]`;
 
-            const { safeJSONParse } = await import('../utils/jsonUtils');
+            
             
             const text = await geminiService.generateText(prompt, {
                 model: selectedModel,

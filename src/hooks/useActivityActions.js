@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { generateMusicActivity } from '../core/usecases/generateMusicActivity';
 import { generateQuizActivity } from '../core/usecases/generateQuizActivity';
 import { generateDrackerActivity } from '../core/usecases/generateDrackerActivity';
+import { generateCrossword } from '../utils/crosswordGenerator';
 
 import { useActivity } from '../contexts/ActivityContext';
 import { useGemini } from '../contexts/GeminiContext';
@@ -371,9 +372,6 @@ export const useActivityActions = () => {
 
     const handleCrosswordConfirm = async (editedData) => {
         try {
-            // Dynamic import to avoid heavy load if not needed? Or just standard import if cheap.
-            const { generateCrossword } = await import('../utils/crosswordGenerator');
-
             const layout = generateCrossword(editedData.words, 15);
             let finalData = null;
 

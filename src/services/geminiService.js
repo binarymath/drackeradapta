@@ -7,6 +7,8 @@
  * - Conversão de áudio (TTS)
  */
 
+import { safeJSONParse } from '../utils/jsonUtils';
+
 class GeminiService {
   constructor(apiKey, statusCallback = null) {
     this.apiKey = apiKey;
@@ -524,7 +526,6 @@ class GeminiService {
       });
 
       // Use centralized safe parser
-      const { safeJSONParse } = await import('../utils/jsonUtils');
       const parsed = safeJSONParse(text);
 
       let data = parsed;
@@ -596,7 +597,6 @@ class GeminiService {
     `;
     try {
       const text = await this.generateText(prompt, { temperature: 0.8, responseMimeType: "application/json", maxOutputTokens: 8192 });
-      const { safeJSONParse } = await import('../utils/jsonUtils');
       const data = safeJSONParse(text);
       if (!data || !data.etapas) throw new Error("Formato inválido");
       return data;
@@ -658,7 +658,6 @@ class GeminiService {
     `;
     try {
       const text = await this.generateText(prompt, { temperature: 0.8, responseMimeType: "application/json", maxOutputTokens: 8192 });
-      const { safeJSONParse } = await import('../utils/jsonUtils');
       const data = safeJSONParse(text);
       if (!data || !data.etapas) throw new Error("Formato inválido");
       return data;
