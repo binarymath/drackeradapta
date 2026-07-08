@@ -542,7 +542,7 @@ export const Sidebar = ({
 
 
 
-                    {activityType !== 'about_system' && activityType !== 'dashboard' && (
+                    {activityType !== 'about_system' && activityType !== 'dashboard' && activityType !== 'merge_pdf' && (
                         <>
                             {(() => {
                                 const config = getSmartActionConfig(activityType, isLoading);
