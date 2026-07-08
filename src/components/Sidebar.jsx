@@ -355,7 +355,7 @@ export const Sidebar = ({
                             <div className="w-6 flex justify-center">
                                 <span className="text-lg">ℹ️</span>
                             </div>
-                            Drácker Página Inicial
+                            Página Inicial
                         </button>
                         {/* Fixed "Conversar com o Drácker" Link */}
                         <button
@@ -396,7 +396,7 @@ export const Sidebar = ({
                             </div>
                             Rádio Drácker
                         </button>
-                        {/* Fixed "Drácker Metodologia Ativa" Link */}
+                        {/* Fixed "Metodologia Ativa" Link */}
                         <button
                             onClick={() => setActivityType('summary')}
                             className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'summary'
@@ -407,9 +407,9 @@ export const Sidebar = ({
                             <div className="w-6 flex justify-center text-brown-500">
                                 <MessageSquare className="w-4 h-4" />
                             </div>
-                            Drácker Metodologia Ativa
+                            Metodologia Ativa
                         </button>
-                        {/* Fixed "Drácker Mestre RPG" Link */}
+                        {/* Fixed "Mestre RPG" Link */}
                         <button
                             onClick={() => setActivityType('rpg')}
                             className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'rpg'
@@ -420,9 +420,9 @@ export const Sidebar = ({
                             <div className="w-6 flex justify-center text-brown-500">
                                 <Compass className="w-4 h-4" />
                             </div>
-                            Drácker Mestre RPG
+                            Mestre RPG
                         </button>
-                        {/* Fixed "Drácker: Reta Numérica" Link */}
+                        {/* Fixed "Reta Numérica" Link */}
                         <button
                             onClick={() => setActivityType('number_line')}
                             className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'number_line'
@@ -433,9 +433,9 @@ export const Sidebar = ({
                             <div className="w-6 flex justify-center text-brown-500">
                                 <ArrowLeftRight className="w-4 h-4" />
                             </div>
-                            Drácker: Reta Numérica
+                            Reta Numérica
                         </button>
-                        {/* Fixed "Drácker: Frações e Operações" Link */}
+                        {/* Fixed "Frações e Operações" Link */}
                         <button
                             onClick={() => setActivityType('fractions')}
                             className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'fractions'
@@ -446,7 +446,7 @@ export const Sidebar = ({
                             <div className="w-6 flex justify-center text-brown-500">
                                 <PieChart className="w-4 h-4" />
                             </div>
-                            Drácker: Frações e Operações
+                            Frações e Operações
                         </button>
                         <div className="space-y-2">
                             {orderedActivities.filter(opt => opt.id !== 'summary' && opt.id !== 'rpg' && opt.id !== 'number_line' && opt.id !== 'fractions').map((opt, index) => (

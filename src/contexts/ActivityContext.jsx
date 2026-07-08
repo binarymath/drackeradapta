@@ -298,8 +298,8 @@ export const ActivityProvider = ({ children }) => {
         { id: 'wordsearch', label: 'Caça-Palavras', icon: <Grid className="w-4 h-4" /> },
         { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-4 h-4" /> },
         { id: 'trading_cards', label: 'Criador de Cards', icon: <Grid className="w-4 h-4" /> },
-        { id: 'summary', label: 'Drácker Metodologia Ativa', icon: <MessageSquare className="w-4 h-4" /> },
-        { id: 'rpg', label: 'Drácker Mestre RPG', icon: <Compass className="w-4 h-4" /> },
+        { id: 'summary', label: 'Metodologia Ativa', icon: <MessageSquare className="w-4 h-4" /> },
+        { id: 'rpg', label: 'Mestre RPG', icon: <Compass className="w-4 h-4" /> },
         { id: 'domino', label: 'Dominó Pedagógico', icon: <Grid className="w-4 h-4" /> },
 
         { id: 'memory', label: 'Jogo da Memória', icon: <Brain className="w-4 h-4" /> },
@@ -308,8 +308,8 @@ export const ActivityProvider = ({ children }) => {
 
         { id: 'hangman', label: 'Jogo da Forca', icon: <Gamepad2 className="w-4 h-4" /> },
         { id: 'merge_pdf', label: 'Unir PDFs', icon: <Files className="w-4 h-4" /> },
-        { id: 'number_line', label: 'Drácker: Reta Numérica', icon: <ArrowLeftRight className="w-4 h-4" /> },
-        { id: 'fractions', label: 'Drácker: Frações e Operações', icon: <PieChart className="w-4 h-4" /> },
+        { id: 'number_line', label: 'Reta Numérica', icon: <ArrowLeftRight className="w-4 h-4" /> },
+        { id: 'fractions', label: 'Frações e Operações', icon: <PieChart className="w-4 h-4" /> },
     ], []);
 
     const difficultyOptions = useMemo(() => [
