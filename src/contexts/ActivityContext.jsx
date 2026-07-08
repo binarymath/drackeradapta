@@ -143,18 +143,25 @@ export const ActivityProvider = ({ children }) => {
     };
 
     const closeOtherTabs = (id) => {
+        const timestamp = Date.now();
         setTabs(prev => {
             const targetTab = prev.find(t => t.id === id);
             if (!targetTab) return prev;
-            const newTabs = prev.filter(t => t.id === id || t.isPinned || t.type !== targetTab.type);
-            return newTabs;
+            return prev.map(t => {
+                if (t.id === id || t.isPinned || t.type !== targetTab.type) return t;
+                return { ...t, hidden: true, closedAt: timestamp };
+            });
         });
         setActiveTabId(id);
     };
 
     const closeAllTabs = (type) => {
+        const timestamp = Date.now();
         setTabs(prev => {
-            const newTabs = prev.filter(t => t.isPinned || (type && t.type !== type));
+            const newTabs = prev.map(t => {
+                if (t.isPinned || (type && t.type !== type)) return t;
+                return { ...t, hidden: true, closedAt: timestamp };
+            });
             const visibleOfCurrent = newTabs.filter(t => !t.hidden && (!type || t.type === type));
             if (visibleOfCurrent.length > 0) {
                 setActiveTabId(visibleOfCurrent[visibleOfCurrent.length - 1].id);
@@ -167,8 +174,9 @@ export const ActivityProvider = ({ children }) => {
 
     const closeTab = (id, e) => {
         if (e) e.stopPropagation();
+        const timestamp = Date.now();
         setTabs(prev => {
-            const newTabs = prev.map(t => t.id === id ? { ...t, hidden: true } : t);
+            const newTabs = prev.map(t => t.id === id ? { ...t, hidden: true, closedAt: timestamp } : t);
             const visibleTabs = newTabs.filter(t => !t.hidden);
             if (activeTabId === id) {
                 if (visibleTabs.length > 0) setActiveTabId(visibleTabs[visibleTabs.length - 1].id);
@@ -176,6 +184,20 @@ export const ActivityProvider = ({ children }) => {
             }
             return newTabs;
         });
+    };
+
+    const reopenTab = (id) => {
+        setTabs(prev => prev.map(t => t.id === id ? { ...t, hidden: false, closedAt: null } : t));
+        setActiveTabId(id);
+    };
+
+    const reopenLastClosedTab = (type) => {
+        const closedOfCurrent = tabs.filter(t => t.hidden && (!type || t.type === type));
+        if (closedOfCurrent.length === 0) return;
+        const lastClosed = [...closedOfCurrent].sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0))[0] || closedOfCurrent[closedOfCurrent.length - 1];
+        if (lastClosed) {
+            reopenTab(lastClosed.id);
+        }
     };
 
     const deleteTab = (id, e) => {
@@ -280,6 +302,7 @@ export const ActivityProvider = ({ children }) => {
             activeActivity,
             addActivityTab, closeTab, deleteTab, handleTabsReorder,
             renameTab, pinTab, duplicateTab, closeOtherTabs, closeAllTabs,
+            reopenTab, reopenLastClosedTab,
             updateActivityData,
 
             topic, setTopic,

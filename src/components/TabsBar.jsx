@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, horizontalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { X, ChevronLeft, ChevronRight, Layers, Sparkles, Pin, MoreVertical, CheckCircle2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Layers, Sparkles, Pin, MoreVertical, CheckCircle2, RotateCcw } from 'lucide-react';
 import { useActivity } from '../contexts/ActivityContext';
 import { TabContextMenu } from './TabContextMenu';
 import { SmartTabsDrawer } from './SmartTabsDrawer';
@@ -52,7 +52,6 @@ const SortableCapsuleTab = ({
     }
   };
 
-  // Encontra o número sequencial #N no título se houver para exibir no modo compacto
   const numMatch = (tab.title || '').match(/#(\d+)$/);
   const collapsedLabel = numMatch ? `#${numMatch[1]}` : (tab.title || '').substring(0, 3).toUpperCase();
 
@@ -78,20 +77,16 @@ const SortableCapsuleTab = ({
           : 'bg-white/70 hover:bg-white text-brown-600 hover:text-brown-900 font-bold border border-brown-200/60 hover:border-brown-300 shadow-2xs hover:shadow-xs mt-0.5'
       }`}
     >
-      {/* Pinned Indicator */}
       {tab.isPinned && (
         <Pin className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-amber-600' : 'text-amber-500'}`} />
       )}
 
-      {/* Active Glowing Dot */}
       {isActive && !tab.isPinned && (
         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
       )}
 
-      {/* Tab Icon / Studio */}
       <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-amber-500' : 'text-brown-400 group-hover:text-amber-600'}`} />
 
-      {/* Title / Inline Editor / Collapsed Label */}
       {isEditingInline ? (
         <input
           ref={inputRef}
@@ -113,7 +108,6 @@ const SortableCapsuleTab = ({
         </span>
       )}
 
-      {/* Options (...) Button */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -127,7 +121,6 @@ const SortableCapsuleTab = ({
         <MoreVertical className="w-3 h-3" />
       </button>
 
-      {/* Close Button */}
       <button
         onClick={(e) => onClose(tab.id, e)}
         className={`p-1 rounded-lg transition-colors ml-0.5 ${
@@ -149,26 +142,28 @@ export const TabsBar = ({ tabs, activeTabId, activityType, onSelect, onClose, on
     pinTab,
     duplicateTab,
     closeOtherTabs,
-    closeAllTabs
+    closeAllTabs,
+    reopenTab,
+    reopenLastClosedTab,
+    deleteTab
   } = useActivity();
 
-  const visibleTabs = tabs.filter(t => !t.hidden && t.type === activityType);
+  const visibleTabs = (tabs || []).filter(t => !t.hidden && t.type === activityType);
+  const closedTabs = (tabs || []).filter(t => t.hidden && t.type === activityType);
+
   const scrollContainerRef = useRef(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
 
-  // Estados de Modais/Menus Contextuais
   const [contextMenuState, setContextMenuState] = useState({ isOpen: false, x: 0, y: 0, tab: null });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Se houver mais de 5 abas abertas no mesmo estúdio, habilitamos o Smart Collapsing para inativas
   const isSmartCollapsingActive = visibleTabs.length > 5;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
-  // Verificação de transbordo (overflow) para exibir setas < e >
   const checkOverflow = () => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
@@ -214,7 +209,6 @@ export const TabsBar = ({ tabs, activeTabId, activityType, onSelect, onClose, on
   return (
     <div className="w-full flex items-center justify-between gap-1.5 p-1.5 bg-white/70 backdrop-blur-md border border-brown-200/70 rounded-2xl shadow-sm mb-3 transition-all select-none">
       
-      {/* Botão Seta Esquerda (<) em overflow */}
       {showLeftArrow && (
         <button
           onClick={() => handleScroll('left')}
@@ -225,7 +219,6 @@ export const TabsBar = ({ tabs, activeTabId, activityType, onSelect, onClose, on
         </button>
       )}
 
-      {/* Docas das Abas (DndContext + SortableContext) */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visibleTabs.map(t => t.id)} strategy={horizontalListSortingStrategy}>
           <div
@@ -255,7 +248,6 @@ export const TabsBar = ({ tabs, activeTabId, activityType, onSelect, onClose, on
         </SortableContext>
       </DndContext>
 
-      {/* Botão Seta Direita (>) em overflow */}
       {showRightArrow && (
         <button
           onClick={() => handleScroll('right')}
@@ -266,17 +258,36 @@ export const TabsBar = ({ tabs, activeTabId, activityType, onSelect, onClose, on
         </button>
       )}
 
-      {/* Botão Gaveta 'Todas as Abas (X)' */}
-      <button
-        onClick={() => setIsDrawerOpen(true)}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brown-900 hover:bg-brown-950 text-white text-xs font-extrabold shadow-2xs transition-all shrink-0 border border-brown-700/60"
-        title="Abrir gerenciador avançado de abas (Todas as atividades abertas)"
-      >
-        <Layers className="w-3.5 h-3.5 text-amber-300" />
-        <span>Todas ({visibleTabs.length})</span>
-      </button>
+      {/* Botões do Canto Direito */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        
+        {/* Botão Reabrir Aba Fechada */}
+        {closedTabs.length > 0 && (
+          <button
+            onClick={() => reopenLastClosedTab(activityType)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-2xs transition-all border border-emerald-500 animate-in fade-in zoom-in duration-200"
+            title={`Reabrir última atividade fechada (${closedTabs.length} no histórico)`}
+          >
+            <RotateCcw className="w-3.5 h-3.5 animate-spin-once" />
+            <span className="hidden sm:inline">Reabrir</span>
+            <span className="bg-emerald-800 text-amber-200 px-1.5 py-0.5 rounded text-[10px] font-black">
+              {closedTabs.length}
+            </span>
+          </button>
+        )}
 
-      {/* Right-Click Context Menu */}
+        {/* Botão Gaveta 'Todas as Abas (X)' */}
+        <button
+          onClick={() => setIsDrawerOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brown-900 hover:bg-brown-950 text-white text-xs font-extrabold shadow-2xs transition-all border border-brown-700/60"
+          title="Abrir gerenciador avançado de abas (Todas as atividades abertas e histórico)"
+        >
+          <Layers className="w-3.5 h-3.5 text-amber-300" />
+          <span>Todas ({visibleTabs.length})</span>
+        </button>
+
+      </div>
+
       {contextMenuState.isOpen && (
         <TabContextMenu
           x={contextMenuState.x}
@@ -286,7 +297,6 @@ export const TabsBar = ({ tabs, activeTabId, activityType, onSelect, onClose, on
           onPin={pinTab}
           onRename={(id) => {
             setContextMenuState(prev => ({ ...prev, isOpen: false }));
-            // Dispara inline rename programaticamente ou via modal
             const t = visibleTabs.find(item => item.id === id);
             if (t) {
               const newTitle = window.prompt("Digite o novo nome para a atividade:", t.title || '');
@@ -301,7 +311,6 @@ export const TabsBar = ({ tabs, activeTabId, activityType, onSelect, onClose, on
         />
       )}
 
-      {/* Smart Drawer Modal */}
       <SmartTabsDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
@@ -314,6 +323,8 @@ export const TabsBar = ({ tabs, activeTabId, activityType, onSelect, onClose, on
         onDuplicateTab={duplicateTab}
         onCloseOthers={closeOtherTabs}
         onCloseAll={closeAllTabs}
+        onReopenTab={reopenTab}
+        onDeleteTab={deleteTab}
       />
 
     </div>
