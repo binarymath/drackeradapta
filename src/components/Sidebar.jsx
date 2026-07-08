@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Sparkles, AlertCircle, GripVertical, Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart } from 'lucide-react';
+import { Loader2, Sparkles, AlertCircle, Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart } from 'lucide-react';
 import { theme } from '../styles/theme';
 import { Button } from './ui/Button';
 import { Input, TextArea, Select } from './ui/Input';
@@ -45,8 +45,6 @@ export const Sidebar = ({
     difficultyDist,
     setDifficultyDist
 }) => {
-    const [orderedActivities, setOrderedActivities] = useState([]);
-    const [draggedItem, setDraggedItem] = useState(null);
     const { tabs, setActiveTabId } = useActivity();
 
     const handleActivitySelect = (type) => {
@@ -63,58 +61,26 @@ export const Sidebar = ({
         }, 30);
     };
 
-    useEffect(() => {
-        // Carrega ordem salva no localStorage ou usa ordem padrão
-        const saved = localStorage.getItem('activityOrder');
-        if (saved) {
-            try {
-                const savedOrder = JSON.parse(saved);
-
-                // Reconstruct the full object list using the saved order of IDs
-                const rehydratedItems = savedOrder
-                    .map(savedItem => activityOptions.find(opt => opt.id === savedItem.id))
-                    .filter(item => item !== undefined); // Remove invalid/removed IDs
-
-                // Find any NEW items in activityOptions that weren't in the saved order
-                const newItems = activityOptions.filter(opt => !rehydratedItems.find(r => r.id === opt.id));
-
-                setOrderedActivities([...rehydratedItems, ...newItems]);
-            } catch {
-                setOrderedActivities(activityOptions);
-            }
-        } else {
-            setOrderedActivities(activityOptions);
-        }
-    }, [activityOptions]);
-
-    const handleDragStart = (e, index) => {
-        setDraggedItem(index);
-        e.dataTransfer.effectAllowed = 'move';
-    };
-
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-    };
-
-    const handleDrop = (e, targetIndex) => {
-        e.preventDefault();
-        if (draggedItem === null || draggedItem === targetIndex) return;
-
-        const newOrder = [...orderedActivities];
-        const [movedItem] = newOrder.splice(draggedItem, 1);
-        newOrder.splice(targetIndex, 0, movedItem);
-
-        setOrderedActivities(newOrder);
-        setDraggedItem(null);
-
-        // Salva no localStorage
-        localStorage.setItem('activityOrder', JSON.stringify(newOrder));
-    };
-
-    const handleDragEnd = () => {
-        setDraggedItem(null);
-    };
+    const navLinks = [
+        { id: 'about_system', label: 'Página Inicial', icon: <span className="text-xl">ℹ️</span> },
+        { id: 'chat_dracker', label: 'Conversar com o Drácker', icon: <MessageSquare className="w-5 h-5" /> },
+        { id: 'video_gallery', label: 'Canal do Drácker', icon: <Play className="w-5 h-5" /> },
+        { id: 'simplify', label: 'Rádio Drácker', icon: <Music className="w-5 h-5" /> },
+        { id: 'summary', label: 'Metodologia Ativa', icon: <MessageSquare className="w-5 h-5" /> },
+        { id: 'rpg', label: 'Mestre RPG', icon: <Compass className="w-5 h-5" /> },
+        { id: 'number_line', label: 'Reta Numérica', icon: <ArrowLeftRight className="w-5 h-5" /> },
+        { id: 'fractions', label: 'Frações e Operações', icon: <PieChart className="w-5 h-5" /> },
+        ...activityOptions.filter(opt => 
+            opt.id !== 'summary' && 
+            opt.id !== 'rpg' && 
+            opt.id !== 'number_line' && 
+            opt.id !== 'fractions' && 
+            opt.id !== 'about_system' && 
+            opt.id !== 'chat_dracker' && 
+            opt.id !== 'video_gallery' && 
+            opt.id !== 'simplify'
+        )
+    ];
 
     return (
         <div className={theme.layout.sidebar}>
@@ -357,149 +323,59 @@ export const Sidebar = ({
 
                     <div>
                         <label className={theme.text.label}>Tipo</label>
-                        {/* Fixed "About System" Link */}
-                        <button
-                            onClick={() => handleActivitySelect('about_system')}
-                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'about_system'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center">
-                                <span className="text-xl">ℹ️</span>
-                            </div>
-                            Página Inicial
-                        </button>
-                        {/* Fixed "Conversar com o Drácker" Link */}
-                        <button
-                            onClick={() => handleActivitySelect('chat_dracker')}
-                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'chat_dracker'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <MessageSquare className="w-5 h-5" />
-                            </div>
-                            Conversar com o Drácker
-                        </button>
-                        {/* Fixed "Canal do Drácker" Link */}
-                        <button
-                            onClick={() => handleActivitySelect('video_gallery')}
-                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'video_gallery'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <Play className="w-5 h-5" />
-                            </div>
-                            Canal do Drácker
-                        </button>
-                        {/* Fixed "Rádio Drácker" Link */}
-                        <button
-                            onClick={() => handleActivitySelect('simplify')}
-                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'simplify'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <Music className="w-5 h-5" />
-                            </div>
-                            Rádio Drácker
-                        </button>
-                        {/* Fixed "Metodologia Ativa" Link */}
-                        <button
-                            onClick={() => handleActivitySelect('summary')}
-                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'summary'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <MessageSquare className="w-5 h-5" />
-                            </div>
-                            Metodologia Ativa
-                        </button>
-                        {/* Fixed "Mestre RPG" Link */}
-                        <button
-                            onClick={() => handleActivitySelect('rpg')}
-                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'rpg'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <Compass className="w-5 h-5" />
-                            </div>
-                            Mestre RPG
-                        </button>
-                        {/* Fixed "Reta Numérica" Link */}
-                        <button
-                            onClick={() => handleActivitySelect('number_line')}
-                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'number_line'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <ArrowLeftRight className="w-5 h-5" />
-                            </div>
-                            Reta Numérica
-                        </button>
-                        {/* Fixed "Frações e Operações" Link */}
-                        <button
-                            onClick={() => handleActivitySelect('fractions')}
-                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'fractions'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
-                                : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                }`}
-                        >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <PieChart className="w-5 h-5" />
-                            </div>
-                            Frações e Operações
-                        </button>
-                        <div className="space-y-2">
-                            {orderedActivities.filter(opt => opt.id !== 'summary' && opt.id !== 'rpg' && opt.id !== 'number_line' && opt.id !== 'fractions').map((opt, index) => (
-                                opt.url ? (
-                                    <a
-                                        key={opt.id}
-                                        href={opt.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="w-full px-3 py-3 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 bg-brown-50 hover:bg-brown-100 text-brown-800 transition-colors cursor-pointer"
-                                        draggable
-                                        onDragStart={(e) => handleDragStart(e, index)}
-                                        onDragOver={handleDragOver}
-                                        onDrop={(e) => handleDrop(e, index)}
-                                        onDragEnd={handleDragEnd}
-                                    >
-                                        <div className="cursor-grab p-1 -ml-1 hover:bg-brown-200 rounded text-brown-500">
-                                            <GripVertical className="w-5 h-5" />
-                                        </div>
-                                        <span className="[&>svg]:w-5 [&>svg]:h-5 flex items-center">{opt.icon}</span> {opt.label}
-                                    </a>
-                                ) : (
+                        <div className="space-y-2 pt-1">
+                            {navLinks.map((opt) => {
+                                const isActive = activityType === opt.id;
+                                if (opt.url) {
+                                    return (
+                                        <a
+                                            key={opt.id}
+                                            href={opt.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full py-3 px-3.5 rounded-2xl text-left flex items-center justify-between transition-all duration-200 cursor-pointer bg-white/70 hover:bg-white text-brown-800 hover:text-brown-950 font-bold border border-brown-200/60 hover:border-brown-300 shadow-2xs hover:shadow-sm group"
+                                        >
+                                            <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
+                                                <div className="w-9 h-9 rounded-xl bg-brown-100/80 group-hover:bg-brown-200/80 text-brown-600 group-hover:text-brown-900 flex items-center justify-center shrink-0 transition-all group-hover:scale-105">
+                                                    <span className="[&>svg]:w-5 [&>svg]:h-5 flex items-center justify-center">{opt.icon}</span>
+                                                </div>
+                                                <span className="truncate text-[16px] tracking-tight">{opt.label}</span>
+                                            </div>
+                                        </a>
+                                    );
+                                }
+                                return (
                                     <button
                                         key={opt.id}
                                         onClick={() => handleActivitySelect(opt.id)}
-                                        draggable
-                                        onDragStart={(e) => handleDragStart(e, index)}
-                                        onDragOver={handleDragOver}
-                                        onDrop={(e) => handleDrop(e, index)}
-                                        onDragEnd={handleDragEnd}
-                                        className={`w-full px-3 py-3 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer ${activityType === opt.id ? 'bg-brown-100 border border-brown-400 text-brown-900 shadow-sm' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
-                                            } ${draggedItem === index ? 'opacity-50' : ''}`}
+                                        className={`w-full py-3 px-3.5 rounded-2xl text-left flex items-center justify-between transition-all duration-200 cursor-pointer group ${
+                                            isActive
+                                                ? 'bg-gradient-to-r from-brown-900 via-brown-850 to-brown-800 text-white font-extrabold shadow-md border border-brown-700/90 scale-[1.01]'
+                                                : 'bg-white/70 hover:bg-white text-brown-800 hover:text-brown-950 font-bold border border-brown-200/60 hover:border-brown-300 shadow-2xs hover:shadow-sm hover:scale-[1.005]'
+                                        }`}
                                     >
-                                        <div className="cursor-grab p-1 hover:bg-brown-200 rounded text-brown-500" onClick={(e) => e.stopPropagation()}>
-                                            <GripVertical className="w-5 h-5" />
+                                        <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-2">
+                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                                                isActive
+                                                    ? 'bg-white/20 text-amber-300 shadow-inner scale-105'
+                                                    : 'bg-brown-100/80 group-hover:bg-brown-200/80 text-brown-600 group-hover:text-brown-900 group-hover:scale-105'
+                                            }`}>
+                                                <span className="[&>svg]:w-5 [&>svg]:h-5 flex items-center justify-center">
+                                                    {opt.icon}
+                                                </span>
+                                            </div>
+                                            <span className="truncate text-[16px] tracking-tight">{opt.label}</span>
                                         </div>
-                                        <span className="[&>svg]:w-5 [&>svg]:h-5 flex items-center">{opt.icon}</span> {opt.label}
+                                        <div className="shrink-0 pl-1">
+                                            <div className={`w-2.5 h-2.5 rounded-full transition-all ${
+                                                isActive
+                                                    ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.9)] scale-110'
+                                                    : 'bg-transparent group-hover:bg-brown-300'
+                                            }`} />
+                                        </div>
                                     </button>
-                                )
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
 
