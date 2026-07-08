@@ -315,6 +315,8 @@ export const MainLayout = () => {
                                 onClose={closeTab}
                                 onReorder={handleTabsReorder}
                                 getTabLabel={getTabLabel}
+                                onGenerate={actions.handleGenerate}
+                                isLoading={actions.isLoading}
                             />
                         </div>
                     )}
