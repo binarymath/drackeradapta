@@ -347,104 +347,104 @@ export const Sidebar = ({
                         {/* Fixed "About System" Link */}
                         <button
                             onClick={() => setActivityType('about_system')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'about_system'
+                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'about_system'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-6 flex justify-center">
-                                <span className="text-lg">ℹ️</span>
+                            <div className="w-7 flex justify-center">
+                                <span className="text-2xl">ℹ️</span>
                             </div>
                             Página Inicial
                         </button>
                         {/* Fixed "Conversar com o Drácker" Link */}
                         <button
                             onClick={() => setActivityType('chat_dracker')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'chat_dracker'
+                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'chat_dracker'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <MessageSquare className="w-4 h-4" />
+                            <div className="w-7 flex justify-center text-brown-500">
+                                <MessageSquare className="w-6 h-6" />
                             </div>
                             Conversar com o Drácker
                         </button>
                         {/* Fixed "Canal do Drácker" Link */}
                         <button
                             onClick={() => setActivityType('video_gallery')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'video_gallery'
+                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'video_gallery'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <Play className="w-4 h-4" />
+                            <div className="w-7 flex justify-center text-brown-500">
+                                <Play className="w-6 h-6" />
                             </div>
                             Canal do Drácker
                         </button>
                         {/* Fixed "Rádio Drácker" Link */}
                         <button
                             onClick={() => setActivityType('simplify')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'simplify'
+                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'simplify'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <Music className="w-4 h-4" />
+                            <div className="w-7 flex justify-center text-brown-500">
+                                <Music className="w-6 h-6" />
                             </div>
                             Rádio Drácker
                         </button>
                         {/* Fixed "Metodologia Ativa" Link */}
                         <button
                             onClick={() => setActivityType('summary')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'summary'
+                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'summary'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <MessageSquare className="w-4 h-4" />
+                            <div className="w-7 flex justify-center text-brown-500">
+                                <MessageSquare className="w-6 h-6" />
                             </div>
                             Metodologia Ativa
                         </button>
                         {/* Fixed "Mestre RPG" Link */}
                         <button
                             onClick={() => setActivityType('rpg')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'rpg'
+                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'rpg'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <Compass className="w-4 h-4" />
+                            <div className="w-7 flex justify-center text-brown-500">
+                                <Compass className="w-6 h-6" />
                             </div>
                             Mestre RPG
                         </button>
                         {/* Fixed "Reta Numérica" Link */}
                         <button
                             onClick={() => setActivityType('number_line')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'number_line'
+                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'number_line'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <ArrowLeftRight className="w-4 h-4" />
+                            <div className="w-7 flex justify-center text-brown-500">
+                                <ArrowLeftRight className="w-6 h-6" />
                             </div>
                             Reta Numérica
                         </button>
                         {/* Fixed "Frações e Operações" Link */}
                         <button
                             onClick={() => setActivityType('fractions')}
-                            className={`w-full px-2 py-2 mb-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer border border-transparent ${activityType === 'fractions'
+                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'fractions'
                                 ? 'bg-brown-100 border-brown-300 text-brown-900 font-medium'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-6 flex justify-center text-brown-500">
-                                <PieChart className="w-4 h-4" />
+                            <div className="w-7 flex justify-center text-brown-500">
+                                <PieChart className="w-6 h-6" />
                             </div>
                             Frações e Operações
                         </button>
@@ -456,7 +456,7 @@ export const Sidebar = ({
                                         href={opt.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 bg-brown-50 hover:bg-brown-100 text-brown-800 transition-colors cursor-pointer"
+                                        className="w-full px-3 py-2.5 rounded-lg text-left text-[22px] flex items-center gap-3 bg-brown-50 hover:bg-brown-100 text-brown-800 transition-colors cursor-pointer"
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, index)}
                                         onDragOver={handleDragOver}
@@ -464,9 +464,9 @@ export const Sidebar = ({
                                         onDragEnd={handleDragEnd}
                                     >
                                         <div className="cursor-grab p-1 -ml-1 hover:bg-brown-200 rounded text-brown-500">
-                                            <GripVertical className="w-4 h-4" />
+                                            <GripVertical className="w-5 h-5" />
                                         </div>
-                                        {opt.icon} {opt.label}
+                                        <span className="[&>svg]:w-6 [&>svg]:h-6 flex items-center">{opt.icon}</span> {opt.label}
                                     </a>
                                 ) : (
                                     <button
@@ -477,13 +477,13 @@ export const Sidebar = ({
                                         onDragOver={handleDragOver}
                                         onDrop={(e) => handleDrop(e, index)}
                                         onDragEnd={handleDragEnd}
-                                        className={`w-full px-2 py-2 rounded-lg text-left text-sm flex items-center gap-2 transition-all cursor-pointer ${activityType === opt.id ? 'bg-brown-100 border border-brown-400 text-brown-900 font-medium' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
+                                        className={`w-full px-2.5 py-2.5 rounded-lg text-left text-[22px] flex items-center gap-3 transition-all cursor-pointer ${activityType === opt.id ? 'bg-brown-100 border border-brown-400 text-brown-900 font-medium' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                             } ${draggedItem === index ? 'opacity-50' : ''}`}
                                     >
                                         <div className="cursor-grab p-1 hover:bg-brown-200 rounded text-brown-500" onClick={(e) => e.stopPropagation()}>
-                                            <GripVertical className="w-4 h-4" />
+                                            <GripVertical className="w-5 h-5" />
                                         </div>
-                                        {opt.icon} {opt.label}
+                                        <span className="[&>svg]:w-6 [&>svg]:h-6 flex items-center">{opt.icon}</span> {opt.label}
                                     </button>
                                 )
                             ))}
