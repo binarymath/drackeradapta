@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Pin, PinOff, Edit3, Copy, Trash2, XCircle } from 'lucide-react';
 
 export const TabContextMenu = ({
@@ -38,11 +39,11 @@ export const TabContextMenu = ({
   const adjustedX = Math.min(x, window.innerWidth - 220);
   const adjustedY = Math.min(y, window.innerHeight - 250);
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       style={{ top: adjustedY, left: adjustedX }}
-      className="fixed z-50 w-52 bg-white/95 backdrop-blur-xl border border-brown-200/80 rounded-2xl shadow-2xl py-1.5 animate-in fade-in zoom-in-95 duration-150 select-none text-brown-900"
+      className="fixed z-[999999] w-52 bg-white/95 backdrop-blur-xl border border-brown-200/80 rounded-2xl shadow-2xl py-1.5 animate-in fade-in zoom-in-95 duration-150 select-none text-brown-900"
     >
       <div className="px-3 py-1.5 border-b border-brown-100/80">
         <p className="text-[11px] font-bold text-brown-400 uppercase tracking-wider truncate">
@@ -93,6 +94,7 @@ export const TabContextMenu = ({
           <span>Fechar Todas</span>
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

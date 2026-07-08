@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, X, Pin, PinOff, Copy, Trash2, ArrowRight, Sparkles, Layers, CheckCircle2, RotateCcw, History } from 'lucide-react';
 
 export const SmartTabsDrawer = ({
@@ -17,6 +18,16 @@ export const SmartTabsDrawer = ({
   onDeleteTab
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const visibleTabs = useMemo(() => {
     return (tabs || []).filter(t => !t.hidden && t.type === activityType);
@@ -38,16 +49,16 @@ export const SmartTabsDrawer = ({
     return closedTabs.filter(t => (t.title || '').toLowerCase().includes(query));
   }, [closedTabs, searchQuery]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-brown-950/40 backdrop-blur-xs animate-in fade-in duration-200 select-none text-brown-900">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex justify-end bg-brown-950/50 backdrop-blur-xs animate-in fade-in duration-200 select-none text-brown-900">
       <div className="w-full max-w-md h-full bg-white/95 backdrop-blur-xl border-l border-brown-200/80 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-brown-200/60 bg-gradient-to-r from-brown-50/80 to-white">
+        <div className="flex items-center justify-between p-5 border-b border-brown-200/60 bg-gradient-to-r from-brown-50/80 to-white shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-brown-900 text-amber-300 flex items-center justify-center shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-brown-900 text-amber-300 flex items-center justify-center shadow-xs shrink-0">
               <Layers className="w-5 h-5" />
             </div>
             <div>
@@ -61,14 +72,14 @@ export const SmartTabsDrawer = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-brown-400 hover:text-brown-700 hover:bg-brown-100 transition-colors"
+            className="p-1.5 rounded-xl text-brown-400 hover:text-brown-700 hover:bg-brown-100 transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Search & Bulk Actions Bar */}
-        <div className="p-4 border-b border-brown-100/80 bg-brown-50/40 flex flex-col gap-3">
+        <div className="p-4 border-b border-brown-100/80 bg-brown-50/40 flex flex-col gap-3 shrink-0">
           <div className="relative">
             <Search className="w-4 h-4 text-brown-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -111,7 +122,7 @@ export const SmartTabsDrawer = ({
         </div>
 
         {/* Unified Lists Container */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent min-h-0">
           
           {/* SECTION 1: ABAS ABERTAS */}
           <div className="space-y-2.5">
@@ -305,13 +316,14 @@ export const SmartTabsDrawer = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-brown-200/60 bg-white/90 text-center">
+        <div className="p-4 border-t border-brown-200/60 bg-white/90 text-center shrink-0">
           <p className="text-[11px] font-semibold text-brown-500">
             Dica: Feche atividades abertas com o <span className="font-bold text-red-600">X</span> ou reabra atividades fechadas com <span className="font-bold text-emerald-700">Reabrir</span> diretamente por aqui.
           </p>
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

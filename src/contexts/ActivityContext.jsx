@@ -68,7 +68,13 @@ export const ActivityProvider = ({ children }) => {
     }, [activeTabId]);
 
     // --- DERIVED STATE ---
-    const activeActivity = useMemo(() => tabs.find(t => t.id === activeTabId) || null, [tabs, activeTabId]);
+    const activeActivity = useMemo(() => {
+        const foundActive = tabs.find(t => t.id === activeTabId && !t.hidden);
+        if (foundActive) return foundActive;
+        const foundAnyVisibleOfSameType = tabs.find(t => !t.hidden && t.type === activityType);
+        if (foundAnyVisibleOfSameType) return foundAnyVisibleOfSameType;
+        return tabs.find(t => t.id === activeTabId) || null;
+    }, [tabs, activeTabId, activityType]);
 
     // --- ACTIONS ---
     const addActivityTab = (activityData) => {
@@ -97,7 +103,6 @@ export const ActivityProvider = ({ children }) => {
                         maxNum = Math.max(maxNum, 1);
                     }
                 });
-                // Se a própria primeira aba for exatamente "Quatro operações" sem sufixo e estivermos criando a segunda, damos #2
                 finalTitle = `${baseTitleClean} #${maxNum + 1}`;
             }
 
@@ -165,10 +170,22 @@ export const ActivityProvider = ({ children }) => {
             const visibleOfCurrent = newTabs.filter(t => !t.hidden && (!type || t.type === type));
             if (visibleOfCurrent.length > 0) {
                 setActiveTabId(visibleOfCurrent[visibleOfCurrent.length - 1].id);
+                return newTabs;
+            } else if (type) {
+                const fallbackTabId = `${type}-${timestamp}`;
+                const fallbackTab = {
+                    id: fallbackTabId,
+                    title: 'Nova Atividade',
+                    type: type,
+                    content: '',
+                    createdAt: timestamp
+                };
+                setActiveTabId(fallbackTabId);
+                return [...newTabs, fallbackTab];
             } else {
-                setActiveTabId(null);
+                setActiveTabId('dashboard');
+                return newTabs;
             }
-            return newTabs;
         });
     };
 
@@ -176,11 +193,27 @@ export const ActivityProvider = ({ children }) => {
         if (e) e.stopPropagation();
         const timestamp = Date.now();
         setTabs(prev => {
+            const targetTab = prev.find(t => t.id === id);
+            if (!targetTab) return prev;
+
             const newTabs = prev.map(t => t.id === id ? { ...t, hidden: true, closedAt: timestamp } : t);
-            const visibleTabs = newTabs.filter(t => !t.hidden);
+            const visibleOfSameType = newTabs.filter(t => !t.hidden && t.type === targetTab.type);
+
             if (activeTabId === id) {
-                if (visibleTabs.length > 0) setActiveTabId(visibleTabs[visibleTabs.length - 1].id);
-                else setActiveTabId(null);
+                if (visibleOfSameType.length > 0) {
+                    setActiveTabId(visibleOfSameType[visibleOfSameType.length - 1].id);
+                } else {
+                    const fallbackTabId = `${targetTab.type}-${timestamp}`;
+                    const fallbackTab = {
+                        id: fallbackTabId,
+                        title: 'Nova Atividade',
+                        type: targetTab.type,
+                        content: '',
+                        createdAt: timestamp
+                    };
+                    setActiveTabId(fallbackTabId);
+                    return [...newTabs, fallbackTab];
+                }
             }
             return newTabs;
         });
@@ -202,12 +235,29 @@ export const ActivityProvider = ({ children }) => {
 
     const deleteTab = (id, e) => {
         if (e) e.stopPropagation();
+        const timestamp = Date.now();
         setTabs(prev => {
+            const targetTab = prev.find(t => t.id === id);
+            if (!targetTab) return prev;
+
             const newTabs = prev.filter(t => t.id !== id);
-            const visibleTabs = newTabs.filter(t => !t.hidden);
+            const visibleOfSameType = newTabs.filter(t => !t.hidden && t.type === targetTab.type);
+
             if (activeTabId === id) {
-                if (visibleTabs.length > 0) setActiveTabId(visibleTabs[visibleTabs.length - 1].id);
-                else setActiveTabId(null);
+                if (visibleOfSameType.length > 0) {
+                    setActiveTabId(visibleOfSameType[visibleOfSameType.length - 1].id);
+                } else {
+                    const fallbackTabId = `${targetTab.type}-${timestamp}`;
+                    const fallbackTab = {
+                        id: fallbackTabId,
+                        title: 'Nova Atividade',
+                        type: targetTab.type,
+                        content: '',
+                        createdAt: timestamp
+                    };
+                    setActiveTabId(fallbackTabId);
+                    return [...newTabs, fallbackTab];
+                }
             }
             return newTabs;
         });
