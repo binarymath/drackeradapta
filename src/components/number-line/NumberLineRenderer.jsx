@@ -60,11 +60,26 @@ export const NumberLineRenderer = ({
     const max = Number(maxVal) <= min ? min + 10 : Number(maxVal);
     const range = max - min;
 
-    // SVG Layout Constants
+    // SVG Layout Constants (com cálculo dinâmico de altura e centro para nunca cortar balões superiores ou arcos)
+    const hasTopPoints = points.some(p => p.position !== 'bottom' && p.position !== 'tick');
+    const hasBottomPoints = points.some(p => p.position === 'bottom');
+    const hasArcs = arcs && arcs.length > 0;
+
+    const maxUpNeeded = Math.max(
+        110,
+        hasTopPoints ? Math.abs(stemTopY) + Math.ceil(badgeH / 2) + 36 : 80,
+        hasArcs ? 120 + Math.round(basePx * 1.2) : 80
+    );
+    const maxDownNeeded = Math.max(
+        100,
+        hasBottomPoints ? stemBottomY + Math.ceil(badgeH / 2) + 36 : 80,
+        maxBottomLabelY + 36
+    );
+
     const svgWidth = 1000;
-    const svgHeight = 260;
+    const axisY = Math.max(160, maxUpNeeded);
+    const svgHeight = Math.max(280, axisY + maxDownNeeded);
     const marginX = 60;
-    const axisY = 150;
     const axisWidth = svgWidth - 2 * marginX;
 
     const valToX = (v) => {

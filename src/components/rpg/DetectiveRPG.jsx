@@ -6,6 +6,7 @@ import { Input } from '../ui/Input';
 
 import { useGemini } from '../../contexts/GeminiContext';
 import { useActivity } from '../../contexts/ActivityContext';
+import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 
 const DetectiveRPG = ({ topic, context, isFullWidth }) => {
     const { geminiService } = useGemini();
@@ -409,7 +410,7 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
                         </div>
                     ) : (
                         <div className="aspect-video w-full rounded-2xl overflow-hidden shadow-lg border border-brown-200 bg-brown-50 flex items-center justify-center">
-                            <img src={currentMedia} alt="Ilustração da História" className="w-full h-full object-cover" />
+                            <img src={toDirectImageUrl(currentMedia)} alt="Ilustração da História" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleDriveImageError} />
                         </div>
                     )}
                     

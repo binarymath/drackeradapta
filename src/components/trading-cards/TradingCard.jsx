@@ -1,4 +1,5 @@
 import React from 'react';
+import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 
 export const TradingCard = ({ data }) => {
 
@@ -38,20 +39,7 @@ export const TradingCard = ({ data }) => {
         }
     }
 
-    const getDirectImageUrl = (url) => {
-        if (!url) return '';
-        const driveRegex = /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/;
-        const match = url.match(driveRegex);
-        if (match && match[1]) {
-            return `https://lh3.googleusercontent.com/d/${match[1]}=w800`;
-        }
-        const driveRegex2 = /drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/;
-        const match2 = url.match(driveRegex2);
-        if (match2 && match2[1]) {
-            return `https://lh3.googleusercontent.com/d/${match2[1]}=w800`;
-        }
-        return url;
-    };
+    const getDirectImageUrl = toDirectImageUrl;
 
     const finalImageUrl = getDirectImageUrl(imageUrl);
 
@@ -74,7 +62,7 @@ export const TradingCard = ({ data }) => {
                 {!data?.hideImage && (
                     <div className="w-full h-40 bg-white border-4 rounded-sm shadow-inner mb-3 overflow-hidden flex items-center justify-center relative shrink-0" style={{ borderColor: innerBorderColor }}>
                         {finalImageUrl ? (
-                            <img src={finalImageUrl} alt={title} className="w-full h-full object-fill" referrerPolicy="no-referrer" />
+                            <img src={finalImageUrl} alt={title} className="w-full h-full object-fill" referrerPolicy="no-referrer" onError={handleDriveImageError} />
                         ) : (
                             <div className="text-gray-400 font-bold flex flex-col items-center">
                                 <span>Sem Imagem</span>

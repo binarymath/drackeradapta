@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { toDirectImageUrl } from './DominoEditorModal';
+import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 import { LatexRenderer } from '../ui/LatexRenderer';
 
 const DominoPrint = ({ data }) => {
@@ -73,7 +73,7 @@ const DominoPrint = ({ data }) => {
         if (sideData.type === 'image' && sideData.content) {
             return (
                 <div className="w-full h-full overflow-hidden flex items-center justify-center bg-white">
-                    <img src={toDirectImageUrl(sideData.content)} alt="Domino side" className="w-full h-full object-fill" />
+                    <img src={toDirectImageUrl(sideData.content)} alt="Domino side" className="w-full h-full object-fill" referrerPolicy="no-referrer" onError={handleDriveImageError} />
                 </div>
             );
         }

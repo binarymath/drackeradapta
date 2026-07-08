@@ -1,5 +1,6 @@
 import React from 'react';
 import { LayoutTemplate, Upload, Trash2, ImageIcon, Plus } from 'lucide-react';
+import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 
 const MemoryBuilder = ({
     topic, setTopic,
@@ -45,7 +46,7 @@ const MemoryBuilder = ({
                     <div className="flex gap-4 items-center">
                         <label className="w-16 h-20 border-2 border-dashed border-brown-300 rounded-lg flex items-center justify-center cursor-pointer hover:bg-brown-50 overflow-hidden relative transition-colors bg-brown-50/50">
                             <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBackImageUpload(e.target.files[0])} />
-                            {cardBackImage ? <img src={cardBackImage} className="w-full h-full object-cover" alt="Back" /> : <Upload size={16} className="text-brown-400" />}
+                            {cardBackImage ? <img src={toDirectImageUrl(cardBackImage)} className="w-full h-full object-cover" alt="Back" referrerPolicy="no-referrer" onError={handleDriveImageError} /> : <Upload size={16} className="text-brown-400" />}
                         </label>
                         <span className="text-xs text-brown-500">Imagem comum a todas as cartas.</span>
                         {cardBackImage && <button onClick={() => setCardBackImage(null)} className="text-red-400 hover:text-red-600"><Trash2 size={16} /></button>}
@@ -75,7 +76,7 @@ const MemoryBuilder = ({
                     <div className="flex gap-2 w-full sm:w-auto justify-end sm:justify-start">
                         <label className="w-10 h-10 border border-dashed border-brown-300 rounded flex items-center justify-center cursor-pointer hover:bg-brown-50 overflow-hidden relative shrink-0 transition-colors">
                             <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(pair.id, e.target.files[0])} />
-                            {pair.image ? <img src={pair.image} className="w-full h-full object-cover" alt="Custom" /> : <ImageIcon size={14} className="text-brown-400" />}
+                            {pair.image ? <img src={toDirectImageUrl(pair.image)} className="w-full h-full object-cover" alt="Custom" referrerPolicy="no-referrer" onError={handleDriveImageError} /> : <ImageIcon size={14} className="text-brown-400" />}
                         </label>
                         <button onClick={() => removeCustomPair(pair.id)} className="text-brown-400 hover:text-red-500 p-2"><Trash2 size={16} /></button>
                     </div>

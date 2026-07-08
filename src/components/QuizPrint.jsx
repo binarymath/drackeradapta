@@ -1,16 +1,5 @@
 import React from 'react';
-
-/** Converte URLs do Google Drive para URL direta embutível */
-function toDirectImageUrl(url) {
-    if (!url) return url;
-    const fileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-    if (fileMatch) return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
-    const openMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
-    if (openMatch) return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
-    const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
-    if (ucMatch) return `https://drive.google.com/uc?export=view&id=${ucMatch[1]}`;
-    return url;
-}
+import { toDirectImageUrl, handleDriveImageError } from '../utils/urlUtils';
 
 /**
  * QuizPrint – Layout de impressão/PDF do Quiz em cards estilizados.
@@ -71,11 +60,11 @@ export const QuizPrint = ({
     // Detecta se alguma questão visível tem imagem (para ajustar grid)
     const hasAnyImage = visibleQuestions.some(({ q }) => !!q.image_url);
 
-    // Grid: se houver imagens, 1 coluna no modo full para dar espaço
-    const gridClass = isTextOnly
-        ? 'qp-questions--text-only'
-        : hasAnyImage
-            ? 'qp-questions--with-img'
+    // Grid: se houver imagens, preservar layout de colunas mais amplo para que as figuras não encolham no modo sem alternativas
+    const gridClass = hasAnyImage
+        ? 'qp-questions--with-img'
+        : isTextOnly
+            ? 'qp-questions--text-only'
             : '';
 
     // Estilo inline para a imagem (respeita prop imageMaxHeight)
@@ -129,6 +118,12 @@ export const QuizPrint = ({
 
             {/* ===== QUESTÕES ===== */}
             <div className={`qp-questions ${gridClass}`}>
+                {visibleQuestions.length === 0 && (
+                    <div className="qp-card p-8 text-center bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl text-slate-500 my-6 no-print col-span-full">
+                        <p className="text-base font-bold mb-1 text-slate-700">Nenhuma questão selecionada</p>
+                        <p className="text-sm">Abra o painel de configuração acima ("Selecionar Questões") e marque as questões que deseja incluir ou clique em "Selecionar todas".</p>
+                    </div>
+                )}
                 {visibleQuestions.map(({ q, originalIdx }, printNum) => {
                     const options = buildOptions(q);
                     const diff = q.difficulty ? difficultyMeta[q.difficulty] : null;
@@ -161,7 +156,8 @@ export const QuizPrint = ({
                                             src={imgSrc}
                                             alt="Imagem da questão"
                                             style={imgStyle}
-                                            onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                                            referrerPolicy="no-referrer"
+                                            onError={handleDriveImageError}
                                         />
                                     </div>
                                 );
@@ -334,6 +330,9 @@ export const QuizPrint = ({
                 /* Card que tem imagem ocupa a coluna inteira */
                 .qp-card--has-img {
                     grid-column: span 1;
+                }
+                .qp-questions--text-only .qp-card--has-img {
+                    grid-column: span 2;
                 }
 
                 /* Card compacto (text-only) */

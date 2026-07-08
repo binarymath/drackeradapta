@@ -7,21 +7,10 @@ import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { LatexRenderer } from '../ui/LatexRenderer';
 
-/** Converte URLs do Google Drive para URL direta de imagem embeddável */
-export function toDirectImageUrl(url) {
-    if (!url || typeof url !== 'string') return url;
-    const fileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-    if (fileMatch) return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
-    const openMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
-    if (openMatch) return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
-    const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
-    if (ucMatch) return `https://drive.google.com/uc?export=view&id=${ucMatch[1]}`;
-    const thumbMatch = url.match(/drive\.google\.com\/thumbnail\?.*id=([^&]+)/);
-    if (thumbMatch) return `https://drive.google.com/uc?export=view&id=${thumbMatch[1]}`;
-    const idMatch = url.match(/drive\.google\.com\/.*[?&]id=([^&]+)/);
-    if (idMatch) return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
-    return url;
-}
+import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
+export { toDirectImageUrl, handleDriveImageError };
+
+
 
 export const DominoEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
     const [pairs, setPairs] = useState([]);
@@ -298,7 +287,8 @@ Retorne APENAS um array JSON com exatamente ${requiredPairs} objetos, sem format
                                         src={toDirectImageUrl(item.content)} 
                                         alt="Preview" 
                                         className="max-h-full max-w-full object-contain drop-shadow-xs" 
-                                        onError={(e) => { e.target.style.opacity = '0.3'; }}
+                                        referrerPolicy="no-referrer"
+                                        onError={handleDriveImageError}
                                     />
                                 </div>
                                 <div className="flex-1 min-w-0 text-center sm:text-left">

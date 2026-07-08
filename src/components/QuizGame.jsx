@@ -2,18 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Play, Check, X, RefreshCcw, Trophy, ChevronRight, UserPlus, Trash2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
+import { toDirectImageUrl, handleDriveImageError } from '../utils/urlUtils';
 
-/** Converte URLs do Google Drive para URL direta embutível */
-function toDirectImageUrl(url) {
-    if (!url) return url;
-    const fileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-    if (fileMatch) return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
-    const openMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
-    if (openMatch) return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
-    const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
-    if (ucMatch) return `https://drive.google.com/uc?export=view&id=${ucMatch[1]}`;
-    return url;
-}
 
 export const QuizGame = ({ quizData, onRestart }) => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -325,7 +315,8 @@ export const QuizGame = ({ quizData, onRestart }) => {
                                 alt="Imagem da questão"
                                 className="max-w-full object-contain"
                                 style={{ maxHeight: '240px' }}
-                                onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                                referrerPolicy="no-referrer"
+                                onError={handleDriveImageError}
                             />
                         </div>
                     );

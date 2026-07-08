@@ -5,6 +5,7 @@ import { Input } from '../ui/Input';
 import { Brain, Image as ImageIcon, Plus, Trash2, Wand2, Upload, AlertCircle } from 'lucide-react';
 import { memoryService } from './memoryService';
 import { useGemini } from '../../contexts/GeminiContext';
+import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 
 const compressImage = (file, maxWidth = 600, maxHeight = 600) => {
     return new Promise((resolve) => {
@@ -250,7 +251,7 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
                             {cardBackQuestion ? (
                                 <div className="flex items-center gap-2">
                                     <div className="h-9 w-9 rounded-lg border-2 border-brown-200 overflow-hidden shadow-sm">
-                                        <img src={cardBackQuestion} className="w-full h-full object-cover" alt="Capa Pergunta" />
+                                        <img src={toDirectImageUrl(cardBackQuestion)} className="w-full h-full object-cover" alt="Capa Pergunta" referrerPolicy="no-referrer" onError={handleDriveImageError} />
                                     </div>
                                     <button onClick={() => setCardBackQuestion(null)} className="text-xs text-red-500 hover:underline">Remover</button>
                                 </div>
@@ -270,7 +271,7 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
                             {cardBackAnswer ? (
                                 <div className="flex items-center gap-2">
                                     <div className="h-9 w-9 rounded-lg border-2 border-brown-200 overflow-hidden shadow-sm">
-                                        <img src={cardBackAnswer} className="w-full h-full object-cover" alt="Capa Resposta" />
+                                        <img src={toDirectImageUrl(cardBackAnswer)} className="w-full h-full object-cover" alt="Capa Resposta" referrerPolicy="no-referrer" onError={handleDriveImageError} />
                                     </div>
                                     <button onClick={() => setCardBackAnswer(null)} className="text-xs text-red-500 hover:underline">Remover</button>
                                 </div>
@@ -370,7 +371,7 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
                                                 />
                                                 <label className={`w-9 h-9 flex-shrink-0 flex items-center justify-center border rounded cursor-pointer transition-colors ${pair.image1 ? 'border-green-500 bg-green-50' : 'border-brown-200 hover:bg-brown-50'}`}>
                                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(pair.id, 'image1', e.target.files[0])} />
-                                                    {pair.image1 ? <img src={pair.image1} className="w-full h-full object-cover rounded" /> : <ImageIcon size={14} className="text-brown-400" />}
+                                                    {pair.image1 ? <img src={toDirectImageUrl(pair.image1)} className="w-full h-full object-cover rounded" referrerPolicy="no-referrer" onError={handleDriveImageError} /> : <ImageIcon size={14} className="text-brown-400" />}
                                                 </label>
                                             </div>
 
@@ -385,7 +386,7 @@ const MemoryConfigModal = ({ isOpen, onClose, onConfirm, initialData = null }) =
                                                 />
                                                 <label className={`w-9 h-9 flex-shrink-0 flex items-center justify-center border rounded cursor-pointer transition-colors ${pair.image2 ? 'border-green-500 bg-green-50' : 'border-brown-200 hover:bg-brown-50'}`}>
                                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(pair.id, 'image2', e.target.files[0])} />
-                                                    {pair.image2 ? <img src={pair.image2} className="w-full h-full object-cover rounded" /> : <ImageIcon size={14} className="text-brown-400" />}
+                                                    {pair.image2 ? <img src={toDirectImageUrl(pair.image2)} className="w-full h-full object-cover rounded" referrerPolicy="no-referrer" onError={handleDriveImageError} /> : <ImageIcon size={14} className="text-brown-400" />}
                                                 </label>
                                             </div>
                                         </div>
