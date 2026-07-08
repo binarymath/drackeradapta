@@ -72,9 +72,97 @@ export const ActivityProvider = ({ children }) => {
 
     // --- ACTIONS ---
     const addActivityTab = (activityData) => {
-        const newTab = { id: Date.now().toString(), ...activityData };
-        setTabs(prev => [...prev, newTab]);
-        setActiveTabId(newTab.id);
+        const timestamp = Date.now();
+        const tabId = timestamp.toString();
+
+        setTabs(prev => {
+            let finalTitle = activityData.title || 'Atividade';
+            
+            // Lógica de Desambiguação de Título (#N) se já existirem abas no mesmo estúdio com título igual ou similar
+            const baseTitleClean = finalTitle.replace(/\s+#\d+$/, '').trim();
+            const sameTypeTabs = prev.filter(t => t.type === activityData.type && !t.hidden);
+            const matchingTabs = sameTypeTabs.filter(t => {
+                const tBase = (t.title || '').replace(/\s+#\d+$/, '').trim();
+                return tBase.toLowerCase() === baseTitleClean.toLowerCase();
+            });
+
+            if (matchingTabs.length > 0) {
+                let maxNum = 1;
+                matchingTabs.forEach(t => {
+                    const match = (t.title || '').match(/#(\d+)$/);
+                    if (match) {
+                        const num = parseInt(match[1], 10);
+                        if (num >= maxNum) maxNum = num;
+                    } else {
+                        maxNum = Math.max(maxNum, 1);
+                    }
+                });
+                // Se a própria primeira aba for exatamente "Quatro operações" sem sufixo e estivermos criando a segunda, damos #2
+                finalTitle = `${baseTitleClean} #${maxNum + 1}`;
+            }
+
+            const newTab = {
+                id: tabId,
+                createdAt: timestamp,
+                isPinned: false,
+                ...activityData,
+                title: finalTitle
+            };
+            return [...prev, newTab];
+        });
+        setActiveTabId(tabId);
+    };
+
+    const renameTab = (id, newTitle) => {
+        setTabs(prev => prev.map(t => t.id === id ? { ...t, title: newTitle } : t));
+        if (activeTabId === id) {
+            setTopic(newTitle);
+        }
+    };
+
+    const pinTab = (id) => {
+        setTabs(prev => prev.map(t => t.id === id ? { ...t, isPinned: !t.isPinned } : t));
+    };
+
+    const duplicateTab = (id) => {
+        const timestamp = Date.now();
+        const tabId = timestamp.toString();
+        setTabs(prev => {
+            const sourceTab = prev.find(t => t.id === id);
+            if (!sourceTab) return prev;
+            const newTab = {
+                ...sourceTab,
+                id: tabId,
+                createdAt: timestamp,
+                isPinned: false,
+                title: `${sourceTab.title || 'Atividade'} (Cópia)`
+            };
+            return [...prev, newTab];
+        });
+        setActiveTabId(tabId);
+    };
+
+    const closeOtherTabs = (id) => {
+        setTabs(prev => {
+            const targetTab = prev.find(t => t.id === id);
+            if (!targetTab) return prev;
+            const newTabs = prev.filter(t => t.id === id || t.isPinned || t.type !== targetTab.type);
+            return newTabs;
+        });
+        setActiveTabId(id);
+    };
+
+    const closeAllTabs = (type) => {
+        setTabs(prev => {
+            const newTabs = prev.filter(t => t.isPinned || (type && t.type !== type));
+            const visibleOfCurrent = newTabs.filter(t => !t.hidden && (!type || t.type === type));
+            if (visibleOfCurrent.length > 0) {
+                setActiveTabId(visibleOfCurrent[visibleOfCurrent.length - 1].id);
+            } else {
+                setActiveTabId(null);
+            }
+            return newTabs;
+        });
     };
 
     const closeTab = (id, e) => {
@@ -191,6 +279,7 @@ export const ActivityProvider = ({ children }) => {
             activeTabId, setActiveTabId,
             activeActivity,
             addActivityTab, closeTab, deleteTab, handleTabsReorder,
+            renameTab, pinTab, duplicateTab, closeOtherTabs, closeAllTabs,
             updateActivityData,
 
             topic, setTopic,
