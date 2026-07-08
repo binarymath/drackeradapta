@@ -261,9 +261,9 @@ export const MainLayout = () => {
                 />
             )}
 
-            <main className={`${isFullWidth ? 'w-full min-h-screen p-0' : 'max-w-6xl mx-auto px-4 py-8'} grid grid-cols-1 ${isFullWidth ? '' : 'lg:grid-cols-12'} gap-6 transition-all duration-300`}>
+            <main className={`${isFullWidth ? 'w-full min-h-screen p-0' : 'w-full max-w-[1700px] mx-auto px-4 md:px-6 py-6'} flex flex-col ${isFullWidth ? '' : 'lg:flex-row lg:justify-between'} gap-6 transition-all duration-300`}>
                 {!isFullWidth && (
-                    <div className="lg:col-span-4 no-print">
+                    <div className="w-full lg:w-[30%] shrink-0 no-print">
                         <Sidebar
                             showSettings={showSettings}
                             apiKey={apiKey}
@@ -304,7 +304,7 @@ export const MainLayout = () => {
                     </div>
                 )}
 
-                <div className={`${isFullWidth ? 'w-full' : 'lg:col-span-8'} flex flex-col gap-4 transition-all duration-300`}>
+                <div className={`${isFullWidth ? 'w-full' : 'w-full lg:w-[65%] flex-1'} flex flex-col gap-4 transition-all duration-300`}>
                     {!isFullWidth && activityType !== 'about_system' && activityType !== 'dashboard' && activityType !== 'merge_pdf' && (
                         <div className="no-print">
                             <TabsBar
