@@ -146,19 +146,20 @@ export const Sidebar = ({
                 </Card>
             )}
 
-            <Card>
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className={theme.text.title}>Nova Atividade</h2>
-                </div>
+            {activityType !== 'about_system' && activityType !== 'dashboard' && (
+                <Card>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className={theme.text.title}>Nova Atividade</h2>
+                    </div>
 
-                <div className="space-y-4">
-                    <Input
-                        label="Tema"
-                        type="text"
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        placeholder="Ex: Cores primárias..."
-                    />
+                    <div className="space-y-4">
+                        <Input
+                            label="Tema"
+                            type="text"
+                            value={topic}
+                            onChange={(e) => setTopic(e.target.value)}
+                            placeholder="Ex: Cores primárias..."
+                        />
 
                     <TextArea
                         label="Contexto Específico (Detalhes da Aula)"
@@ -622,6 +623,7 @@ export const Sidebar = ({
                     )}
                 </div>
             </Card>
+            )}
         </div>
     );
 };

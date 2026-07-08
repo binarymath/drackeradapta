@@ -20,21 +20,21 @@ export const ActivityProvider = ({ children }) => {
         const saved = safeLocalStorageGet('atividade_adaptada_tabs');
         try {
             const parsed = saved ? JSON.parse(saved) : [];
-            return parsed.length > 0 ? parsed : [{ id: 'dashboard', title: 'Drácker - Início', type: 'dashboard', content: '' }];
+            return parsed.length > 0 ? parsed : [{ id: 'about_system', title: 'Página Inicial', type: 'about_system', content: '' }];
         } catch (e) {
-            return [{ id: 'dashboard', title: 'Drácker - Início', type: 'dashboard', content: '' }];
+            return [{ id: 'about_system', title: 'Página Inicial', type: 'about_system', content: '' }];
         }
     });
 
     const [activeTabId, setActiveTabId] = useState(() => {
         const saved = safeLocalStorageGet('atividade_adaptada_active_tab');
-        return saved || 'dashboard';
+        return saved || 'about_system';
     });
 
     // --- FORM STATE ---
     const [topic, setTopic] = useState('');
     const [lessonDetails, setLessonDetails] = useState('');
-    const [activityType, setActivityType] = useState('dashboard');
+    const [activityType, setActivityType] = useState('about_system');
     const [difficulty, setDifficulty] = useState('medium');
 
     // --- IMAGE GENERATION STATE ---
@@ -183,7 +183,8 @@ export const ActivityProvider = ({ children }) => {
                 setActiveTabId(fallbackTabId);
                 return [...newTabs, fallbackTab];
             } else {
-                setActiveTabId('dashboard');
+                setActiveTabId('about_system');
+                setActivityType('about_system');
                 return newTabs;
             }
         });

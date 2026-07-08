@@ -110,6 +110,7 @@ export const ActivityArea = ({
         (activityType === 'video_gallery') ||
         (activityType === 'merge_pdf') ||
         (activityType === 'about_system') ||
+        (activityType === 'dashboard') ||
 
         (activityType === 'hangman') ||
         (activityType === 'trading_cards') ||
@@ -528,7 +529,7 @@ export const ActivityArea = ({
                                 <DrackerVideoGallery />
                             ) : activityType === 'rpg' ? (
                                 <DetectiveRPG key={activeTabId || 'new_rpg'} topic={topic} context={lessonDetails} isFullWidth={isFullWidth} />
-                            ) : activityType === 'about_system' ? (
+                            ) : activityType === 'about_system' || activityType === 'dashboard' ? (
                                 <AboutSystem />
                             ) : activityType === 'merge_pdf' ? (
                                 <PDFMergerTool />
