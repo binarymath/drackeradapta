@@ -146,11 +146,10 @@ export const Sidebar = ({
                 </Card>
             )}
 
-            {activityType !== 'about_system' && activityType !== 'dashboard' && (
-                <Card>
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className={theme.text.title}>Nova Atividade</h2>
-                    </div>
+            <Card>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className={theme.text.title}>Nova Atividade</h2>
+                </div>
 
                     <div className="space-y-4">
                         <Input
@@ -543,52 +542,56 @@ export const Sidebar = ({
 
 
 
-                    {(() => {
-                        const config = getSmartActionConfig(activityType, isLoading);
-                        const IconComponent = config.icon || Sparkles;
-                        return (
-                            <button
-                                onClick={handleGenerate}
-                                disabled={config.disabled || isLoading}
-                                className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-between transition-all select-none group shadow-md ${config.className}`}
-                            >
-                                <div className="flex items-center gap-3 text-left min-w-0 pr-2">
-                                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                                        {isLoading ? (
-                                            <Loader2 className="w-5 h-5 animate-spin text-white" />
-                                        ) : (
-                                            <IconComponent className="w-5 h-5 text-white" />
-                                        )}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="text-xs font-black tracking-tight leading-tight truncate text-white">
-                                            {config.label}
-                                        </div>
-                                        {config.sublabel && (
-                                            <div className="text-[10px] font-medium opacity-90 truncate mt-0.5 text-white/95">
-                                                {config.sublabel}
+                    {activityType !== 'about_system' && activityType !== 'dashboard' && (
+                        <>
+                            {(() => {
+                                const config = getSmartActionConfig(activityType, isLoading);
+                                const IconComponent = config.icon || Sparkles;
+                                return (
+                                    <button
+                                        onClick={handleGenerate}
+                                        disabled={config.disabled || isLoading}
+                                        className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-between transition-all select-none group shadow-md ${config.className}`}
+                                    >
+                                        <div className="flex items-center gap-3 text-left min-w-0 pr-2">
+                                            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                                {isLoading ? (
+                                                    <Loader2 className="w-5 h-5 animate-spin text-white" />
+                                                ) : (
+                                                    <IconComponent className="w-5 h-5 text-white" />
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </button>
-                        );
-                    })()}
+                                            <div className="min-w-0 flex-1">
+                                                <div className="text-xs font-black tracking-tight leading-tight truncate text-white">
+                                                    {config.label}
+                                                </div>
+                                                {config.sublabel && (
+                                                    <div className="text-[10px] font-medium opacity-90 truncate mt-0.5 text-white/95">
+                                                        {config.sublabel}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </button>
+                                );
+                            })()}
 
-                    {isLoading && (
-                        <div className="mt-3 p-4 rounded-lg bg-brown-50 border border-brown-200 space-y-2 animate-pulse">
-                            <div className="flex items-center gap-2 text-brown-800">
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                <span className="font-semibold">
-                                    {activityType === 'wordsearch' ? '🔄 Gerando Caça-Palavras...' : '📝 Criando Atividade...'}
-                                </span>
-                            </div>
-                            <p className={theme.text.small}>
-                                {activityType === 'wordsearch'
-                                    ? 'Gerando texto educativo...'
-                                    : 'Processando sua solicitação...'}
-                            </p>
-                        </div>
+                            {isLoading && (
+                                <div className="mt-3 p-4 rounded-lg bg-brown-50 border border-brown-200 space-y-2 animate-pulse">
+                                    <div className="flex items-center gap-2 text-brown-800">
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <span className="font-semibold">
+                                            {activityType === 'wordsearch' ? '🔄 Gerando Caça-Palavras...' : '📝 Criando Atividade...'}
+                                        </span>
+                                    </div>
+                                    <p className={theme.text.small}>
+                                        {activityType === 'wordsearch'
+                                            ? 'Gerando texto educativo...'
+                                            : 'Processando sua solicitação...'}
+                                    </p>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     {systemStatus && (
@@ -623,7 +626,6 @@ export const Sidebar = ({
                     )}
                 </div>
             </Card>
-            )}
         </div>
     );
 };
