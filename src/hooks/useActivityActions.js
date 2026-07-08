@@ -122,6 +122,33 @@ export const useActivityActions = () => {
             return;
         }
 
+        if (activityType === 'number_line') {
+            addActivityTab({
+                title: topic ? `Reta: ${topic}` : "Reta Numérica",
+                type: 'number_line',
+                content: 'Estúdio da Reta Numérica'
+            });
+            return;
+        }
+
+        if (activityType === 'fractions') {
+            addActivityTab({
+                title: topic ? `Frações: ${topic}` : "Estúdio de Frações",
+                type: 'fractions',
+                content: 'Estúdio de Frações'
+            });
+            return;
+        }
+
+        if (activityType === 'trading_card') {
+            addActivityTab({
+                title: topic ? `Card: ${topic}` : "Card Colecionável",
+                type: 'trading_card',
+                content: 'Estúdio de Cards'
+            });
+            return;
+        }
+
         setIsLoading(true);
         setError('');
         setSystemStatus(null);
