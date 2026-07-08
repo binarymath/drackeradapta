@@ -6,7 +6,6 @@ import { Input, TextArea, Select } from './ui/Input';
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { useActivity } from '../contexts/ActivityContext';
-import { getSmartActionConfig } from '../utils/smartActionConfig';
 
 export const Sidebar = ({
     showSettings,
@@ -544,38 +543,6 @@ export const Sidebar = ({
 
                     {activityType !== 'about_system' && activityType !== 'dashboard' && activityType !== 'merge_pdf' && (
                         <>
-                            {(() => {
-                                const config = getSmartActionConfig(activityType, isLoading);
-                                const IconComponent = config.icon || Sparkles;
-                                return (
-                                    <button
-                                        onClick={handleGenerate}
-                                        disabled={config.disabled || isLoading}
-                                        className={`w-full py-3.5 px-4 rounded-2xl flex items-center justify-between transition-all select-none group shadow-md ${config.className}`}
-                                    >
-                                        <div className="flex items-center gap-3 text-left min-w-0 pr-2">
-                                            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                                                {isLoading ? (
-                                                    <Loader2 className="w-5 h-5 animate-spin text-white" />
-                                                ) : (
-                                                    <IconComponent className="w-5 h-5 text-white" />
-                                                )}
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="text-xs font-black tracking-tight leading-tight truncate text-white">
-                                                    {config.label}
-                                                </div>
-                                                {config.sublabel && (
-                                                    <div className="text-[10px] font-medium opacity-90 truncate mt-0.5 text-white/95">
-                                                        {config.sublabel}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </button>
-                                );
-                            })()}
-
                             {isLoading && (
                                 <div className="mt-3 p-4 rounded-lg bg-brown-50 border border-brown-200 space-y-2 animate-pulse">
                                     <div className="flex items-center gap-2 text-brown-800">
