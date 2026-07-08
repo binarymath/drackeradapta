@@ -9,17 +9,8 @@ import { Button } from './ui/Button';
 import { Input, TextArea } from './ui/Input';
 import { Card } from './ui/Card';
 
-/** Converte URLs do Google Drive para URL direta de imagem embeddável */
-function toDirectImageUrl(url) {
-    if (!url) return url;
-    const fileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-    if (fileMatch) return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
-    const openMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
-    if (openMatch) return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
-    const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
-    if (ucMatch) return `https://drive.google.com/uc?export=view&id=${ucMatch[1]}`;
-    return url;
-}
+import { toDirectImageUrl, handleDriveImageError } from '../utils/urlUtils';
+
 
 function SortableOptionItem({ id, children }) {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
@@ -373,10 +364,8 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                                                     alt="Preview"
                                                     className="w-full object-contain"
                                                     style={{ maxHeight: '160px' }}
-                                                    onError={e => {
-                                                        e.target.style.display = 'none';
-                                                        e.target.nextSibling && (e.target.nextSibling.style.display = 'flex');
-                                                    }}
+                                                    referrerPolicy="no-referrer"
+                                                    onError={handleDriveImageError}
                                                     onLoad={e => { e.target.style.display = 'block'; }}
                                                 />
                                                 <div className="hidden items-center justify-center gap-1 p-3 text-xs text-red-500">

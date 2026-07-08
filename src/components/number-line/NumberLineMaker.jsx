@@ -364,6 +364,11 @@ export const NumberLineMaker = () => {
         const svgElem = document.getElementById('number-line-svg');
         if (!svgElem) return;
 
+        const viewBox = svgElem.getAttribute('viewBox') || '0 0 1000 280';
+        const parts = viewBox.split(/\s+/).map(Number);
+        const vbWidth = (parts.length === 4 && parts[2] > 0) ? parts[2] : 1000;
+        const vbHeight = (parts.length === 4 && parts[3] > 0) ? parts[3] : 280;
+
         const serializer = new XMLSerializer();
         let svgString = serializer.serializeToString(svgElem);
 
@@ -371,7 +376,7 @@ export const NumberLineMaker = () => {
             svgString = svgString.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
         }
         if (!svgString.match(/^<svg[^>]+width=/)) {
-            svgString = svgString.replace(/^<svg/, '<svg width="1000" height="260"');
+            svgString = svgString.replace(/^<svg/, `<svg width="${vbWidth}" height="${vbHeight}"`);
         }
 
         const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
@@ -380,9 +385,9 @@ export const NumberLineMaker = () => {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            // Largura padrão exata de uma folha A4 em 300 DPI (2480 pixels) para preencher perfeitamente de ponta a ponta
+            const scale = 2480 / vbWidth;
             canvas.width = 2480;
-            canvas.height = 645;
+            canvas.height = Math.round(vbHeight * scale);
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             URL.revokeObjectURL(url);

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Brain, Sparkles, LayoutTemplate, Upload, Trash2, Edit3, AlertCircle } from 'lucide-react';
+import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 
 const MemoryInput = ({
     topic,
@@ -90,7 +91,7 @@ const MemoryInput = ({
                 <div className="flex items-center gap-3">
                     <label className="w-16 h-20 bg-white border-2 border-dashed border-brown-300 rounded cursor-pointer hover:border-brown-500 flex flex-col items-center justify-center text-brown-400 overflow-hidden relative transition-colors">
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBackImageUpload(e.target.files[0])} />
-                        {cardBackImage ? <img src={cardBackImage} className="w-full h-full object-cover" alt="Capa" /> : <Upload size={20} />}
+                        {cardBackImage ? <img src={toDirectImageUrl(cardBackImage)} className="w-full h-full object-cover" alt="Capa" referrerPolicy="no-referrer" onError={handleDriveImageError} /> : <Upload size={20} />}
                     </label>
 
                     <div className="flex-1 space-y-2">

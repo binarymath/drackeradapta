@@ -1,8 +1,10 @@
 import React from 'react';
 import { HelpCircle, Maximize2 } from 'lucide-react';
+import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 
 const MemoryCard = ({ card, isFlipped, isSolved, onClick, onExpand, cardBackImage, useCardImages = true }) => {
-    const contentImageUrl = card.customImage;
+    const contentImageUrl = toDirectImageUrl(card?.customImage);
+    const directBackImage = toDirectImageUrl(cardBackImage);
 
     return (
         <div
@@ -13,9 +15,9 @@ const MemoryCard = ({ card, isFlipped, isSolved, onClick, onExpand, cardBackImag
 
                 {/* VERSO (BACK) */}
                 <div className="absolute inset-0 [backface-visibility:hidden] bg-white border-4 border-white shadow-sm ring-1 ring-brown-200 rounded-xl flex items-center justify-center hover:shadow-md transition-all z-20 overflow-hidden bg-pattern-dots">
-                    {cardBackImage ? (
+                    {directBackImage ? (
                         <>
-                            <img src={cardBackImage} alt="Capa" className="w-full h-full object-contain bg-white" />
+                            <img src={directBackImage} alt="Capa" className="w-full h-full object-contain bg-white" referrerPolicy="no-referrer" onError={handleDriveImageError} />
                             <div className="absolute inset-0 bg-black/5 hover:bg-transparent transition-colors" />
                         </>
                     ) : (
@@ -33,7 +35,7 @@ const MemoryCard = ({ card, isFlipped, isSolved, onClick, onExpand, cardBackImag
                 >
                     {useCardImages && contentImageUrl && (
                         <div className="absolute inset-0 z-0 bg-white">
-                            <img src={contentImageUrl} alt="" className="w-full h-full object-contain transition-opacity" />
+                            <img src={contentImageUrl} alt="" className="w-full h-full object-contain transition-opacity" referrerPolicy="no-referrer" onError={handleDriveImageError} />
                         </div>
                     )}
                     

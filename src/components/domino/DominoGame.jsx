@@ -3,7 +3,7 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { toDirectImageUrl } from './DominoEditorModal';
+import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 import { LatexRenderer } from '../ui/LatexRenderer';
 
 const DominoGame = ({ data, isGameMode }) => {
@@ -164,7 +164,7 @@ const DominoGame = ({ data, isGameMode }) => {
             return <div className="font-black text-brown-800 uppercase tracking-wider">{sideData.content}</div>;
         }
         if (sideData.type === 'image') {
-            return <div className="w-full h-full overflow-hidden flex items-center justify-center bg-white"><img src={toDirectImageUrl(sideData.content)} alt="Domino side" className="w-full h-full object-fill" /></div>;
+            return <div className="w-full h-full overflow-hidden flex items-center justify-center bg-white"><img src={toDirectImageUrl(sideData.content)} alt="Domino side" className="w-full h-full object-fill" referrerPolicy="no-referrer" onError={handleDriveImageError} /></div>;
         }
         const contentStr = (sideData.content || '').toString();
         const hasLatex = /\$\$.*?\$\$|\$.*?\$|\\\[.*?\\\]|\\\(.*?\\\)|\\frac|\\sqrt|\\sin|\\cos|\^|_|\\alpha|\\beta|\\pi/.test(contentStr);

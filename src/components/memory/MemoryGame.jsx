@@ -11,8 +11,10 @@ import MemoryVictoryModal from './MemoryVictoryModal';
 
 import { useActivity } from '../../contexts/ActivityContext';
 import { useGemini } from '../../contexts/GeminiContext';
+import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 
 const MemoryGame = ({ isFullWidth }) => {
+
     const { geminiService, selectedModel } = useGemini();
     const { activeActivity, updateActivityData } = useActivity();
 
@@ -256,7 +258,7 @@ const MemoryGame = ({ isFullWidth }) => {
                             
                             {useCardImages && expandedCard.customImage && (
                                 <div className="absolute inset-0 z-0">
-                                    <img src={expandedCard.customImage} alt="" className="w-full h-full object-contain" />
+                                    <img src={toDirectImageUrl(expandedCard.customImage)} alt="" className="w-full h-full object-contain" referrerPolicy="no-referrer" onError={handleDriveImageError} />
                                 </div>
                             )}
                             

@@ -265,23 +265,45 @@ export const ActivityArea = ({
                                                     </button>
 
                                                     {showQuestionPicker && (
-                                                        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xl z-50 max-h-72 overflow-y-auto space-y-2">
-                                                            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={selectedQuizIndexes === null}
-                                                                        onChange={() => setSelectedQuizIndexes(null)}
-                                                                        className="w-4 h-4 accent-blue-600 rounded"
-                                                                    />
-                                                                    <span className="text-xs font-bold text-slate-800">Todas as questões ({quizData.questions.length})</span>
-                                                                </label>
-                                                                <button
-                                                                    onClick={() => setShowQuestionPicker(false)}
-                                                                    className="text-xs font-bold text-slate-400 hover:text-slate-600 px-2 py-0.5 rounded hover:bg-slate-100"
-                                                                >
-                                                                    Fechar ✕
-                                                                </button>
+                                                        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xl z-50 max-h-80 overflow-y-auto space-y-2.5">
+                                                            <div className="flex flex-col gap-2 pb-2.5 border-b border-slate-100">
+                                                                <div className="flex items-center justify-between">
+                                                                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={selectedQuizIndexes === null || selectedQuizIndexes?.size === quizData.questions.length}
+                                                                            onChange={(e) => {
+                                                                                if (e.target.checked) {
+                                                                                    setSelectedQuizIndexes(null);
+                                                                                } else {
+                                                                                    setSelectedQuizIndexes(new Set());
+                                                                                }
+                                                                            }}
+                                                                            className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
+                                                                        />
+                                                                        <span className="text-xs font-bold text-slate-800">Todas as questões ({quizData.questions.length})</span>
+                                                                    </label>
+                                                                    <button
+                                                                        onClick={() => setShowQuestionPicker(false)}
+                                                                        className="text-xs font-bold text-slate-400 hover:text-slate-600 px-2 py-0.5 rounded hover:bg-slate-100"
+                                                                    >
+                                                                        Fechar ✕
+                                                                    </button>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 pt-0.5">
+                                                                    <button
+                                                                        onClick={() => setSelectedQuizIndexes(null)}
+                                                                        className="flex-1 py-1 px-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg transition-colors border border-blue-200 text-center shadow-2xs"
+                                                                    >
+                                                                        ✓ Selecionar todas
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => setSelectedQuizIndexes(new Set())}
+                                                                        className="flex-1 py-1 px-2.5 bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 text-xs font-bold rounded-lg transition-colors border border-slate-200 hover:border-red-200 text-center shadow-2xs"
+                                                                    >
+                                                                        ✕ Desmarcar todas
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                             <div className="space-y-1.5 pt-1">
                                                                 {quizData.questions.map((q, idx) => {

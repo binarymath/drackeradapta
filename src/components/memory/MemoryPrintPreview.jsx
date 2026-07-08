@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Printer, HelpCircle } from 'lucide-react';
+import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 
 const CARDS_PER_PAGE = 9; // 3x3 grid
 
@@ -38,7 +39,7 @@ const MemoryPrintPreview = ({
         }
 
         if (side === 'front') {
-            const img = card.customImage;
+            const img = toDirectImageUrl(card.customImage);
             const hasText = card.content && card.content.trim() !== '';
 
             return (
@@ -48,6 +49,8 @@ const MemoryPrintPreview = ({
                             src={img}
                             className={`absolute inset-0 w-full h-full object-cover ${hasText ? 'opacity-80' : ''}`}
                             alt=""
+                            referrerPolicy="no-referrer"
+                            onError={handleDriveImageError}
                         />
                     )}
 
@@ -65,10 +68,11 @@ const MemoryPrintPreview = ({
                 </div>
             );
         } else {
+            const directBack = toDirectImageUrl(cardBackImage);
             return (
                 <div key={`back-${card.id}`} className="print-card relative border-2 border-gray-200 flex flex-col items-center justify-center p-0 overflow-hidden bg-slate-50 box-border rounded-lg">
-                    {cardBackImage ? (
-                        <img src={cardBackImage} className="w-full h-full object-cover" alt="Verso" />
+                    {directBack ? (
+                        <img src={directBack} className="w-full h-full object-cover" alt="Verso" referrerPolicy="no-referrer" onError={handleDriveImageError} />
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full w-full text-gray-300">
                             <HelpCircle size={48} strokeWidth={1} />
