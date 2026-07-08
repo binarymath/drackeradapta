@@ -36,6 +36,7 @@ export const MainLayout = () => {
         imagePng, setImagePng,
         isEditing, setIsEditing,
         tabSelectionModal, setTabSelectionModal,
+        selectActivityTab,
         handleActivityTypeChange,
         handleTabSelection,
         handleCreateNewFromModal,
@@ -310,7 +311,7 @@ export const MainLayout = () => {
                                 tabs={tabs}
                                 activeTabId={activeTabId}
                                 activityType={activityType}
-                                onSelect={setActiveTabId}
+                                onSelect={selectActivityTab}
                                 onClose={closeTab}
                                 onReorder={handleTabsReorder}
                                 getTabLabel={getTabLabel}

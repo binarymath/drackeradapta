@@ -110,6 +110,7 @@ export const ActivityProvider = ({ children }) => {
             const newTab = {
                 id: tabId,
                 createdAt: timestamp,
+                lastAccessed: timestamp,
                 isPinned: false,
                 ...activityData,
                 title: finalTitle
@@ -267,6 +268,16 @@ export const ActivityProvider = ({ children }) => {
 
     const handleTabsReorder = (reorderedTabs) => setTabs(reorderedTabs);
 
+    const selectActivityTab = (tabId) => {
+        const selectedTab = tabs.find(t => t.id === tabId);
+        if (selectedTab) {
+            setActiveTabId(tabId);
+            setActivityType(selectedTab.type);
+            setTopic(selectedTab.title || '');
+            setTabs(prev => prev.map(t => t.id === tabId ? { ...t, lastAccessed: Date.now() } : t));
+        }
+    };
+
     // Activity Switch Logic
     const handleActivityTypeChange = (type) => {
         if (type === 'about_system' || type === 'dashboard' || type === 'merge_pdf') {
@@ -274,9 +285,18 @@ export const ActivityProvider = ({ children }) => {
             setActiveTabId(null);
             return;
         }
-        const existingTabs = tabs.filter(t => t.type === type);
+        const existingTabs = tabs.filter(t => t.type === type && !t.hidden);
         if (existingTabs.length > 0) {
-            setTabSelectionModal({ isOpen: true, type: type });
+            const getTimestamp = (tab) => {
+                if (tab.lastAccessed && !isNaN(tab.lastAccessed)) return tab.lastAccessed;
+                if (tab.createdAt && !isNaN(new Date(tab.createdAt).getTime())) return new Date(tab.createdAt).getTime();
+                const digits = String(tab.id).replace(/\D/g, '');
+                const num = parseInt(digits, 10);
+                return (!isNaN(num) && num > 1000000000000) ? num : 0;
+            };
+            const sorted = [...existingTabs].sort((a, b) => getTimestamp(b) - getTimestamp(a));
+            const latestTab = sorted[0];
+            selectActivityTab(latestTab.id);
         } else {
             setActivityType(type);
             setActiveTabId(null);
@@ -284,12 +304,7 @@ export const ActivityProvider = ({ children }) => {
     };
 
     const handleTabSelection = (tabId) => {
-        const selectedTab = tabs.find(t => t.id === tabId);
-        if (selectedTab) {
-            setActiveTabId(tabId);
-            setActivityType(selectedTab.type);
-            setTopic(selectedTab.title || '');
-        }
+        selectActivityTab(tabId);
         setTabSelectionModal({ isOpen: false, type: '' });
     };
 
@@ -377,6 +392,7 @@ export const ActivityProvider = ({ children }) => {
             isEditing, setIsEditing,
 
             tabSelectionModal, setTabSelectionModal,
+            selectActivityTab,
             handleActivityTypeChange,
             handleTabSelection,
             handleCreateNewFromModal,
