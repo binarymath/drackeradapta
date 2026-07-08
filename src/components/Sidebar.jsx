@@ -177,7 +177,7 @@ export const Sidebar = ({
                                     key={opt.id}
                                     onClick={() => setDifficulty(opt.id)}
                                     variant={difficulty === opt.id ? 'primary' : 'ghost'}
-                                    className={`flex-1 py-2 text-xs font-bold ${difficulty === opt.id ? '' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'}`}
+                                    className={`flex-1 py-2.5 text-[15px] font-bold ${difficulty === opt.id ? '' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'}`}
                                     title={opt.tooltip}
                                 >
                                     {opt.label}
@@ -188,16 +188,16 @@ export const Sidebar = ({
 
                     {/* Quiz: configurações de perguntas */}
                     {activityType === 'quiz' && (
-                        <div className="space-y-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                        <div className="space-y-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
                             {/* Quantidade */}
                             <div>
-                                <label className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Quantidade de Perguntas</label>
-                                <div className="flex gap-1.5 flex-wrap mt-1.5">
+                                <label className="text-[14px] font-bold text-amber-900 uppercase tracking-wide">Quantidade de Perguntas</label>
+                                <div className="flex gap-2 flex-wrap mt-2">
                                     {[5, 10, 15, 20].map(n => (
                                         <button
                                             key={n}
                                             onClick={() => setQuestionCount(n)}
-                                            className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
+                                            className={`flex-1 py-2 rounded-lg text-[15px] font-bold border transition-all ${
                                                 questionCount === n
                                                     ? 'bg-amber-600 text-white border-amber-700 shadow-sm'
                                                     : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-100'
@@ -214,10 +214,10 @@ export const Sidebar = ({
 
                             {/* Distribuição de dificuldade */}
                             <div>
-                                <label className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Distribuição de Dificuldade</label>
+                                <label className="text-[14px] font-bold text-amber-900 uppercase tracking-wide">Distribuição de Dificuldade</label>
 
                                 {/* Barra visual */}
-                                <div className="flex h-3 rounded-full overflow-hidden mt-2 mb-3 border border-amber-200">
+                                <div className="flex h-3.5 rounded-full overflow-hidden mt-2.5 mb-4 border border-amber-200 shadow-inner">
                                     <div
                                         className="bg-green-400 transition-all duration-200"
                                         style={{ width: `${difficultyDist.easy}%` }}
@@ -236,11 +236,11 @@ export const Sidebar = ({
                                 </div>
 
                                 {/* Sliders */}
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     {[
-                                        { key: 'easy',   label: '🟢 Fácil',   color: 'accent-green-500',  text: 'text-green-700'  },
-                                        { key: 'medium', label: '🟡 Médio',   color: 'accent-amber-500',  text: 'text-amber-700'  },
-                                        { key: 'hard',   label: '🔴 Difícil', color: 'accent-red-500',    text: 'text-red-700'    },
+                                        { key: 'easy',   label: '🟢 Fácil',   color: 'accent-green-500',  text: 'text-green-800'  },
+                                        { key: 'medium', label: '🟡 Médio',   color: 'accent-amber-500',  text: 'text-amber-800'  },
+                                        { key: 'hard',   label: '🔴 Difícil', color: 'accent-red-500',    text: 'text-red-800'    },
                                     ].map(({ key, label, color, text }) => {
                                         const val = difficultyDist[key];
                                         // Contagem aproximada para preview
@@ -249,10 +249,10 @@ export const Sidebar = ({
 
                                         return (
                                             <div key={key}>
-                                                <div className="flex justify-between items-center mb-0.5">
-                                                    <span className={`text-[11px] font-bold ${text}`}>{label}</span>
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className={`text-[14px] font-bold ${text}`}>{label}</span>
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className={`text-[10px] font-bold ${text}`}>{cnt} questão{cnt !== 1 ? 'ões' : ''}</span>
+                                                        <span className={`text-[13px] font-bold ${text}`}>{cnt} questão{cnt !== 1 ? 'ões' : ''}</span>
                                                         <input
                                                             type="number"
                                                             min={0}
@@ -278,9 +278,9 @@ export const Sidebar = ({
                                                                 }
                                                                 setDifficultyDist(updated);
                                                             }}
-                                                            className={`w-11 px-1.5 py-0.5 rounded text-[11px] font-bold border border-amber-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400 text-center ${text}`}
+                                                            className={`w-13 px-2 py-1 rounded text-[13px] font-bold border border-amber-300 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400 text-center ${text}`}
                                                         />
-                                                        <span className={`text-[10px] ${text}`}>%</span>
+                                                        <span className={`text-[13px] font-bold ${text}`}>%</span>
                                                     </div>
                                                 </div>
                                                 <input
@@ -306,7 +306,7 @@ export const Sidebar = ({
                                                         }
                                                         setDifficultyDist(updated);
                                                     }}
-                                                    className={`w-full h-2 rounded-full appearance-none cursor-pointer ${color}`}
+                                                    className={`w-full h-2.5 rounded-full appearance-none cursor-pointer ${color}`}
                                                 />
                                             </div>
                                         );
@@ -314,8 +314,8 @@ export const Sidebar = ({
                                 </div>
 
                                 {/* Presets rápidos */}
-                                <div className="flex gap-1.5 flex-wrap mt-2.5">
-                                    <span className="text-[10px] text-amber-600 font-bold self-center mr-0.5">Presets:</span>
+                                <div className="flex gap-2 flex-wrap mt-3 items-center">
+                                    <span className="text-[13px] text-amber-800 font-bold mr-1">Presets:</span>
                                     {[
                                         { label: 'Simples',     dist: { easy: 70, medium: 20, hard: 10 } },
                                         { label: 'Balanceado',  dist: { easy: 40, medium: 40, hard: 20 } },
@@ -327,10 +327,10 @@ export const Sidebar = ({
                                             <button
                                                 key={p.label}
                                                 onClick={() => setDifficultyDist(p.dist)}
-                                                className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                                className={`px-3 py-1.5 rounded-lg text-[13px] font-bold border transition-all ${
                                                     active
-                                                        ? 'bg-amber-600 text-white border-amber-700'
-                                                        : 'bg-white text-amber-700 border-amber-300 hover:bg-amber-100'
+                                                        ? 'bg-amber-600 text-white border-amber-700 shadow-sm'
+                                                        : 'bg-white text-amber-800 border-amber-300 hover:bg-amber-100'
                                                 }`}
                                             >
                                                 {p.label}
@@ -347,104 +347,104 @@ export const Sidebar = ({
                         {/* Fixed "About System" Link */}
                         <button
                             onClick={() => setActivityType('about_system')}
-                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'about_system'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900'
+                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'about_system'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-7 flex justify-center">
-                                <span className="text-2xl">ℹ️</span>
+                            <div className="w-6 flex justify-center">
+                                <span className="text-xl">ℹ️</span>
                             </div>
                             Página Inicial
                         </button>
                         {/* Fixed "Conversar com o Drácker" Link */}
                         <button
                             onClick={() => setActivityType('chat_dracker')}
-                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'chat_dracker'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900'
+                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'chat_dracker'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-7 flex justify-center text-brown-500">
-                                <MessageSquare className="w-6 h-6" />
+                            <div className="w-6 flex justify-center text-brown-500">
+                                <MessageSquare className="w-5 h-5" />
                             </div>
                             Conversar com o Drácker
                         </button>
                         {/* Fixed "Canal do Drácker" Link */}
                         <button
                             onClick={() => setActivityType('video_gallery')}
-                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'video_gallery'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900'
+                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'video_gallery'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-7 flex justify-center text-brown-500">
-                                <Play className="w-6 h-6" />
+                            <div className="w-6 flex justify-center text-brown-500">
+                                <Play className="w-5 h-5" />
                             </div>
                             Canal do Drácker
                         </button>
                         {/* Fixed "Rádio Drácker" Link */}
                         <button
                             onClick={() => setActivityType('simplify')}
-                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'simplify'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900'
+                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'simplify'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-7 flex justify-center text-brown-500">
-                                <Music className="w-6 h-6" />
+                            <div className="w-6 flex justify-center text-brown-500">
+                                <Music className="w-5 h-5" />
                             </div>
                             Rádio Drácker
                         </button>
                         {/* Fixed "Metodologia Ativa" Link */}
                         <button
                             onClick={() => setActivityType('summary')}
-                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'summary'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900'
+                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'summary'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-7 flex justify-center text-brown-500">
-                                <MessageSquare className="w-6 h-6" />
+                            <div className="w-6 flex justify-center text-brown-500">
+                                <MessageSquare className="w-5 h-5" />
                             </div>
                             Metodologia Ativa
                         </button>
                         {/* Fixed "Mestre RPG" Link */}
                         <button
                             onClick={() => setActivityType('rpg')}
-                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'rpg'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900'
+                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'rpg'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-7 flex justify-center text-brown-500">
-                                <Compass className="w-6 h-6" />
+                            <div className="w-6 flex justify-center text-brown-500">
+                                <Compass className="w-5 h-5" />
                             </div>
                             Mestre RPG
                         </button>
                         {/* Fixed "Reta Numérica" Link */}
                         <button
                             onClick={() => setActivityType('number_line')}
-                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'number_line'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900'
+                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'number_line'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-7 flex justify-center text-brown-500">
-                                <ArrowLeftRight className="w-6 h-6" />
+                            <div className="w-6 flex justify-center text-brown-500">
+                                <ArrowLeftRight className="w-5 h-5" />
                             </div>
                             Reta Numérica
                         </button>
                         {/* Fixed "Frações e Operações" Link */}
                         <button
                             onClick={() => setActivityType('fractions')}
-                            className={`w-full px-2.5 py-2.5 mb-2 rounded-lg text-left text-[22px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'fractions'
-                                ? 'bg-brown-100 border-brown-300 text-brown-900'
+                            className={`w-full px-3 py-3 mb-2 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer border border-transparent ${activityType === 'fractions'
+                                ? 'bg-brown-100 border-brown-300 text-brown-900 shadow-sm'
                                 : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                 }`}
                         >
-                            <div className="w-7 flex justify-center text-brown-500">
-                                <PieChart className="w-6 h-6" />
+                            <div className="w-6 flex justify-center text-brown-500">
+                                <PieChart className="w-5 h-5" />
                             </div>
                             Frações e Operações
                         </button>
@@ -456,7 +456,7 @@ export const Sidebar = ({
                                         href={opt.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="w-full px-3 py-2.5 rounded-lg text-left text-[22px] font-bold flex items-center gap-3 bg-brown-50 hover:bg-brown-100 text-brown-800 transition-colors cursor-pointer"
+                                        className="w-full px-3 py-3 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 bg-brown-50 hover:bg-brown-100 text-brown-800 transition-colors cursor-pointer"
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, index)}
                                         onDragOver={handleDragOver}
@@ -466,7 +466,7 @@ export const Sidebar = ({
                                         <div className="cursor-grab p-1 -ml-1 hover:bg-brown-200 rounded text-brown-500">
                                             <GripVertical className="w-5 h-5" />
                                         </div>
-                                        <span className="[&>svg]:w-6 [&>svg]:h-6 flex items-center">{opt.icon}</span> {opt.label}
+                                        <span className="[&>svg]:w-5 [&>svg]:h-5 flex items-center">{opt.icon}</span> {opt.label}
                                     </a>
                                 ) : (
                                     <button
@@ -477,13 +477,13 @@ export const Sidebar = ({
                                         onDragOver={handleDragOver}
                                         onDrop={(e) => handleDrop(e, index)}
                                         onDragEnd={handleDragEnd}
-                                        className={`w-full px-2.5 py-2.5 rounded-lg text-left text-[22px] font-bold flex items-center gap-3 transition-all cursor-pointer ${activityType === opt.id ? 'bg-brown-100 border border-brown-400 text-brown-900' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
+                                        className={`w-full px-3 py-3 rounded-xl text-left text-[17px] font-bold flex items-center gap-3 transition-all cursor-pointer ${activityType === opt.id ? 'bg-brown-100 border border-brown-400 text-brown-900 shadow-sm' : 'bg-brown-50 hover:bg-brown-100 text-brown-700'
                                             } ${draggedItem === index ? 'opacity-50' : ''}`}
                                     >
                                         <div className="cursor-grab p-1 hover:bg-brown-200 rounded text-brown-500" onClick={(e) => e.stopPropagation()}>
                                             <GripVertical className="w-5 h-5" />
                                         </div>
-                                        <span className="[&>svg]:w-6 [&>svg]:h-6 flex items-center">{opt.icon}</span> {opt.label}
+                                        <span className="[&>svg]:w-5 [&>svg]:h-5 flex items-center">{opt.icon}</span> {opt.label}
                                     </button>
                                 )
                             ))}
