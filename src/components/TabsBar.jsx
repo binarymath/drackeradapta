@@ -261,21 +261,6 @@ export const TabsBar = ({ tabs, activeTabId, activityType, onSelect, onClose, on
       {/* Botões do Canto Direito */}
       <div className="flex items-center gap-1.5 shrink-0">
         
-        {/* Botão Reabrir Aba Fechada */}
-        {closedTabs.length > 0 && (
-          <button
-            onClick={() => reopenLastClosedTab(activityType)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-2xs transition-all border border-emerald-500 animate-in fade-in zoom-in duration-200"
-            title={`Reabrir última atividade fechada (${closedTabs.length} no histórico)`}
-          >
-            <RotateCcw className="w-3.5 h-3.5 animate-spin-once" />
-            <span className="hidden sm:inline">Reabrir</span>
-            <span className="bg-emerald-800 text-amber-200 px-1.5 py-0.5 rounded text-[10px] font-black">
-              {closedTabs.length}
-            </span>
-          </button>
-        )}
-
         {/* Botão Gaveta 'Todas as Abas (X)' */}
         <button
           onClick={() => setIsDrawerOpen(true)}
