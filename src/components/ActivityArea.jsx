@@ -1,30 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useActivity } from '../contexts/ActivityContext';
 import { FileText, Sparkles } from 'lucide-react';
-import { QuizGame } from './QuizGame';
-import { QuizPrint } from './QuizPrint';
-import { WordSearchGame } from './WordSearchGame';
-import { MusicGame } from './MusicGame';
 import RichTextRenderer from './RichTextRenderer';
-import { CrosswordActivity } from './CrosswordActivity';
-import ConnectDotsGame from './ConnectDotsGame';
-import DrackerVideoGallery from './DrackerVideoGallery';
-import DominoGame from './domino/DominoGame';
-import DominoPrint from './domino/DominoPrint';
-
-import { PDFMergerTool } from './PDFMergerTool';
 import { AboutSystem } from './AboutSystem';
-import MemoryGame from './memory/MemoryGame';
 import { DrackerSummaryRenderer } from './activity-area/DrackerSummaryRenderer';
 
-import HangmanGame from './HangmanGame';
-import DetectiveRPG from './rpg/DetectiveRPG';
-import ChatDracker from './chat/ChatDracker';
-import { TradingCardMaker } from './trading-cards/TradingCardMaker';
-import { NumberLineMaker } from './number-line/NumberLineMaker';
-import { FractionsMaker } from './fractions/FractionsMaker';
+// Módulos Carregados sob Demanda via Code Splitting (React.lazy)
+const QuizGame = lazy(() => import('./QuizGame').then(m => ({ default: m.QuizGame })));
+const QuizPrint = lazy(() => import('./QuizPrint').then(m => ({ default: m.QuizPrint })));
+const WordSearchGame = lazy(() => import('./WordSearchGame').then(m => ({ default: m.WordSearchGame })));
+const MusicGame = lazy(() => import('./MusicGame').then(m => ({ default: m.MusicGame })));
+const CrosswordActivity = lazy(() => import('./CrosswordActivity').then(m => ({ default: m.CrosswordActivity })));
+const ConnectDotsGame = lazy(() => import('./ConnectDotsGame'));
+const DrackerVideoGallery = lazy(() => import('./DrackerVideoGallery'));
+const DominoGame = lazy(() => import('./domino/DominoGame'));
+const DominoPrint = lazy(() => import('./domino/DominoPrint'));
+const PDFMergerTool = lazy(() => import('./PDFMergerTool').then(m => ({ default: m.PDFMergerTool })));
+const MemoryGame = lazy(() => import('./memory/MemoryGame'));
+const HangmanGame = lazy(() => import('./HangmanGame'));
+const DetectiveRPG = lazy(() => import('./rpg/DetectiveRPG'));
+const ChatDracker = lazy(() => import('./chat/ChatDracker'));
+const TradingCardMaker = lazy(() => import('./trading-cards/TradingCardMaker').then(m => ({ default: m.TradingCardMaker })));
+const NumberLineMaker = lazy(() => import('./number-line/NumberLineMaker').then(m => ({ default: m.NumberLineMaker })));
+const FractionsMaker = lazy(() => import('./fractions/FractionsMaker').then(m => ({ default: m.FractionsMaker })));
 
-import html2pdf from 'html2pdf.js';
+const ActivityLoadingFallback = () => (
+    <div className="flex flex-col items-center justify-center p-12 min-h-[350px] gap-4 bg-slate-50/50 rounded-2xl animate-pulse my-8">
+        <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border-2 border-indigo-500/30 flex items-center justify-center text-xl font-black text-indigo-600 shadow-sm">
+            ✨
+        </div>
+        <div className="text-center">
+            <h4 className="text-sm font-black text-slate-700">Carregando Módulo Pedagógico...</h4>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">Otimizando recursos e carregando estúdio na memória.</p>
+        </div>
+    </div>
+);
+
 
 // UI Components
 import { Button } from './ui/Button';
@@ -121,7 +132,7 @@ export const ActivityArea = ({
     }, [generatedContent, activityType]);
 
     // Used by MusicActivityRenderer
-    const handleDirectDownload = (elementId, filename) => {
+    const handleDirectDownload = async (elementId, filename) => {
         const element = document.getElementById(elementId);
         if (!element) return;
 
@@ -137,6 +148,9 @@ export const ActivityArea = ({
         if (pdfShowAlternatives && elementId === 'questions-card') {
             element.classList.add('pdf-show-alternatives');
         }
+
+        const html2pdfModule = await import('html2pdf.js');
+        const html2pdf = html2pdfModule.default || html2pdfModule;
 
         html2pdf().set(opt).from(element).save().then(() => {
             element.classList.remove('pdf-capture-mode');
@@ -455,8 +469,8 @@ export const ActivityArea = ({
                             )}
 
                             {/* --- GAME / CONTENT RENDERERS --- */}
-
-                            {isWordsearchGame ? (
+                            <Suspense fallback={<ActivityLoadingFallback />}>
+                                {isWordsearchGame ? (
                                 <WordSearchGame
                                     content={generatedContent}
                                     wordsToFind={(foundWords || []).map(w => typeof w === 'string' ? w.replace(/\s+/g, '') : (w.word || '').replace(/\s+/g, ''))}
@@ -613,7 +627,7 @@ export const ActivityArea = ({
                                     />
                                 </>
                             )}
-
+                            </Suspense>
                         </>
                     ) : (
                         /* --- EMPTY / LOADING STATE --- */

@@ -1,4 +1,5 @@
 import { buildDrackerPrompt } from '../prompts/drackerPrompt';
+import { safeJSONParse } from '../../utils/jsonUtils';
 
 const SIMPLE_MATERIAL_FALLBACKS = [
   'Materiais: papel sulfite, lápis de cor e cola.',
@@ -85,7 +86,6 @@ export async function generateDrackerActivity({ topic, lessonDetails, difficulty
 
   // 1. Try centralized safe parser first
   try {
-    const { safeJSONParse } = await import('../../utils/jsonUtils');
     parsed = safeJSONParse(raw) || {};
 
     // If parsed is empty (safeJSONParse returns null/null-like), throw to trigger fallback

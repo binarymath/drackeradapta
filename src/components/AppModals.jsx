@@ -1,15 +1,16 @@
-import React from 'react';
-import { QuizEditorModal } from './QuizEditorModal';
+import React, { Suspense, lazy } from 'react';
 
-import { VoiceSettingsModal } from './VoiceSettingsModal';
-import { MusicEditorModal } from './MusicEditorModal';
-import { AudioRecorderModal } from './AudioRecorderModal';
-import { ConnectDotsEditorModal } from './ConnectDotsEditorModal';
-import { TabSelectionModal } from './TabSelectionModal';
-import { ImportDialog } from './ImportDialog';
-import WordsearchWizard from './WordsearchWizard';
-import { CrosswordListEditor } from './CrosswordListEditor';
-import { DominoEditorModal } from './domino/DominoEditorModal';
+// Módulos de Modais/Editores Carregados sob Demanda via Code Splitting (React.lazy)
+const QuizEditorModal = lazy(() => import('./QuizEditorModal').then(m => ({ default: m.QuizEditorModal })));
+const VoiceSettingsModal = lazy(() => import('./VoiceSettingsModal').then(m => ({ default: m.VoiceSettingsModal })));
+const MusicEditorModal = lazy(() => import('./MusicEditorModal').then(m => ({ default: m.MusicEditorModal })));
+const AudioRecorderModal = lazy(() => import('./AudioRecorderModal').then(m => ({ default: m.AudioRecorderModal })));
+const ConnectDotsEditorModal = lazy(() => import('./ConnectDotsEditorModal').then(m => ({ default: m.ConnectDotsEditorModal })));
+const TabSelectionModal = lazy(() => import('./TabSelectionModal').then(m => ({ default: m.TabSelectionModal })));
+const ImportDialog = lazy(() => import('./ImportDialog').then(m => ({ default: m.ImportDialog })));
+const WordsearchWizard = lazy(() => import('./WordsearchWizard'));
+const CrosswordListEditor = lazy(() => import('./CrosswordListEditor').then(m => ({ default: m.CrosswordListEditor })));
+const DominoEditorModal = lazy(() => import('./domino/DominoEditorModal').then(m => ({ default: m.DominoEditorModal })));
 
 export const AppModals = ({
     // Quiz
@@ -84,7 +85,7 @@ export const AppModals = ({
     handleDominoConfirm
 }) => {
     return (
-        <>
+        <Suspense fallback={null}>
             <QuizEditorModal
                 isOpen={showQuizEditor}
                 onClose={() => setShowQuizEditor(false)}
@@ -173,6 +174,6 @@ export const AppModals = ({
                 isOpen={showAudioRecorder}
                 onClose={() => setShowAudioRecorder(false)}
             />
-        </>
+        </Suspense>
     );
 };

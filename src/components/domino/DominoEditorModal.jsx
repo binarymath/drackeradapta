@@ -8,6 +8,7 @@ import { Input } from '../ui/Input';
 import { LatexRenderer } from '../ui/LatexRenderer';
 
 import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
+import { safeJSONParse } from '../../utils/jsonUtils';
 export { toDirectImageUrl, handleDriveImageError };
 
 
@@ -95,7 +96,7 @@ Retorne APENAS um array JSON com exatamente ${requiredPairs} objetos, sem format
   { "question": "Qual é a capital do Brasil?", "answer": "Brasília", "type": "text" }
 ]`;
 
-            const { safeJSONParse } = await import('../../utils/jsonUtils');
+            
             
             const text = await geminiService.generateText(prompt, {
                 model: selectedModel,
