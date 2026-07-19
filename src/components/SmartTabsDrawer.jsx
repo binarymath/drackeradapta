@@ -124,23 +124,58 @@ export const SmartTabsDrawer = ({
         {/* Unified Lists Container */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-brown-200 scrollbar-track-transparent min-h-0">
           
-          {/* SECTION 1: ABAS ABERTAS */}
+          {/* SECTION 1: ABAS ABERTAS / PLAYLISTS */}
           <div className="space-y-2.5">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-1.5 font-black text-xs uppercase tracking-wider text-brown-700">
-                <Layers className="w-4 h-4 text-amber-600" />
-                <span>Atividades Abertas</span>
-              </div>
-              <span className="bg-amber-100 text-amber-900 font-extrabold text-[11px] px-2 py-0.5 rounded-full">
-                {visibleTabs.length}
-              </span>
-            </div>
-
-            {filteredVisibleTabs.length === 0 ? (
-              <div className="p-5 text-center border border-dashed border-brown-200 rounded-2xl bg-brown-50/30 text-brown-400 text-xs font-medium">
-                Nenhuma atividade aberta {searchQuery ? 'encontrada na busca' : 'no momento'}.
-              </div>
+            {activityType === 'video_gallery' ? (
+              <>
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-1.5 font-black text-xs uppercase tracking-wider text-brown-700">
+                    <Layers className="w-4 h-4 text-amber-600" />
+                    <span>Playlists do Canal</span>
+                  </div>
+                  <span className="bg-amber-100 text-amber-900 font-extrabold text-[11px] px-2 py-0.5 rounded-full">
+                    {DRACKER_CONFIG.PLAYLISTS.length}
+                  </span>
+                </div>
+                {DRACKER_CONFIG.PLAYLISTS.map(playlist => (
+                  <div
+                    key={playlist.id}
+                    onClick={() => {
+                        window.dispatchEvent(new CustomEvent('select-dracker-playlist', { detail: playlist.id }));
+                        onClose();
+                    }}
+                    className="group relative flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer bg-white hover:bg-brown-50/70 border-brown-200/70 shadow-2xs hover:shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 pr-2">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-red-100 text-red-600 group-hover:bg-red-200">
+                        <Play className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-bold text-brown-800 truncate block">
+                          {playlist.title}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
             ) : (
+              <>
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-1.5 font-black text-xs uppercase tracking-wider text-brown-700">
+                    <Layers className="w-4 h-4 text-amber-600" />
+                    <span>Atividades Abertas</span>
+                  </div>
+                  <span className="bg-amber-100 text-amber-900 font-extrabold text-[11px] px-2 py-0.5 rounded-full">
+                    {visibleTabs.length}
+                  </span>
+                </div>
+
+                {filteredVisibleTabs.length === 0 ? (
+                  <div className="p-5 text-center border border-dashed border-brown-200 rounded-2xl bg-brown-50/30 text-brown-400 text-xs font-medium">
+                    Nenhuma atividade aberta {searchQuery ? 'encontrada na busca' : 'no momento'}.
+                  </div>
+                ) : (
               filteredVisibleTabs.map(tab => {
                 const isActive = tab.id === activeTabId;
                 const dateStr = tab.createdAt ? new Date(tab.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
@@ -225,12 +260,14 @@ export const SmartTabsDrawer = ({
                       </button>
                     </div>
                   </div>
-                );
               })
+            )}
+            </>
             )}
           </div>
 
           {/* SECTION 2: ABAS FECHADAS / HISTÓRICO */}
+          {activityType !== 'video_gallery' && (
           <div className="space-y-2.5 pt-2 border-t border-brown-200/70">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-1.5 font-black text-xs uppercase tracking-wider text-brown-600">
@@ -309,9 +346,9 @@ export const SmartTabsDrawer = ({
                     </div>
                   </div>
                 );
-              })
             )}
           </div>
+          )}
 
         </div>
 
