@@ -260,6 +260,7 @@ export const SmartTabsDrawer = ({
                       </button>
                     </div>
                   </div>
+                );
               })
             )}
             </>
@@ -346,6 +347,7 @@ export const SmartTabsDrawer = ({
                     </div>
                   </div>
                 );
+              })
             )}
           </div>
           )}
