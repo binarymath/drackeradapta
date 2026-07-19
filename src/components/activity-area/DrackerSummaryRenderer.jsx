@@ -53,9 +53,18 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
                     {story && (
                         <div className="text-brown-800 max-w-4xl mt-2">
                             {story.split('\n').filter(p => p.trim() !== '').map((paragraph, i) => (
-                                <p key={i} className="text-left text-lg sm:text-xl leading-[1.8] tracking-wide font-normal mb-6 print:text-base print:mb-4 text-brown-700">
-                                    {renderMarkdownText(paragraph)}
-                                </p>
+                                <div key={i} className="group relative pr-8">
+                                    <p className="text-left text-lg sm:text-xl leading-[1.8] tracking-wide font-normal mb-6 print:text-base print:mb-4 text-brown-700">
+                                        {renderMarkdownText(paragraph)}
+                                    </p>
+                                    <button
+                                        onClick={() => handleCopy(paragraph, `story-${i}`)}
+                                        className="no-print absolute top-0 right-0 opacity-0 group-hover:opacity-100 p-1.5 text-brown-400 hover:text-orange-600 hover:bg-orange-100 rounded-md transition-all"
+                                        title="Copiar texto"
+                                    >
+                                        {copiedId === `story-${i}` ? <CheckCheck className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                                    </button>
+                                </div>
                             ))}
                         </div>
                     )}
@@ -82,13 +91,13 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
                                     </h3>
                                     <button
                                         onClick={() => copyActivity(act, idx)}
-                                        className="no-print shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-bold text-brown-500 hover:text-orange-700 hover:bg-orange-50 border border-transparent hover:border-orange-200 rounded-lg transition-all"
+                                        className="no-print shrink-0 flex items-center justify-center w-8 h-8 text-brown-400 hover:text-orange-600 hover:bg-orange-100 border border-transparent hover:border-orange-200 rounded-lg transition-all"
                                         title="Copiar atividade completa"
                                     >
                                         {copiedId === `activity-${idx}` ? (
-                                            <><CheckCheck className="w-4 h-4 text-green-600" /> <span className="hidden sm:inline">Copiado</span></>
+                                            <CheckCheck className="w-4 h-4 text-green-600" />
                                         ) : (
-                                            <><Copy className="w-4 h-4" /> <span className="hidden sm:inline">Copiar Tudo</span></>
+                                            <Copy className="w-4 h-4" />
                                         )}
                                     </button>
                                 </div>
@@ -97,7 +106,16 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
                                     {act.description && (
                                         <div className="text-brown-700 italic text-base sm:text-lg leading-[1.7] tracking-wide bg-brown-50/50 p-4 rounded-xl border border-brown-100 print:bg-transparent print:border-none print:p-0">
                                             {act.description.split('\n').filter(p => p.trim() !== '').map((paragraph, i) => (
-                                                <p key={i} className="mb-3">{renderMarkdownText(paragraph)}</p>
+                                                <div key={i} className="group flex gap-2">
+                                                    <p className="mb-3 flex-1">{renderMarkdownText(paragraph)}</p>
+                                                    <button
+                                                        onClick={() => handleCopy(paragraph, `desc-${idx}-${i}`)}
+                                                        className="no-print opacity-0 group-hover:opacity-100 p-1.5 text-brown-400 hover:text-orange-600 hover:bg-orange-100 rounded-md transition-all self-start -mt-1 shrink-0"
+                                                        title="Copiar texto"
+                                                    >
+                                                        {copiedId === `desc-${idx}-${i}` ? <CheckCheck className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                                                    </button>
+                                                </div>
                                             ))}
                                         </div>
                                     )}
