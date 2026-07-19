@@ -29,7 +29,7 @@ export const TabsBar = ({
     return (
         <div className="w-full flex items-center justify-between gap-3 p-2 bg-white/80 backdrop-blur-md border border-brown-200/80 rounded-2xl shadow-sm mb-4 transition-all select-none">
             {/* Botão de Ação / Gerar no Topo da Sessão */}
-            {(() => {
+            {activityType !== 'video_gallery' ? (() => {
                 const config = getSmartActionConfig(activityType, isLoading);
                 const IconComponent = config.icon || Sparkles;
                 return (
@@ -63,7 +63,7 @@ export const TabsBar = ({
                         </div>
                     </button>
                 );
-            })()}
+            })() : <div className="flex-1"></div>}
 
             {/* Botão Gaveta 'Atividades' no Canto Direito */}
             <button
