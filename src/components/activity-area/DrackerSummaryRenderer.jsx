@@ -55,17 +55,17 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
 
                     <div className="grid grid-cols-1 gap-6 print:gap-6">
                         {activities.map((act, idx) => (
-                            <Card key={idx} className="bg-white border border-brown-200 shadow-sm hover:shadow-md transition-shadow p-6 print:p-0 print:border-0 print:shadow-none print:rounded-none">
-                                <h3 className="text-xl font-bold text-brown-800 mb-4 flex items-start gap-3 print:text-lg">
-                                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-black text-sm print:bg-transparent print:text-brown-800 print:w-auto print:h-auto print:font-bold">
-                                        {idx + 1}.
+                            <Card key={idx} className="bg-white border-2 border-orange-200 shadow-md p-6 sm:p-8 mb-6 print:mb-8 print:p-6 print:border-2 print:border-brown-300 print:shadow-none break-inside-avoid">
+                                <h3 className="text-2xl font-black text-brown-900 mb-5 pb-3 border-b-2 border-orange-100 flex items-start gap-4 print:text-xl print:border-brown-200">
+                                    <span className="flex-shrink-0 w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-lg print:bg-brown-100 print:text-brown-900 print:border-2 print:border-brown-300">
+                                        {idx + 1}
                                     </span>
-                                    <span>{renderMarkdownText(act.title)}</span>
+                                    <span className="pt-1">{renderMarkdownText(act.title)}</span>
                                 </h3>
 
-                                <div className="space-y-6 ml-2 sm:ml-11 print:ml-6 max-w-4xl">
+                                <div className="space-y-6 sm:ml-14 print:ml-2 max-w-4xl">
                                     {act.description && (
-                                        <div className="text-brown-700 italic text-base sm:text-lg leading-[1.7] tracking-wide">
+                                        <div className="text-brown-700 italic text-base sm:text-lg leading-[1.7] tracking-wide bg-brown-50/50 p-4 rounded-xl border border-brown-100 print:bg-transparent print:border-none print:p-0">
                                             {act.description.split('\n').filter(p => p.trim() !== '').map((paragraph, i) => (
                                                 <p key={i} className="mb-3">{renderMarkdownText(paragraph)}</p>
                                             ))}
@@ -73,14 +73,14 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
                                     )}
 
                                     {act.materials && (
-                                        <div className="bg-brown-50 p-5 rounded-xl border border-brown-100 print:bg-transparent print:border-none print:p-0">
-                                            <h4 className="font-bold text-brown-900 flex items-center gap-2 mb-3 text-sm uppercase tracking-wider print:mb-1">
-                                                <PackageOpen className="w-5 h-5 text-orange-500 print:hidden" /> Materiais Necessários
+                                        <div className="bg-orange-50/70 p-5 rounded-xl border border-orange-100 print:bg-white print:border-brown-200">
+                                            <h4 className="font-black text-orange-800 flex items-center gap-2 mb-3 text-sm uppercase tracking-wider print:text-brown-800">
+                                                <PackageOpen className="w-5 h-5 text-orange-500 print:text-brown-600" /> Materiais Necessários
                                             </h4>
                                             <div className="text-brown-800 leading-[1.7] tracking-wide text-base sm:text-lg">
                                                 {act.materials.split('\n').filter(p => p.trim() !== '').map((paragraph, i) => (
                                                     <p key={i} className="mb-2 flex gap-2">
-                                                        <span className="text-orange-500 mt-1">•</span> 
+                                                        <span className="text-orange-500 mt-1 font-bold print:text-brown-600">•</span> 
                                                         <span>{renderMarkdownText(paragraph.replace(/^-/, '').trim())}</span>
                                                     </p>
                                                 ))}
@@ -89,13 +89,18 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
                                     )}
 
                                     {act.steps && (
-                                        <div className="pt-3 print:pt-1">
-                                            <h4 className="font-bold text-brown-900 flex items-center gap-2 mb-3 text-sm uppercase tracking-wider print:mb-1">
-                                                <ListChecks className="w-5 h-5 text-orange-500 print:hidden" /> Passo a Passo
+                                        <div className="pt-4 mt-6 border-t border-dashed border-brown-200 print:border-brown-300">
+                                            <h4 className="font-black text-indigo-800 flex items-center gap-2 mb-4 text-sm uppercase tracking-wider print:text-brown-900">
+                                                <ListChecks className="w-5 h-5 text-indigo-500 print:text-brown-700" /> Passo a Passo
                                             </h4>
-                                            <div className="text-brown-800 leading-[1.8] tracking-wide text-base sm:text-lg">
+                                            <div className="space-y-4">
                                                 {act.steps.split('\n').filter(p => p.trim() !== '').map((paragraph, i) => (
-                                                    <p key={i} className="mb-5">{renderMarkdownText(paragraph)}</p>
+                                                    <div key={i} className="flex gap-3 bg-white p-4 rounded-xl border border-brown-100 shadow-sm print:shadow-none print:border-brown-300 print:bg-white">
+                                                        <div className="w-1.5 rounded-full bg-indigo-300 flex-shrink-0 print:bg-brown-400"></div>
+                                                        <p className="text-brown-800 leading-[1.7] tracking-wide text-base sm:text-lg m-0">
+                                                            {renderMarkdownText(paragraph)}
+                                                        </p>
+                                                    </div>
                                                 ))}
                                             </div>
                                         </div>
