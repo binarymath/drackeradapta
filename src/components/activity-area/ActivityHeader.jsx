@@ -71,7 +71,7 @@ export const ActivityHeader = ({
 
                 {hasContent && (
                     <>
-                        {(activityType === 'quiz' || activityType === 'summary' || activityType === 'simplify' || activityType === 'domino') && (
+                        {(activityType === 'quiz' || activityType === 'simplify' || activityType === 'domino') && (
                             <Button
                                 onClick={onEdit}
                                 variant="secondary"
