@@ -49,23 +49,22 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
                         <img src="/dracker_character.png" alt="Drácker" className="w-12 h-12 object-contain print:hidden" />
                         {title || 'Drácker Metodologia Ativa'}
                     </h1>
-                    
                     {story && (
-                        <div className="text-brown-800 max-w-4xl mt-2">
-                            {story.split('\n').filter(p => p.trim() !== '').map((paragraph, i) => (
-                                <div key={i} className="group relative pr-8">
-                                    <p className="text-left text-lg sm:text-xl leading-[1.8] tracking-wide font-normal mb-6 print:text-base print:mb-4 text-brown-700">
+                        <div className="group relative mt-2 p-4 -m-4 rounded-xl transition-colors hover:bg-brown-50/50">
+                            <button
+                                onClick={() => handleCopy(story, 'story')}
+                                className="no-print absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 text-brown-400 hover:text-orange-600 hover:bg-orange-100 rounded-md transition-all z-10"
+                                title="Copiar história completa"
+                            >
+                                {copiedId === 'story' ? <CheckCheck className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                            </button>
+                            <div className="text-brown-800 max-w-4xl pr-8">
+                                {story.split('\n').filter(p => p.trim() !== '').map((paragraph, i) => (
+                                    <p key={i} className="text-left text-lg sm:text-xl leading-[1.8] tracking-wide font-normal mb-6 print:text-base print:mb-4 text-brown-700">
                                         {renderMarkdownText(paragraph)}
                                     </p>
-                                    <button
-                                        onClick={() => handleCopy(paragraph, `story-${i}`)}
-                                        className="no-print absolute top-0 right-0 opacity-0 group-hover:opacity-100 p-1.5 text-brown-400 hover:text-orange-600 hover:bg-orange-100 rounded-md transition-all"
-                                        title="Copiar texto"
-                                    >
-                                        {copiedId === `story-${i}` ? <CheckCheck className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                                    </button>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -104,18 +103,16 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
 
                                 <div className="space-y-6 sm:ml-14 print:ml-2 max-w-4xl">
                                     {act.description && (
-                                        <div className="text-brown-700 italic text-base sm:text-lg leading-[1.7] tracking-wide bg-brown-50/50 p-4 rounded-xl border border-brown-100 print:bg-transparent print:border-none print:p-0">
+                                        <div className="group relative text-brown-700 italic text-base sm:text-lg leading-[1.7] tracking-wide bg-brown-50/50 p-4 rounded-xl border border-brown-100 print:bg-transparent print:border-none print:p-0 pr-12">
+                                            <button
+                                                onClick={() => handleCopy(act.description, `desc-${idx}`)}
+                                                className="no-print absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 text-brown-400 hover:text-orange-600 hover:bg-orange-100 rounded-md transition-all z-10"
+                                                title="Copiar descrição"
+                                            >
+                                                {copiedId === `desc-${idx}` ? <CheckCheck className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                                            </button>
                                             {act.description.split('\n').filter(p => p.trim() !== '').map((paragraph, i) => (
-                                                <div key={i} className="group flex gap-2">
-                                                    <p className="mb-3 flex-1">{renderMarkdownText(paragraph)}</p>
-                                                    <button
-                                                        onClick={() => handleCopy(paragraph, `desc-${idx}-${i}`)}
-                                                        className="no-print opacity-0 group-hover:opacity-100 p-1.5 text-brown-400 hover:text-orange-600 hover:bg-orange-100 rounded-md transition-all self-start -mt-1 shrink-0"
-                                                        title="Copiar texto"
-                                                    >
-                                                        {copiedId === `desc-${idx}-${i}` ? <CheckCheck className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                                                    </button>
-                                                </div>
+                                                <p key={i} className="mb-3">{renderMarkdownText(paragraph)}</p>
                                             ))}
                                         </div>
                                     )}
