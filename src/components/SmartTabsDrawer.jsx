@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, X, Pin, PinOff, Copy, Trash2, ArrowRight, Sparkles, Layers, CheckCircle2, RotateCcw, History } from 'lucide-react';
-
+import { Search, X, Pin, PinOff, Copy, Trash2, ArrowRight, Sparkles, Layers, CheckCircle2, RotateCcw, History, Play } from 'lucide-react';
+import { DRACKER_CONFIG } from '../dracker_config';
 export const SmartTabsDrawer = ({
   isOpen,
   onClose,
