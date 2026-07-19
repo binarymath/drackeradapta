@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '../ui/Card';
-import { Sparkles, PackageOpen, ListChecks } from 'lucide-react';
+import { Sparkles, PackageOpen, ListChecks, Copy, CheckCheck } from 'lucide-react';
 
 const renderMarkdownText = (text) => {
     if (!text) return null;
@@ -15,9 +15,26 @@ const renderMarkdownText = (text) => {
 };
 
 export const DrackerSummaryRenderer = ({ data, title }) => {
+    const [copiedId, setCopiedId] = useState(null);
+
     if (!data) return null;
 
     const { story, activities } = data;
+
+    const handleCopy = (text, id) => {
+        const plainText = text.replace(/\*\*/g, '').replace(/\*/g, '');
+        navigator.clipboard.writeText(plainText);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
+
+    const copyActivity = (act, idx) => {
+        let text = `${act.title}\n\n`;
+        if (act.description) text += `${act.description}\n\n`;
+        if (act.materials) text += `Materiais Necessários:\n${act.materials}\n\n`;
+        if (act.steps) text += `Passo a Passo:\n${act.steps}\n`;
+        handleCopy(text, `activity-${idx}`);
+    };
 
     return (
         <div className="space-y-8 animate-in fade-in zoom-in duration-300 print:block print:space-y-6">
@@ -56,12 +73,25 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
                     <div className="grid grid-cols-1 gap-6 print:gap-6">
                         {activities.map((act, idx) => (
                             <Card key={idx} className="bg-white border-2 border-orange-200 shadow-md p-6 sm:p-8 mb-6 print:mb-8 print:p-6 print:border-2 print:border-brown-300 print:shadow-none break-inside-avoid">
-                                <h3 className="text-2xl font-black text-brown-900 mb-5 pb-3 border-b-2 border-orange-100 flex items-start gap-4 print:text-xl print:border-brown-200">
-                                    <span className="flex-shrink-0 w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-lg print:bg-brown-100 print:text-brown-900 print:border-2 print:border-brown-300">
-                                        {idx + 1}
-                                    </span>
-                                    <span className="pt-1">{renderMarkdownText(act.title)}</span>
-                                </h3>
+                                <div className="flex items-start justify-between mb-5 pb-3 border-b-2 border-orange-100 print:border-brown-200">
+                                    <h3 className="text-2xl font-black text-brown-900 flex items-start gap-4 print:text-xl">
+                                        <span className="flex-shrink-0 w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-lg print:bg-brown-100 print:text-brown-900 print:border-2 print:border-brown-300">
+                                            {idx + 1}
+                                        </span>
+                                        <span className="pt-1">{renderMarkdownText(act.title)}</span>
+                                    </h3>
+                                    <button
+                                        onClick={() => copyActivity(act, idx)}
+                                        className="no-print shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-bold text-brown-500 hover:text-orange-700 hover:bg-orange-50 border border-transparent hover:border-orange-200 rounded-lg transition-all"
+                                        title="Copiar atividade completa"
+                                    >
+                                        {copiedId === `activity-${idx}` ? (
+                                            <><CheckCheck className="w-4 h-4 text-green-600" /> <span className="hidden sm:inline">Copiado</span></>
+                                        ) : (
+                                            <><Copy className="w-4 h-4" /> <span className="hidden sm:inline">Copiar Tudo</span></>
+                                        )}
+                                    </button>
+                                </div>
 
                                 <div className="space-y-6 sm:ml-14 print:ml-2 max-w-4xl">
                                     {act.description && (
@@ -73,10 +103,19 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
                                     )}
 
                                     {act.materials && (
-                                        <div className="bg-orange-50/70 p-5 rounded-xl border border-orange-100 print:bg-white print:border-brown-200">
-                                            <h4 className="font-black text-orange-800 flex items-center gap-2 mb-3 text-sm uppercase tracking-wider print:text-brown-800">
-                                                <PackageOpen className="w-5 h-5 text-orange-500 print:text-brown-600" /> Materiais Necessários
-                                            </h4>
+                                        <div className="bg-orange-50/70 p-5 rounded-xl border border-orange-100 print:bg-white print:border-brown-200 group">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <h4 className="font-black text-orange-800 flex items-center gap-2 text-sm uppercase tracking-wider print:text-brown-800">
+                                                    <PackageOpen className="w-5 h-5 text-orange-500 print:text-brown-600" /> Materiais Necessários
+                                                </h4>
+                                                <button
+                                                    onClick={() => handleCopy(act.materials, `materials-${idx}`)}
+                                                    className="no-print opacity-0 group-hover:opacity-100 p-1.5 text-brown-400 hover:text-orange-600 hover:bg-orange-100 rounded-md transition-all"
+                                                    title="Copiar materiais"
+                                                >
+                                                    {copiedId === `materials-${idx}` ? <CheckCheck className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                                                </button>
+                                            </div>
                                             <div className="text-brown-800 leading-[1.7] tracking-wide text-base sm:text-lg">
                                                 {act.materials.split('\n').filter(p => p.trim() !== '').map((paragraph, i) => (
                                                     <p key={i} className="mb-2 flex gap-2">
@@ -95,11 +134,18 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
                                             </h4>
                                             <div className="space-y-4">
                                                 {act.steps.split('\n').filter(p => p.trim() !== '').map((paragraph, i) => (
-                                                    <div key={i} className="flex gap-3 bg-white p-4 rounded-xl border border-brown-100 shadow-sm print:shadow-none print:border-brown-300 print:bg-white">
+                                                    <div key={i} className="flex gap-3 bg-white p-4 rounded-xl border border-brown-100 shadow-sm print:shadow-none print:border-brown-300 print:bg-white group transition-colors hover:border-indigo-200">
                                                         <div className="w-1.5 rounded-full bg-indigo-300 flex-shrink-0 print:bg-brown-400"></div>
-                                                        <p className="text-brown-800 leading-[1.7] tracking-wide text-base sm:text-lg m-0">
+                                                        <p className="text-brown-800 leading-[1.7] tracking-wide text-base sm:text-lg m-0 flex-1">
                                                             {renderMarkdownText(paragraph)}
                                                         </p>
+                                                        <button
+                                                            onClick={() => handleCopy(paragraph, `step-${idx}-${i}`)}
+                                                            className="no-print opacity-0 group-hover:opacity-100 p-1.5 text-brown-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-all self-start"
+                                                            title="Copiar passo"
+                                                        >
+                                                            {copiedId === `step-${idx}-${i}` ? <CheckCheck className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                                                        </button>
                                                     </div>
                                                 ))}
                                             </div>
