@@ -24,12 +24,7 @@ const defaultPresets = {
         axisNumberMode: 'all',
         title: 'Reta Numérica com Frações (Quartos)',
         description: 'Observe a divisão da reta numérica e encontre os valores correspondentes.',
-        points: [
-            { id: 'p1', val: 0.25, label: '1/4', color: 'blue', hiddenVal: true },
-            { id: 'p2', val: 0.75, label: '3/4', color: 'emerald', hiddenVal: true },
-            { id: 'p3', val: 1.5, label: '6/4', color: 'amber', hiddenVal: true },
-            { id: 'p4', val: 1.0, label: '1', color: 'purple', hiddenVal: false }
-        ],
+        points: [],
         arcs: [],
         questions: [
             'Qual fração o marcador azul representa na reta?',
@@ -46,12 +41,7 @@ const defaultPresets = {
         axisNumberMode: 'all',
         title: 'Reta Numérica de Números Inteiros',
         description: 'Encontre a posição dos números positivos e negativos na reta.',
-        points: [
-            { id: 'p1', val: -4, label: 'A', color: 'red', hiddenVal: true },
-            { id: 'p2', val: -1, label: 'B', color: 'blue', hiddenVal: true },
-            { id: 'p3', val: 3, label: 'C', color: 'emerald', hiddenVal: true },
-            { id: 'p4', val: 0, label: '0', color: 'purple', hiddenVal: false }
-        ],
+        points: [],
         arcs: [],
         questions: [
             'Qual é o oposto ou simétrico do número representado pelo marcador C?',
@@ -68,11 +58,7 @@ const defaultPresets = {
         axisNumberMode: 'all',
         title: 'Reta Numérica com Números Decimais',
         description: 'Identifique os décimos marcados na reta numérica.',
-        points: [
-            { id: 'p1', val: 0.3, label: '0.3', color: 'blue', hiddenVal: true },
-            { id: 'p2', val: 0.8, label: '0.8', color: 'amber', hiddenVal: true },
-            { id: 'p3', val: 1.2, label: '1.2', color: 'emerald', hiddenVal: true }
-        ],
+        points: [],
         arcs: [],
         questions: [
             'Qual número decimal está exatamente na metade entre 0 e 1?',
@@ -136,7 +122,7 @@ export const NumberLineMaker = () => {
 
     const getPointPositionString = (pt) => {
         if (pt.posStr !== undefined) return pt.posStr;
-        if (currentData.domainType === 'fraction' && currentData.denominator > 0) {
+        if (['fraction', 'mixed'].includes(currentData.domainType) && currentData.denominator > 0) {
             const den = Number(currentData.denominator) || 1;
             const num = Math.round(pt.val * den);
             if (Math.abs(pt.val - num / den) < 0.001) {
@@ -149,19 +135,9 @@ export const NumberLineMaker = () => {
 
     const handleAddPoint = () => {
         const newId = `p_${Date.now()}`;
-        const den = Number(currentData.denominator) || 4;
-        let newVal, newStr;
-        if (currentData.domainType === 'fraction') {
-            const midNum = Math.round(((currentData.minVal + currentData.maxVal) / 2) * den);
-            newVal = midNum / den;
-            newStr = midNum % den === 0 ? `${midNum / den}` : `${midNum}/${den}`;
-        } else {
-            newVal = Math.round(((currentData.minVal + currentData.maxVal) / 2) * 10) / 10;
-            newStr = `${newVal}`;
-        }
         const newPoints = [
             ...(currentData.points || []),
-            { id: newId, val: newVal, posStr: newStr, label: newStr, color: 'blue', hiddenVal: true }
+            { id: newId, val: 0, posStr: '', label: '', color: 'blue', hiddenVal: true }
         ];
         handleUpdate({ points: newPoints });
     };
@@ -217,8 +193,40 @@ export const NumberLineMaker = () => {
     const handleAddArc = () => {
         const newArcs = [
             ...(currentData.arcs || []),
-            { id: `a_${Date.now()}`, fromVal: currentData.minVal, toVal: currentData.maxVal, label: 'Salto' }
+            { id: `a_${Date.now()}`, fromVal: '', fromStr: '', toVal: '', toStr: '', label: '' }
         ];
+        handleUpdate({ arcs: newArcs });
+    };
+
+    const handleUpdateArcPosition = (id, field, inputStr) => {
+        let val = '';
+        if (inputStr.trim() !== '') {
+            const cleaned = inputStr.trim().replace(',', '.');
+            if (cleaned.includes('/')) {
+                const parts = cleaned.split('/');
+                const num = parseFloat(parts[0]);
+                const den = parseFloat(parts[1]);
+                if (!isNaN(num) && !isNaN(den) && den !== 0) {
+                    val = num / den;
+                } else if (!isNaN(num)) {
+                    val = num;
+                }
+            } else {
+                const num = parseFloat(cleaned);
+                if (!isNaN(num)) val = num;
+            }
+        }
+
+        const newArcs = (currentData.arcs || []).map(a => {
+            if (a.id === id) {
+                return {
+                    ...a,
+                    [field === 'fromVal' ? 'fromStr' : 'toStr']: inputStr,
+                    [field]: val
+                };
+            }
+            return a;
+        });
         handleUpdate({ arcs: newArcs });
     };
 
@@ -238,7 +246,7 @@ export const NumberLineMaker = () => {
     };
 
     const generateIntelligentDrackerActivity = () => {
-        const types = ['fraction', 'integer', 'decimal'];
+        const types = ['fraction', 'integer', 'decimal', 'mixed'];
         const chosenType = (topic || '').toLowerCase().includes('inteiro') ? 'integer' : (topic || '').toLowerCase().includes('decimal') ? 'decimal' : types[Math.floor(Math.random() * types.length)];
         
         if (chosenType === 'integer') {
@@ -536,7 +544,7 @@ export const NumberLineMaker = () => {
                                     </button>
 
                                     <span className="text-xs bg-brown-100 text-brown-700 px-2 py-1 rounded font-bold">
-                                        {currentData.domainType === 'fraction' ? 'Fração' : currentData.domainType === 'integer' ? 'Inteiros' : 'Decimais'}
+                                        {currentData.domainType === 'fraction' ? 'Fração' : currentData.domainType === 'integer' ? 'Inteiros' : currentData.domainType === 'decimal' ? 'Decimais' : 'Misto (Fração/Decimal)'}
                                     </span>
 
                                     {/* Botão Tela Cheia (Apenas o ícone no canto superior direito) */}
@@ -568,7 +576,7 @@ export const NumberLineMaker = () => {
                                 <div className="flex items-center gap-1.5 self-start sm:self-center bg-brown-100/80 text-brown-800 text-[11px] font-extrabold px-2.5 py-1 rounded-full border border-brown-200">
                                     <span>Domínio Ativo:</span>
                                     <span className="text-amber-900 underline decoration-amber-500 decoration-2">
-                                        {currentData.domainType === 'fraction' ? 'Frações' : currentData.domainType === 'integer' ? 'Números Inteiros' : 'Decimais'}
+                                        {currentData.domainType === 'fraction' ? 'Frações' : currentData.domainType === 'integer' ? 'Números Inteiros' : currentData.domainType === 'decimal' ? 'Decimais' : 'Frações e Decimais (Misto)'}
                                     </span>
                                 </div>
                             </div>
@@ -669,7 +677,8 @@ export const NumberLineMaker = () => {
                                 options={[
                                     { value: 'fraction', label: 'Frações (Ex: 1/2, 3/4)' },
                                     { value: 'integer', label: 'Inteiros (Ex: -5, 0, +5)' },
-                                    { value: 'decimal', label: 'Decimais (Ex: 0.1, 1.5)' }
+                                    { value: 'decimal', label: 'Decimais (Ex: 0.1, 1.5)' },
+                                    { value: 'mixed', label: 'Misto: Frações e Decimais (Juntos)' }
                                 ]}
                             />
 
@@ -699,7 +708,7 @@ export const NumberLineMaker = () => {
                                 />
                             </div>
 
-                            {currentData.domainType === 'fraction' ? (
+                            {['fraction', 'mixed'].includes(currentData.domainType) && (
                                 <div className="space-y-3">
                                     <Input
                                         label="Denominador(es) / Subdivisões (Ex: 4 ou 2, 4)"
@@ -739,7 +748,9 @@ export const NumberLineMaker = () => {
                                         })}
                                     </div>
                                 </div>
-                            ) : (
+                            )}
+
+                            {['integer', 'decimal'].includes(currentData.domainType) && (
                                 <Input
                                     label="Passo de Marcação (Escala)"
                                     type="number"
@@ -882,20 +893,18 @@ export const NumberLineMaker = () => {
                                                 <div>
                                                     <label className="block text-[10px] font-extrabold text-amber-800 uppercase tracking-wider mb-1">De (Início)</label>
                                                     <input
-                                                        type="number"
-                                                        step="any"
-                                                        value={arc.fromVal}
-                                                        onChange={(e) => handleUpdateArc(arc.id, 'fromVal', Number(e.target.value))}
+                                                        type="text"
+                                                        value={arc.fromStr !== undefined ? arc.fromStr : (arc.fromVal !== '' && arc.fromVal !== undefined ? `${arc.fromVal}`.replace('.', ',') : '')}
+                                                        onChange={(e) => handleUpdateArcPosition(arc.id, 'fromVal', e.target.value)}
                                                         className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold text-center text-amber-950 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="block text-[10px] font-extrabold text-amber-800 uppercase tracking-wider mb-1">Para (Destino)</label>
                                                     <input
-                                                        type="number"
-                                                        step="any"
-                                                        value={arc.toVal}
-                                                        onChange={(e) => handleUpdateArc(arc.id, 'toVal', Number(e.target.value))}
+                                                        type="text"
+                                                        value={arc.toStr !== undefined ? arc.toStr : (arc.toVal !== '' && arc.toVal !== undefined ? `${arc.toVal}`.replace('.', ',') : '')}
+                                                        onChange={(e) => handleUpdateArcPosition(arc.id, 'toVal', e.target.value)}
                                                         className="w-full px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold text-center text-amber-950 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
                                                     />
                                                 </div>
