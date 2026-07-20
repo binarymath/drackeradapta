@@ -52,7 +52,7 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
                     {story && (
                         <div className="group relative mt-2 p-4 -m-4 rounded-xl transition-colors hover:bg-brown-50/50">
                             <button
-                                onClick={() => handleCopy(story, 'story')}
+                                onClick={() => handleCopy(`${title || 'Drácker Metodologia Ativa'}\n\n${story}`, 'story')}
                                 className="no-print absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 text-brown-400 hover:text-orange-600 hover:bg-orange-100 rounded-md transition-all z-10"
                                 title="Copiar história completa"
                             >
@@ -105,7 +105,7 @@ export const DrackerSummaryRenderer = ({ data, title }) => {
                                     {act.description && (
                                         <div className="group relative text-brown-700 italic text-base sm:text-lg leading-[1.7] tracking-wide bg-brown-50/50 p-4 rounded-xl border border-brown-100 print:bg-transparent print:border-none print:p-0 pr-12">
                                             <button
-                                                onClick={() => handleCopy(act.description, `desc-${idx}`)}
+                                                onClick={() => handleCopy(`${act.title}\n\n${act.description}`, `desc-${idx}`)}
                                                 className="no-print absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 text-brown-400 hover:text-orange-600 hover:bg-orange-100 rounded-md transition-all z-10"
                                                 title="Copiar descrição"
                                             >
