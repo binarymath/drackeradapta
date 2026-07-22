@@ -107,6 +107,17 @@ export const NumberLineRenderer = ({
 
     // Helper to format fraction or integer cleanly
     const formatValue = (v, den = primaryDen) => {
+        if (domainType === 'mixed' && den > 0) {
+            const num = Math.round(v * den);
+            
+            let decStr = parseFloat(Number(v).toFixed(3)).toString();
+            if (!decStr.includes('.')) {
+                decStr += '.0';
+            }
+            decStr = decStr.replace('.', ',');
+            
+            return { type: 'mixed', num: num, den: den, dec: decStr };
+        }
         if (domainType === 'fraction' && den > 0) {
             const num = Math.round(v * den);
             if (num % den === 0) {
@@ -115,18 +126,22 @@ export const NumberLineRenderer = ({
             return { type: 'frac', num: num, den: den };
         }
         if (domainType === 'decimal') {
-            return { type: 'int', text: Number(v).toFixed(1) };
+            if (Math.abs(v - Math.round(v)) < 0.0001) return { type: 'int', text: `${Math.round(v)}` };
+            let decStr = Number(v).toFixed(3);
+            while (decStr.endsWith('0')) decStr = decStr.slice(0, -1);
+            if (decStr.endsWith('.')) decStr = decStr.slice(0, -1);
+            return { type: 'int', text: decStr.replace('.', ',') };
         }
         return { type: 'int', text: `${Math.round(v)}` };
     };
 
     // Generate ticks
     const ticks = [];
-    if (domainType === 'fraction') {
-        const ticksMap = new Map();
+    const ticksMap = new Map();
+
+    if (domainType === 'fraction' || domainType === 'mixed') {
         const denColors = denominatorColors || {};
 
-        // Sort denominators so smaller/simpler denominator is evaluated first for clean labels
         [...densList].sort((a, b) => a - b).forEach(den => {
             const startStep = Math.ceil(min * den);
             const endStep = Math.floor(max * den);
@@ -142,19 +157,20 @@ export const NumberLineRenderer = ({
                         val: v,
                         x: valToX(v),
                         isMajor: isInteger,
-                        color: isInteger ? '#78350f' : denCol,
+                        color: (isInteger && domainType !== 'mixed') ? '#78350f' : denCol,
                         label: formatValue(v, den)
                     });
                 } else if (!isInteger && ticksMap.get(key).color === '#78350f') {
                     ticksMap.get(key).color = denCol;
                 } else if (isInteger) {
                     ticksMap.get(key).isMajor = true;
+                    if (domainType === 'mixed') ticksMap.get(key).color = denCol;
                 }
             }
         });
+    }
 
-        ticks.push(...Array.from(ticksMap.values()).sort((a, b) => a.val - b.val));
-    } else {
+    if (domainType === 'integer' || domainType === 'decimal') {
         const s = Number(step) > 0 ? Number(step) : 1;
         const startStep = Math.ceil(min / s);
         const endStep = Math.floor(max / s);
@@ -164,9 +180,15 @@ export const NumberLineRenderer = ({
                 val: v,
                 x: valToX(v),
                 isMajor: true,
-                label: formatValue(v)
+                label: formatValue(v, primaryDen)
             });
         }
+    }
+
+    if (domainType === 'fraction' || domainType === 'mixed') {
+        ticks.push(...Array.from(ticksMap.values()).sort((a, b) => a.val - b.val));
+    } else {
+        ticks.sort((a, b) => a.val - b.val);
     }
 
     return (
@@ -312,6 +334,57 @@ export const NumberLineRenderer = ({
                                                 >
                                                     {t.label.text}
                                                 </text>
+                                            ) : t.label.type === 'mixed' ? (
+                                                <g transform="translate(0, 0)">
+                                                    {/* Decimal Text Above Axis */}
+                                                    <rect
+                                                        x="-16"
+                                                        y={-(sizes.fracOffsetY + 26)}
+                                                        width="32"
+                                                        height="16"
+                                                        fill="rgba(255, 255, 255, 0.7)"
+                                                        rx="4"
+                                                    />
+                                                    <text
+                                                        x="0"
+                                                        y={-(sizes.fracOffsetY + 15)}
+                                                        textAnchor="middle"
+                                                        fill={tickColor}
+                                                        fontSize={sizes.fracTick}
+                                                        fontWeight="900"
+                                                    >
+                                                        {t.label.dec}
+                                                    </text>
+                                                    {/* Fraction Text Below Axis */}
+                                                    <text
+                                                        x="0"
+                                                        y="0"
+                                                        textAnchor="middle"
+                                                        fill={tickColor}
+                                                        fontSize={sizes.fracTick}
+                                                        fontWeight="bold"
+                                                    >
+                                                        {t.label.num}
+                                                    </text>
+                                                    <line
+                                                        x1={-sizes.fracLineW}
+                                                        y1={sizes.fracBarY}
+                                                        x2={sizes.fracLineW}
+                                                        y2={sizes.fracBarY}
+                                                        stroke={tickColor}
+                                                        strokeWidth="1.5"
+                                                    />
+                                                    <text
+                                                        x="0"
+                                                        y={sizes.fracDenY}
+                                                        textAnchor="middle"
+                                                        fill={tickColor}
+                                                        fontSize={sizes.fracTick}
+                                                        fontWeight="bold"
+                                                    >
+                                                        {t.label.den}
+                                                    </text>
+                                                </g>
                                             ) : (
                                                 <g transform="translate(0, 0)">
                                                     <text
