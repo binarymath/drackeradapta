@@ -12,11 +12,11 @@ export const FractionsMaker = () => {
     // --- STATE ---
     const [activeTab, setActiveTab] = useState('single'); // 'single' | 'ops' | 'print'
     
-    // Single View State
-    const [num1, setNum1] = useState(3);
-    const [den1, setDen1] = useState(4);
+    // Comparison / Multi View State
+    const [fractions, setFractions] = useState([
+        { id: 1, num: 3, den: 4, color: '#3b82f6' }
+    ]);
     const [shape, setShape] = useState('circle');
-    const [color, setColor] = useState('#3b82f6'); // azul
     
     // Operations State
     const [opNum1, setOpNum1] = useState(1);
@@ -59,6 +59,21 @@ export const FractionsMaker = () => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isFullscreen]);
+
+    // --- FRACTIONS MULTI-VIEW HELPERS ---
+    const addFraction = () => {
+        if (fractions.length >= 5) return;
+        setFractions([...fractions, { id: Date.now(), num: 1, den: 2, color: colorOptions[Math.floor(Math.random() * colorOptions.length)].value }]);
+    };
+    
+    const updateFraction = (id, field, value) => {
+        setFractions(fractions.map(f => f.id === id ? { ...f, [field]: value } : f));
+    };
+
+    const removeFraction = (id) => {
+        if (fractions.length <= 1) return;
+        setFractions(fractions.filter(f => f.id !== id));
+    };
 
     // --- MATH HELPERS ---
     const mdc = (a, b) => (b === 0 ? Math.abs(a) : mdc(b, a % b));
@@ -205,81 +220,102 @@ export const FractionsMaker = () => {
         <div className="space-y-6">
             {/* Control Bar */}
             <Card className="p-5 bg-gradient-to-r from-blue-50/80 to-slate-50 border-blue-200">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex flex-wrap items-center gap-4">
-                        {/* Numerador */}
-                        <div className="flex flex-col">
-                            <label className="text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Numerador</label>
-                            <input
-                                type="number"
-                                min="0"
-                                max="50"
-                                value={num1}
-                                onChange={(e) => setNum1(Math.max(0, Number(e.target.value)))}
-                                className="w-20 px-3 py-1.5 border border-slate-300 rounded-xl text-center font-extrabold text-lg bg-white shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-                        <span className="text-2xl font-bold text-slate-400 self-end mb-1">/</span>
-                        {/* Denominador */}
-                        <div className="flex flex-col">
-                            <label className="text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Denominador</label>
-                            <input
-                                type="number"
-                                min="1"
-                                max="50"
-                                value={den1}
-                                onChange={(e) => setDen1(Math.max(1, Number(e.target.value)))}
-                                className="w-20 px-3 py-1.5 border border-slate-300 rounded-xl text-center font-extrabold text-lg bg-white shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-
-                        {/* Forma */}
-                        <div className="flex flex-col ml-2 border-l border-slate-300 pl-4">
-                            <label className="text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Forma Visual</label>
-                            <select
-                                value={shape}
-                                onChange={(e) => setShape(e.target.value)}
-                                className="px-3 py-2 border border-slate-300 rounded-xl font-bold text-sm bg-white shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="circle">⚪ Círculo</option>
-                                <option value="rectangle">▭ Retângulo</option>
-                            </select>
-                        </div>
-
-                        {/* Cor */}
-                        <div className="flex flex-col ml-2 border-l border-slate-300 pl-4">
-                            <label className="text-xs font-bold text-slate-700 mb-1 uppercase tracking-wider">Cor de Preenchimento</label>
-                            <div className="flex items-center gap-1.5 mt-1">
-                                {colorOptions.map((c) => (
-                                    <button
-                                        key={c.value}
-                                        onClick={() => setColor(c.value)}
-                                        className={`w-6 h-6 rounded-full transition-all shadow-2xs ${c.bg} ${color === c.value ? 'ring-2 ring-offset-2 ring-blue-600 scale-110' : 'opacity-80 hover:opacity-100'}`}
-                                        title={c.label}
-                                    />
-                                ))}
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex flex-col bg-white p-2 rounded-xl border border-slate-300 shadow-2xs">
+                                <label className="text-[10px] font-extrabold text-slate-500 mb-1 uppercase tracking-wider">Forma Global</label>
+                                <select
+                                    value={shape}
+                                    onChange={(e) => setShape(e.target.value)}
+                                    className="px-3 py-1 border border-slate-200 rounded-lg font-bold text-sm bg-slate-50 shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="circle">⚪ Círculo</option>
+                                    <option value="rectangle">▭ Retângulo</option>
+                                </select>
                             </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 ml-auto">
+                            <button
+                                onClick={() => handleDownloadTransparentPNG('single-svg-container', `comparacao_fracoes.png`)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition-all shadow-2xs cursor-pointer"
+                                title="Baixar imagem PNG transparente"
+                            >
+                                <Download className="w-3.5 h-3.5 text-blue-600" />
+                                <span>Baixar PNG</span>
+                            </button>
+
+                            {/* Botão Tela Cheia */}
+                            {!isFullScreenView && (
+                                <button
+                                    onClick={() => setIsFullscreen(true)}
+                                    className="flex items-center justify-center p-2 text-blue-950 bg-blue-200 hover:bg-blue-300 rounded-xl transition-all shadow-2xs cursor-pointer active:scale-95 border border-blue-400 ml-1"
+                                    title="Expandir para 100% da tela (Tela Cheia)"
+                                >
+                                    <Maximize2 className="w-4 h-4 text-blue-900" />
+                                </button>
+                            )}
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 ml-auto">
-                        <button
-                            onClick={() => handleDownloadTransparentPNG('single-svg-container', `fracao_${num1}_${den1}.png`)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition-all shadow-2xs cursor-pointer"
-                            title="Baixar imagem PNG transparente"
-                        >
-                            <Download className="w-3.5 h-3.5 text-blue-600" />
-                            <span>Baixar PNG</span>
-                        </button>
-
-                        {/* Botão Tela Cheia (Apenas o ícone no canto superior direito para leitura limpa) */}
-                        {!isFullScreenView && (
+                    {/* Fractions List Controls */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        {fractions.map((frac, idx) => (
+                            <div key={frac.id} className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-300 shadow-2xs relative group">
+                                <span className="absolute -top-2.5 -left-2.5 w-6 h-6 bg-slate-700 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                                    {idx + 1}
+                                </span>
+                                
+                                <div className="flex items-center gap-2 pl-2">
+                                    <input
+                                        type="number" min="0" max="50" value={frac.num}
+                                        onChange={(e) => updateFraction(frac.id, 'num', Math.max(0, Number(e.target.value)))}
+                                        className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                    <span className="text-xl font-black text-slate-400">/</span>
+                                    <input
+                                        type="number" min="1" max="50" value={frac.den}
+                                        onChange={(e) => updateFraction(frac.id, 'den', Math.max(1, Number(e.target.value)))}
+                                        className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                
+                                <div className="flex flex-col items-center justify-center gap-1.5 pl-3 border-l border-slate-200">
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase">Cor</span>
+                                    <label 
+                                        className="relative w-8 h-8 rounded-full shadow-sm border-2 border-slate-200 hover:scale-110 hover:border-blue-400 transition-all overflow-hidden cursor-pointer flex-shrink-0" 
+                                        style={{ backgroundColor: frac.color }}
+                                        title="Escolher Cor Livre (RGB)"
+                                    >
+                                        <input
+                                            type="color"
+                                            value={frac.color}
+                                            onChange={(e) => updateFraction(frac.id, 'color', e.target.value)}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                    </label>
+                                </div>
+                                
+                                {fractions.length > 1 && (
+                                    <button
+                                        onClick={() => removeFraction(frac.id)}
+                                        className="absolute -top-2.5 -right-2.5 w-6 h-6 bg-rose-100 text-rose-600 hover:bg-rose-500 hover:text-white transition-colors rounded-full flex items-center justify-center border-2 border-white shadow-sm opacity-0 group-hover:opacity-100 cursor-pointer"
+                                        title="Remover Fração"
+                                    >
+                                        <X className="w-3 h-3 font-bold" />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        
+                        {fractions.length < 5 && (
                             <button
-                                onClick={() => setIsFullscreen(true)}
-                                className="flex items-center justify-center p-2 text-blue-950 bg-blue-200 hover:bg-blue-300 rounded-xl transition-all shadow-2xs cursor-pointer active:scale-95 border border-blue-400 ml-1"
-                                title="Expandir para 100% da tela (Tela Cheia)"
+                                onClick={addFraction}
+                                className="flex flex-col items-center justify-center gap-1 h-[88px] px-4 border-2 border-dashed border-blue-300 bg-blue-50/50 hover:bg-blue-100/50 rounded-2xl transition-colors cursor-pointer text-blue-600"
                             >
-                                <Maximize2 className="w-4 h-4 text-blue-900" />
+                                <Plus className="w-6 h-6" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider">Adicionar</span>
                             </button>
                         )}
                     </div>
@@ -287,33 +323,35 @@ export const FractionsMaker = () => {
             </Card>
 
             {/* Visual Display */}
-            <Card className="p-8 flex flex-col items-center justify-center min-h-80 bg-white border-slate-200 shadow-sm">
-                <div className="mb-4 text-center">
-                    <span className="inline-block px-4 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-900 font-bold shadow-2xs" style={{ fontSize: `${fontSizePx}px` }}>
-                        {num1 >= den1 && num1 % den1 !== 0 ? (
-                            <span>Fração Imprópria: {getMixedFractionJSX(num1, den1)}</span>
-                        ) : num1 >= den1 && num1 % den1 === 0 ? (
-                            <span>Valor Inteiro: {getMixedFractionJSX(num1, den1)}</span>
-                        ) : (
-                            <span>Fração Própria: {num1}/{den1}</span>
-                        )}
-                    </span>
-                </div>
-
-                <div id="single-svg-container" className="flex flex-wrap items-center justify-center gap-6 p-6 w-full max-w-4xl bg-slate-50/60 rounded-2xl border border-dashed border-slate-300 my-4">
-                    <FractionsRenderer
-                        numerator={num1}
-                        denominator={den1}
-                        shape={shape}
-                        fillColor={color}
-                        sizeClassName="shrink-0"
-                        style={{ width: isFullScreenView ? `${Math.min(imageSizePx * 1.8, 400)}px` : `${imageSizePx}px`, height: isFullScreenView ? `${Math.min(imageSizePx * 1.8, 400)}px` : `${imageSizePx}px` }}
-                        maxShapesToRender={20}
-                    />
+            <Card className="p-8 flex flex-col items-center justify-center min-h-80 bg-white border-slate-200 shadow-sm overflow-x-auto">
+                <div id="single-svg-container" className="flex items-center justify-center gap-4 md:gap-8 p-6 min-w-max bg-slate-50/60 rounded-2xl border border-dashed border-slate-300 my-4">
+                    {fractions.map((frac, idx) => {
+                        return (
+                            <React.Fragment key={frac.id}>
+                                <div className="flex flex-col items-center gap-3">
+                                    <span className="inline-block px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold shadow-2xs text-center min-w-[80px]" style={{ fontSize: `${Math.max(12, fontSizePx - 2)}px` }}>
+                                        {frac.num >= frac.den && frac.num % frac.den !== 0 
+                                            ? getMixedFractionJSX(frac.num, frac.den)
+                                            : `${frac.num}/${frac.den}`
+                                        }
+                                    </span>
+                                    <FractionsRenderer
+                                        numerator={frac.num}
+                                        denominator={frac.den}
+                                        shape={shape}
+                                        fillColor={frac.color}
+                                        sizeClassName="shrink-0"
+                                        style={{ width: isFullScreenView ? `${Math.min(imageSizePx * 1.5, 300)}px` : `${imageSizePx}px`, height: isFullScreenView ? `${Math.min(imageSizePx * 1.5, 300)}px` : `${imageSizePx}px` }}
+                                        maxShapesToRender={20}
+                                    />
+                                </div>
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
 
                 <div className="mt-4 text-center text-slate-500 max-w-lg" style={{ fontSize: `${Math.max(12, fontSizePx - 2)}px` }}>
-                    💡 <strong className="text-slate-700">Dica Pedagógica:</strong> O denominador ({den1}) representa em quantas partes iguais o inteiro foi dividido. O numerador ({num1}) indica quantas partes foram selecionadas ou pintadas.
+                    💡 <strong className="text-slate-700">Dica Pedagógica:</strong> Compare as frações visualmente. Você pode utilizar o espaço entre as figuras para perguntar ao aluno se a primeira é maior (&gt;), menor (&lt;) ou equivalente (=) à segunda.
                 </div>
             </Card>
         </div>
@@ -353,18 +391,20 @@ export const FractionsMaker = () => {
                                         className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
-                                <div className="flex flex-col gap-1 pl-2.5 border-l border-slate-200">
+                                <div className="flex flex-col items-center justify-center gap-1 pl-2.5 border-l border-slate-200">
                                     <span className="text-[9px] font-bold text-slate-400 uppercase">Cor</span>
-                                    <div className="grid grid-cols-2 gap-1.5">
-                                        {colorOptions.slice(0, 6).map((c) => (
-                                            <button
-                                                key={c.value}
-                                                onClick={() => setOpColor1(c.value)}
-                                                className={`w-5 h-5 rounded-full transition-all ${c.bg} ${opColor1 === c.value ? 'ring-2 ring-offset-1 ring-blue-600 scale-110 shadow-xs' : 'opacity-70 hover:opacity-100'}`}
-                                                title={c.label}
-                                            />
-                                        ))}
-                                    </div>
+                                    <label 
+                                        className="relative w-8 h-8 mt-1 rounded-full shadow-sm border-2 border-slate-200 hover:scale-110 hover:border-blue-400 transition-all overflow-hidden cursor-pointer flex-shrink-0" 
+                                        style={{ backgroundColor: opColor1 }}
+                                        title="Escolher Cor Livre (RGB)"
+                                    >
+                                        <input
+                                            type="color"
+                                            value={opColor1}
+                                            onChange={(e) => setOpColor1(e.target.value)}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -398,18 +438,20 @@ export const FractionsMaker = () => {
                                         className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
-                                <div className="flex flex-col gap-1 pl-2.5 border-l border-slate-200">
+                                <div className="flex flex-col items-center justify-center gap-1 pl-2.5 border-l border-slate-200">
                                     <span className="text-[9px] font-bold text-slate-400 uppercase">Cor</span>
-                                    <div className="grid grid-cols-2 gap-1.5">
-                                        {colorOptions.slice(0, 6).map((c) => (
-                                            <button
-                                                key={c.value}
-                                                onClick={() => setOpColor2(c.value)}
-                                                className={`w-5 h-5 rounded-full transition-all ${c.bg} ${opColor2 === c.value ? 'ring-2 ring-offset-1 ring-blue-600 scale-110 shadow-xs' : 'opacity-70 hover:opacity-100'}`}
-                                                title={c.label}
-                                            />
-                                        ))}
-                                    </div>
+                                    <label 
+                                        className="relative w-8 h-8 mt-1 rounded-full shadow-sm border-2 border-slate-200 hover:scale-110 hover:border-blue-400 transition-all overflow-hidden cursor-pointer flex-shrink-0" 
+                                        style={{ backgroundColor: opColor2 }}
+                                        title="Escolher Cor Livre (RGB)"
+                                    >
+                                        <input
+                                            type="color"
+                                            value={opColor2}
+                                            onChange={(e) => setOpColor2(e.target.value)}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -1038,7 +1080,7 @@ export const FractionsMaker = () => {
                             variant={activeTab === 'single' ? 'primary' : 'ghost'}
                             className="text-xs py-2 font-extrabold"
                         >
-                            🟢 Visualizador Simples
+                            🟢 Comparador / Equivalências
                         </Button>
                         <Button
                             onClick={() => setActiveTab('ops')}

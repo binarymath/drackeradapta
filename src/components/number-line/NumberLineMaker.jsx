@@ -85,6 +85,7 @@ export const NumberLineMaker = () => {
     }, [isFullscreen]);
 
     const [localData, setLocalData] = useState(() => activeActivity?.numberLineData || defaultPresets.fractions);
+    const [activeLineIndex, setActiveLineIndex] = useState(0);
 
     useEffect(() => {
         if (activeActivity?.numberLineData) {
@@ -93,8 +94,21 @@ export const NumberLineMaker = () => {
     }, [activeActivity?.numberLineData]);
 
     const currentData = activeActivity?.numberLineData || localData;
+    const lines = currentData.lines || [{
+        id: 'default_line',
+        domainType: currentData.domainType || 'fraction',
+        minVal: currentData.minVal !== undefined ? currentData.minVal : 0,
+        maxVal: currentData.maxVal !== undefined ? currentData.maxVal : 2,
+        step: currentData.step || 1,
+        denominator: currentData.denominator || 4,
+        axisNumberMode: currentData.axisNumberMode || 'all',
+        points: currentData.points || [],
+        arcs: currentData.arcs || [],
+        denominatorColors: currentData.denominatorColors || {}
+    }];
+    const activeLine = lines[activeLineIndex] || lines[0];
 
-    const handleUpdate = (newData) => {
+    const handleUpdateGlobal = (newData) => {
         const updatedData = { ...currentData, ...newData };
         setLocalData(updatedData);
 
@@ -113,17 +127,23 @@ export const NumberLineMaker = () => {
         }
     };
 
+    const handleUpdateActiveLine = (newData) => {
+        const newLines = [...lines];
+        newLines[activeLineIndex] = { ...newLines[activeLineIndex], ...newData };
+        handleUpdateGlobal({ lines: newLines });
+    };
+
     const handleApplyPreset = (presetKey) => {
         const preset = defaultPresets[presetKey];
         if (preset) {
-            handleUpdate(preset);
+            handleUpdateGlobal(preset);
         }
     };
 
     const getPointPositionString = (pt) => {
         if (pt.posStr !== undefined) return pt.posStr;
-        if (['fraction', 'mixed'].includes(currentData.domainType) && currentData.denominator > 0) {
-            const den = Number(currentData.denominator) || 1;
+        if (['fraction', 'mixed'].includes(activeLine.domainType) && activeLine.denominator > 0) {
+            const den = Number(activeLine.denominator) || 1;
             const num = Math.round(pt.val * den);
             if (Math.abs(pt.val - num / den) < 0.001) {
                 if (num % den === 0) return `${num / den}`;
@@ -136,25 +156,25 @@ export const NumberLineMaker = () => {
     const handleAddPoint = () => {
         const newId = `p_${Date.now()}`;
         const newPoints = [
-            ...(currentData.points || []),
+            ...(activeLine.points || []),
             { id: newId, val: 0, posStr: '', label: '', color: 'blue', hiddenVal: true }
         ];
-        handleUpdate({ points: newPoints });
+        handleUpdateActiveLine({ points: newPoints });
     };
 
     const handleRemovePoint = (id) => {
-        const newPoints = (currentData.points || []).filter(p => p.id !== id);
-        handleUpdate({ points: newPoints });
+        const newPoints = (activeLine.points || []).filter(p => p.id !== id);
+        handleUpdateActiveLine({ points: newPoints });
     };
 
     const handleUpdatePoint = (id, field, value) => {
-        const newPoints = (currentData.points || []).map(p => {
+        const newPoints = (activeLine.points || []).map(p => {
             if (p.id === id) {
                 return { ...p, [field]: value };
             }
             return p;
         });
-        handleUpdate({ points: newPoints });
+        handleUpdateActiveLine({ points: newPoints });
     };
 
     const handleUpdatePointPosition = (id, inputStr) => {
@@ -174,7 +194,7 @@ export const NumberLineMaker = () => {
             if (!isNaN(num)) val = num;
         }
 
-        const newPoints = (currentData.points || []).map(p => {
+        const newPoints = (activeLine.points || []).map(p => {
             if (p.id === id) {
                 const oldPosStr = getPointPositionString(p);
                 const isNumericOrMatchingLabel = !p.label || p.label === oldPosStr || /^[0-9/\s.-]+$/.test(p.label);
@@ -187,15 +207,15 @@ export const NumberLineMaker = () => {
             }
             return p;
         });
-        handleUpdate({ points: newPoints });
+        handleUpdateActiveLine({ points: newPoints });
     };
 
     const handleAddArc = () => {
         const newArcs = [
-            ...(currentData.arcs || []),
+            ...(activeLine.arcs || []),
             { id: `a_${Date.now()}`, fromVal: '', fromStr: '', toVal: '', toStr: '', label: '' }
         ];
-        handleUpdate({ arcs: newArcs });
+        handleUpdateActiveLine({ arcs: newArcs });
     };
 
     const handleUpdateArcPosition = (id, field, inputStr) => {
@@ -217,7 +237,7 @@ export const NumberLineMaker = () => {
             }
         }
 
-        const newArcs = (currentData.arcs || []).map(a => {
+        const newArcs = (activeLine.arcs || []).map(a => {
             if (a.id === id) {
                 return {
                     ...a,
@@ -227,22 +247,22 @@ export const NumberLineMaker = () => {
             }
             return a;
         });
-        handleUpdate({ arcs: newArcs });
+        handleUpdateActiveLine({ arcs: newArcs });
     };
 
     const handleRemoveArc = (id) => {
-        const newArcs = (currentData.arcs || []).filter(a => a.id !== id);
-        handleUpdate({ arcs: newArcs });
+        const newArcs = (activeLine.arcs || []).filter(a => a.id !== id);
+        handleUpdateActiveLine({ arcs: newArcs });
     };
 
     const handleUpdateArc = (id, field, value) => {
-        const newArcs = (currentData.arcs || []).map(a => {
+        const newArcs = (activeLine.arcs || []).map(a => {
             if (a.id === id) {
                 return { ...a, [field]: value };
             }
             return a;
         });
-        handleUpdate({ arcs: newArcs });
+        handleUpdateActiveLine({ arcs: newArcs });
     };
 
     const generateIntelligentDrackerActivity = () => {
@@ -331,7 +351,7 @@ export const NumberLineMaker = () => {
             if (!apiKey) {
                 setTimeout(() => {
                     const intelligentActivity = generateIntelligentDrackerActivity();
-                    handleUpdate(intelligentActivity);
+                    handleUpdateGlobal({ lines: [intelligentActivity] });
                     setStatusMsg({
                         text: 'Atividade pedagógica gerada e adaptada pelo Motor Inteligente Drácker! (Para IA em nuvem customizada por prompt, insira sua chave Gemini nas Configurações).',
                         type: 'success'
@@ -347,7 +367,7 @@ export const NumberLineMaker = () => {
             const parsed = safeJSONParse(responseText);
 
             if (parsed && (parsed.points || parsed.minVal !== undefined)) {
-                handleUpdate(parsed);
+                handleUpdateGlobal({ lines: parsed.lines ? parsed.lines : [parsed] });
                 setStatusMsg({
                     text: 'Atividade criada com sucesso via Inteligência Artificial Gemini!',
                     type: 'success'
@@ -358,7 +378,7 @@ export const NumberLineMaker = () => {
         } catch (err) {
             console.warn('IA Nuvem indisponível ou erro no parse. Ativando Motor Pedagógico Local:', err);
             const intelligentActivity = generateIntelligentDrackerActivity();
-            handleUpdate(intelligentActivity);
+            handleUpdateGlobal({ lines: [intelligentActivity] });
             setStatusMsg({
                 text: 'Atividade dinâmica gerada pelo Motor Pedagógico Inteligente Drácker!',
                 type: 'success'
@@ -515,7 +535,7 @@ export const NumberLineMaker = () => {
                                         <span>Fonte:</span>
                                         <select
                                             value={currentData.fontSizePx || 16}
-                                            onChange={(e) => handleUpdate({ fontSizePx: Number(e.target.value) })}
+                                            onChange={(e) => handleUpdateGlobal({ fontSizePx: Number(e.target.value) })}
                                             className="bg-white border border-brown-300 rounded px-1.5 py-0.5 text-xs font-bold text-brown-900 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer shadow-2xs"
                                         >
                                             <option value={12}>12 px</option>
@@ -544,7 +564,7 @@ export const NumberLineMaker = () => {
                                     </button>
 
                                     <span className="text-xs bg-brown-100 text-brown-700 px-2 py-1 rounded font-bold">
-                                        {currentData.domainType === 'fraction' ? 'Fração' : currentData.domainType === 'integer' ? 'Inteiros' : currentData.domainType === 'decimal' ? 'Decimais' : 'Misto (Fração/Decimal)'}
+                                        {activeLine.domainType === 'fraction' ? 'Fração' : activeLine.domainType === 'integer' ? 'Inteiros' : activeLine.domainType === 'decimal' ? 'Decimais' : 'Misto (Fração/Decimal)'}
                                     </span>
 
                                     {/* Botão Tela Cheia (Apenas o ícone no canto superior direito) */}
@@ -558,7 +578,9 @@ export const NumberLineMaker = () => {
                                 </div>
                             </div>
 
-                            <NumberLineRenderer data={currentData} showAnswers={true} />
+                            {lines.map((line) => (
+                                <NumberLineRenderer key={line.id} data={{...currentData, ...line}} showAnswers={true} />
+                            ))}
                         </Card>
 
                         {/* Title & Description Settings - Dynamic Interactive Panel */}
@@ -576,7 +598,7 @@ export const NumberLineMaker = () => {
                                 <div className="flex items-center gap-1.5 self-start sm:self-center bg-brown-100/80 text-brown-800 text-[11px] font-extrabold px-2.5 py-1 rounded-full border border-brown-200">
                                     <span>Domínio Ativo:</span>
                                     <span className="text-amber-900 underline decoration-amber-500 decoration-2">
-                                        {currentData.domainType === 'fraction' ? 'Frações' : currentData.domainType === 'integer' ? 'Números Inteiros' : currentData.domainType === 'decimal' ? 'Decimais' : 'Frações e Decimais (Misto)'}
+                                        {activeLine.domainType === 'fraction' ? 'Frações' : activeLine.domainType === 'integer' ? 'Números Inteiros' : activeLine.domainType === 'decimal' ? 'Decimais' : 'Frações e Decimais (Misto)'}
                                     </span>
                                 </div>
                             </div>
@@ -593,21 +615,21 @@ export const NumberLineMaker = () => {
                                 </div>
                                 <Input
                                     value={currentData.title || ''}
-                                    onChange={(e) => handleUpdate({ title: e.target.value })}
+                                    onChange={(e) => handleUpdateGlobal({ title: e.target.value })}
                                     placeholder="Ex: Desafio na Reta Numérica"
                                     className="font-bold text-brown-900 border-brown-300 focus:border-amber-500 shadow-2xs"
                                 />
                                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                                     <span className="text-[11px] font-bold text-brown-700">Sugestões rápidas:</span>
-                                    {(currentData.domainType === 'fraction'
+                                    {(activeLine.domainType === 'fraction'
                                         ? ['Caça às Frações na Reta 🎯', 'Desafio dos Denominadores 🧩', 'Onde está a Fração? 📍']
-                                        : currentData.domainType === 'integer'
+                                        : activeLine.domainType === 'integer'
                                         ? ['Explorando os Inteiros (-/+) ❄️', 'Termômetro e Saldo na Reta 🌡️', 'Simétricos e Opostos ⚖️']
                                         : ['Régua e Décimos 📏', 'Salto Decimal na Reta 🏃', 'Precisão Decimal 🔍']
                                     ).map(sugTitle => (
                                         <button
                                             key={sugTitle}
-                                            onClick={() => handleUpdate({ title: sugTitle })}
+                                            onClick={() => handleUpdateGlobal({ title: sugTitle })}
                                             className="text-[11px] bg-white hover:bg-amber-100 text-brown-800 font-bold px-2 py-0.5 rounded-lg border border-brown-200 transition-all shadow-2xs hover:border-amber-400 active:scale-95 cursor-pointer"
                                             title="Clique para usar este título"
                                         >
@@ -626,19 +648,19 @@ export const NumberLineMaker = () => {
                                 </div>
                                 <TextArea
                                     value={currentData.description || ''}
-                                    onChange={(e) => handleUpdate({ description: e.target.value })}
+                                    onChange={(e) => handleUpdateGlobal({ description: e.target.value })}
                                     rows={3}
                                     placeholder="Digite as instruções ou selecione uma sugestão abaixo..."
                                     className="text-sm font-medium text-brown-800 border-brown-300 focus:border-amber-500 shadow-2xs leading-relaxed"
                                 />
                                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                                     <span className="text-[11px] font-bold text-brown-700">Enunciados dinâmicos:</span>
-                                    {(currentData.domainType === 'fraction'
+                                    {(activeLine.domainType === 'fraction'
                                         ? [
                                             'Observe a reta numérica dividida em partes iguais e descubra as frações correspondentes aos pontos marcados.',
                                             'Identifique os valores das frações ocultas e responda às questões pedagógicas abaixo.'
                                         ]
-                                        : currentData.domainType === 'integer'
+                                        : activeLine.domainType === 'integer'
                                         ? [
                                             'Analise os números inteiros na reta. Identifique os valores positivos, negativos e suas distâncias até a origem (0).',
                                             'Encontre a posição dos pontos na escala e determine o simétrico ou oposto de cada marcador.'
@@ -650,7 +672,7 @@ export const NumberLineMaker = () => {
                                     ).map((sugDesc, idx) => (
                                         <button
                                             key={idx}
-                                            onClick={() => handleUpdate({ description: sugDesc })}
+                                            onClick={() => handleUpdateGlobal({ description: sugDesc })}
                                             className="text-[11px] bg-white hover:bg-amber-100 text-brown-800 font-semibold px-2.5 py-1 rounded-lg border border-brown-200 transition-all shadow-2xs hover:border-amber-400 text-left active:scale-98 cursor-pointer"
                                             title="Clique para usar este enunciado"
                                         >
@@ -666,14 +688,54 @@ export const NumberLineMaker = () => {
                     <div className="space-y-6">
                         {/* Domain & Interval Card */}
                         <Card className="space-y-4">
-                            <h3 className="text-sm font-bold text-brown-800 border-b border-brown-100 pb-2">
-                                📏 Domínio e Intervalo
+                            
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center justify-between border-b border-brown-100 pb-2">
+                                    <h3 className="text-sm font-bold text-brown-800">📊 Retas Numéricas</h3>
+                                    <Button onClick={() => {
+                                        const newLines = [...lines, { ...lines[lines.length - 1], id: 'line_' + Date.now(), points: [], arcs: [] }];
+                                        handleUpdateGlobal({ lines: newLines });
+                                        setActiveLineIndex(newLines.length - 1);
+                                    }} variant="secondary" className="py-1 px-2.5 text-xs flex items-center gap-1">
+                                        <Plus className="w-3.5 h-3.5" /> Adicionar Reta
+                                    </Button>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {lines.map((l, idx) => (
+                                        <div key={l.id} className="flex items-center">
+                                            <button
+                                                onClick={() => setActiveLineIndex(idx)}
+                                                className={`px-3 py-1.5 text-xs font-bold rounded-l-lg border transition-colors ${activeLineIndex === idx ? 'bg-amber-500 text-white border-amber-600' : 'bg-white text-brown-700 border-brown-300 hover:bg-amber-50'}`}
+                                            >
+                                                Reta {idx + 1}
+                                            </button>
+                                            {lines.length > 1 && (
+                                                <button
+                                                    onClick={() => {
+                                                        const newLines = lines.filter((_, i) => i !== idx);
+                                                        handleUpdateGlobal({ lines: newLines });
+                                                        if (activeLineIndex >= newLines.length) setActiveLineIndex(newLines.length - 1);
+                                                    }}
+                                                    className="px-2 py-1.5 bg-red-50 text-red-600 border border-l-0 border-brown-300 rounded-r-lg hover:bg-red-100 transition-colors"
+                                                    title="Remover Reta"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+    
+
+                            <h3 className="text-sm font-bold text-brown-800 border-b border-brown-100 pb-2 mt-4">
+                                📏 Configurações da Reta {activeLineIndex + 1}
                             </h3>
 
                             <Select
                                 label="Tipo de Número"
-                                value={currentData.domainType || 'fraction'}
-                                onChange={(e) => handleUpdate({ domainType: e.target.value })}
+                                value={activeLine.domainType || 'fraction'}
+                                onChange={(e) => handleUpdateActiveLine({ domainType: e.target.value })}
                                 options={[
                                     { value: 'fraction', label: 'Frações (Ex: 1/2, 3/4)' },
                                     { value: 'integer', label: 'Inteiros (Ex: -5, 0, +5)' },
@@ -684,8 +746,8 @@ export const NumberLineMaker = () => {
 
                             <Select
                                 label="Exibição dos Números no Eixo"
-                                value={currentData.axisNumberMode || 'all'}
-                                onChange={(e) => handleUpdate({ axisNumberMode: e.target.value })}
+                                value={activeLine.axisNumberMode || 'all'}
+                                onChange={(e) => handleUpdateActiveLine({ axisNumberMode: e.target.value })}
                                 options={[
                                     { value: 'all', label: '👁️ Exibir todos os números na escala (Padrão)' },
                                     { value: 'extremes', label: '↔️ Exibir apenas o primeiro e o último número' },
@@ -697,33 +759,33 @@ export const NumberLineMaker = () => {
                                 <Input
                                     label="Início (Mínimo)"
                                     type="number"
-                                    value={currentData.minVal}
-                                    onChange={(e) => handleUpdate({ minVal: Number(e.target.value) })}
+                                    value={activeLine.minVal}
+                                    onChange={(e) => handleUpdateActiveLine({ minVal: Number(e.target.value) })}
                                 />
                                 <Input
                                     label="Fim (Máximo)"
                                     type="number"
-                                    value={currentData.maxVal}
-                                    onChange={(e) => handleUpdate({ maxVal: Number(e.target.value) })}
+                                    value={activeLine.maxVal}
+                                    onChange={(e) => handleUpdateActiveLine({ maxVal: Number(e.target.value) })}
                                 />
                             </div>
 
-                            {['fraction', 'mixed'].includes(currentData.domainType) && (
+                            {['fraction', 'mixed'].includes(activeLine.domainType) && (
                                 <div className="space-y-3">
                                     <Input
                                         label="Denominador(es) / Subdivisões (Ex: 4 ou 2, 4)"
                                         type="text"
-                                        value={currentData.denominator ?? '4'}
-                                        onChange={(e) => handleUpdate({ denominator: e.target.value })}
+                                        value={activeLine.denominator ?? '4'}
+                                        onChange={(e) => handleUpdateActiveLine({ denominator: e.target.value })}
                                         placeholder="Ex: 4 (ou 2, 4 para múltiplas escalas)"
                                     />
                                     <div className="flex flex-wrap items-center gap-2 pt-1">
                                         <span className="text-xs font-bold text-brown-700 w-full">🎨 Cores das Subdivisões (por Denominador):</span>
-                                        {(typeof currentData.denominator === 'string'
-                                            ? currentData.denominator.split(/[,;\s]+/).map(Number).filter(n => !isNaN(n) && n > 0)
-                                            : [Number(currentData.denominator) || 4]
+                                        {(typeof activeLine.denominator === 'string'
+                                            ? activeLine.denominator.split(/[,;\s]+/).map(Number).filter(n => !isNaN(n) && n > 0).sort((a, b) => a - b)
+                                            : [Number(activeLine.denominator) || 4]
                                         ).map((den, idx) => {
-                                            const denColors = currentData.denominatorColors || {};
+                                            const denColors = activeLine.denominatorColors || {};
                                             const defaultCol = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4'][idx % 6] || '#3b82f6';
                                             const col = denColors[den] || defaultCol;
                                             return (
@@ -733,9 +795,9 @@ export const NumberLineMaker = () => {
                                                         type="color"
                                                         value={col}
                                                         onChange={(e) => {
-                                                            handleUpdate({
+                                                            handleUpdateActiveLine({
                                                                 denominatorColors: {
-                                                                    ...(currentData.denominatorColors || {}),
+                                                                    ...(activeLine.denominatorColors || {}),
                                                                     [den]: e.target.value
                                                                 }
                                                             });
@@ -750,13 +812,13 @@ export const NumberLineMaker = () => {
                                 </div>
                             )}
 
-                            {['integer', 'decimal'].includes(currentData.domainType) && (
+                            {['integer', 'decimal'].includes(activeLine.domainType) && (
                                 <Input
                                     label="Passo de Marcação (Escala)"
                                     type="number"
-                                    step={currentData.domainType === 'decimal' ? '0.1' : '1'}
-                                    value={currentData.step || 1}
-                                    onChange={(e) => handleUpdate({ step: Number(e.target.value) })}
+                                    step={activeLine.domainType === 'decimal' ? '0.1' : '1'}
+                                    value={activeLine.step || 1}
+                                    onChange={(e) => handleUpdateActiveLine({ step: Number(e.target.value) })}
                                 />
                             )}
                         </Card>
@@ -771,7 +833,7 @@ export const NumberLineMaker = () => {
                             </div>
 
                             <div className="space-y-3.5 max-h-[420px] overflow-y-auto pr-1.5 custom-scrollbar">
-                                {(currentData.points || []).map((pt, index) => (
+                                {(activeLine.points || []).map((pt, index) => (
                                     <div key={pt.id} className="p-3.5 bg-gradient-to-r from-brown-50/80 to-amber-50/40 rounded-2xl border border-brown-200/80 shadow-xs space-y-3 transition-all hover:border-brown-300">
                                         {/* Linha 1: Cabeçalho do Marcador e Ações Rápidas */}
                                         <div className="flex items-center justify-between gap-2 border-b border-brown-100 pb-2">
@@ -871,13 +933,13 @@ export const NumberLineMaker = () => {
                                 </Button>
                             </div>
 
-                            {(currentData.arcs || []).length === 0 ? (
+                            {(activeLine.arcs || []).length === 0 ? (
                                 <p className="text-xs text-brown-500 italic text-center py-2">
                                     Nenhum salto tracejado ativo nesta reta.
                                 </p>
                             ) : (
                                 <div className="space-y-3 max-h-64 overflow-y-auto pr-1.5 custom-scrollbar">
-                                    {(currentData.arcs || []).map((arc, index) => (
+                                    {(activeLine.arcs || []).map((arc, index) => (
                                         <div key={arc.id} className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/80 shadow-xs space-y-3">
                                             <div className="flex items-center justify-between gap-2 border-b border-amber-200/60 pb-2">
                                                 <span className="text-xs font-bold text-amber-900">Salto Tracejado #{index + 1}</span>
@@ -953,7 +1015,7 @@ export const NumberLineMaker = () => {
                                 <span>Fonte:</span>
                                 <select
                                     value={currentData.fontSizePx || 16}
-                                    onChange={(e) => handleUpdate({ fontSizePx: Number(e.target.value) })}
+                                    onChange={(e) => handleUpdateGlobal({ fontSizePx: Number(e.target.value) })}
                                     className="bg-transparent border-0 font-extrabold text-brown-900 focus:outline-none cursor-pointer text-xs"
                                 >
                                     <option value={16}>16 px</option>
@@ -972,8 +1034,8 @@ export const NumberLineMaker = () => {
                             <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-brown-300 text-xs font-bold text-brown-800 shadow-2xs">
                                 <span>Números:</span>
                                 <select
-                                    value={currentData.axisNumberMode || 'all'}
-                                    onChange={(e) => handleUpdate({ axisNumberMode: e.target.value })}
+                                    value={activeLine.axisNumberMode || 'all'}
+                                    onChange={(e) => handleUpdateActiveLine({ axisNumberMode: e.target.value })}
                                     className="bg-transparent border-0 font-extrabold text-brown-900 focus:outline-none cursor-pointer text-xs"
                                 >
                                     <option value="all">👁️ Todos</option>
@@ -1004,12 +1066,10 @@ export const NumberLineMaker = () => {
 
                     {/* Main Fullscreen Number Line Area */}
                     <div className="flex-1 flex flex-col items-center justify-center my-4 md:my-8 w-full h-full overflow-hidden">
-                        <div className="w-full h-full flex items-center justify-center bg-white rounded-3xl p-4 md:p-12 border-4 border-brown-200/60 shadow-inner">
-                            <NumberLineRenderer
-                                data={currentData}
-                                showAnswers={true}
-                                isFullscreen={true}
-                            />
+                        <div className="w-full h-full flex flex-col items-center justify-start bg-white rounded-3xl p-4 md:p-12 border-4 border-brown-200/60 shadow-inner overflow-y-auto custom-scrollbar">
+                            {lines.map((line) => (
+                                <div key={line.id} className="w-full mb-8 last:mb-0 shrink-0"><NumberLineRenderer data={{...currentData, ...line}} showAnswers={true} isFullscreen={true} /></div>
+                            ))}
                         </div>
                     </div>
 
