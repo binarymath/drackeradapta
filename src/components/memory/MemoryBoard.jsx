@@ -1,7 +1,7 @@
 import React from 'react';
 import MemoryCard from './MemoryCard';
 
-const MemoryBoard = ({ cards, flipped, solved, handleCardClick, onExpand, cardBackQuestion, cardBackAnswer, cardBackImage, useCardImages, isFullWidth }) => {
+const MemoryBoard = ({ cards, flipped, solved, handleCardClick, onExpand, cardBackQuestion, cardBackAnswer, cardBackImage, useCardImages, isFullWidth, fontSize }) => {
     const gridCols = isFullWidth 
         ? "grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8"
         : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4";
@@ -27,6 +27,7 @@ const MemoryBoard = ({ cards, flipped, solved, handleCardClick, onExpand, cardBa
                         onExpand={onExpand}
                         cardBackImage={backImage}
                         useCardImages={useCardImages}
+                        fontSize={fontSize}
                     />
                 );
             })}

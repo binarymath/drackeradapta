@@ -7,6 +7,7 @@ export const NumberLinePrint = ({ data, showAnswers = true }) => {
         description = "Analise a reta numérica abaixo e responda às questões.",
         questions = []
     } = data || {};
+    const lines = data?.lines || [data || {}];
 
     return (
         <div className="bg-white p-8 rounded-xl shadow-none border border-transparent print:p-0">
@@ -35,11 +36,11 @@ export const NumberLinePrint = ({ data, showAnswers = true }) => {
 
             {/* Number Line Visual */}
             <div className="border-2 border-brown-200 rounded-xl p-6 mb-8 bg-white">
-                <NumberLineRenderer
-                    data={data}
-                    showAnswers={showAnswers}
-                    isPrint={true}
-                />
+                {lines.map((line, idx) => (
+                    <div key={line.id || idx} className="mb-6 last:mb-0">
+                        <NumberLineRenderer data={{...data, ...line}} showAnswers={showAnswers} isPrint={true} />
+                    </div>
+                ))}
             </div>
 
             {/* Questions Section */}

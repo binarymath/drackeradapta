@@ -23,9 +23,11 @@ export const NumberLineGame = ({ data, onExitGame }) => {
     }, [isFullscreen]);
 
     useEffect(() => {
-        if (data?.points) {
+        const lines = data?.lines || [data || {}];
+        const allPoints = lines.flatMap(l => (l.points || []).map(p => ({...p, lineId: l.id})));
+        if (allPoints.length > 0) {
             // Prepare mystery points
-            const pts = data.points.map(pt => ({
+            const pts = allPoints.map(pt => ({
                 ...pt,
                 hiddenVal: true,
                 userAnswer: null,
@@ -34,10 +36,10 @@ export const NumberLineGame = ({ data, onExitGame }) => {
             setPointsState(pts);
 
             // Create draggable/clickable cards from the points
-            const cards = data.points.map((pt, idx) => ({
+            const cards = allPoints.map((pt, idx) => ({
                 id: `card_${idx}`,
                 val: pt.val,
-                displayLabel: pt.label && pt.label !== `${pt.val}` ? pt.label : formatCardLabel(pt.val, data.domainType, data.denominator),
+                displayLabel: pt.label && pt.label !== `${pt.val}` ? pt.label : formatCardLabel(pt.val, lines[0]?.domainType, lines[0]?.denominator),
                 placedOnPointId: null
             })).sort(() => Math.random() - 0.5); // Shuffle cards
 
@@ -150,12 +152,16 @@ export const NumberLineGame = ({ data, onExitGame }) => {
 
             {/* Render Number Line in interactive mode */}
             <div className="bg-brown-50/50 p-6 rounded-2xl border border-brown-200">
-                <NumberLineRenderer
-                    data={{ ...data, points: pointsState }}
-                    showAnswers={false}
-                    interactiveMode={true}
-                    onPointClick={handlePointClick}
-                />
+                {lines.map(line => (
+                    <div key={line.id} className="mb-8 last:mb-0">
+                        <NumberLineRenderer
+                            data={{ ...data, ...line, points: pointsState.filter(p => p.lineId === line.id) }}
+                            showAnswers={false}
+                            interactiveMode={true}
+                            onPointClick={handlePointClick}
+                        />
+                    </div>
+                ))}
             </div>
 
             {/* Draggable / Clickable Cards Pool */}
@@ -221,14 +227,18 @@ export const NumberLineGame = ({ data, onExitGame }) => {
 
                     {/* Main Fullscreen Number Line Area */}
                     <div className="flex-1 flex flex-col items-center justify-center my-4 md:my-6 w-full h-full overflow-hidden">
-                        <div className="w-full h-full flex items-center justify-center bg-brown-50/40 rounded-3xl p-4 md:p-12 border-4 border-brown-200/60 shadow-inner">
-                            <NumberLineRenderer
-                                data={{ ...data, points: pointsState }}
-                                showAnswers={false}
-                                interactiveMode={true}
-                                isFullscreen={true}
-                                onPointClick={handlePointClick}
-                            />
+                        <div className="w-full h-full flex flex-col items-center justify-start bg-brown-50/40 rounded-3xl p-4 md:p-12 border-4 border-brown-200/60 shadow-inner overflow-y-auto custom-scrollbar">
+                            {lines.map(line => (
+                            <div key={line.id} className="w-full mb-8 last:mb-0 shrink-0">
+                                <NumberLineRenderer
+                                    data={{ ...data, ...line, points: pointsState.filter(p => p.lineId === line.id) }}
+                                    showAnswers={false}
+                                    interactiveMode={true}
+                                    isFullscreen={true}
+                                    onPointClick={handlePointClick}
+                                />
+                            </div>
+                        ))}
                         </div>
                     </div>
 

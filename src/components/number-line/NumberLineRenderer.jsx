@@ -142,10 +142,11 @@ export const NumberLineRenderer = ({
     if (domainType === 'fraction' || domainType === 'mixed') {
         const denColors = denominatorColors || {};
 
-        [...densList].sort((a, b) => a - b).forEach(den => {
+        [...densList].sort((a, b) => a - b).forEach((den, idx) => {
             const startStep = Math.ceil(min * den);
             const endStep = Math.floor(max * den);
-            const denCol = denColors[den] || '#78350f';
+            const defaultCol = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4'][idx % 6] || '#3b82f6';
+            const denCol = denColors[den] || defaultCol;
 
             for (let i = startStep; i <= endStep; i++) {
                 const v = i / den;

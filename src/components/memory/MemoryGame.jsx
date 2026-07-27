@@ -38,6 +38,7 @@ const MemoryGame = ({ isFullWidth }) => {
         bgImage, setBgImage,
         cardBackImage, setCardBackImage,
         useCardImages,
+        fontSize, setFontSize,
         startGameFromBuilder, // We will use this to init game from Modal
         resetGame,
         getCardsForPrint,
@@ -45,12 +46,15 @@ const MemoryGame = ({ isFullWidth }) => {
         shuffleCurrentGame
     } = useMemoryGame(geminiService, activeActivity?.data, selectedModel);
 
-    // Auto-open modal if new activity or reset
+    // Auto-open modal ONLY when explicitly requested (e.g. from TabsBar button)
     useEffect(() => {
-        if (gameState === 'input' && !showConfigModal) {
+        if (activeActivity?.data?.openModal) {
             setShowConfigModal(true);
+            // Consume the flag so it doesn't reopen when switching tabs
+            const { openModal, ...restData } = activeActivity.data;
+            updateActivityData(activeActivity.id, { data: restData });
         }
-    }, [gameState]);
+    }, [activeActivity?.data?.openModal, activeActivity?.id, updateActivityData]);
 
     // Show Victory Modal when game is won
     useEffect(() => {
@@ -66,11 +70,11 @@ const MemoryGame = ({ isFullWidth }) => {
         if (activeActivity && gameState !== 'input') {
             const dataToSave = {
                 gameState, topic, cards, solved, moves, bgImage, cardBackImage, useCardImages,
-                gameMode, manualPairs
+                gameMode, manualPairs, fontSize
             };
             updateActivityData(activeActivity.id, { data: dataToSave });
         }
-    }, [gameState, topic, cards, solved, moves, bgImage, cardBackImage, useCardImages, gameMode, manualPairs, activeActivity?.id]);
+    }, [gameState, topic, cards, solved, moves, bgImage, cardBackImage, useCardImages, gameMode, manualPairs, fontSize, activeActivity?.id, updateActivityData]);
 
 
     const handleConfigConfirm = (configData) => {
@@ -178,6 +182,21 @@ const MemoryGame = ({ isFullWidth }) => {
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    {/* Font Size Control */}
+                    {(gameState === 'playing' || gameState === 'won') && (
+                        <div className="hidden md:flex items-center gap-2 bg-white/60 px-3 py-1 rounded-lg border border-brown-200 mr-2 shadow-sm">
+                            <span className="text-xs font-bold text-brown-600">Aa</span>
+                            <input 
+                                type="range" 
+                                min="10" 
+                                max="96" 
+                                value={fontSize} 
+                                onChange={(e) => setFontSize(Number(e.target.value))}
+                                className="w-20 sm:w-24 accent-brown-600 h-1.5 cursor-pointer"
+                                title={`Tamanho da fonte: ${fontSize}px`}
+                            />
+                        </div>
+                    )}
                     <Button variant="primary" onClick={() => setShowConfigModal(true)} className="h-9 px-4 text-sm">
                         <RotateCcw className="w-4 h-4 mr-2" />
                         {gameState === 'playing' || gameState === 'won' ? "Editar" : "Configurar"}
@@ -220,6 +239,7 @@ const MemoryGame = ({ isFullWidth }) => {
                             cardBackImage={cardBackImage}
                             useCardImages={useCardImages}
                             isFullWidth={isFullWidth}
+                            fontSize={fontSize}
                         />
                         {/* Paused Overlay */}
                         {isPaused && (
@@ -319,6 +339,7 @@ const MemoryGame = ({ isFullWidth }) => {
                     items={getCardsForPrint()}
                     cardBackImage={cardBackImage}
                     topic={topic}
+                    fontSize={fontSize}
                     onClose={() => setShowPrintPreview(false)}
                 />
             )}

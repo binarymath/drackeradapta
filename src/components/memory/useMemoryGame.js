@@ -24,6 +24,7 @@ export const useMemoryGame = (geminiService, initialData = {}) => {
     const [bgImage, setBgImage] = useState(initialData.bgImage || null);
     const [cardBackImage, setCardBackImage] = useState(initialData.cardBackImage || '/dracker_memory_back.png');
     const [useCardImages, setUseCardImages] = useState(initialData.useCardImages !== undefined ? initialData.useCardImages : true);
+    const [fontSize, setFontSize] = useState(initialData.fontSize || 16);
 
     // Helper to assign colors to pairs
     const assignColorsToPairs = (rawCards) => {
@@ -60,7 +61,8 @@ export const useMemoryGame = (geminiService, initialData = {}) => {
             setTime(initialData.time || 0);
             if (initialData.bgImage) setBgImage(initialData.bgImage);
             if (initialData.cardBackImage) setCardBackImage(initialData.cardBackImage);
-            setUseCardImages(initialData.useCardImages);
+            if (initialData.useCardImages !== undefined) setUseCardImages(initialData.useCardImages);
+            if (initialData.fontSize) setFontSize(initialData.fontSize);
         }
     }, [initialData, gameState]);
 
@@ -235,6 +237,7 @@ export const useMemoryGame = (geminiService, initialData = {}) => {
         bgImage, setBgImage,
         cardBackImage, setCardBackImage,
         useCardImages, setUseCardImages,
+        fontSize, setFontSize,
 
         handleCardClick,
         generateGame,

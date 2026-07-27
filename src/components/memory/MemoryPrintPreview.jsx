@@ -9,6 +9,7 @@ const MemoryPrintPreview = ({
     items, // Array de cards a imprimir
     topic,
     cardBackImage,
+    fontSize = 16,
     onClose
 }) => {
     const [printSide, setPrintSide] = useState('all'); // 'front' | 'back' | 'all'
@@ -56,7 +57,10 @@ const MemoryPrintPreview = ({
 
                     {hasText && (
                         <div className="relative z-10 font-bold leading-tight p-2 break-words w-full h-full flex items-center justify-center">
-                            <span className="bg-white/80 p-1 rounded backdrop-blur-[2px] text-black text-[11pt] sm:text-[13pt]">
+                            <span 
+                                className="bg-white/80 p-1 rounded backdrop-blur-[2px] text-black"
+                                style={{ fontSize: `${Math.max(8, fontSize * 0.8)}pt` }}
+                            >
                                 {card.content}
                             </span>
                         </div>

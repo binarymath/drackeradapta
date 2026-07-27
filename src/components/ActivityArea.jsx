@@ -547,15 +547,15 @@ export const ActivityArea = ({
                                     <DominoPrint data={dominoData} />
                                 )
                             ) : activityType === 'memory' ? (
-                                <MemoryGame isFullWidth={isFullWidth} />
+                                <MemoryGame key={activeTabId || 'new_memory'} isFullWidth={isFullWidth} />
                             ) : activityType === 'chat_dracker' ? (
-                                <ChatDracker />
+                                <ChatDracker key={activeTabId || 'new_chat'} />
                             ) : activityType === 'trading_cards' ? (
-                                <TradingCardMaker />
+                                <TradingCardMaker key={activeTabId || 'new_trading'} />
                             ) : activityType === 'number_line' ? (
-                                <NumberLineMaker />
+                                <NumberLineMaker key={activeTabId || 'new_number'} />
                             ) : activityType === 'fractions' ? (
-                                <FractionsMaker />
+                                <FractionsMaker key={activeTabId || 'new_fractions'} />
                             ) : activityType === 'summary' && drackerData ? (
                                 <DrackerSummaryRenderer data={drackerData} title={activityTitle} />
                             ) : (

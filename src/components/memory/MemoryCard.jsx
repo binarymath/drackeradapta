@@ -2,7 +2,7 @@ import React from 'react';
 import { HelpCircle, Maximize2 } from 'lucide-react';
 import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 
-const MemoryCard = ({ card, isFlipped, isSolved, onClick, onExpand, cardBackImage, useCardImages = true }) => {
+const MemoryCard = ({ card, isFlipped, isSolved, onClick, onExpand, cardBackImage, useCardImages = true, fontSize = 16 }) => {
     const contentImageUrl = toDirectImageUrl(card?.customImage);
     const directBackImage = toDirectImageUrl(cardBackImage);
 
@@ -53,9 +53,10 @@ const MemoryCard = ({ card, isFlipped, isSolved, onClick, onExpand, cardBackImag
                     )}
 
                     <div className={`relative z-10 p-2 flex flex-col items-center w-full h-full ${contentImageUrl ? 'justify-end pb-3' : 'justify-center'}`}>
-                        <span className={`font-bold text-center leading-tight select-none
-                ${contentImageUrl ? 'text-white bg-black/60 px-2 py-1 rounded backdrop-blur-sm shadow-md' : 'text-brown-800'}
-                ${card.content.length > 20 ? 'text-xs sm:text-sm' : 'text-sm sm:text-lg'}`}
+                        <span 
+                            className={`font-bold text-center leading-tight select-none
+                                ${contentImageUrl ? 'text-white bg-black/60 px-2 py-1 rounded backdrop-blur-sm shadow-md' : 'text-brown-800'}`}
+                            style={{ fontSize: `${fontSize}px` }}
                         >
                             {card.content}
                         </span>
