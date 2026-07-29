@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Play, ChevronRight, ChevronLeft, CheckCircle, HelpCircle, XCircle, RefreshCw, Award, BookOpen, Map, Sparkles, AlertTriangle, Maximize2, Minimize2 } from 'lucide-react';
+import { Users, Plus, Play, ChevronRight, ChevronLeft, CheckCircle, HelpCircle, XCircle, RefreshCw, Award, BookOpen, Map, Sparkles, AlertTriangle, Maximize2, Minimize2, Search, Wand2, Tent, ShieldCheck, Target, Flag } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -71,7 +71,7 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
         if (teams.length === 0) return alert('Adicione pelo menos uma equipe!');
         setGameStatus('loading');
         try {
-            const data = await geminiService.generateRPGPart1(topic, context, teams, questionType);
+            const data = await geminiService.generateFullRPG(topic, context, teams, questionType);
             setCurrentData(data);
             setGameStatus('playing');
             saveState({ currentData: data, gameStatus: 'playing' });
@@ -82,42 +82,7 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
         }
     };
 
-    // Carregamento de Fundo (Parte 2)
-    useEffect(() => {
-        let isMounted = true;
-        const loadPart2 = async () => {
-            if (gameStatus === 'playing' && currentData && currentData.etapas && currentData.etapas.length < 4 && !currentData.isLoadingPart2 && !currentData.part2Error) {
-                try {
-                    setCurrentData(prev => ({ ...prev, isLoadingPart2: true }));
-                    
-                    const part2 = await geminiService.generateRPGPart2(
-                        topic, context, teams, questionType, 
-                        currentData.historia_abertura
-                    );
-                    
-                    if (!isMounted) return;
-
-                    setCurrentData(prev => {
-                        const newData = {
-                            ...prev,
-                            etapas: [...prev.etapas, ...part2.etapas],
-                            reforco_pedagogico: part2.reforco_pedagogico,
-                            finais: part2.finais,
-                            isLoadingPart2: false
-                        };
-                        saveState({ currentData: newData });
-                        return newData;
-                    });
-                } catch (err) {
-                    console.error("Failed to load Part 2 in background:", err);
-                    if (!isMounted) return;
-                    setCurrentData(prev => ({ ...prev, isLoadingPart2: false, part2Error: true }));
-                }
-            }
-        };
-        loadPart2();
-        return () => { isMounted = false; };
-    }, [gameStatus, currentData, topic, context, teams, questionType]);
+    // No background loading needed, everything is generated upfront.
 
     const handleEvaluate = (teamId, status) => {
         const newEvals = { ...evaluations, [teamId]: status };
@@ -176,12 +141,9 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
         if (round < 4) { // Next rounds 2 to 4
             const nextRoundNum = round + 1;
             
-            // Verifica se a próxima etapa já foi baixada no background
+            // Verifica se a próxima etapa existe (deve existir pois foi gerada toda de uma vez)
             if (!currentData.etapas || !currentData.etapas[nextRoundNum - 1]) {
-                if (currentData.part2Error) {
-                   return alert('Ocorreu um erro de conexão ao tentar carregar a próxima etapa. O Mestre pode precisar reiniciar a partida quando a internet voltar.');
-                }
-                return alert('A magia da floresta ainda está revelando o próximo cenário! Aguarde alguns instantes (carregando em segundo plano)...');
+                return alert('Erro: A próxima etapa não foi gerada corretamente.');
             }
 
             setRound(nextRoundNum);
@@ -282,73 +244,96 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
         const otherPlayingTab = tabs?.find(t => t.type === 'rpg' && t.id !== activeTabId && t.rpgData && t.rpgData.gameStatus !== 'setup');
 
         return (
-            <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
+            <div className="max-w-3xl mx-auto space-y-6 animate-fade-in pb-12">
                 {otherPlayingTab && (
-                    <div className="bg-indigo-50 border-2 border-indigo-200 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 shadow-sm">
+                    <div className="bg-amber-50 border-2 border-amber-300 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 shadow-md">
                         <div>
-                            <h4 className="font-bold text-indigo-800 text-lg flex items-center gap-2"><Map className="w-5 h-5"/> Investigação em Andamento</h4>
-                            <p className="text-indigo-600 font-medium">Você já possui um jogo pausado em outra aba.</p>
+                            <h4 className="font-bold text-amber-900 text-lg flex items-center gap-2"><Map className="w-5 h-5"/> Acampamento Salvo!</h4>
+                            <p className="text-amber-800 font-medium">Você já possui uma expedição pausada em outra aba.</p>
                         </div>
-                        <Button onClick={() => setActiveTabId(otherPlayingTab.id)} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md w-full sm:w-auto px-6">
-                            Continuar Jogo Salvo
+                        <Button onClick={() => setActiveTabId(otherPlayingTab.id)} className="bg-amber-600 hover:bg-amber-700 text-white shadow-md w-full sm:w-auto px-6">
+                            Continuar Aventura
                         </Button>
                     </div>
                 )}
                 
                 <div className="text-center space-y-4">
-                    <div className="w-20 h-20 bg-brown-100 rounded-full flex items-center justify-center mx-auto shadow-inner border-4 border-brown-200">
-                        <Map className="w-10 h-10 text-brown-600" />
+                    <div className="w-24 h-24 bg-gradient-to-br from-brown-100 to-brown-200 rounded-full flex items-center justify-center mx-auto shadow-inner border-4 border-brown-300 relative">
+                        <Search className="w-12 h-12 text-brown-700 relative z-10" />
+                        <Sparkles className="w-6 h-6 text-amber-400 absolute top-0 right-0 animate-bounce" />
                     </div>
-                    <h2 className="text-3xl font-bold text-brown-800 font-display">Mistérios da Floresta Encantada</h2>
-                    <p className="text-brown-700 max-w-lg mx-auto">
-                        Junte-se ao dragãozinho detetive Drácker e seus amigos para uma investigação mágica sobre <b>{topic || 'um grande mistério'}</b>.
+                    <h2 className="text-4xl font-black text-brown-800 font-display tracking-tight">Mestre RPG: Floresta Encantada 🌲</h2>
+                    <p className="text-brown-700 max-w-lg mx-auto text-lg font-medium">
+                        Junte-se ao dragãozinho Drácker e seus amigos para desvendar os mistérios de <b>{topic || 'um grande enigma'}</b>.
                     </p>
                 </div>
 
-                <Card className="border-brown-200 shadow-xl bg-white/80 backdrop-blur-sm p-6">
-                    <h3 className="text-xl font-bold text-brown-900 mb-4 flex items-center gap-2">
-                        <Users className="w-6 h-6 text-brown-600" />
-                        Equipes de Detetives
+                <Card className="border-brown-300 shadow-2xl bg-[#f4fcf6] border-4 p-8 rounded-3xl relative">
+                    <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-brown-400 via-brown-400 to-brown-500 rounded-t-2xl"></div>
+                    
+                    <h3 className="text-2xl font-black text-brown-900 mb-6 flex items-center gap-3">
+                        <Tent className="w-8 h-8 text-amber-600" />
+                        Tenda das Equipes
                     </h3>
                     
-                    <div className="flex gap-2 mb-6">
+                    <div className="flex flex-col sm:flex-row gap-3 mb-8">
                         <Input 
-                            placeholder="Nome da nova equipe..." 
+                            placeholder="Nome do esquadrão..." 
                             value={newTeamName}
                             onChange={(e) => setNewTeamName(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddTeam()}
-                            className="border-brown-300 focus:border-brown-500"
+                            className="border-brown-200 focus:border-brown-500 bg-white shadow-inner text-lg py-3 rounded-xl"
                         />
-                        <Button onClick={handleAddTeam} variant="primary" icon={Plus} className="bg-brown-600 hover:bg-brown-700">Adicionar</Button>
+                        <Button onClick={handleAddTeam} variant="primary" icon={Plus} className="bg-brown-600 hover:bg-brown-700 shadow-md text-lg rounded-xl whitespace-nowrap">Convocar Equipe</Button>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-                        {teams.map(team => (
-                            <div key={team.id} className="bg-brown-50 border border-brown-200 rounded-xl p-3 flex justify-between items-center group shadow-sm">
-                                <span className="font-bold text-brown-800 text-sm truncate">{team.name}</span>
-                                <button onClick={() => handleRemoveTeam(team.id)} className="text-brown-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <XCircle className="w-5 h-5" />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
+                    {teams.length === 0 ? (
+                        <div className="text-center py-8 bg-brown-50/50 rounded-2xl border-2 border-dashed border-brown-200 mb-8">
+                            <Users className="w-12 h-12 text-brown-300 mx-auto mb-2 opacity-50" />
+                            <p className="text-brown-600 font-bold">Nenhum esquadrão convocado ainda...</p>
+                            <p className="text-brown-500 text-sm">Adicione os times para iniciar o jogo!</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+                            {teams.map((team, idx) => (
+                                <div key={team.id} className="bg-white border-2 border-brown-100 rounded-xl p-4 flex justify-between items-center group shadow-sm hover:border-brown-300 transition-all hover:-translate-y-1">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <div className="w-8 h-8 bg-brown-100 rounded-full flex items-center justify-center font-bold text-brown-700 text-xs shrink-0">{idx + 1}</div>
+                                        <span className="font-bold text-slate-700 truncate">{team.name}</span>
+                                    </div>
+                                    <button onClick={() => handleRemoveTeam(team.id)} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <XCircle className="w-6 h-6" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
-                    <div className="mb-8 space-y-3 p-4 bg-brown-50/50 rounded-xl border border-brown-100">
-                        <label className="text-sm font-bold text-brown-800 uppercase tracking-wider block">Tipo de Pergunta</label>
-                        <div className="flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer bg-white border border-brown-200 p-3 rounded-xl flex-1 hover:border-brown-400 transition-colors">
-                                <input type="radio" checked={questionType === 'multiple_choice'} onChange={() => setQuestionType('multiple_choice')} className="w-5 h-5 text-brown-600 focus:ring-brown-500" />
-                                <span className="font-medium text-brown-800">Múltipla Escolha</span>
+                    <div className="mb-10 space-y-4 p-6 bg-amber-50 rounded-2xl border-2 border-amber-200 shadow-sm relative overflow-hidden">
+                        <Wand2 className="w-32 h-32 text-amber-100 absolute -right-10 -bottom-10 opacity-50 transform -rotate-45" />
+                        <label className="text-sm font-black text-amber-800 uppercase tracking-wider block relative z-10 flex items-center gap-2">
+                            <Target className="w-4 h-4"/> Tipo de Feitiço (Pergunta)
+                        </label>
+                        <div className="flex flex-col sm:flex-row gap-4 relative z-10">
+                            <label className={`flex items-center gap-3 cursor-pointer bg-white border-2 p-4 rounded-xl flex-1 transition-all ${questionType === 'multiple_choice' ? 'border-amber-500 shadow-md ring-2 ring-amber-200' : 'border-slate-200 hover:border-amber-300'}`}>
+                                <input type="radio" checked={questionType === 'multiple_choice'} onChange={() => setQuestionType('multiple_choice')} className="w-6 h-6 text-amber-600 focus:ring-amber-500" />
+                                <div>
+                                    <span className="font-bold text-slate-800 block">Múltipla Escolha</span>
+                                    <span className="text-sm text-slate-500 font-medium">Alternativas A, B, C, D</span>
+                                </div>
                             </label>
-                            <label className="flex items-center gap-2 cursor-pointer bg-white border border-brown-200 p-3 rounded-xl flex-1 hover:border-brown-400 transition-colors">
-                                <input type="radio" checked={questionType === 'essay'} onChange={() => setQuestionType('essay')} className="w-5 h-5 text-brown-600 focus:ring-brown-500" />
-                                <span className="font-medium text-brown-800">Dissertativa</span>
+                            <label className={`flex items-center gap-3 cursor-pointer bg-white border-2 p-4 rounded-xl flex-1 transition-all ${questionType === 'essay' ? 'border-amber-500 shadow-md ring-2 ring-amber-200' : 'border-slate-200 hover:border-amber-300'}`}>
+                                <input type="radio" checked={questionType === 'essay'} onChange={() => setQuestionType('essay')} className="w-6 h-6 text-amber-600 focus:ring-amber-500" />
+                                <div>
+                                    <span className="font-bold text-slate-800 block">Dissertativa</span>
+                                    <span className="text-sm text-slate-500 font-medium">Avaliação livre do Mestre</span>
+                                </div>
                             </label>
                         </div>
                     </div>
 
-                    <Button onClick={startGame} disabled={teams.length === 0} className="w-full py-4 text-lg bg-brown-600 hover:bg-brown-700 shadow-lg shadow-brown-200" icon={Play}>
-                        Iniciar Aventura
+                    <Button onClick={startGame} disabled={teams.length === 0} className="w-full py-5 text-2xl font-black bg-gradient-to-r from-brown-500 to-brown-500 hover:from-brown-600 hover:to-brown-600 shadow-xl shadow-brown-200 text-white rounded-2xl transform transition-transform active:scale-95" icon={Sparkles}>
+                        ✨ Abrir o Portal Mágico!
                     </Button>
                 </Card>
             </div>
@@ -357,15 +342,22 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
 
     if (gameStatus === 'loading') {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6">
+            <div className="flex flex-col items-center justify-center min-h-[500px] space-y-6">
                 <div className="relative">
-                    <Map className="w-16 h-16 text-brown-300 animate-pulse" />
-                    <Sparkles className="w-8 h-8 text-yellow-400 absolute -top-2 -right-2 animate-bounce" />
+                    <div className="w-24 h-24 bg-brown-100 rounded-full flex items-center justify-center animate-pulse border-4 border-brown-300">
+                        <Map className="w-12 h-12 text-brown-600" />
+                    </div>
+                    <Sparkles className="w-10 h-10 text-amber-400 absolute -top-4 -right-4 animate-bounce" />
+                    <Search className="w-8 h-8 text-amber-500 absolute -bottom-2 -left-2 animate-spin-slow" style={{animationDuration: '3s'}} />
                 </div>
-                <h3 className="text-xl font-bold text-brown-800">
-                    {round === 1 ? 'Abrindo o mapa mágico...' : round === 5 ? 'Preparando o grande final...' : 'Avançando na floresta...'}
-                </h3>
-                <p className="text-brown-600 animate-pulse">O Drácker está usando a lupa...</p>
+                <div className="text-center space-y-2">
+                    <h3 className="text-2xl font-black text-brown-800">
+                        {round === 1 ? '🪄 Conjurando a Aventura...' : round === 5 ? '🏆 Preparando o Grande Final...' : '🌲 Explorando a Floresta...'}
+                    </h3>
+                    <p className="text-brown-600 font-medium animate-pulse text-lg">
+                        {round === 1 ? 'O Drácker está vestindo o casaco de detetive 🕵️‍♂️' : 'Procurando pegadas mágicas na lama 🐾'}
+                    </p>
+                </div>
             </div>
         );
     }
@@ -449,27 +441,28 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
         );
 
         return (
-            <div className={`mx-auto space-y-6 animate-fade-in ${isStorybookMode ? 'max-w-[1400px]' : 'max-w-4xl'}`}>
-                <div className="flex justify-between items-center bg-brown-100 text-brown-800 px-4 py-2 rounded-full font-bold shadow-sm border border-brown-200">
-                    <div className="flex items-center gap-3">
-                        <Map className="w-5 h-5" /> <span className="hidden sm:inline">Investigação em Andamento</span>
-                        <button onClick={restartMatch} className="ml-2 text-xs md:text-sm text-brown-600 hover:text-red-600 font-bold flex items-center gap-1 transition-colors bg-white/60 hover:bg-white px-3 py-1 rounded-full shadow-sm border border-brown-200">
-                            <RefreshCw className="w-3 h-3 md:w-4 md:h-4" /> Reiniciar
+            <div className={`mx-auto space-y-6 animate-fade-in pb-16 ${isStorybookMode ? 'max-w-[1400px]' : 'max-w-4xl'}`}>
+                <div className="flex justify-between items-center bg-brown-100 text-brown-900 px-4 py-3 rounded-2xl font-bold shadow-md border-2 border-brown-300 relative overflow-hidden">
+                    <div className="absolute right-0 top-0 opacity-10"><Wand2 className="w-32 h-32" /></div>
+                    <div className="flex items-center gap-3 relative z-10">
+                        <Map className="w-6 h-6 text-brown-600" /> <span className="hidden sm:inline text-lg">Aventura Mágica Ativa</span>
+                        <button onClick={restartMatch} className="ml-2 text-xs md:text-sm text-brown-700 hover:text-red-600 font-bold flex items-center gap-1 transition-colors bg-white hover:bg-red-50 px-3 py-2 rounded-xl shadow-sm border border-brown-200">
+                            <Flag className="w-4 h-4 text-red-500" /> Recuar (Reiniciar)
                         </button>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <span className="bg-white px-3 py-1 rounded-full shadow-inner text-brown-700">Etapa {round} de 4</span>
+                    <div className="flex items-center gap-4 relative z-10">
+                        <span className="bg-white px-4 py-2 rounded-xl shadow-inner text-brown-800 border border-brown-200">📍 Acampamento {round} de 4</span>
                     </div>
                 </div>
 
                 {currentData.showHelpOnNextRound && (
-                    <div className="bg-amber-50 border-l-4 border-amber-400 p-6 rounded-r-xl shadow-md flex gap-4 animate-fade-in">
-                        <div className="bg-amber-100 p-3 rounded-full h-fit">
-                            <Sparkles className="w-8 h-8 text-amber-500" />
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-8 border-amber-500 p-6 rounded-r-2xl shadow-lg flex flex-col md:flex-row gap-6 animate-fade-in relative overflow-hidden">
+                        <div className="bg-amber-500 p-4 rounded-full h-fit shadow-inner shrink-0 relative z-10">
+                            <Sparkles className="w-10 h-10 text-white animate-pulse" />
                         </div>
-                        <div>
-                            <h3 className="font-bold text-amber-800 text-lg mb-2">Atenção! Drácker Explica:</h3>
-                            <p className="text-amber-700 font-medium italic">{currentData.reforco_pedagogico}</p>
+                        <div className="relative z-10">
+                            <h3 className="font-black text-amber-900 text-2xl mb-2 flex items-center gap-2">🐉 O Mestre Drácker diz:</h3>
+                            <p className="text-amber-800 font-medium text-lg italic bg-white/60 p-4 rounded-xl border border-amber-200">{currentData.reforco_pedagogico}</p>
                         </div>
                     </div>
                 )}
@@ -561,21 +554,21 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
                                                     {questionType === 'essay' && (
                                                         <div className="space-y-6 mt-8">
                                                             <div className="bg-amber-50 p-6 rounded-3xl border-2 border-amber-200">
-                                                                <span className="text-sm font-bold text-amber-700 uppercase block mb-3 tracking-wider flex items-center gap-2"><HelpCircle className="w-5 h-5"/> Gabarito do Mestre</span>
+                                                                <span className="text-sm font-black text-amber-700 uppercase block mb-3 tracking-wider flex items-center gap-2"><Search className="w-5 h-5"/> Gabarito Oculto do Mestre</span>
                                                                 <span className="font-bold text-amber-900 text-2xl">{enigma.correct_answer}</span>
                                                             </div>
                                                             
                                                             <div className="flex flex-col p-6 bg-slate-50 rounded-3xl border-2 border-slate-200 gap-4">
-                                                                <span className="font-bold text-slate-700 uppercase text-sm tracking-wider">Avaliar Desempenho</span>
+                                                                <span className="font-black text-slate-700 uppercase text-sm tracking-wider">Avaliar Resposta:</span>
                                                                 <div className="grid grid-cols-3 gap-4">
-                                                                    <button onClick={() => handleEvaluate(team.id, 'success')} className={`flex flex-col items-center justify-center gap-3 p-4 rounded-2xl font-bold transition-all ${evaluations[team.id] === 'success' ? 'bg-green-500 text-white shadow-xl scale-105' : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-green-400 hover:text-green-600'}`}>
-                                                                        <CheckCircle className="w-8 h-8 md:w-10 md:h-10" /> <span className="text-lg">Dominou</span>
+                                                                    <button onClick={() => handleEvaluate(team.id, 'success')} className={`flex flex-col items-center justify-center gap-3 p-4 rounded-2xl font-black transition-all ${evaluations[team.id] === 'success' ? 'bg-green-500 text-white shadow-xl scale-105' : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-green-400 hover:text-green-600'}`}>
+                                                                        <CheckCircle className="w-8 h-8 md:w-10 md:h-10" /> <span className="text-lg">Na Mosca!</span>
                                                                     </button>
-                                                                    <button onClick={() => handleEvaluate(team.id, 'partial')} className={`flex flex-col items-center justify-center gap-3 p-4 rounded-2xl font-bold transition-all ${evaluations[team.id] === 'partial' ? 'bg-yellow-500 text-white shadow-xl scale-105' : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-yellow-400 hover:text-yellow-600'}`}>
-                                                                        <HelpCircle className="w-8 h-8 md:w-10 md:h-10" /> <span className="text-lg">Com Ajuda</span>
+                                                                    <button onClick={() => handleEvaluate(team.id, 'partial')} className={`flex flex-col items-center justify-center gap-3 p-4 rounded-2xl font-black transition-all ${evaluations[team.id] === 'partial' ? 'bg-amber-500 text-white shadow-xl scale-105' : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-600'}`}>
+                                                                        <HelpCircle className="w-8 h-8 md:w-10 md:h-10" /> <span className="text-lg">Quase Lá</span>
                                                                     </button>
-                                                                    <button onClick={() => handleEvaluate(team.id, 'fail')} className={`flex flex-col items-center justify-center gap-3 p-4 rounded-2xl font-bold transition-all ${evaluations[team.id] === 'fail' ? 'bg-red-500 text-white shadow-xl scale-105' : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-red-400 hover:text-red-600'}`}>
-                                                                        <XCircle className="w-8 h-8 md:w-10 md:h-10" /> <span className="text-lg">Dificuldade</span>
+                                                                    <button onClick={() => handleEvaluate(team.id, 'fail')} className={`flex flex-col items-center justify-center gap-3 p-4 rounded-2xl font-black transition-all ${evaluations[team.id] === 'fail' ? 'bg-rose-500 text-white shadow-xl scale-105' : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-rose-400 hover:text-rose-600'}`}>
+                                                                        <XCircle className="w-8 h-8 md:w-10 md:h-10" /> <span className="text-lg">Escorregou</span>
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -603,10 +596,10 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
                                             onClick={nextRound}
                                             disabled={questionType === 'multiple_choice' ? Object.keys(selectedOptions).length !== teams.length : Object.keys(evaluations).length !== teams.length}
                                             variant="primary"
-                                            icon={currentData.isLoadingPart2 ? RefreshCw : ChevronRight}
-                                            className="bg-green-600 hover:bg-green-700 text-lg px-6 py-3 shadow-md text-white border-transparent"
+                                            icon={ChevronRight}
+                                            className="bg-brown-600 hover:bg-green-700 text-lg px-6 py-3 shadow-md text-white border-transparent"
                                         >
-                                            {currentData.isLoadingPart2 && round === 1 ? 'Forjando História...' : (round === 4 ? 'Avançar para o Final' : 'Avançar História')}
+                                            {round === 4 ? 'Avançar para o Final' : 'Avançar História'}
                                         </Button>
                                     ) : (
                                         <Button 
@@ -623,11 +616,11 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
                     </div>
                 ) : (
                     <>
-                        <Card className="border-brown-300 shadow-xl bg-[#fffdf5] overflow-hidden">
-                            <div className="bg-brown-100 p-4 border-b border-brown-200 flex items-center gap-3">
-                                <BookOpen className="w-6 h-6 text-brown-600" />
-                                <h2 className="text-2xl font-bold text-brown-900 font-display">
-                                    {round === 1 ? 'O Início do Mistério' : `Avançando na Etapa ${round}`}
+                        <Card className="border-brown-300 shadow-xl bg-[#f4fcf6] overflow-hidden rounded-3xl">
+                            <div className="bg-gradient-to-r from-brown-100 to-green-100 p-6 border-b-4 border-brown-200 flex items-center gap-4">
+                                <div className="bg-white p-2 rounded-full shadow-sm"><BookOpen className="w-8 h-8 text-brown-600" /></div>
+                                <h2 className="text-3xl font-black text-brown-900 font-display">
+                                    {round === 1 ? 'O Início do Mistério' : `Capítulo ${round}: A Investigação`}
                                 </h2>
                             </div>
                             <div className="p-6 md:p-8 space-y-6">
@@ -638,18 +631,24 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
                                     if (!team) return null;
 
                                     return (
-                                        <div key={index} className="bg-brown-50 border-2 border-brown-200 rounded-2xl p-6 shadow-sm relative mt-8">
-                                            <HelpCircle className="w-8 h-8 text-brown-500 absolute -top-4 -left-4 bg-[#fffdf5] rounded-full p-1" />
-                                            <h3 className="text-xl font-bold text-brown-900 mb-2">Desafio: <span className="text-indigo-600">{enigma.team}</span></h3>
-                                            <p className="text-lg text-brown-800 mb-4">{enigma.question}</p>
+                                        <div key={index} className="bg-white border-2 border-brown-100 rounded-3xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow relative mt-10">
+                                            <div className="absolute -top-6 -left-2 bg-brown-500 text-white rounded-full p-3 shadow-lg flex items-center justify-center">
+                                                <Target className="w-6 h-6" />
+                                            </div>
+                                            <div className="ml-10 mb-4">
+                                                <span className="text-xs font-bold text-brown-500 uppercase tracking-wider block mb-1">Desafio do Esquadrão</span>
+                                                <h3 className="text-2xl font-black text-slate-800">{team.name}</h3>
+                                            </div>
+                                            
+                                            <p className="text-xl font-medium text-slate-700 mb-6 leading-relaxed bg-brown-50/50 p-4 rounded-xl border border-brown-50">{enigma.question}</p>
                                             
                                             {enigma.options && enigma.options.length > 0 && (
-                                                <div className="space-y-2 mb-4">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                                                     {enigma.options.map((opt, i) => (
                                                         <button 
                                                             key={i} 
                                                             onClick={() => handleSelectOption(team.id, i)}
-                                                            className={`w-full text-left border p-3 rounded-lg font-medium transition-all ${selectedOptions[team.id] === i ? 'bg-indigo-100 border-indigo-400 text-indigo-900 shadow-inner' : 'bg-white border-brown-100 text-brown-700 hover:bg-brown-50 hover:border-brown-300'}`}
+                                                            className={`text-left border-2 p-4 rounded-2xl font-bold transition-all text-lg ${selectedOptions[team.id] === i ? 'bg-brown-50 border-brown-500 text-brown-900 shadow-md transform scale-[1.02]' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'}`}
                                                         >
                                                             {opt}
                                                         </button>
@@ -658,36 +657,36 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
                                             )}
                                             
                                             {questionType === 'essay' && (
-                                                <>
-                                                    <div className="bg-brown-100/50 p-3 rounded-lg border border-brown-200 mb-6">
-                                                        <span className="text-xs font-bold text-brown-600 uppercase block mb-1">Gabarito para o Professor:</span>
-                                                        <span className="font-medium text-brown-900">{enigma.correct_answer}</span>
+                                                <div className="space-y-6">
+                                                    <div className="bg-amber-50 p-4 rounded-2xl border-2 border-amber-200">
+                                                        <span className="text-sm font-black text-amber-700 uppercase block mb-2 flex items-center gap-2"><Search className="w-4 h-4"/> Gabarito Oculto (Professor):</span>
+                                                        <span className="font-bold text-amber-900 text-xl">{enigma.correct_answer}</span>
                                                     </div>
                                                     
-                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-xl border border-slate-200 gap-4 shadow-sm">
-                                                        <span className="font-bold text-slate-700">Avaliar Desempenho:</span>
-                                                        <div className="flex flex-wrap gap-2">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 bg-slate-50 rounded-2xl border-2 border-slate-200 gap-4">
+                                                        <span className="font-black text-slate-700 uppercase text-sm tracking-wider">Avaliar Resposta:</span>
+                                                        <div className="flex flex-wrap gap-3">
                                                             <button 
                                                                 onClick={() => handleEvaluate(team.id, 'success')}
-                                                                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-bold transition-all ${evaluations[team.id] === 'success' ? 'bg-green-500 text-white shadow-md' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-green-50 hover:text-green-700'}`}
+                                                                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-black transition-all ${evaluations[team.id] === 'success' ? 'bg-green-500 text-white shadow-lg scale-105' : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-green-400 hover:text-green-600'}`}
                                                             >
-                                                                <CheckCircle className="w-4 h-4" /> Dominou
+                                                                <CheckCircle className="w-5 h-5" /> Na Mosca!
                                                             </button>
                                                             <button 
                                                                 onClick={() => handleEvaluate(team.id, 'partial')}
-                                                                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-bold transition-all ${evaluations[team.id] === 'partial' ? 'bg-yellow-500 text-white shadow-md' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-yellow-50 hover:text-yellow-700'}`}
+                                                                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-black transition-all ${evaluations[team.id] === 'partial' ? 'bg-amber-500 text-white shadow-lg scale-105' : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-600'}`}
                                                             >
-                                                                <HelpCircle className="w-4 h-4" /> Com Ajuda
+                                                                <HelpCircle className="w-5 h-5" /> Quase Lá
                                                             </button>
                                                             <button 
                                                                 onClick={() => handleEvaluate(team.id, 'fail')}
-                                                                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-bold transition-all ${evaluations[team.id] === 'fail' ? 'bg-red-500 text-white shadow-md' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-700'}`}
+                                                                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-black transition-all ${evaluations[team.id] === 'fail' ? 'bg-rose-500 text-white shadow-lg scale-105' : 'bg-white border-2 border-slate-200 text-slate-600 hover:border-rose-400 hover:text-rose-600'}`}
                                                             >
-                                                                <XCircle className="w-4 h-4" /> Dificuldade
+                                                                <XCircle className="w-5 h-5" /> Escorregou
                                                             </button>
                                                         </div>
                                                     </div>
-                                                </>
+                                                </div>
                                             )}
                                         </div>
                                     );
@@ -703,8 +702,8 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
                             <Button onClick={restartMatch} variant="outline" icon={RefreshCw} className="border-brown-400 text-brown-700 hover:bg-brown-100 bg-white">
                                 Reiniciar Partida
                             </Button>
-                            <Button onClick={nextRound} className="px-8 py-3 text-lg bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200" icon={currentData.isLoadingPart2 ? RefreshCw : ChevronRight} disabled={questionType === 'multiple_choice' ? Object.keys(selectedOptions).length !== teams.length : Object.keys(evaluations).length !== teams.length}>
-                                {currentData.isLoadingPart2 && round === 1 ? 'Forjando História...' : (round === 4 ? 'Avançar para o Grande Final' : 'Avançar História')}
+                            <Button onClick={nextRound} className="px-8 py-3 text-lg bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200" icon={ChevronRight} disabled={questionType === 'multiple_choice' ? Object.keys(selectedOptions).length !== teams.length : Object.keys(evaluations).length !== teams.length}>
+                                {round === 4 ? 'Avançar para o Grande Final' : 'Avançar História'}
                             </Button>
                         </div>
                     </Card>
@@ -786,21 +785,21 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
                                             {questionType === 'essay' && (
                                                 <div className="mt-12 space-y-8">
                                                     <div className="bg-amber-50 p-8 rounded-3xl border-4 border-amber-200">
-                                                        <span className="text-xl font-bold text-amber-700 uppercase block mb-4 tracking-wider flex items-center gap-3"><HelpCircle className="w-8 h-8"/> Gabarito Exclusivo do Professor</span>
+                                                        <span className="text-xl font-black text-amber-700 uppercase block mb-4 tracking-wider flex items-center gap-3"><Search className="w-8 h-8"/> Gabarito Oculto do Mestre</span>
                                                         <span className="font-bold text-amber-900 text-3xl">{enigma.correct_answer}</span>
                                                     </div>
                                                     
                                                     <div className="flex flex-col p-8 bg-slate-50 rounded-3xl border-4 border-slate-200 gap-6">
-                                                        <span className="font-bold text-slate-700 uppercase text-xl tracking-wider">Avaliar Desempenho</span>
+                                                        <span className="font-black text-slate-700 uppercase text-xl tracking-wider">Avaliar Resposta:</span>
                                                         <div className="grid grid-cols-3 gap-6">
-                                                            <button onClick={() => handleEvaluate(team.id, 'success')} className={`flex flex-col items-center justify-center gap-4 p-6 rounded-3xl font-bold transition-all ${evaluations[team.id] === 'success' ? 'bg-green-500 text-white shadow-xl scale-105' : 'bg-white border-4 border-slate-200 text-slate-600 hover:border-green-400 hover:text-green-600'}`}>
-                                                                <CheckCircle className="w-12 h-12" /> <span className="text-2xl">Dominou</span>
+                                                            <button onClick={() => handleEvaluate(team.id, 'success')} className={`flex flex-col items-center justify-center gap-4 p-6 rounded-3xl font-black transition-all ${evaluations[team.id] === 'success' ? 'bg-green-500 text-white shadow-xl scale-105' : 'bg-white border-4 border-slate-200 text-slate-600 hover:border-green-400 hover:text-green-600'}`}>
+                                                                <CheckCircle className="w-12 h-12" /> <span className="text-2xl">Na Mosca!</span>
                                                             </button>
-                                                            <button onClick={() => handleEvaluate(team.id, 'partial')} className={`flex flex-col items-center justify-center gap-4 p-6 rounded-3xl font-bold transition-all ${evaluations[team.id] === 'partial' ? 'bg-yellow-500 text-white shadow-xl scale-105' : 'bg-white border-4 border-slate-200 text-slate-600 hover:border-yellow-400 hover:text-yellow-600'}`}>
-                                                                <HelpCircle className="w-12 h-12" /> <span className="text-2xl">Com Ajuda</span>
+                                                            <button onClick={() => handleEvaluate(team.id, 'partial')} className={`flex flex-col items-center justify-center gap-4 p-6 rounded-3xl font-black transition-all ${evaluations[team.id] === 'partial' ? 'bg-amber-500 text-white shadow-xl scale-105' : 'bg-white border-4 border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-600'}`}>
+                                                                <HelpCircle className="w-12 h-12" /> <span className="text-2xl">Quase Lá</span>
                                                             </button>
-                                                            <button onClick={() => handleEvaluate(team.id, 'fail')} className={`flex flex-col items-center justify-center gap-4 p-6 rounded-3xl font-bold transition-all ${evaluations[team.id] === 'fail' ? 'bg-red-500 text-white shadow-xl scale-105' : 'bg-white border-4 border-slate-200 text-slate-600 hover:border-red-400 hover:text-red-600'}`}>
-                                                                <XCircle className="w-12 h-12" /> <span className="text-2xl">Dificuldade</span>
+                                                            <button onClick={() => handleEvaluate(team.id, 'fail')} className={`flex flex-col items-center justify-center gap-4 p-6 rounded-3xl font-black transition-all ${evaluations[team.id] === 'fail' ? 'bg-rose-500 text-white shadow-xl scale-105' : 'bg-white border-4 border-slate-200 text-slate-600 hover:border-rose-400 hover:text-rose-600'}`}>
+                                                                <XCircle className="w-12 h-12" /> <span className="text-2xl">Escorregou</span>
                                                             </button>
                                                         </div>
                                                     </div>
@@ -827,10 +826,10 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
                                     onClick={nextRound}
                                     disabled={questionType === 'multiple_choice' ? Object.keys(selectedOptions).length !== teams.length : Object.keys(evaluations).length !== teams.length}
                                     variant="primary"
-                                    icon={currentData.isLoadingPart2 ? RefreshCw : ChevronRight}
-                                    className="text-2xl px-8 py-4 bg-green-600 hover:bg-green-700 shadow-xl text-white border-transparent"
+                                    icon={ChevronRight}
+                                    className="text-2xl px-8 py-4 bg-brown-600 hover:bg-green-700 shadow-xl text-white border-transparent"
                                 >
-                                    {currentData.isLoadingPart2 && round === 1 ? 'Forjando História...' : (round === 4 ? 'Avançar para o Final' : 'Avançar História')}
+                                    {round === 4 ? 'Avançar para o Final' : 'Avançar História'}
                                 </Button>
                             ) : (
                                 <Button 
@@ -851,47 +850,51 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
     if (gameStatus === 'finished') {
         return (
             <div className={`mx-auto space-y-6 animate-fade-in ${isFullWidth ? 'max-w-[1400px]' : 'max-w-4xl'}`}>
-                <div className="flex justify-between items-center bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full font-bold shadow-sm border border-yellow-200">
+                <div className="flex justify-between items-center bg-gradient-to-r from-amber-200 to-yellow-300 text-amber-900 px-6 py-3 rounded-2xl font-bold shadow-md border-2 border-amber-400">
                     <div className="flex items-center gap-3">
-                        <Award className="w-5 h-5" /> <span className="hidden sm:inline">Mistério Resolvido</span>
-                        <button onClick={restartMatch} className="ml-2 text-xs md:text-sm text-yellow-700 hover:text-red-600 font-bold flex items-center gap-1 transition-colors bg-white/60 hover:bg-white px-3 py-1 rounded-full shadow-sm border border-yellow-300">
-                            <RefreshCw className="w-3 h-3 md:w-4 md:h-4" /> Reiniciar
+                        <Award className="w-6 h-6" /> <span className="hidden sm:inline text-lg">Mistério Solucionado! 🎉</span>
+                        <button onClick={restartMatch} className="ml-2 text-xs md:text-sm text-amber-800 hover:text-red-600 font-bold flex items-center gap-1 transition-colors bg-white/60 hover:bg-white px-3 py-2 rounded-xl shadow-sm border border-amber-300">
+                            <RefreshCw className="w-4 h-4 md:w-5 md:h-5" /> Nova Missão
                         </button>
                     </div>
                     <div className="flex items-center gap-4">
-                        <span className="bg-white px-3 py-1 rounded-full shadow-inner text-yellow-700">Etapa Final</span>
+                        <span className="bg-white px-4 py-2 rounded-xl shadow-inner text-amber-700">Tenda Final</span>
                     </div>
                 </div>
 
-                <Card className="border-yellow-300 shadow-2xl bg-gradient-to-b from-[#fffdf5] to-yellow-50 overflow-hidden relative">
-                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-500"></div>
-                    <div className="p-8 text-center border-b border-yellow-200">
-                        <Award className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                        <h2 className="text-4xl font-black text-yellow-800 font-display mb-2">O Mistério foi Resolvido!</h2>
-                        <p className="text-yellow-700 font-medium text-lg mb-4">Os detetives salvaram a Floresta Encantada.</p>
-                        <div className="inline-block bg-white border-2 border-yellow-400 rounded-xl px-6 py-3 shadow-md mt-2">
-                            <span className="text-sm uppercase font-bold text-yellow-600 block mb-1">Equipe Vencedora</span>
-                            <span className="text-2xl font-black text-yellow-800">{currentData?.finalHistory?.winner || 'Todos Nós!'}</span>
+                <Card className="border-amber-300 shadow-2xl bg-gradient-to-b from-[#fffdf5] to-amber-50 overflow-hidden relative rounded-3xl">
+                    <div className="absolute top-0 left-0 w-full h-4 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500"></div>
+                    <div className="p-10 text-center border-b-2 border-amber-200 relative overflow-hidden">
+                        <Sparkles className="w-32 h-32 text-amber-200 absolute -right-10 -top-10 animate-pulse" />
+                        <ShieldCheck className="w-24 h-24 text-amber-500 mx-auto mb-6 relative z-10" />
+                        <h2 className="text-5xl font-black text-amber-800 font-display mb-4 relative z-10 tracking-tight">O Mistério foi Resolvido! 🎊</h2>
+                        <p className="text-amber-700 font-bold text-xl mb-6 relative z-10">Os bravos detetives salvaram o dia na Floresta Encantada!</p>
+                        <div className="inline-block bg-white border-4 border-amber-400 rounded-3xl px-8 py-4 shadow-xl mt-4 relative z-10 transform hover:scale-105 transition-transform">
+                            <span className="text-sm uppercase font-black text-amber-600 block mb-2 tracking-widest">🎖️ Esquadrão Campeão</span>
+                            <span className="text-3xl font-black text-amber-900">{currentData?.finalHistory?.winner || 'Todos Nós!'}</span>
                         </div>
                     </div>
                     
-                    <div className="p-8">
-                        <p className="text-xl leading-relaxed text-slate-800 mb-8 italic text-center">
-                            {currentData?.finalHistory?.finalStoryText}
-                        </p>
+                    <div className="p-8 md:p-12">
+                        <div className="bg-white p-6 md:p-10 rounded-3xl shadow-md border-2 border-slate-100 mb-10">
+                            <h3 className="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2"><BookOpen className="w-6 h-6 text-green-500"/> Relatório Oficial da Missão</h3>
+                            <p className="text-xl leading-relaxed text-slate-700 italic">
+                                {currentData?.finalHistory?.finalStoryText}
+                            </p>
+                        </div>
 
                         {/* Gabarito e Resumo Final */}
-                        <div className="bg-white border-2 border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm mt-8">
-                            <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3 border-b border-slate-100 pb-4">
-                                <Award className="w-8 h-8 text-slate-500" />
-                                Gabarito e Pontuações
+                        <div className="bg-white border-4 border-slate-200 rounded-3xl p-6 md:p-10 shadow-lg mt-8">
+                            <h3 className="text-3xl font-black text-slate-800 mb-8 flex items-center gap-4 border-b-2 border-slate-100 pb-6">
+                                <Search className="w-10 h-10 text-brown-500" />
+                                Arquivos Confidenciais (Gabarito)
                             </h3>
                             
-                            <div className="space-y-6">
+                            <div className="space-y-8">
                                 {currentData?.finalHistory?.rounds?.map((roundData, rIndex) => (
-                                    <div key={rIndex} className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                        <h4 className="font-bold text-slate-700 mb-4 bg-slate-200 px-3 py-1 rounded-lg inline-block">Etapa {roundData.round}</h4>
-                                        <div className="space-y-4">
+                                    <div key={rIndex} className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-200">
+                                        <h4 className="font-black text-slate-700 mb-6 bg-slate-200 px-4 py-2 rounded-xl inline-block shadow-sm">📍 Acampamento {roundData.round}</h4>
+                                        <div className="space-y-6">
                                             {roundData.enigmas?.map((enigma, eIndex) => {
                                                 const team = teams.find(t => enigma.team.toLowerCase().includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(enigma.team.toLowerCase())) || teams[eIndex];
                                                 const chosenOptIndex = roundData.selectedOptions?.[team?.id];
@@ -899,19 +902,21 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
                                                 const evalStatus = roundData.evaluations?.[team?.id];
 
                                                 return (
-                                                    <div key={eIndex} className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm">
-                                                        <div className="flex justify-between items-start gap-4 mb-2">
-                                                            <p className="font-bold text-slate-800 flex-1"><span className="text-indigo-600">{enigma.team}:</span> {enigma.question}</p>
-                                                            {evalStatus === 'success' && <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold whitespace-nowrap">ACERTOU</span>}
-                                                            {evalStatus === 'partial' && <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold whitespace-nowrap">COM AJUDA</span>}
-                                                            {evalStatus === 'fail' && <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold whitespace-nowrap">ERROU</span>}
+                                                    <div key={eIndex} className="bg-white p-6 rounded-2xl border-2 border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                                                        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-4">
+                                                            <p className="font-bold text-slate-800 flex-1 text-lg"><span className="text-green-600 bg-green-50 px-2 py-1 rounded-lg border border-green-100 mr-2">{enigma.team}</span> {enigma.question}</p>
+                                                            <div className="shrink-0 mt-2 md:mt-0">
+                                                                {evalStatus === 'success' && <span className="bg-green-100 text-green-700 px-3 py-2 rounded-xl text-sm font-black whitespace-nowrap shadow-sm border border-green-200">🎯 NA MOSCA</span>}
+                                                                {evalStatus === 'partial' && <span className="bg-amber-100 text-amber-700 px-3 py-2 rounded-xl text-sm font-black whitespace-nowrap shadow-sm border border-amber-200">🤝 QUASE LÁ</span>}
+                                                                {evalStatus === 'fail' && <span className="bg-rose-100 text-rose-700 px-3 py-2 rounded-xl text-sm font-black whitespace-nowrap shadow-sm border border-rose-200">🤕 ESCORREGOU</span>}
+                                                            </div>
                                                         </div>
-                                                        <div className="text-sm space-y-1">
+                                                        <div className="text-base space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
                                                             {chosenText && (
-                                                                <p className="text-slate-600"><span className="font-medium">Resposta Escolhida:</span> {chosenText}</p>
+                                                                <p className="text-slate-700"><span className="font-bold text-slate-500">Ação Escolhida:</span> {chosenText}</p>
                                                             )}
-                                                            <p className="text-slate-800 bg-green-50 px-2 py-1 rounded border border-green-100 inline-block mt-1">
-                                                                <span className="font-bold text-green-700">Gabarito:</span> {enigma.correct_answer}
+                                                            <p className="text-green-900 bg-green-100/50 px-3 py-2 rounded-lg border border-green-200 inline-block">
+                                                                <span className="font-black text-green-700">Resposta Correta:</span> {enigma.correct_answer}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -924,9 +929,9 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
                         </div>
                     </div>
                     
-                    <div className="p-6 bg-yellow-100 border-t border-yellow-200 flex justify-center">
-                        <Button onClick={restartMatch} variant="outline" icon={RefreshCw} className="border-yellow-400 text-yellow-800 hover:bg-yellow-200 bg-white">
-                            Nova Investigação
+                    <div className="p-8 bg-gradient-to-t from-amber-100 to-amber-50 border-t-2 border-amber-200 flex justify-center">
+                        <Button onClick={restartMatch} variant="primary" icon={RefreshCw} className="bg-amber-600 hover:bg-amber-700 text-white shadow-xl px-8 py-4 text-xl rounded-2xl font-black">
+                            Começar Nova Investigação
                         </Button>
                     </div>
                 </Card>

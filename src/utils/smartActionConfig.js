@@ -69,7 +69,7 @@ export const getSmartActionConfig = (activityType, isLoading) => {
                 label: 'Iniciar Aventura RPG Detetive',
                 sublabel: 'Abrir painel narrativo e investigativo',
                 icon: Gamepad2,
-                className: 'bg-rose-600 hover:bg-rose-700 text-white shadow-md hover:-translate-y-0.5 border border-rose-500/50'
+                className: 'bg-brown-600 hover:bg-brown-700 text-white shadow-md hover:-translate-y-0.5 border border-brown-500/50'
             };
         case 'hangman':
             return {

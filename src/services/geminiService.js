@@ -552,9 +552,9 @@ class GeminiService {
   }
 
   /**
-   * Gera a Parte 1 do Livro-Jogo (Abertura + Etapa 1)
+   * Gera a História Completa do Livro-Jogo (Abertura + 4 Etapas + Finais)
    */
-  async generateRPGPart1(topic, details, teams, questionType) {
+  async generateFullRPG(topic, details, teams, questionType) {
     const prompt = `
       Você é o mestre de um RPG Educacional Investigativo infantil/juvenil.
       O TEMA da aula é: "${topic}". O CONTEXTO é: "${details}".
@@ -564,17 +564,23 @@ class GeminiService {
       
       PERSONAGENS:
       - Drácker: Um dragãozinho marrom, detetive da natureza, curioso e esperto.
-      - Amigos: Esquilo, coruja, raposa, coelho (ATENÇÃO: Não dê nomes próprios aos animais, chame-os apenas pela espécie).
+      - Amigos: Esquilo, coruja, raposa, coelho (Não dê nomes próprios, chame-os pela espécie).
 
-      Crie APENAS a introdução e a ETAPA 1 do jogo. As demais etapas serão geradas depois.
-      Para a etapa 1, crie uma pergunta direcionada e DIFERENTE para cada equipe.
+      CRIE A HISTÓRIA COMPLETA DO JOGO (COM INÍCIO, MEIO E FIM).
+      O jogo deve ter EXATAMENTE 4 ETAPAS (rounds).
+      Para CADA etapa, crie uma pergunta direcionada e DIFERENTE para cada equipe. A história deve evoluir gradativamente até a grande revelação na etapa 4.
       
-      MUITO IMPORTANTE: O JOGO PRECISA SER RÁPIDO. SEJA EXTREMAMENTE CONCISO!
-      - A "historia_abertura" deve ter NO MÁXIMO 4 frases curtas.
-      - A "narrativa_avanco" deve ter NO MÁXIMO 2 frases.
-      - As perguntas devem ser bem curtas e diretas.
+      MUITO IMPORTANTE: O JOGO PRECISA SER RÁPIDO. SEJA CONCISO!
+      - A "historia_abertura" (round 1) deve ter NO MÁXIMO 4 frases.
+      - As "narrativa_avanco" (rounds 2, 3 e 4) devem ter NO MÁXIMO 2 frases.
+      - As perguntas devem ser curtas e diretas.
+      - O "reforco_pedagogico" deve ter NO MÁXIMO 3 frases.
+      - Os finais devem ter NO MÁXIMO 3 frases.
+      
+      REGRAS PEDAGÓGICAS:
       1. As perguntas de todas as equipes dentro da MESMA ETAPA devem ter rigorosamente o MESMO GRAU DE DIFICULDADE.
-      2. Não crie perguntas com margem para múltiplas respostas corretas ou equivalentes (exemplo: não use "3/6" se a resposta esperada for "1/2"). A resposta correta deve ser única e inconfundível.
+      2. Respostas únicas e inconfundíveis.
+      3. NUNCA coloque alternativas que sejam matematicamente equivalentes ou sinônimas (exemplo: se a resposta for 1/2, NÃO coloque 2/4 como outra alternativa. Se a resposta for 0,5, não coloque 5/10. Evite gerar duas opções corretas!).
       
       ESTRUTURA DA RESPOSTA (JSON PURO, SEM MARKDOWN):
       {
@@ -586,70 +592,15 @@ class GeminiService {
             "enigmas": [
               {
                 "team": "Nome da Equipe 1",
-                "question": "A pergunta específica para esta equipe.",
-                "options": ["A) ...", "B) ...", "C) ...", "D) ..."], // Somente se for múltipla escolha, senão []
-                "correct_answer": "O texto exato da alternativa correta ou o conceito esperado."
-              }
-            ]
-          }
-        ]
-      }
-    `;
-    try {
-      const text = await this.generateText(prompt, { temperature: 0.8, responseMimeType: "application/json", maxOutputTokens: 8192 });
-      const data = safeJSONParse(text);
-      if (!data || !data.etapas) throw new Error("Formato inválido");
-      return data;
-    } catch (e) {
-      console.error("Erro Full RPG Parte 1:", e);
-      throw new Error("Falha ao gerar o livro-jogo (Parte 1): " + e.message);
-    }
-  }
-
-  /**
-   * Gera a Parte 2 do Livro-Jogo (Etapas 2, 3, 4 + Finais)
-   */
-  async generateRPGPart2(topic, details, teams, questionType, historiaAnterior) {
-    const prompt = `
-      Você é o mestre de um RPG Educacional Investigativo infantil/juvenil.
-      O TEMA da aula é: "${topic}". O CONTEXTO é: "${details}".
-      O formato das perguntas deve ser: ${questionType === 'multiple_choice' ? 'Múltipla Escolha (com 4 alternativas A, B, C, D)' : 'Dissertativa'}.
-      EQUIPES NA PARTIDA: ${teams.map(t => t.name).join(', ')}.
-      
-      HISTÓRIA ATÉ AGORA (Resumo da Etapa 1 para manter contexto):
-      "${historiaAnterior}"
-
-      Crie as ETAPAS 2, 3 e 4 do jogo, o REFORÇO PEDAGÓGICO e os FINAIS.
-      Para CADA uma das 3 etapas, crie uma pergunta direcionada e DIFERENTE para cada equipe. As etapas devem evoluir a história do mistério gradativamente até a grande revelação na etapa 4.
-      
-      MUITO IMPORTANTE: ECONOMIZE TOKENS E SEJA EXTREMAMENTE CONCISO PARA GERAR RÁPIDO!
-      - As "narrativa_avanco" de cada etapa devem ter NO MÁXIMO 2 frases.
-      - As perguntas e opções devem ser o mais curtas possíveis, diretas ao ponto.
-      - O "reforco_pedagogico" deve ter NO MÁXIMO 3 frases.
-      - Os finais devem ter NO MÁXIMO 3 frases curtas cada.
-      
-      REGRAS PEDAGÓGICAS IMPORTANTES:
-      1. As perguntas de todas as equipes dentro da MESMA ETAPA devem ter rigorosamente o MESMO GRAU DE DIFICULDADE.
-      2. Não crie perguntas com margem para múltiplas respostas corretas ou equivalentes.
-      
-      ESTRUTURA DA RESPOSTA (JSON PURO, SEM MARKDOWN):
-      {
-        "etapas": [
-          {
-            "round": 2,
-            "narrativa_avanco": "A continuação da investigação após passarem pela primeira parte...",
-            "enigmas": [
-              {
-                "team": "Nome da Equipe 1",
-                "question": "A pergunta específica.",
-                "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+                "question": "Pergunta 1...",
+                "options": ["A) ...", "B) ...", "C) ...", "D) ..."], // Vazio [] se for dissertativa
                 "correct_answer": "Resposta correta"
               }
             ]
-          },
-          // repetir para round 3 e round 4
+          }
+          // repita rigorosamente a mesma estrutura para os rounds 2, 3 e 4
         ],
-        "reforco_pedagogico": "Um balão de fala do Drácker explicando de forma simples e lúdica a base do TEMA para ajudar alunos que erraram.",
+        "reforco_pedagogico": "Um balão de fala do Drácker explicando de forma simples a base do TEMA para alunos que erraram.",
         "finais": {
           "vitoria_epica": "Narrativa final caso a turma tenha pontuação alta.",
           "vitoria_com_ajuda": "Narrativa final caso a turma tenha pontuação baixa."
@@ -659,11 +610,11 @@ class GeminiService {
     try {
       const text = await this.generateText(prompt, { temperature: 0.8, responseMimeType: "application/json", maxOutputTokens: 8192 });
       const data = safeJSONParse(text);
-      if (!data || !data.etapas) throw new Error("Formato inválido");
+      if (!data || !data.etapas || data.etapas.length < 4) throw new Error("Formato inválido ou número de etapas incompleto");
       return data;
     } catch (e) {
-      console.error("Erro Full RPG Parte 2:", e);
-      throw new Error("Falha ao gerar o livro-jogo (Parte 2): " + e.message);
+      console.error("Erro Full RPG:", e);
+      throw new Error("Falha ao gerar o livro-jogo: " + e.message);
     }
   }
 

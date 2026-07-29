@@ -7,37 +7,59 @@ import {
 } from 'lucide-react';
 import { FractionsRenderer } from './FractionsRenderer';
 import { FractionsAIModal } from './FractionsAIModal';
+import { useActivity } from '../../contexts/ActivityContext';
 
 export const FractionsMaker = () => {
+    const { activeTabId, activeActivity, updateActivityData } = useActivity();
+    const fd = activeActivity?.fractionsData || {};
+
     // --- STATE ---
-    const [activeTab, setActiveTab] = useState('single'); // 'single' | 'ops' | 'print'
+    const [activeTab, setActiveTab] = useState(fd.activeTab || 'single'); // 'single' | 'ops' | 'print'
     
     // Comparison / Multi View State
-    const [fractions, setFractions] = useState([
+    const [fractions, setFractions] = useState(fd.fractions || [
         { id: 1, num: 3, den: 4, color: '#3b82f6' }
     ]);
-    const [shape, setShape] = useState('circle');
+    const [shape, setShape] = useState(fd.shape || 'circle');
     
     // Operations State
-    const [opNum1, setOpNum1] = useState(1);
-    const [opDen1, setOpDen1] = useState(2);
-    const [opColor1, setOpColor1] = useState('#3b82f6'); // azul
-    const [opNum2, setOpNum2] = useState(1);
-    const [opDen2, setOpDen2] = useState(3);
-    const [opColor2, setOpColor2] = useState('#f59e0b'); // laranja
-    const [operator, setOperator] = useState('+'); // '+', '-', '*', '/'
+    const [opNum1, setOpNum1] = useState(fd.opNum1 !== undefined ? fd.opNum1 : 1);
+    const [opDen1, setOpDen1] = useState(fd.opDen1 !== undefined ? fd.opDen1 : 2);
+    const [opColor1, setOpColor1] = useState(fd.opColor1 || '#3b82f6'); // azul
+    const [opNum2, setOpNum2] = useState(fd.opNum2 !== undefined ? fd.opNum2 : 1);
+    const [opDen2, setOpDen2] = useState(fd.opDen2 !== undefined ? fd.opDen2 : 3);
+    const [opColor2, setOpColor2] = useState(fd.opColor2 || '#f59e0b'); // laranja
+    const [operator, setOperator] = useState(fd.operator || '+'); // '+', '-', '*', '/'
     
     // UI / Presentation State
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [showAnswers, setShowAnswers] = useState(false);
-    const [printCount, setPrintCount] = useState(6);
-    const [printType, setPrintType] = useState('all'); // 'all' | 'visual' | 'ops' | 'simplify'
+    const [showAnswers, setShowAnswers] = useState(fd.showAnswers || false);
+    const [printCount, setPrintCount] = useState(fd.printCount || 6);
+    const [printType, setPrintType] = useState(fd.printType || 'all'); // 'all' | 'visual' | 'ops' | 'simplify'
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
-    const [customExercisesData, setCustomExercisesData] = useState(null);
-    const [aiHistory, setAiHistory] = useState([]); // Histórico de atividades IA na sessão
-    const [activeSource, setActiveSource] = useState('random'); // 'random' | índice em aiHistory
-    const [imageSizePx, setImageSizePx] = useState(140); // Linha scrubbing: 60px a 280px (Padrão 140px)
-    const [fontSizePx, setFontSizePx] = useState(16); // Linha scrubbing de fonte: 12px a 36px (Padrão 16px)
+    const [customExercisesData, setCustomExercisesData] = useState(fd.customExercisesData || null);
+    const [aiHistory, setAiHistory] = useState(fd.aiHistory || []); // Histórico de atividades IA na sessão
+    const [activeSource, setActiveSource] = useState(fd.activeSource || 'random'); // 'random' | índice em aiHistory
+    const [imageSizePx, setImageSizePx] = useState(fd.imageSizePx || 140); // Linha scrubbing: 60px a 280px (Padrão 140px)
+    const [fontSizePx, setFontSizePx] = useState(fd.fontSizePx || 16); // Linha scrubbing de fonte: 12px a 36px (Padrão 16px)
+
+    // Autosave to context
+    useEffect(() => {
+        if (activeTabId) {
+            updateActivityData(activeTabId, {
+                fractionsData: {
+                    activeTab, fractions, shape, opNum1, opDen1, opColor1, opNum2, opDen2, opColor2,
+                    operator, showAnswers, printCount, printType, customExercisesData, aiHistory,
+                    activeSource, imageSizePx, fontSizePx
+                }
+            });
+        }
+    }, [
+        activeTabId, updateActivityData,
+        activeTab, fractions, shape, opNum1, opDen1, opColor1, opNum2, opDen2, opColor2,
+        operator, showAnswers, printCount, printType, customExercisesData, aiHistory,
+        activeSource, imageSizePx, fontSizePx
+    ]);
 
     // Colors Palette
     const colorOptions = [
