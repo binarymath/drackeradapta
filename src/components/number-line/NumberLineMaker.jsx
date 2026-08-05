@@ -1,10 +1,9 @@
     import React, { useState, useEffect } from 'react';
 import { useActivity } from '../../contexts/ActivityContext';
 import { NumberLineRenderer } from './NumberLineRenderer';
-import { NumberLineGame } from './NumberLineGame';
 import { NumberLinePrint } from './NumberLinePrint';
 import {
-    Sparkles, Plus, Trash2, Eye, EyeOff, Play, Printer, Settings,
+    Sparkles, Plus, Trash2, Eye, EyeOff, Printer, Settings,
     ArrowLeftRight, HelpCircle, Loader2, Download, Maximize2, Minimize2
 } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -69,7 +68,7 @@ const defaultPresets = {
 
 export const NumberLineMaker = () => {
     const { activeTabId, activeActivity, updateActivityData, addActivityTab, topic, lessonDetails, difficulty } = useActivity();
-    const [viewMode, setViewMode] = useState('editor'); // 'editor' | 'game' | 'print'
+    const [viewMode, setViewMode] = useState('editor'); // 'editor' | 'print'
     const [isGenerating, setIsGenerating] = useState(false);
     const [statusMsg, setStatusMsg] = useState({ text: '', type: '' });
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -86,6 +85,7 @@ export const NumberLineMaker = () => {
 
     const [localData, setLocalData] = useState(() => activeActivity?.numberLineData || defaultPresets.fractions);
     const [activeLineIndex, setActiveLineIndex] = useState(0);
+    const [draggedLineIndex, setDraggedLineIndex] = useState(null);
 
     useEffect(() => {
         if (activeActivity?.numberLineData) {
@@ -388,17 +388,138 @@ export const NumberLineMaker = () => {
         }
     };
 
-    const handleDownloadTransparentPNG = () => {
+    const handleDownloadTransparentPNG = async () => {
         const svgElem = document.getElementById('number-line-svg');
         if (!svgElem) return;
+
+        // Clone to safely mutate for export
+        const svgClone = svgElem.cloneNode(true);
 
         const viewBox = svgElem.getAttribute('viewBox') || '0 0 1000 280';
         const parts = viewBox.split(/\s+/).map(Number);
         const vbWidth = (parts.length === 4 && parts[2] > 0) ? parts[2] : 1000;
         const vbHeight = (parts.length === 4 && parts[3] > 0) ? parts[3] : 280;
 
+        // Helper to get base64 with CORS fallbacks for Google Drive
+        const getBase64Image = (originalUrl) => {
+            return new Promise((resolve, reject) => {
+                let attempt = 0;
+                let currentUrl = originalUrl;
+                let fileId = null;
+
+                const idMatch = originalUrl.match(/[?&]id=([a-zA-Z0-9_-]{15,})/);
+                const dMatch = originalUrl.match(/\/d\/([a-zA-Z0-9_-]{15,})/);
+                if (idMatch && idMatch[1]) fileId = idMatch[1];
+                else if (dMatch && dMatch[1]) fileId = dMatch[1];
+
+                const tryLoad = () => {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        try {
+                            resolve(canvas.toDataURL('image/png'));
+                        } catch (e) {
+                            nextAttempt();
+                        }
+                    };
+                    img.onerror = () => nextAttempt();
+                    img.src = currentUrl;
+                };
+
+                const tryProxy = () => {
+                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        try {
+                            resolve(canvas.toDataURL('image/png'));
+                        } catch (e) {
+                            reject(new Error('Proxy also failed CORS'));
+                        }
+                    };
+                    img.onerror = () => reject(new Error('Proxy failed to load image'));
+                    img.src = proxyUrl;
+                };
+
+                const nextAttempt = () => {
+                    attempt++;
+                    if (!fileId) {
+                        if (attempt === 1) return tryProxy();
+                        return reject(new Error('No CORS fallback available'));
+                    }
+                    if (attempt === 1) {
+                        currentUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
+                        tryLoad();
+                    } else if (attempt === 2) {
+                        currentUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+                        tryLoad();
+                    } else if (attempt === 3) {
+                        tryProxy();
+                    } else {
+                        reject(new Error('All CORS fallbacks failed'));
+                    }
+                };
+                
+                tryLoad();
+            });
+        };
+
+        // Convert external <image> or <img> tags to base64 to avoid canvas tainting
+        const images = svgClone.querySelectorAll('image, img');
+        for (const img of images) {
+            const url = img.getAttribute('src') || img.getAttribute('href') || img.getAttribute('xlink:href');
+            if (url && !url.startsWith('data:')) {
+                try {
+                    const base64 = await getBase64Image(url);
+                    if (img.tagName.toLowerCase() === 'img') {
+                        const foreignObj = img.closest('foreignObject');
+                        if (foreignObj && foreignObj.parentNode) {
+                            const newSvgImg = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+                            newSvgImg.setAttribute('href', base64);
+                            newSvgImg.setAttribute('x', foreignObj.getAttribute('x'));
+                            newSvgImg.setAttribute('y', foreignObj.getAttribute('y'));
+                            newSvgImg.setAttribute('width', foreignObj.getAttribute('width'));
+                            newSvgImg.setAttribute('height', foreignObj.getAttribute('height'));
+                            newSvgImg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                            foreignObj.parentNode.replaceChild(newSvgImg, foreignObj);
+                        } else {
+                            img.setAttribute('src', base64);
+                        }
+                    } else {
+                        img.setAttribute('href', base64);
+                    }
+                } catch (e) {
+                    console.error("Failed to inline image for SVG export", url, e);
+                    // Critical fallback: if conversion fails, we MUST remove foreignObject to prevent canvas drawing from hanging silently
+                    if (img.tagName.toLowerCase() === 'img') {
+                        const foreignObj = img.closest('foreignObject');
+                        if (foreignObj && foreignObj.parentNode) {
+                            const newSvgImg = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+                            newSvgImg.setAttribute('href', url); // Keep original URL as fallback, may render blank but won't hang
+                            newSvgImg.setAttribute('x', foreignObj.getAttribute('x'));
+                            newSvgImg.setAttribute('y', foreignObj.getAttribute('y'));
+                            newSvgImg.setAttribute('width', foreignObj.getAttribute('width'));
+                            newSvgImg.setAttribute('height', foreignObj.getAttribute('height'));
+                            newSvgImg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                            foreignObj.parentNode.replaceChild(newSvgImg, foreignObj);
+                        }
+                    }
+                }
+            }
+        }
+
         const serializer = new XMLSerializer();
-        let svgString = serializer.serializeToString(svgElem);
+        let svgString = serializer.serializeToString(svgClone);
 
         if (!svgString.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
             svgString = svgString.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
@@ -420,13 +541,23 @@ export const NumberLineMaker = () => {
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             URL.revokeObjectURL(url);
 
-            const pngUrl = canvas.toDataURL('image/png');
-            const downloadLink = document.createElement('a');
-            downloadLink.download = `${(currentData.title || 'reta-numerica').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-transparente.png`;
-            downloadLink.href = pngUrl;
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
+            try {
+                const pngUrl = canvas.toDataURL('image/png');
+                const downloadLink = document.createElement('a');
+                downloadLink.download = `${(currentData.title || 'reta-numerica').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-transparente.png`;
+                downloadLink.href = pngUrl;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            } catch (err) {
+                console.error("Canvas toDataURL failed (likely tainted)", err);
+                alert("Erro ao exportar a imagem: Bloqueio de segurança. Tente usar imagens do Google Drive ou remova as imagens com erro.");
+            }
+        };
+        img.onerror = (e) => {
+            console.error("Failed to load SVG Blob into Image", e);
+            URL.revokeObjectURL(url);
+            alert("Erro fatal ao processar SVG para exportação. Remova as imagens externas e tente novamente.");
         };
         img.src = url;
     };
@@ -453,14 +584,6 @@ export const NumberLineMaker = () => {
                         className="text-xs py-2"
                     >
                         Construtor
-                    </Button>
-                    <Button
-                        onClick={() => setViewMode('game')}
-                        variant={viewMode === 'game' ? 'primary' : 'ghost'}
-                        icon={Play}
-                        className="text-xs py-2 bg-amber-500 hover:bg-amber-600 text-white"
-                    >
-                        Lousa Interativa
                     </Button>
                     <Button
                         onClick={() => setViewMode('print')}
@@ -507,12 +630,7 @@ export const NumberLineMaker = () => {
             )}
 
             {/* MAIN VIEW MODE SWITCHER */}
-            {viewMode === 'game' ? (
-                <NumberLineGame
-                    data={currentData}
-                    onExitGame={() => setViewMode('editor')}
-                />
-            ) : viewMode === 'print' ? (
+            {viewMode === 'print' ? (
                 <div className="space-y-4">
                     <div className="flex justify-end no-print">
                         <Button onClick={() => window.print()} icon={Printer} className="py-2.5 px-6 shadow-lg">
@@ -551,6 +669,24 @@ export const NumberLineMaker = () => {
                                             <option value={48}>48 px (Grande)</option>
                                             <option value={56}>56 px (Extra Grande)</option>
                                             <option value={64}>64 px (Gigante)</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Seletor de Pixels para Imagem */}
+                                    <div className="flex items-center gap-1.5 bg-brown-50 px-2 py-1 rounded-lg border border-brown-200 text-xs font-bold text-brown-700">
+                                        <span>Img:</span>
+                                        <select
+                                            value={currentData.imageSizePx || 48}
+                                            onChange={(e) => handleUpdateGlobal({ imageSizePx: Number(e.target.value) })}
+                                            className="bg-white border border-brown-300 rounded px-1.5 py-0.5 text-xs font-bold text-brown-900 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer shadow-2xs"
+                                        >
+                                            <option value={24}>24 px (Pequena)</option>
+                                            <option value={32}>32 px</option>
+                                            <option value={48}>48 px (Padrão)</option>
+                                            <option value={64}>64 px</option>
+                                            <option value={80}>80 px (Grande)</option>
+                                            <option value={96}>96 px</option>
+                                            <option value={120}>120 px (Gigante)</option>
                                         </select>
                                     </div>
 
@@ -702,10 +838,45 @@ export const NumberLineMaker = () => {
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {lines.map((l, idx) => (
-                                        <div key={l.id} className="flex items-center">
+                                        <div 
+                                            key={l.id} 
+                                            className={`flex items-center transition-all ${draggedLineIndex === idx ? 'opacity-50 scale-95' : 'opacity-100'}`}
+                                            draggable
+                                            onDragStart={(e) => {
+                                                setDraggedLineIndex(idx);
+                                                e.dataTransfer.effectAllowed = "move";
+                                            }}
+                                            onDragOver={(e) => {
+                                                e.preventDefault();
+                                                e.dataTransfer.dropEffect = "move";
+                                            }}
+                                            onDrop={(e) => {
+                                                e.preventDefault();
+                                                if (draggedLineIndex === null || draggedLineIndex === idx) return;
+                                                
+                                                const newLines = [...lines];
+                                                const [removed] = newLines.splice(draggedLineIndex, 1);
+                                                newLines.splice(idx, 0, removed);
+                                                
+                                                if (activeLineIndex === draggedLineIndex) {
+                                                    setActiveLineIndex(idx);
+                                                } else if (activeLineIndex > draggedLineIndex && activeLineIndex <= idx) {
+                                                    setActiveLineIndex(activeLineIndex - 1);
+                                                } else if (activeLineIndex < draggedLineIndex && activeLineIndex >= idx) {
+                                                    setActiveLineIndex(activeLineIndex + 1);
+                                                }
+
+                                                handleUpdateGlobal({ lines: newLines });
+                                                setDraggedLineIndex(null);
+                                            }}
+                                            onDragEnd={() => setDraggedLineIndex(null)}
+                                        >
+                                            <div className="cursor-grab active:cursor-grabbing px-1.5 py-1.5 bg-brown-50 hover:bg-brown-200 border border-r-0 border-brown-300 rounded-l-lg flex items-center justify-center text-brown-400" title="Arraste para reordenar">
+                                                <GripVertical className="w-4 h-4" />
+                                            </div>
                                             <button
                                                 onClick={() => setActiveLineIndex(idx)}
-                                                className={`px-3 py-1.5 text-xs font-bold rounded-l-lg border transition-colors ${activeLineIndex === idx ? 'bg-amber-500 text-white border-amber-600' : 'bg-white text-brown-700 border-brown-300 hover:bg-amber-50'}`}
+                                                className={`px-3 py-1.5 text-xs font-bold border-y border-l transition-colors ${activeLineIndex === idx ? 'bg-amber-500 text-white border-amber-600' : 'bg-white text-brown-700 border-brown-300 hover:bg-amber-50'}`}
                                             >
                                                 Reta {idx + 1}
                                             </button>
@@ -716,11 +887,14 @@ export const NumberLineMaker = () => {
                                                         handleUpdateGlobal({ lines: newLines });
                                                         if (activeLineIndex >= newLines.length) setActiveLineIndex(newLines.length - 1);
                                                     }}
-                                                    className="px-2 py-1.5 bg-red-50 text-red-600 border border-l-0 border-brown-300 rounded-r-lg hover:bg-red-100 transition-colors"
+                                                    className="px-2 py-1.5 bg-white text-red-500 hover:bg-red-50 hover:text-red-700 font-bold rounded-r-lg border transition-colors border-brown-300"
                                                     title="Remover Reta"
                                                 >
                                                     <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
+                                            )}
+                                            {lines.length === 1 && (
+                                                <div className="px-2 py-1.5 bg-white rounded-r-lg border border-l-0 border-brown-300 w-[30px]" />
                                             )}
                                         </div>
                                     ))}
@@ -905,19 +1079,20 @@ export const NumberLineMaker = () => {
                                             </div>
                                         </div>
 
-                                        {/* Linha 3: Ocultar no exercício */}
-                                        <div className="pt-1 flex items-center">
-                                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                                        {/* Linha 3: Upload de Imagem */}
+                                        <div className="pt-1 flex flex-col sm:flex-row gap-3">
+                                            <div className="flex-1">
+                                                <label className="block text-[10px] font-extrabold text-brown-600 uppercase tracking-wider mb-1">
+                                                    🖼️ Imagem (URL Google Drive / Web)
+                                                </label>
                                                 <input
-                                                    type="checkbox"
-                                                    checked={Boolean(pt.hiddenVal)}
-                                                    onChange={(e) => handleUpdatePoint(pt.id, 'hiddenVal', e.target.checked)}
-                                                    className="w-3.5 h-3.5 rounded text-brown-600 accent-brown-600 cursor-pointer"
+                                                    type="text"
+                                                    value={pt.imageUrl || ''}
+                                                    onChange={(e) => handleUpdatePoint(pt.id, 'imageUrl', e.target.value)}
+                                                    placeholder="Opcional. Ex: link do drive"
+                                                    className="w-full px-2.5 py-1.5 bg-white border border-brown-300 rounded-lg text-xs font-bold text-brown-900 focus:outline-hidden focus:ring-2 focus:ring-brown-500"
                                                 />
-                                                <span className="text-[11px] font-bold text-brown-700">
-                                                    Ocultar valor na Lousa/Exercício (Exibir "?")
-                                                </span>
-                                            </label>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
