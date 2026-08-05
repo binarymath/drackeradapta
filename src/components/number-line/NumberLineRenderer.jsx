@@ -1,4 +1,5 @@
 import React from 'react';
+import { getDirectImageUrl } from '../../utils/urlUtils';
 
 export const NumberLineRenderer = ({
     data,
@@ -20,6 +21,7 @@ export const NumberLineRenderer = ({
         points = [],
         arcs = [],
         fontSizePx = 16,
+        imageSizePx = 48,
         axisNumberMode = 'all'
     } = data || {};
 
@@ -249,6 +251,8 @@ export const NumberLineRenderer = ({
                         const arcHeight = Math.min(80, Math.max(35, dist * 0.25));
                         const y1 = axisY - 15;
                         const midY = axisY - arcHeight;
+                        const arcRectW = Math.max(48, Math.round(sizes.arcTextSize * 3.5));
+                        const arcRectH = Math.max(20, Math.round(sizes.arcTextSize * 1.8));
 
                         return (
                             <g key={arc.id || i} className="transition-all duration-300">
@@ -261,10 +265,10 @@ export const NumberLineRenderer = ({
                                     markerEnd="url(#arc-arrow)"
                                 />
                                 <rect
-                                    x={midX - 24}
-                                    y={midY - 22}
-                                    width="48"
-                                    height="20"
+                                    x={midX - arcRectW / 2}
+                                    y={midY - arcRectH / 2 - 12}
+                                    width={arcRectW}
+                                    height={arcRectH}
                                     rx="6"
                                     fill="#fffbeb"
                                     stroke="#f59e0b"
@@ -338,14 +342,6 @@ export const NumberLineRenderer = ({
                                             ) : t.label.type === 'mixed' ? (
                                                 <g transform="translate(0, 0)">
                                                     {/* Decimal Text Above Axis */}
-                                                    <rect
-                                                        x="-16"
-                                                        y={-(sizes.fracOffsetY + 26)}
-                                                        width="32"
-                                                        height="16"
-                                                        fill="rgba(255, 255, 255, 0.7)"
-                                                        rx="4"
-                                                    />
                                                     <text
                                                         x="0"
                                                         y={-(sizes.fracOffsetY + 15)}
@@ -464,17 +460,38 @@ export const NumberLineRenderer = ({
                                 }}
                             >
                                 {pt.position === 'tick' ? (
-                                    <g transform="translate(0, 22)">
-                                        <circle cx="0" cy="-22" r="4.5" fill={c.fill} stroke="#ffffff" strokeWidth="1.5" />
-                                        <text
-                                            x="0"
-                                            y="4"
-                                            textAnchor="middle"
-                                            className={`text-sm font-extrabold ${isHidden ? 'fill-gray-500' : ''}`}
-                                            fill={isHidden ? '#6b7280' : c.text}
-                                        >
-                                            {pt.userAnswer ? pt.userAnswer : isHidden ? '?' : (pt.label || `${pt.val}`)}
-                                        </text>
+                                    <g transform={`translate(0, ${sizes.intOffsetY + 6})`}>
+                                        <line x1="0" y1={-(sizes.intOffsetY + 14)} x2="0" y2={-(sizes.intOffsetY + 2)} stroke={c.fill} strokeWidth={Math.max(3.5, sizes.badgeTextSize * 0.25)} strokeLinecap="round" />
+                                        {(() => {
+                                            const displayImgUrl = pt.userAnswerImageUrl || (!isHidden && pt.imageUrl ? pt.imageUrl : null);
+                                            if (displayImgUrl) {
+                                                const finalImgSize = Math.max(16, imageSizePx * 0.75); // Slightly smaller for tick
+                                                return (
+                                                    <foreignObject 
+                                                        x={-finalImgSize / 2} 
+                                                        y={0} 
+                                                        width={finalImgSize} 
+                                                        height={finalImgSize}
+                                                    >
+                                                        <div xmlns="http://www.w3.org/1999/xhtml" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                            <img src={getDirectImageUrl(displayImgUrl)} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="" />
+                                                        </div>
+                                                    </foreignObject>
+                                                );
+                                            }
+                                            return (
+                                                <text
+                                                    x="0"
+                                                    y="4"
+                                                    textAnchor="middle"
+                                                    fontSize={sizes.badgeTextSize}
+                                                    fontWeight="800"
+                                                    fill={isHidden ? '#6b7280' : c.text}
+                                                >
+                                                    {pt.userAnswer ? pt.userAnswer : isHidden ? '?' : (pt.label || `${pt.val}`)}
+                                                </text>
+                                            );
+                                        })()}
                                     </g>
                                 ) : (
                                     <>
@@ -489,39 +506,66 @@ export const NumberLineRenderer = ({
                                             strokeDasharray={isHidden ? "3,3" : "none"}
                                         />
 
-                                        {/* Pin circle at axis */}
-                                        <circle
-                                            cx="0"
-                                            cy="0"
-                                            r={isSelected ? "8" : "6"}
-                                            fill={c.fill}
-                                            stroke="#ffffff"
-                                            strokeWidth="2"
-                                            className="transition-all shadow-md"
+                                        {/* Pin marker at axis instead of circle */}
+                                        <line
+                                            x1="0"
+                                            y1="-10"
+                                            x2="0"
+                                            y2="10"
+                                            stroke={c.fill}
+                                            strokeWidth={isSelected ? "5" : "3.5"}
+                                            strokeLinecap="round"
+                                            className="transition-all"
                                         />
 
                                         {/* Badge Box above or below stem */}
                                         <g transform={`translate(0, ${pt.position === 'bottom' ? sizes.stemBottomY : sizes.stemTopY})`}>
-                                            <rect
-                                                x={sizes.badgeX}
-                                                y={sizes.badgeY}
-                                                width={sizes.badgeW}
-                                                height={sizes.badgeH}
-                                                rx="8"
-                                                fill={isSelected ? '#fef08a' : isHidden ? '#f3f4f6' : c.bg}
-                                                stroke={isSelected ? '#ca8a04' : isHidden ? '#9ca3af' : c.stroke}
-                                                strokeWidth="2"
-                                            />
-                                            <text
-                                                x="0"
-                                                y={sizes.badgeTextY}
-                                                textAnchor="middle"
-                                                fontSize={sizes.badgeTextSize}
-                                                fontWeight="800"
-                                                fill={isHidden ? '#6b7280' : c.text}
-                                            >
-                                                {pt.userAnswer ? pt.userAnswer : isHidden ? '?' : (pt.label || `${pt.val}`)}
-                                            </text>
+                                            {(() => {
+                                                const displayImgUrl = pt.userAnswerImageUrl || (!isHidden && pt.imageUrl ? pt.imageUrl : null);
+                                                const finalImgSize = Number(imageSizePx);
+                                                const currentBadgeW = displayImgUrl ? Math.max(sizes.badgeW, finalImgSize + 16) : sizes.badgeW;
+                                                const currentBadgeH = displayImgUrl ? Math.max(sizes.badgeH, finalImgSize + 16) : sizes.badgeH;
+                                                const currentBadgeX = -Math.round(currentBadgeW / 2);
+                                                const currentBadgeY = -Math.round(currentBadgeH / 2);
+
+                                                return (
+                                                    <>
+                                                        <rect
+                                                            x={currentBadgeX}
+                                                            y={currentBadgeY}
+                                                            width={currentBadgeW}
+                                                            height={currentBadgeH}
+                                                            rx="8"
+                                                            fill={isSelected ? '#fef08a' : isHidden ? '#f3f4f6' : c.bg}
+                                                            stroke={isSelected ? '#ca8a04' : isHidden ? '#9ca3af' : c.stroke}
+                                                            strokeWidth="2"
+                                                        />
+                                                        {displayImgUrl ? (
+                                                            <foreignObject
+                                                                x={currentBadgeX + 4}
+                                                                y={currentBadgeY + 4}
+                                                                width={currentBadgeW - 8}
+                                                                height={currentBadgeH - 8}
+                                                            >
+                                                                <div xmlns="http://www.w3.org/1999/xhtml" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                    <img src={getDirectImageUrl(displayImgUrl)} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="" />
+                                                                </div>
+                                                            </foreignObject>
+                                                        ) : (
+                                                            <text
+                                                                x="0"
+                                                                y={sizes.badgeTextY}
+                                                                textAnchor="middle"
+                                                                fontSize={sizes.badgeTextSize}
+                                                                fontWeight="800"
+                                                                fill={isHidden ? '#6b7280' : c.text}
+                                                            >
+                                                                {pt.userAnswer ? pt.userAnswer : isHidden ? '?' : (pt.label || `${pt.val}`)}
+                                                            </text>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
                                         </g>
                                     </>
                                 )}

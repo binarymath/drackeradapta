@@ -18,14 +18,18 @@ export const FractionsMaker = () => {
     
     // Comparison / Multi View State
     const [fractions, setFractions] = useState(fd.fractions || [
-        { id: 1, num: 3, den: 4, color: '#3b82f6' }
+        { id: 1, type: 'fraction', num: 3, den: 4, decimalValue: '0.75', color: '#3b82f6' }
     ]);
     const [shape, setShape] = useState(fd.shape || 'circle');
     
     // Operations State
+    const [opType1, setOpType1] = useState(fd.opType1 || 'fraction');
+    const [opDecimal1, setOpDecimal1] = useState(fd.opDecimal1 !== undefined ? fd.opDecimal1 : '0.5');
     const [opNum1, setOpNum1] = useState(fd.opNum1 !== undefined ? fd.opNum1 : 1);
     const [opDen1, setOpDen1] = useState(fd.opDen1 !== undefined ? fd.opDen1 : 2);
     const [opColor1, setOpColor1] = useState(fd.opColor1 || '#3b82f6'); // azul
+    const [opType2, setOpType2] = useState(fd.opType2 || 'fraction');
+    const [opDecimal2, setOpDecimal2] = useState(fd.opDecimal2 !== undefined ? fd.opDecimal2 : '0.25');
     const [opNum2, setOpNum2] = useState(fd.opNum2 !== undefined ? fd.opNum2 : 1);
     const [opDen2, setOpDen2] = useState(fd.opDen2 !== undefined ? fd.opDen2 : 3);
     const [opColor2, setOpColor2] = useState(fd.opColor2 || '#f59e0b'); // laranja
@@ -49,6 +53,7 @@ export const FractionsMaker = () => {
             updateActivityData(activeTabId, {
                 fractionsData: {
                     activeTab, fractions, shape, opNum1, opDen1, opColor1, opNum2, opDen2, opColor2,
+                    opType1, opDecimal1, opType2, opDecimal2,
                     operator, showAnswers, printCount, printType, customExercisesData, aiHistory,
                     activeSource, imageSizePx, fontSizePx
                 }
@@ -57,6 +62,7 @@ export const FractionsMaker = () => {
     }, [
         activeTabId, updateActivityData,
         activeTab, fractions, shape, opNum1, opDen1, opColor1, opNum2, opDen2, opColor2,
+        opType1, opDecimal1, opType2, opDecimal2,
         operator, showAnswers, printCount, printType, customExercisesData, aiHistory,
         activeSource, imageSizePx, fontSizePx
     ]);
@@ -85,7 +91,7 @@ export const FractionsMaker = () => {
     // --- FRACTIONS MULTI-VIEW HELPERS ---
     const addFraction = () => {
         if (fractions.length >= 5) return;
-        setFractions([...fractions, { id: Date.now(), num: 1, den: 2, color: colorOptions[Math.floor(Math.random() * colorOptions.length)].value }]);
+        setFractions([...fractions, { id: Date.now(), type: 'fraction', num: 1, den: 2, decimalValue: '0.5', color: colorOptions[Math.floor(Math.random() * colorOptions.length)].value }]);
     };
     
     const updateFraction = (id, field, value) => {
@@ -99,6 +105,29 @@ export const FractionsMaker = () => {
 
     // --- MATH HELPERS ---
     const mdc = (a, b) => (b === 0 ? Math.abs(a) : mdc(b, a % b));
+
+    const formatDecimal = (val) => {
+        const num = Number(String(val).replace(',', '.'));
+        if (isNaN(num)) return val;
+        return num.toLocaleString(undefined, { maximumFractionDigits: 3 });
+    };
+
+    const decimalToFraction = (decimalStr) => {
+        let str = String(decimalStr).replace(',', '.');
+        let val = parseFloat(str);
+        if (isNaN(val)) return { num: 0, den: 1, divisor: 1, raw: str };
+        
+        let decParts = str.split('.');
+        if (decParts.length === 1) {
+            return { num: parseInt(decParts[0]), den: 1, divisor: 1, raw: str };
+        }
+        let decimals = decParts[1].length;
+        let den = Math.pow(10, decimals);
+        let num = parseInt(str.replace('.', ''));
+        
+        let divisor = mdc(num, den);
+        return { num: num / divisor, den: den / divisor, divisor, raw: str };
+    };
 
     const getMixedFractionText = (n, d) => {
         if (n === 0) return "0";
@@ -178,10 +207,28 @@ export const FractionsMaker = () => {
 
     // --- OPERATIONS CALCULATION ---
     const calculateOperations = () => {
-        const n1 = Math.max(0, Number(opNum1) || 0);
-        const d1 = Math.max(1, Number(opDen1) || 1);
-        const n2 = Math.max(0, Number(opNum2) || 0);
-        const d2 = Math.max(1, Number(opDen2) || 1);
+        let n1, d1, n2, d2;
+        let isDec1 = false, isDec2 = false;
+        
+        if (opType1 === 'decimal') {
+            const f1 = decimalToFraction(opDecimal1);
+            n1 = f1.num;
+            d1 = f1.den;
+            isDec1 = true;
+        } else {
+            n1 = Math.max(0, Number(opNum1) || 0);
+            d1 = Math.max(1, Number(opDen1) || 1);
+        }
+
+        if (opType2 === 'decimal') {
+            const f2 = decimalToFraction(opDecimal2);
+            n2 = f2.num;
+            d2 = f2.den;
+            isDec2 = true;
+        } else {
+            n2 = Math.max(0, Number(opNum2) || 0);
+            d2 = Math.max(1, Number(opDen2) || 1);
+        }
 
         let resN = 0, resD = 1;
         let showEquivalents = false;
@@ -226,7 +273,7 @@ export const FractionsMaker = () => {
         }
 
         return {
-            n1, d1, n2, d2,
+            n1, d1, n2, d2, isDec1, isDec2,
             resN, resD, finalN, finalD, divisor,
             showEquivalents, eqN1, eqD1, eqN2, eqD2,
             mmcValue, multsA, multsB
@@ -289,19 +336,39 @@ export const FractionsMaker = () => {
                                     {idx + 1}
                                 </span>
                                 
-                                <div className="flex items-center gap-2 pl-2">
-                                    <input
-                                        type="number" min="0" max="50" value={frac.num}
-                                        onChange={(e) => updateFraction(frac.id, 'num', Math.max(0, Number(e.target.value)))}
-                                        className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                    <span className="text-xl font-black text-slate-400">/</span>
-                                    <input
-                                        type="number" min="1" max="50" value={frac.den}
-                                        onChange={(e) => updateFraction(frac.id, 'den', Math.max(1, Number(e.target.value)))}
-                                        className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
+                                <div className="flex flex-col gap-1 items-center justify-center border-r border-slate-100 pr-2">
+                                    <button 
+                                        onClick={() => updateFraction(frac.id, 'type', frac.type === 'fraction' ? 'decimal' : 'fraction')}
+                                        className="text-[10px] font-extrabold uppercase bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded border border-slate-200 transition-colors cursor-pointer"
+                                        title="Alternar entre Fração e Decimal"
+                                    >
+                                        {frac.type === 'fraction' ? 'Fração' : 'Decimal'}
+                                    </button>
                                 </div>
+
+                                {frac.type === 'fraction' ? (
+                                    <div className="flex items-center gap-2 pl-1">
+                                        <input
+                                            type="number" min="0" max="50" value={frac.num}
+                                            onChange={(e) => updateFraction(frac.id, 'num', Math.max(0, Number(e.target.value)))}
+                                            className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <span className="text-xl font-black text-slate-400">/</span>
+                                        <input
+                                            type="number" min="1" max="50" value={frac.den}
+                                            onChange={(e) => updateFraction(frac.id, 'den', Math.max(1, Number(e.target.value)))}
+                                            className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 pl-1">
+                                        <input
+                                            type="number" step="0.01" value={frac.decimalValue}
+                                            onChange={(e) => updateFraction(frac.id, 'decimalValue', e.target.value)}
+                                            className="w-24 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                )}
                                 
                                 <div className="flex flex-col items-center justify-center gap-1.5 pl-3 border-l border-slate-200">
                                     <span className="text-[9px] font-bold text-slate-400 uppercase">Cor</span>
@@ -348,18 +415,35 @@ export const FractionsMaker = () => {
             <Card className="p-8 flex flex-col items-center justify-center min-h-80 bg-white border-slate-200 shadow-sm overflow-x-auto">
                 <div id="single-svg-container" className="flex items-center justify-center gap-4 md:gap-8 p-6 min-w-max bg-slate-50/60 rounded-2xl border border-dashed border-slate-300 my-4">
                     {fractions.map((frac, idx) => {
+                        let renderNum = frac.num;
+                        let renderDen = frac.den;
+                        
+                        if (frac.type === 'decimal') {
+                            const decObj = decimalToFraction(frac.decimalValue);
+                            renderNum = decObj.num;
+                            renderDen = decObj.den;
+                        }
+                        
                         return (
                             <React.Fragment key={frac.id}>
                                 <div className="flex flex-col items-center gap-3">
-                                    <span className="inline-block px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold shadow-2xs text-center min-w-[80px]" style={{ fontSize: `${Math.max(12, fontSizePx - 2)}px` }}>
-                                        {frac.num >= frac.den && frac.num % frac.den !== 0 
-                                            ? getMixedFractionJSX(frac.num, frac.den)
-                                            : `${frac.num}/${frac.den}`
-                                        }
-                                    </span>
+                                    <div className="flex flex-col items-center">
+                                        <span className="inline-block px-3 py-1 rounded-t-lg bg-white border border-slate-200 border-b-0 text-slate-700 font-bold shadow-2xs text-center min-w-[80px]" style={{ fontSize: `${Math.max(12, fontSizePx - 2)}px` }}>
+                                            {frac.type === 'fraction' ? (
+                                                renderNum >= renderDen && renderNum % renderDen !== 0 
+                                                    ? getMixedFractionJSX(renderNum, renderDen)
+                                                    : `${renderNum}/${renderDen}`
+                                            ) : (
+                                                <span style={{ fontSize: `${fontSizePx}px` }}>{formatDecimal(frac.decimalValue)}</span>
+                                            )}
+                                        </span>
+                                        <span className="inline-block px-3 py-0.5 rounded-b-lg bg-slate-100 border border-slate-200 text-slate-500 font-bold text-center min-w-[80px]" style={{ fontSize: `${Math.max(10, fontSizePx - 6)}px` }}>
+                                            {frac.type === 'fraction' ? `= ${formatDecimal(frac.num / frac.den)}` : `= ${renderNum}/${renderDen}`}
+                                        </span>
+                                    </div>
                                     <FractionsRenderer
-                                        numerator={frac.num}
-                                        denominator={frac.den}
+                                        numerator={renderNum}
+                                        denominator={renderDen}
                                         shape={shape}
                                         fillColor={frac.color}
                                         sizeClassName="shrink-0"
@@ -396,23 +480,42 @@ export const FractionsMaker = () => {
             <Card className="p-5 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border-blue-200 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div className="flex flex-wrap items-center gap-3 md:gap-4">
-                        {/* 1ª Fração com Cor Própria */}
+                        {/* 1º Termo com Cor Própria */}
                         <div className="flex flex-col items-center bg-white p-3 rounded-2xl border border-slate-300 shadow-2xs gap-1.5">
-                            <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">1ª Fração</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">1º Termo</span>
+                                <button 
+                                    onClick={() => setOpType1(opType1 === 'fraction' ? 'decimal' : 'fraction')}
+                                    className="text-[9px] font-extrabold uppercase bg-slate-100 hover:bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 transition-colors cursor-pointer"
+                                    title="Alternar entre Fração e Decimal"
+                                >
+                                    {opType1 === 'fraction' ? 'Fração' : 'Decimal'}
+                                </button>
+                            </div>
                             <div className="flex items-center gap-3">
-                                <div className="flex flex-col items-center">
-                                    <input
-                                        type="number" min="0" max="30" value={opNum1}
-                                        onChange={(e) => setOpNum1(Math.max(0, Number(e.target.value)))}
-                                        className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                    <div className="w-12 h-0.5 bg-slate-800 my-1" />
-                                    <input
-                                        type="number" min="1" max="30" value={opDen1}
-                                        onChange={(e) => setOpDen1(Math.max(1, Number(e.target.value)))}
-                                        className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
+                                {opType1 === 'fraction' ? (
+                                    <div className="flex flex-col items-center">
+                                        <input
+                                            type="number" min="0" max="30" value={opNum1}
+                                            onChange={(e) => setOpNum1(Math.max(0, Number(e.target.value)))}
+                                            className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <div className="w-12 h-0.5 bg-slate-800 my-1" />
+                                        <input
+                                            type="number" min="1" max="30" value={opDen1}
+                                            onChange={(e) => setOpDen1(Math.max(1, Number(e.target.value)))}
+                                            className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full">
+                                        <input
+                                            type="number" step="0.01" value={opDecimal1}
+                                            onChange={(e) => setOpDecimal1(e.target.value)}
+                                            className="w-20 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                )}
                                 <div className="flex flex-col items-center justify-center gap-1 pl-2.5 border-l border-slate-200">
                                     <span className="text-[9px] font-bold text-slate-400 uppercase">Cor</span>
                                     <label 
@@ -443,23 +546,42 @@ export const FractionsMaker = () => {
                             <option value="/">÷</option>
                         </select>
 
-                        {/* 2ª Fração com Cor Própria */}
+                        {/* 2º Termo com Cor Própria */}
                         <div className="flex flex-col items-center bg-white p-3 rounded-2xl border border-slate-300 shadow-2xs gap-1.5">
-                            <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">2ª Fração</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">2º Termo</span>
+                                <button 
+                                    onClick={() => setOpType2(opType2 === 'fraction' ? 'decimal' : 'fraction')}
+                                    className="text-[9px] font-extrabold uppercase bg-slate-100 hover:bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 transition-colors cursor-pointer"
+                                    title="Alternar entre Fração e Decimal"
+                                >
+                                    {opType2 === 'fraction' ? 'Fração' : 'Decimal'}
+                                </button>
+                            </div>
                             <div className="flex items-center gap-3">
-                                <div className="flex flex-col items-center">
-                                    <input
-                                        type="number" min="0" max="30" value={opNum2}
-                                        onChange={(e) => setOpNum2(Math.max(0, Number(e.target.value)))}
-                                        className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                    <div className="w-12 h-0.5 bg-slate-800 my-1" />
-                                    <input
-                                        type="number" min="1" max="30" value={opDen2}
-                                        onChange={(e) => setOpDen2(Math.max(1, Number(e.target.value)))}
-                                        className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
+                                {opType2 === 'fraction' ? (
+                                    <div className="flex flex-col items-center">
+                                        <input
+                                            type="number" min="0" max="30" value={opNum2}
+                                            onChange={(e) => setOpNum2(Math.max(0, Number(e.target.value)))}
+                                            className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <div className="w-12 h-0.5 bg-slate-800 my-1" />
+                                        <input
+                                            type="number" min="1" max="30" value={opDen2}
+                                            onChange={(e) => setOpDen2(Math.max(1, Number(e.target.value)))}
+                                            className="w-14 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center h-full">
+                                        <input
+                                            type="number" step="0.01" value={opDecimal2}
+                                            onChange={(e) => setOpDecimal2(e.target.value)}
+                                            className="w-20 text-center font-extrabold text-lg bg-slate-50 border border-slate-300 rounded-lg px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                )}
                                 <div className="flex flex-col items-center justify-center gap-1 pl-2.5 border-l border-slate-200">
                                     <span className="text-[9px] font-bold text-slate-400 uppercase">Cor</span>
                                     <label 
@@ -520,14 +642,28 @@ export const FractionsMaker = () => {
                 {/* Original Equation */}
                 <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 w-full pb-6 border-b border-slate-100">
                     <div className="flex flex-col items-center">
-                        <div className="mb-2 font-bold text-slate-700" style={{ fontSize: `${fontSizePx}px` }}>{getMixedFractionJSX(opsData.n1, opsData.d1)}</div>
+                        <div className="mb-2 font-bold text-slate-700 text-center" style={{ fontSize: `${fontSizePx}px` }}>
+                            {opType1 === 'decimal' ? (
+                                <>
+                                    <span>{formatDecimal(opDecimal1)}</span>
+                                    <span className="block text-slate-400 font-semibold mt-0.5" style={{ fontSize: `${Math.max(10, fontSizePx - 4)}px` }}>(= {opsData.n1}/{opsData.d1})</span>
+                                </>
+                            ) : getMixedFractionJSX(opsData.n1, opsData.d1)}
+                        </div>
                         <FractionsRenderer numerator={opsData.n1} denominator={opsData.d1} shape={shape} fillColor={opColor1} sizeClassName="shrink-0" style={{ width: `${imageSizePx}px`, height: `${imageSizePx}px` }} />
                     </div>
 
                     <div className="font-black text-blue-600 mx-2" style={{ fontSize: `${fontSizePx * 2}px` }}>{operatorSymbols[operator]}</div>
 
                     <div className="flex flex-col items-center">
-                        <div className="mb-2 font-bold text-slate-700" style={{ fontSize: `${fontSizePx}px` }}>{getMixedFractionJSX(opsData.n2, opsData.d2)}</div>
+                        <div className="mb-2 font-bold text-slate-700 text-center" style={{ fontSize: `${fontSizePx}px` }}>
+                            {opType2 === 'decimal' ? (
+                                <>
+                                    <span>{formatDecimal(opDecimal2)}</span>
+                                    <span className="block text-slate-400 font-semibold mt-0.5" style={{ fontSize: `${Math.max(10, fontSizePx - 4)}px` }}>(= {opsData.n2}/{opsData.d2})</span>
+                                </>
+                            ) : getMixedFractionJSX(opsData.n2, opsData.d2)}
+                        </div>
                         <FractionsRenderer numerator={opsData.n2} denominator={opsData.d2} shape={shape} fillColor={opColor2} sizeClassName="shrink-0" style={{ width: `${imageSizePx}px`, height: `${imageSizePx}px` }} />
                     </div>
                 </div>
@@ -629,6 +765,22 @@ export const FractionsMaker = () => {
                 </h3>
 
                 <div className="space-y-3 text-slate-800 leading-relaxed" style={{ fontSize: `${fontSizePx}px` }}>
+                    {(opsData.isDec1 || opsData.isDec2) && (
+                        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                            <h4 className="font-bold text-amber-900 mb-2 flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-amber-600" />
+                                Passo 0: Transformação (Alinhamento de Idioma)
+                            </h4>
+                            <p className="text-amber-800">
+                                Detectamos uma entrada com números decimais! Para facilitar o cálculo e usar a mesma linguagem visual, transformamos os decimais em frações correspondentes.
+                            </p>
+                            <ul className="list-disc ml-6 mt-2 text-amber-700 font-medium">
+                                {opsData.isDec1 && <li>O 1º termo <strong>{formatDecimal(opDecimal1)}</strong> virou a fração <strong>{opsData.n1}/{opsData.d1}</strong>.</li>}
+                                {opsData.isDec2 && <li>O 2º termo <strong>{formatDecimal(opDecimal2)}</strong> virou a fração <strong>{opsData.n2}/{opsData.d2}</strong>.</li>}
+                            </ul>
+                        </div>
+                    )}
+
                     {operator === '+' && (
                         opsData.showEquivalents ? (
                             <>
