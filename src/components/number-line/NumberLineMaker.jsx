@@ -4,7 +4,7 @@ import { NumberLineRenderer } from './NumberLineRenderer';
 import { NumberLinePrint } from './NumberLinePrint';
 import {
     Sparkles, Plus, Trash2, Eye, EyeOff, Printer, Settings,
-    ArrowLeftRight, HelpCircle, Loader2, Download, Maximize2, Minimize2
+    ArrowLeftRight, HelpCircle, Loader2, Download, Maximize2, Minimize2, GripVertical
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input, Select, TextArea } from '../ui/Input';
