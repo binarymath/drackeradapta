@@ -23,6 +23,7 @@ const ChatDracker = lazy(() => import('./chat/ChatDracker'));
 const TradingCardMaker = lazy(() => import('./trading-cards/TradingCardMaker').then(m => ({ default: m.TradingCardMaker })));
 const NumberLineMaker = lazy(() => import('./number-line/NumberLineMaker').then(m => ({ default: m.NumberLineMaker })));
 const FractionsMaker = lazy(() => import('./fractions/FractionsMaker').then(m => ({ default: m.FractionsMaker })));
+const RouletteActivity = lazy(() => import('./roulette/RouletteActivity').then(m => ({ default: m.RouletteActivity })));
 
 const ActivityLoadingFallback = () => (
     <div className="flex flex-col items-center justify-center p-12 min-h-[350px] gap-4 bg-slate-50/50 rounded-2xl animate-pulse my-8">
@@ -117,6 +118,7 @@ export const ActivityArea = ({
         (activityType === 'chat_dracker') ||
         (activityType === 'number_line') ||
         (activityType === 'fractions') ||
+        (activityType === 'roulette') ||
         (activityType === 'domino' && dominoData);
 
     // Reset game mode when content changes
@@ -556,6 +558,8 @@ export const ActivityArea = ({
                                 <NumberLineMaker key={activeTabId || 'new_number'} />
                             ) : activityType === 'fractions' ? (
                                 <FractionsMaker key={activeTabId || 'new_fractions'} />
+                            ) : activityType === 'roulette' ? (
+                                <RouletteActivity key={activeTabId || 'new_roulette'} />
                             ) : activityType === 'summary' && drackerData ? (
                                 <DrackerSummaryRenderer data={drackerData} title={activityTitle} />
                             ) : (
