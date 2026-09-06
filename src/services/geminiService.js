@@ -677,6 +677,67 @@ class GeminiService {
   }
 
   /**
+   * Gera perguntas para a Roleta Pedagógica baseadas em um tema e lista de nomes
+   */
+  async generateRouletteQuestions(topic, namesText, lessonDetails, difficultyLabel = 'Média') {
+    const namesList = namesText.split('\n').map(n => n.trim()).filter(n => n);
+    if (namesList.length === 0) return [];
+    
+    // Otimização: Gera no máximo 15 perguntas para poupar tokens e tempo.
+    // Depois as distribui (repetindo se necessário) entre os alunos.
+    const qty = Math.min(namesList.length, 15);
+
+    const prompt = `Você é um assistente pedagógico.
+Tema: ${topic}
+Contexto Adicional da Aula: ${lessonDetails || 'Nenhum contexto extra fornecido.'}
+Nível de Dificuldade: ${difficultyLabel}
+
+Crie exatamente ${qty} perguntas únicas e engajadoras sobre o tema para eu usar em uma roleta de sala de aula. As perguntas devem ter nível adequado para a dificuldade informada.
+Retorne APENAS um JSON válido no formato de array de strings.
+Exemplo de retorno esperado:
+[
+  "Qual foi a causa da revolução?",
+  "Como você explicaria esse conceito?"
+]
+
+IMPORTANTE: Retorne APENAS o JSON (array de strings), sem markdown ou explicações.`;
+
+    try {
+      const text = await this.generateText(prompt, { 
+        responseMimeType: "application/json",
+        maxOutputTokens: 8192,
+        temperature: 0.8
+      });
+      const jsonStr = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+      let questions = JSON.parse(jsonStr);
+      
+      if (!Array.isArray(questions) || questions.length === 0) {
+          throw new Error("Formato de perguntas inválido retornado pela IA");
+      }
+
+      // Embaralha as perguntas para que a distribuição pareça mais aleatória
+      questions.sort(() => Math.random() - 0.5);
+
+      // Mapeia cada aluno para uma pergunta (reutilizando caso haja mais alunos do que perguntas)
+      return namesList.map((name, idx) => {
+        let questionText = questions[idx % questions.length];
+        // Formata decimais para o padrão brasileiro (ex: 1.5 -> 1,5)
+        questionText = questionText.replace(/(\d+)\.(\d+)/g, '$1,$2');
+        
+        return {
+          id: Date.now().toString() + '-' + idx,
+          name: name,
+          question: questionText,
+          active: true
+        };
+      });
+    } catch (err) {
+      console.error("[GeminiService] Erro ao gerar perguntas da roleta:", err);
+      throw err;
+    }
+  }
+
+  /**
    * Divide texto em chunks para processamento
    */
   sliceIntoChunks(text, maxLen = 500) {

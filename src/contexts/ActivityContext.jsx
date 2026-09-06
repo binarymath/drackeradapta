@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { safeLocalStorageGet, safeLocalStorageSet, safeLocalStorageRemove } from '../utils/storage';
 import {
-    FileText, MessageSquare, Grid, Music, BrainCircuit, Play, Files, Compass, Brain, Gamepad2, ArrowLeftRight, PieChart
+    FileText, MessageSquare, Grid, Music, BrainCircuit, Play, Files, Compass, Brain, Gamepad2, ArrowLeftRight, PieChart, Dices
 } from 'lucide-react';
 
 const ActivityContext = createContext();
@@ -36,6 +36,17 @@ export const ActivityProvider = ({ children }) => {
     const [lessonDetails, setLessonDetails] = useState('');
     const [activityType, setActivityType] = useState('about_system');
     const [difficulty, setDifficulty] = useState('medium');
+    
+    // --- CLASSES STATE ---
+    const [classes, setClasses] = useState(() => {
+        const saved = safeLocalStorageGet('atividade_adaptada_classes');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [selectedClassId, setSelectedClassId] = useState('');
+
+    useEffect(() => {
+        safeLocalStorageSet('atividade_adaptada_classes', JSON.stringify(classes));
+    }, [classes]);
 
     // --- IMAGE GENERATION STATE ---
     const [imagePrompt, setImagePrompt] = useState('');
@@ -332,6 +343,7 @@ export const ActivityProvider = ({ children }) => {
         { id: 'merge_pdf', label: 'Unir PDFs', icon: <Files className="w-4 h-4" /> },
         { id: 'number_line', label: 'Reta Numérica', icon: <ArrowLeftRight className="w-4 h-4" /> },
         { id: 'fractions', label: 'Frações e Operações', icon: <PieChart className="w-4 h-4" /> },
+        { id: 'roulette', label: 'Roleta Pedagógica', icon: <Dices className="w-4 h-4" /> },
     ], []);
 
     const difficultyOptions = useMemo(() => [
@@ -352,7 +364,7 @@ export const ActivityProvider = ({ children }) => {
                 document.title = 'Drácker Adapta';
             }
 
-            if (['quiz', 'wordsearch', 'crossword', 'trading_cards', 'summary', 'simplify', 'connect_dots', 'video_gallery', 'memory', 'rpg', 'chat_dracker', 'about_system', 'number_line', 'fractions'].includes(activeActivity.type)) {
+            if (['quiz', 'wordsearch', 'crossword', 'trading_cards', 'summary', 'simplify', 'connect_dots', 'video_gallery', 'memory', 'rpg', 'chat_dracker', 'about_system', 'number_line', 'fractions', 'roulette'].includes(activeActivity.type)) {
                 setActivityType(activeActivity.type);
             }
         }
@@ -379,6 +391,8 @@ export const ActivityProvider = ({ children }) => {
 
             topic, setTopic,
             lessonDetails, setLessonDetails,
+            classes, setClasses,
+            selectedClassId, setSelectedClassId,
             activityType, setActivityType,
             difficulty, setDifficulty,
 

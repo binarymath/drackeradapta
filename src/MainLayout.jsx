@@ -29,6 +29,8 @@ export const MainLayout = () => {
         updateActivityData,
         topic, setTopic,
         lessonDetails, setLessonDetails,
+        classes, setClasses,
+        selectedClassId, setSelectedClassId,
         activityType, setActivityType,
         difficulty, setDifficulty,
         imagePrompt, setImagePrompt,
@@ -299,6 +301,10 @@ export const MainLayout = () => {
                             setTopic={setTopic}
                             lessonDetails={lessonDetails}
                             setLessonDetails={setLessonDetails}
+                            classes={classes}
+                            setClasses={setClasses}
+                            selectedClassId={selectedClassId}
+                            setSelectedClassId={setSelectedClassId}
                             difficultyOptions={difficultyOptions}
                             difficulty={difficulty}
                             setDifficulty={setDifficulty}

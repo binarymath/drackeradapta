@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Sparkles, AlertCircle, Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart } from 'lucide-react';
+import { Loader2, Sparkles, AlertCircle, Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart, X, Mic, Download, Plus } from 'lucide-react';
+import { ClassesManagerModal } from './roulette/ClassesManagerModal';
 import { theme } from '../styles/theme';
 import { Button } from './ui/Button';
 import { Input, TextArea, Select } from './ui/Input';
@@ -21,6 +22,10 @@ export const Sidebar = ({
     setTopic,
     lessonDetails,
     setLessonDetails,
+    classes,
+    setClasses,
+    selectedClassId,
+    setSelectedClassId,
     difficultyOptions,
     difficulty,
     setDifficulty,
@@ -46,6 +51,7 @@ export const Sidebar = ({
     setDifficultyDist
 }) => {
     const { tabs, setActiveTabId } = useActivity();
+    const [isClassesModalOpen, setIsClassesModalOpen] = useState(false);
 
     const handleActivitySelect = (type) => {
         setActivityType(type);
@@ -84,6 +90,17 @@ export const Sidebar = ({
 
     return (
         <div className={theme.layout.sidebar}>
+            {isClassesModalOpen && (
+                <ClassesManagerModal 
+                    isOpen={isClassesModalOpen} 
+                    onClose={() => setIsClassesModalOpen(false)} 
+                    classes={classes}
+                    setClasses={setClasses}
+                    selectedClassId={selectedClassId}
+                    setSelectedClassId={setSelectedClassId}
+                />
+            )}
+
             {/* Dracker 2026 Banner */}
             <div className="mb-4 rounded-xl overflow-hidden shadow-sm border border-brown-100 group">
                 <img
@@ -144,9 +161,35 @@ export const Sidebar = ({
                         value={lessonDetails}
                         onChange={(e) => setLessonDetails(e.target.value)}
                         placeholder="Ex: Focar na fotossíntese; Nível 3º ano; Apenas continentes da Ásia..."
-                        rows={4}
+                        rows={3}
                         className="!resize-none"
                     />
+
+                    {activityType === 'roulette' && (
+                        <div className="space-y-2">
+                            <label className={theme.text.label}>Selecione a Turma</label>
+                            <div className="flex gap-2">
+                                <select 
+                                    value={selectedClassId}
+                                    onChange={(e) => setSelectedClassId(e.target.value)}
+                                    className="flex-1 px-3 py-2 border border-brown-200 rounded-xl focus:ring-2 focus:ring-brown-500 outline-none bg-white text-brown-800 text-[15px] shadow-sm appearance-none"
+                                >
+                                    <option value="" disabled>Escolha uma turma...</option>
+                                    {classes.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                                <Button 
+                                    onClick={() => setIsClassesModalOpen(true)}
+                                    variant="secondary"
+                                    className="px-4"
+                                    title="Gerenciar Turmas"
+                                >
+                                    Gerenciar
+                                </Button>
+                            </div>
+                        </div>
+                    )}
 
                     <div>
                         <label className={theme.text.label}>Dificuldade / Linguagem</label>

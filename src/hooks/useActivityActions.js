@@ -12,6 +12,8 @@ export const useActivityActions = () => {
     const {
         topic,
         lessonDetails,
+        classes,
+        selectedClassId,
         difficulty,
         activityType,
         setActivityType,
@@ -235,6 +237,48 @@ export const useActivityActions = () => {
                 setIsLoading(false);
                 return;
             }
+            if (activityType === 'roulette') {
+                if (!selectedClassId) {
+                    setError('Para gerar a roleta, selecione uma Turma na barra lateral.');
+                    setIsLoading(false);
+                    return;
+                }
+                const selectedClass = classes.find(c => c.id === selectedClassId);
+                if (!selectedClass || selectedClass.students.length === 0) {
+                    setError('A turma selecionada não possui alunos.');
+                    setIsLoading(false);
+                    return;
+                }
+                
+                // Pegar apenas os nomes dos alunos que estão ativos na turma
+                const activeStudents = selectedClass.students.filter(s => s.status === 'active');
+                if (activeStudents.length === 0) {
+                    setError('Todos os alunos desta turma já foram sorteados ou estão ausentes. Vá em "Gerenciar Turmas" e reative-os.');
+                    setIsLoading(false);
+                    return;
+                }
+                
+                const activeNames = activeStudents.map(s => s.name).join('\n');
+                
+                const levelLabel = difficulty === 'hard' ? 'Avançado' : difficulty === 'easy' ? 'Fácil' : 'Média';
+                
+                // Gera perguntas apenas para os alunos ativos
+                const generatedQuestions = await geminiService.generateRouletteQuestions(topic, activeNames, lessonDetails, levelLabel);
+                
+                addActivityTab({
+                    title: topic ? `Roleta: ${topic}` : "Roleta Pedagógica",
+                    type: 'roulette',
+                    content: `Roleta sobre ${topic}`,
+                    classId: selectedClassId, // Save classId to the tab so RouletteActivity knows which class it is modifying
+                    questions: generatedQuestions, // The new questions for this session
+                    topic: topic // Store topic to use in history
+                });
+                
+                generateAudio(`Sessão da roleta sobre ${topic} gerada com sucesso.`);
+                setIsLoading(false);
+                return;
+            }
+
 
 
 
