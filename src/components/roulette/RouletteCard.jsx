@@ -1,8 +1,9 @@
-import React from 'react';
-import { User, HelpCircle, UserMinus, UserCheck, Sparkles, CheckCircle, XCircle, RotateCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, HelpCircle, UserMinus, UserCheck, Sparkles, CheckCircle, XCircle, RotateCw, Eye, EyeOff } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export const RouletteCard = ({ winner, onCorrect, onIncorrect, onAbsent }) => {
+    const [showAnswer, setShowAnswer] = useState(false);
     
     // Dispara confetes ao renderizar
     React.useEffect(() => {
@@ -67,6 +68,26 @@ export const RouletteCard = ({ winner, onCorrect, onIncorrect, onAbsent }) => {
                         <p className="text-2xl text-slate-800 font-bold leading-relaxed">
                             {winner.question}
                         </p>
+
+                        {winner.answer && (
+                            <div className="mt-6">
+                                <button
+                                    onClick={() => setShowAnswer(!showAnswer)}
+                                    className="flex items-center justify-center gap-2 mx-auto text-sm font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-full transition-colors border border-emerald-200"
+                                >
+                                    {showAnswer ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    {showAnswer ? 'Ocultar Resposta' : 'Ver Resposta Esperada'}
+                                </button>
+                                
+                                {showAnswer && (
+                                    <div className="mt-4 p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl animate-in slide-in-from-top-2 fade-in duration-300 text-left">
+                                        <p className="text-emerald-800 font-medium text-lg">
+                                            {winner.answer}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 

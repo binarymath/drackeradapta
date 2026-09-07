@@ -22,6 +22,7 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
             setLocalQuestions(uniqueQuestions.map(q => ({
                 id: q.id || Math.random().toString(36).substr(2, 9),
                 question: q.question,
+                answer: q.answer || '',
                 imageUrl: q.imageUrl || '',
                 name: q.name || '' // keep for legacy compatibility
             })));
@@ -30,6 +31,10 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
 
     const handleQuestionChange = (id, newText) => {
         setLocalQuestions(prev => prev.map(q => q.id === id ? { ...q, question: newText } : q));
+    };
+
+    const handleAnswerChange = (id, newAnswer) => {
+        setLocalQuestions(prev => prev.map(q => q.id === id ? { ...q, answer: newAnswer } : q));
     };
 
     const formatImageUrl = (url) => {
@@ -105,6 +110,17 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
                                 onChange={(e) => handleQuestionChange(q.id, e.target.value)}
                                 rows={2}
                                 className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none font-medium text-slate-800"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-1">Resposta Esperada (Opcional)</label>
+                            <textarea 
+                                value={q.answer}
+                                onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                                rows={1}
+                                placeholder="Gabarito da pergunta..."
+                                className="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none resize-none text-sm text-slate-600 bg-emerald-50/30"
                             />
                         </div>
                         
