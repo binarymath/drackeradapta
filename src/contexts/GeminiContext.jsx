@@ -7,7 +7,22 @@ const GeminiContext = createContext();
 export const useGemini = () => {
     const context = useContext(GeminiContext);
     if (!context) {
-        throw new Error('useGemini must be used within a GeminiProvider');
+        console.warn('useGemini must be used within a GeminiProvider. Retornando contexto vazio para evitar crash no HMR.');
+        return {
+            apiKey: '',
+            setApiKey: () => {},
+            apiKeyStatus: 'empty',
+            handleApiKeyChange: () => {},
+            clearApiKey: () => {},
+            geminiService: null,
+            systemStatus: null,
+            setSystemStatus: () => {},
+            selectedModel: 'gemini-2.5-flash',
+            setSelectedModel: () => {},
+            modelOptions: [],
+            showSettings: false,
+            setShowSettings: () => {}
+        };
     }
     return context;
 };
