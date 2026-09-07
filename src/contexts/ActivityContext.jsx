@@ -343,7 +343,7 @@ export const ActivityProvider = ({ children }) => {
         { id: 'merge_pdf', label: 'Unir PDFs', icon: <Files className="w-4 h-4" /> },
         { id: 'number_line', label: 'Reta Numérica', icon: <ArrowLeftRight className="w-4 h-4" /> },
         { id: 'fractions', label: 'Frações e Operações', icon: <PieChart className="w-4 h-4" /> },
-        { id: 'roulette', label: 'Roleta Pedagógica', icon: <Dices className="w-4 h-4" /> },
+        { id: 'roulette', label: 'Roleta', icon: <Dices className="w-4 h-4" /> },
     ], []);
 
     const difficultyOptions = useMemo(() => [

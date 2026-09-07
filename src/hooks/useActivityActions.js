@@ -266,7 +266,7 @@ export const useActivityActions = () => {
                 const generatedQuestions = await geminiService.generateRouletteQuestions(topic, activeNames, lessonDetails, levelLabel);
                 
                 addActivityTab({
-                    title: topic ? `Roleta: ${topic}` : "Roleta Pedagógica",
+                    title: topic ? `Roleta: ${topic}` : "Roleta",
                     type: 'roulette',
                     content: `Roleta sobre ${topic}`,
                     classId: selectedClassId, // Save classId to the tab so RouletteActivity knows which class it is modifying

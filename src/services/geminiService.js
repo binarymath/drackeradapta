@@ -693,14 +693,20 @@ Contexto Adicional da Aula: ${lessonDetails || 'Nenhum contexto extra fornecido.
 Nível de Dificuldade: ${difficultyLabel}
 
 Crie exatamente ${qty} perguntas únicas e engajadoras sobre o tema para eu usar em uma roleta de sala de aula. As perguntas devem ter nível adequado para a dificuldade informada.
-Retorne APENAS um JSON válido no formato de array de strings.
+Retorne APENAS um JSON válido no formato de array de objetos. Cada objeto deve ter 'question' (a pergunta em si) e 'answer' (a resposta correta resumida).
 Exemplo de retorno esperado:
 [
-  "Qual foi a causa da revolução?",
-  "Como você explicaria esse conceito?"
+  {
+    "question": "Qual foi a causa principal da revolução?",
+    "answer": "A insatisfação popular com os impostos excessivos."
+  },
+  {
+    "question": "Como você explicaria esse conceito?",
+    "answer": "É o processo de transformação de energia..."
+  }
 ]
 
-IMPORTANTE: Retorne APENAS o JSON (array de strings), sem markdown ou explicações.`;
+IMPORTANTE: Retorne APENAS o JSON (array de objetos), sem markdown ou explicações.`;
 
     try {
       const text = await this.generateText(prompt, { 
@@ -720,14 +726,22 @@ IMPORTANTE: Retorne APENAS o JSON (array de strings), sem markdown ou explicaç�
 
       // Mapeia cada aluno para uma pergunta (reutilizando caso haja mais alunos do que perguntas)
       return namesList.map((name, idx) => {
-        let questionText = questions[idx % questions.length];
+        let qObj = questions[idx % questions.length];
+        
+        // Suporte a compatibilidade (caso a IA retorne array de strings em vez de objetos)
+        if (typeof qObj === 'string') {
+            qObj = { question: qObj, answer: '' };
+        }
+
         // Formata decimais para o padrão brasileiro (ex: 1.5 -> 1,5)
-        questionText = questionText.replace(/(\d+)\.(\d+)/g, '$1,$2');
+        let questionText = (qObj.question || '').replace(/(\d+)\.(\d+)/g, '$1,$2');
+        let answerText = (qObj.answer || '').replace(/(\d+)\.(\d+)/g, '$1,$2');
         
         return {
           id: Date.now().toString() + '-' + idx,
           name: name,
           question: questionText,
+          answer: answerText,
           active: true
         };
       });

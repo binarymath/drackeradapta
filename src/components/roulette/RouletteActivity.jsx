@@ -79,6 +79,7 @@ export const RouletteActivity = () => {
                 ...student,
                 // Applica a formatação BR retroativamente
                 question: rawQuestion.replace(/(\d+)\.(\d+)/g, '$1,$2'),
+                answer: questionObj && questionObj.answer ? questionObj.answer.replace(/(\d+)\.(\d+)/g, '$1,$2') : '',
                 imageUrl: questionObj ? questionObj.imageUrl : null
             };
         });
@@ -179,7 +180,6 @@ export const RouletteActivity = () => {
         return (
             <div className="flex flex-col items-center justify-center w-full min-h-[600px] text-center p-8 animate-in fade-in duration-500">
                 <div className="bg-indigo-50 border-2 border-indigo-200 rounded-3xl p-12 max-w-2xl shadow-sm">
-                    <div className="text-6xl mb-6">👈 🎲</div>
                     <h2 className="text-3xl font-black text-indigo-900 mb-4">Pronto para girar?</h2>
                     <p className="text-lg text-indigo-700 font-medium">
                         Para criar a sua roleta, siga estes passos na <strong className="font-black text-indigo-800">Barra Lateral à esquerda</strong>:
@@ -234,7 +234,7 @@ export const RouletteActivity = () => {
             <div className="w-full flex flex-col md:flex-row gap-8 items-start justify-center">
                 {/* Lado Esquerdo: Roleta */}
                 <div className="flex-1 w-full flex flex-col items-center justify-center bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
-                    <h2 className="text-2xl font-black text-slate-800 mb-8">Roleta Pedagógica</h2>
+                    <h2 className="text-2xl font-black text-slate-800 mb-8">Roleta</h2>
                     
                     <RouletteWheel 
                         items={activeItems} 
