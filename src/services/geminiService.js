@@ -683,30 +683,45 @@ class GeminiService {
     const namesList = namesText.split('\n').map(n => n.trim()).filter(n => n);
     if (namesList.length === 0) return [];
     
-    // Otimização: Gera no máximo 15 perguntas para poupar tokens e tempo.
-    // Depois as distribui (repetindo se necessário) entre os alunos.
-    const qty = Math.min(namesList.length, 15);
+    // Gera exatamente 20 perguntas pedagógicas ricas para a roleta
+    const qty = 20;
 
-    const prompt = `Você é um assistente pedagógico.
+    const prompt = `Você é um assistente pedagógico especializado em gamificação escolar.
 Tema: ${topic}
 Contexto Adicional da Aula: ${lessonDetails || 'Nenhum contexto extra fornecido.'}
-Nível de Dificuldade: ${difficultyLabel}
+Nível Geral Recomendado: ${difficultyLabel}
 
-Crie exatamente ${qty} perguntas únicas e engajadoras sobre o tema para eu usar em uma roleta de sala de aula. As perguntas devem ter nível adequado para a dificuldade informada.
-Retorne APENAS um JSON válido no formato de array de objetos. Cada objeto deve ter 'question' (a pergunta em si) e 'answer' (a resposta correta resumida).
+Crie exatamente ${qty} perguntas únicas, engajadoras e formativas sobre o tema para usar em uma roleta gamificada de sala de aula.
+Distribua as ${qty} perguntas com VARIAÇÃO DE DIFICULDADE clara entre:
+- 7 perguntas de nível Fácil (conceitos diretos, identificação e definições fundamentais)
+- 7 perguntas de nível Médio (aplicação prática, raciocínio, relações e causas)
+- 6 perguntas de nível Difícil (desafios, análise crítica, deduções e conexões interdisciplinares)
+
+Retorne APENAS um JSON válido no formato de array com 20 objetos. Cada objeto deve ter:
+- 'question': a pergunta em si, formulada de modo claro e instigante.
+- 'answer': a resposta esperada/gabarito de forma concisa e correta.
+- 'difficulty': exatamente uma das opções: "Fácil", "Média" ou "Difícil".
+
 Exemplo de retorno esperado:
 [
   {
-    "question": "Qual foi a causa principal da revolução?",
-    "answer": "A insatisfação popular com os impostos excessivos."
+    "question": "Qual é a definição básica desse conceito?",
+    "answer": "É a capacidade de realizar trabalho...",
+    "difficulty": "Fácil"
   },
   {
-    "question": "Como você explicaria esse conceito?",
-    "answer": "É o processo de transformação de energia..."
+    "question": "Como podemos aplicar essa fórmula em uma situação cotidiana?",
+    "answer": "Calculando a velocidade média...",
+    "difficulty": "Média"
+  },
+  {
+    "question": "Qual seria a consequência a longo prazo se essa variável fosse alterada?",
+    "answer": "O sistema entraria em colapso devido a...",
+    "difficulty": "Difícil"
   }
 ]
 
-IMPORTANTE: Retorne APENAS o JSON (array de objetos), sem markdown ou explicações.`;
+IMPORTANTE: Retorne APENAS o JSON (array de 20 objetos), sem markdown (\`\`\`json) ou explicações adicionais.`;
 
     try {
       const text = await this.generateText(prompt, { 
@@ -721,27 +736,28 @@ IMPORTANTE: Retorne APENAS o JSON (array de objetos), sem markdown ou explicaç�
           throw new Error("Formato de perguntas inválido retornado pela IA");
       }
 
-      // Embaralha as perguntas para que a distribuição pareça mais aleatória
+      // Embaralha as perguntas para misturar as dificuldades na roleta
       questions.sort(() => Math.random() - 0.5);
 
-      // Mapeia cada aluno para uma pergunta (reutilizando caso haja mais alunos do que perguntas)
-      return namesList.map((name, idx) => {
-        let qObj = questions[idx % questions.length];
-        
-        // Suporte a compatibilidade (caso a IA retorne array de strings em vez de objetos)
+      // Retorna a lista completa das 20 perguntas geradas com dificuldade e ID
+      return questions.map((qObj, idx) => {
+        // Suporte a compatibilidade (caso a IA retorne array de strings)
         if (typeof qObj === 'string') {
-            qObj = { question: qObj, answer: '' };
+            qObj = { question: qObj, answer: '', difficulty: 'Média' };
         }
 
         // Formata decimais para o padrão brasileiro (ex: 1.5 -> 1,5)
         let questionText = (qObj.question || '').replace(/(\d+)\.(\d+)/g, '$1,$2');
         let answerText = (qObj.answer || '').replace(/(\d+)\.(\d+)/g, '$1,$2');
-        
+        let difficulty = qObj.difficulty || (idx % 3 === 0 ? 'Fácil' : idx % 3 === 1 ? 'Média' : 'Difícil');
+        let assignedName = namesList.length > 0 ? namesList[idx % namesList.length] : '';
+
         return {
           id: Date.now().toString() + '-' + idx,
-          name: name,
+          name: assignedName,
           question: questionText,
           answer: answerText,
+          difficulty: difficulty,
           active: true
         };
       });
