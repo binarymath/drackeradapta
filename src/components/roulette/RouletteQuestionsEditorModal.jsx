@@ -23,6 +23,7 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
                 id: q.id || Math.random().toString(36).substr(2, 9),
                 question: q.question,
                 answer: q.answer || '',
+                difficulty: q.difficulty || 'Média',
                 imageUrl: q.imageUrl || '',
                 name: q.name || '' // keep for legacy compatibility
             })));
@@ -35,6 +36,10 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
 
     const handleAnswerChange = (id, newAnswer) => {
         setLocalQuestions(prev => prev.map(q => q.id === id ? { ...q, answer: newAnswer } : q));
+    };
+
+    const handleDifficultyChange = (id, newDiff) => {
+        setLocalQuestions(prev => prev.map(q => q.id === id ? { ...q, difficulty: newDiff } : q));
     };
 
     const formatImageUrl = (url) => {
@@ -62,6 +67,8 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
             {
                 id: Math.random().toString(36).substr(2, 9),
                 question: '',
+                answer: '',
+                difficulty: 'Média',
                 imageUrl: '',
                 name: ''
             }
@@ -97,10 +104,23 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
 
                 {localQuestions.map((q, index) => (
                     <div key={q.id} className="bg-slate-50 border border-slate-200 p-4 rounded-2xl shadow-sm space-y-4">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center justify-between gap-2 mb-2">
                             <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold text-sm">
                                 Pergunta {index + 1}
                             </span>
+
+                            <div className="flex items-center gap-1.5">
+                                <label className="text-xs font-bold text-slate-500">Dificuldade:</label>
+                                <select
+                                    value={q.difficulty || 'Média'}
+                                    onChange={(e) => handleDifficultyChange(q.id, e.target.value)}
+                                    className="text-xs font-bold bg-white border border-slate-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
+                                >
+                                    <option value="Fácil">🟢 Fácil</option>
+                                    <option value="Média">🟡 Média</option>
+                                    <option value="Difícil">🔴 Difícil</option>
+                                </select>
+                            </div>
                         </div>
                         
                         <div>
