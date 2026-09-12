@@ -4,7 +4,54 @@ import { RouletteWheel } from './RouletteWheel';
 import { RouletteCard } from './RouletteCard';
 import { StudentHistoryModal } from './StudentHistoryModal';
 import { RouletteQuestionsEditorModal } from './RouletteQuestionsEditorModal';
+import { RouletteStyleSelector } from './RouletteStyleSelector';
 import { CheckCircle, XCircle, RotateCcw, List, Download, UserX, Edit3, RotateCw, RefreshCw, Eye, EyeOff, HeartHandshake, Award } from 'lucide-react';
+
+// Temas visuais imersivos para o palco de fundo da roleta
+const STAGE_THEMES = {
+    slot_machine: {
+        container: 'bg-gradient-to-b from-slate-950 via-red-950/40 to-slate-950 border-amber-500/40 shadow-[0_25px_60px_rgba(245,158,11,0.18)]',
+        spotlight: 'radial-gradient(circle at center, rgba(245,158,11,0.18) 0%, transparent 70%)',
+        button: 'bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-slate-950 font-black shadow-[0_10px_25px_rgba(245,158,11,0.4)] border-2 border-yellow-200 hover:brightness-110',
+        label: 'PUXAR ALAVANCA / GIRAR! 🪙',
+        spinningLabel: 'Girando os Rolos...'
+    },
+    marquee: {
+        container: 'bg-gradient-to-b from-slate-950 via-slate-900 to-black border-slate-700/80 shadow-[0_25px_60px_rgba(0,0,0,0.6)]',
+        spotlight: 'radial-gradient(circle at center, rgba(251,191,36,0.14) 0%, transparent 70%)',
+        button: 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 text-white font-black shadow-amber-600/30 border-2 border-amber-400 hover:brightness-110',
+        label: 'SORTEAR NO LETREIRO! 🔤',
+        spinningLabel: 'Alternando Nomes...'
+    },
+    classic: {
+        container: 'bg-gradient-to-b from-emerald-950 via-slate-950 to-emerald-950 border-emerald-500/40 shadow-[0_25px_60px_rgba(16,185,129,0.15)]',
+        spotlight: 'radial-gradient(circle at center, rgba(253,224,71,0.16) 0%, transparent 70%)',
+        button: 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 font-black shadow-amber-500/30 border-2 border-amber-300 hover:brightness-110',
+        label: 'GIRAR ROLETA VEGAS! 🎰',
+        spinningLabel: 'Girando a Roda...'
+    },
+    cyberpunk: {
+        container: 'bg-gradient-to-b from-slate-950 via-purple-950/40 to-slate-950 border-cyan-500/40 shadow-[0_25px_60px_rgba(6,182,212,0.22)]',
+        spotlight: 'radial-gradient(circle at center, rgba(6,182,212,0.2) 0%, transparent 70%)',
+        button: 'bg-gradient-to-r from-cyan-500 via-fuchsia-600 to-cyan-500 text-white font-black shadow-[0_10px_25px_rgba(6,182,212,0.4)] border-2 border-cyan-300 hover:brightness-110',
+        label: 'LOCK TARGET / SCAN! ⚡',
+        spinningLabel: 'Escaneando Alunos...'
+    },
+    arcade: {
+        container: 'bg-gradient-to-b from-slate-950 via-indigo-950/50 to-black border-yellow-400/40 shadow-[0_25px_60px_rgba(250,204,21,0.18)]',
+        spotlight: 'radial-gradient(circle at center, rgba(250,204,21,0.15) 0%, transparent 70%)',
+        button: 'bg-yellow-400 text-black font-black border-4 border-black shadow-[5px_5px_0px_#000] hover:bg-yellow-300',
+        label: 'PRESS START / GIRAR! 👾',
+        spinningLabel: 'Player 1 Sorteando...'
+    },
+    cosmic: {
+        container: 'bg-gradient-to-b from-slate-950 via-purple-950/60 to-indigo-950 border-purple-500/40 shadow-[0_25px_60px_rgba(168,85,247,0.22)]',
+        spotlight: 'radial-gradient(circle at center, rgba(168,85,247,0.2) 0%, transparent 70%)',
+        button: 'bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-black shadow-purple-600/30 border-2 border-purple-300 hover:brightness-110',
+        label: 'INVOCAR ASTROS / GIRAR! 🌌',
+        spinningLabel: 'Alinhando os Astros...'
+    }
+};
 
 export const RouletteActivity = () => {
     const { activeActivity, classes, setClasses, updateActivityData } = useActivity();
@@ -51,6 +98,30 @@ export const RouletteActivity = () => {
     const [spinning, setSpinning] = useState(false);
     const [winner, setWinner] = useState(null); // O item sorteado
     const [showCard, setShowCard] = useState(false); // Mostra o card de resultado
+    
+    // Preferência de Estilo de Roleta (persiste em localStorage e na atividade)
+    const [rouletteStyle, setRouletteStyle] = useState(() => {
+        if (activeActivity?.rouletteStyle) {
+            return activeActivity.rouletteStyle;
+        }
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('preferred_roulette_style');
+            if (saved) return saved;
+        }
+        return 'slot_machine';
+    });
+
+    const handleSelectStyle = (styleId) => {
+        setRouletteStyle(styleId);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('preferred_roulette_style', styleId);
+        }
+        if (activeActivity && updateActivityData) {
+            updateActivityData(activeActivity.id, { rouletteStyle: styleId });
+        }
+    };
+
+    const currentTheme = STAGE_THEMES[rouletteStyle] || STAGE_THEMES.slot_machine;
     
     // Rastreamento de perguntas usadas nesta sessão para evitar repetição
     const [usedQuestions, setUsedQuestions] = useState(() => new Set());
@@ -474,34 +545,64 @@ export const RouletteActivity = () => {
                 </div>
             </div>
 
+            {/* Temas visuais imersivos para o palco de fundo da roleta */}
             <div className="w-full flex flex-col md:flex-row gap-8 items-start justify-center">
-                {/* Lado Esquerdo: Roleta */}
-                <div className="flex-1 w-full flex flex-col items-center justify-center bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200">
-                    <div className="flex items-center justify-between w-full mb-6">
-                        <h2 className="text-2xl font-black text-slate-800">Roleta</h2>
-                        <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                {/* Lado Esquerdo: Arena Imersiva da Roleta */}
+                <div className={`relative flex-1 w-full flex flex-col items-center justify-center p-5 sm:p-7 rounded-3xl border transition-all duration-500 overflow-hidden ${currentTheme.container}`}>
+                    {/* Spotlight de Iluminação Cênica de Fundo */}
+                    <div 
+                        className="absolute inset-0 pointer-events-none rounded-3xl transition-all duration-500" 
+                        style={{ background: currentTheme.spotlight }}
+                    />
+                    {/* Textura sutil de arena */}
+                    <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none rounded-3xl opacity-50" />
+
+                    {/* Header da Arena */}
+                    <div className="flex items-center justify-between w-full mb-3 z-10 relative">
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-2xl font-black text-white tracking-wide">Roleta</h2>
+                            <span className="text-xs font-bold text-slate-400 hidden sm:inline">
+                                | Arena de Sorteio
+                            </span>
+                        </div>
+                        <span className="text-xs font-bold text-amber-300 bg-amber-400/10 px-3 py-1.5 rounded-full border border-amber-400/20 flex items-center gap-1.5 shadow-xs">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                             {activeItems.length} alunos na roda
                         </span>
                     </div>
-                    
-                    <RouletteWheel 
-                        items={activeItems} 
-                        spinning={spinning} 
-                        winner={winner} 
-                        onSpinComplete={handleSpinComplete} 
-                    />
 
-                    <div className="mt-10">
+                    {/* Seletor dos 6 Estilos de Roleta */}
+                    <div className="w-full z-10 relative">
+                        <RouletteStyleSelector 
+                            selectedStyle={rouletteStyle}
+                            onSelectStyle={handleSelectStyle}
+                            disabled={spinning}
+                        />
+                    </div>
+                    
+                    {/* Roda / Chassi de Roleta Central */}
+                    <div className="z-10 relative my-2 w-full flex items-center justify-center">
+                        <RouletteWheel 
+                            style={rouletteStyle}
+                            items={activeItems} 
+                            spinning={spinning} 
+                            winner={winner} 
+                            onSpinComplete={handleSpinComplete} 
+                        />
+                    </div>
+
+                    {/* Botão de Giro Temático */}
+                    <div className="mt-6 sm:mt-8 z-10 relative">
                         <button 
                             onClick={handleSpin}
                             disabled={spinning || activeItems.length === 0}
-                            className={`px-8 sm:px-10 py-4 rounded-2xl font-black text-xl sm:text-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3 ${
+                            className={`px-8 sm:px-10 py-4 rounded-2xl font-black text-xl sm:text-2xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3 cursor-pointer ${
                                 spinning || activeItems.length === 0
-                                ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
-                                : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-400 hover:to-orange-400'
+                                ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700 opacity-60 shadow-none'
+                                : currentTheme.button
                             }`}
                         >
-                            {spinning ? 'Girando...' : 'GIRAR A ROLETA! 🎲'}
+                            {spinning ? currentTheme.spinningLabel : currentTheme.label}
                         </button>
                     </div>
                 </div>
