@@ -78,12 +78,65 @@ export class VersionedBackupService {
     }
 
     /**
+     * Helper para consolidar e deduplicar lista de turmas
+     */
+    static consolidateClasses(...classSources) {
+        const classMap = new Map();
+        
+        classSources.forEach(source => {
+            if (!source) return;
+            const list = Array.isArray(source) ? source : [source];
+            list.forEach(item => {
+                if (!item) return;
+                const key = item.id || item.name;
+                if (!key) return;
+                if (!classMap.has(key)) {
+                    classMap.set(key, {
+                        id: item.id ? String(item.id) : `cls_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+                        name: item.name || 'Turma Sem Nome',
+                        students: Array.isArray(item.students) ? item.students : []
+                    });
+                } else {
+                    const existing = classMap.get(key);
+                    if ((!existing.students || existing.students.length === 0) && Array.isArray(item.students) && item.students.length > 0) {
+                        existing.students = item.students;
+                    }
+                }
+            });
+        });
+
+        return Array.from(classMap.values());
+    }
+
+    /**
      * Salva um novo checkpoint/versionamento local
      */
-    static saveCheckpoint(tabs, { versionTag, description = '', stripImages = true, author = 'Professor(a)' } = {}) {
+    static saveCheckpoint(tabs, { versionTag, description = '', stripImages = true, author = 'Professor(a)', classes = null } = {}) {
         const existing = VersionedBackupService.getCheckpoints();
         
-        const sanitizedTabs = (tabs || []).map(t => VersionedBackupService.sanitizeActivityForBackup(t, stripImages)).filter(Boolean);
+        // Coleta classes do localStorage como base
+        let localClasses = [];
+        try {
+            const raw = localStorage.getItem('atividade_adaptada_classes');
+            if (raw) localClasses = JSON.parse(raw);
+        } catch (e) {
+            console.warn('Erro ao ler classes para checkpoint:', e);
+        }
+
+        // Coleta classes embutidas nas próprias abas
+        const tabClasses = (tabs || []).map(t => t?.classData).filter(Boolean);
+
+        const allClasses = VersionedBackupService.consolidateClasses(classes, localClasses, tabClasses);
+
+        const sanitizedTabs = (tabs || []).map(t => {
+            const clean = VersionedBackupService.sanitizeActivityForBackup(t, stripImages);
+            if (clean && clean.type === 'roulette') {
+                if (!clean.classData && clean.classId) {
+                    clean.classData = allClasses.find(c => c.id === clean.classId) || null;
+                }
+            }
+            return clean;
+        }).filter(Boolean);
         
         const nextVersionNumber = existing.length + 1;
         const versionId = `v${nextVersionNumber}.0`;
@@ -93,7 +146,7 @@ export class VersionedBackupService {
             id: `chk_${Date.now()}`,
             versionId,
             versionTag: versionTag || `Checkpoint de Versão ${nextVersionNumber}`,
-            description: description || `Backup contendo ${sanitizedTabs.length} atividade(s).`,
+            description: description || `Backup contendo ${sanitizedTabs.length} atividade(s) e ${allClasses.length} turma(s).`,
             createdAt: timestamp,
             author,
             stripImages,
@@ -101,7 +154,8 @@ export class VersionedBackupService {
                 totalActivities: sanitizedTabs.length,
                 sizeInKB: 0
             },
-            tabs: sanitizedTabs
+            tabs: sanitizedTabs,
+            classes: allClasses
         };
 
         checkpointData.stats.sizeInKB = VersionedBackupService.calculateSizeKB(checkpointData);
@@ -134,25 +188,46 @@ export class VersionedBackupService {
     /**
      * Gera e dispara o download de um arquivo .json otimizado
      */
-    static exportJsonFile(checkpointOrTabs, { customFileName = null, isRawTabs = false, metadata = {} } = {}) {
+    static exportJsonFile(checkpointOrTabs, { customFileName = null, isRawTabs = false, metadata = {}, classes = null } = {}) {
         let payload;
         const now = new Date();
         const dateStr = now.toLocaleDateString('pt-BR').replace(/\//g, '-');
 
+        // Coleta todas as fontes de turmas disponíveis
+        let localClasses = [];
+        try {
+            const rawClasses = localStorage.getItem('atividade_adaptada_classes');
+            if (rawClasses) localClasses = JSON.parse(rawClasses);
+        } catch (e) {
+            console.warn('Erro ao ler classes para backup:', e);
+        }
+
+        const sourceTabs = isRawTabs ? (checkpointOrTabs || []) : (checkpointOrTabs?.tabs || []);
+        const tabsClassData = sourceTabs.map(t => t?.classData).filter(Boolean);
+        const checkpointClasses = !isRawTabs ? checkpointOrTabs?.classes : null;
+
+        const allClasses = VersionedBackupService.consolidateClasses(
+            classes,
+            metadata.classes,
+            checkpointClasses,
+            localClasses,
+            tabsClassData
+        );
+
         if (isRawTabs) {
             // Se for exportação direta do estado de abas
             const stripImages = metadata.stripImages !== false; // por padrão leve
-            const sanitizedTabs = (checkpointOrTabs || []).map(t => VersionedBackupService.sanitizeActivityForBackup(t, stripImages));
+            const sanitizedTabs = (checkpointOrTabs || []).map(t => {
+                const clean = VersionedBackupService.sanitizeActivityForBackup(t, stripImages);
+                if (clean && clean.type === 'roulette') {
+                    if (!clean.classData && clean.classId) {
+                        clean.classData = allClasses.find(c => c.id === clean.classId) || null;
+                    }
+                }
+                return clean;
+            });
             const existingCheckpoints = VersionedBackupService.getCheckpoints();
             const verNum = existingCheckpoints.length + 1;
-
-            let savedClasses = [];
-            try {
-                const rawClasses = localStorage.getItem('atividade_adaptada_classes');
-                if (rawClasses) savedClasses = JSON.parse(rawClasses);
-            } catch (e) {
-                console.warn('Erro ao ler classes para backup:', e);
-            }
 
             payload = {
                 fileFormat: "DRACKER_VERSIONED_BACKUP",
@@ -160,43 +235,37 @@ export class VersionedBackupService {
                 snapshot: {
                     versionId: metadata.versionId || `v${verNum}.0`,
                     versionTag: metadata.versionTag || `Backup Rápido (${dateStr})`,
-                    description: metadata.description || "Backup gerado diretamente da área de trabalho.",
+                    description: metadata.description || `Backup contendo ${sanitizedTabs.length} atividade(s) e ${allClasses.length} turma(s).`,
                     createdAt: now.toISOString(),
                     author: metadata.author || "Professor(a)",
                     stripImages,
                     stats: {
                         totalActivities: sanitizedTabs.length,
                         sizeInKB: 0
-                    }
+                    },
+                    classes: allClasses
                 },
                 activitiesData: sanitizedTabs,
-                classes: savedClasses
+                classes: allClasses
             };
             payload.snapshot.stats.sizeInKB = VersionedBackupService.calculateSizeKB(payload);
         } else {
             // Se for exportação de um checkpoint existente
-            let savedClasses = [];
-            try {
-                const rawClasses = localStorage.getItem('atividade_adaptada_classes');
-                if (rawClasses) savedClasses = JSON.parse(rawClasses);
-            } catch (e) {
-                console.warn('Erro ao ler classes para backup:', e);
-            }
-
             payload = {
                 fileFormat: "DRACKER_VERSIONED_BACKUP",
                 formatVersion: "3.0",
                 snapshot: {
                     versionId: checkpointOrTabs.versionId || "v1.0",
                     versionTag: checkpointOrTabs.versionTag || `Snapshot (${dateStr})`,
-                    description: checkpointOrTabs.description || "",
+                    description: checkpointOrTabs.description || `Snapshot contendo ${(checkpointOrTabs.tabs || []).length} atividade(s) e ${allClasses.length} turma(s).`,
                     createdAt: checkpointOrTabs.createdAt || now.toISOString(),
                     author: checkpointOrTabs.author || "Professor(a)",
                     stripImages: checkpointOrTabs.stripImages ?? true,
-                    stats: checkpointOrTabs.stats || { totalActivities: (checkpointOrTabs.tabs || []).length, sizeInKB: 0 }
+                    stats: checkpointOrTabs.stats || { totalActivities: (checkpointOrTabs.tabs || []).length, sizeInKB: 0 },
+                    classes: allClasses
                 },
                 activitiesData: checkpointOrTabs.tabs || [],
-                classes: checkpointOrTabs.classes || savedClasses
+                classes: allClasses
             };
             payload.snapshot.stats.sizeInKB = VersionedBackupService.calculateSizeKB(payload);
         }
@@ -232,12 +301,23 @@ export class VersionedBackupService {
     /**
      * Exporta todas as versões da Linha do Tempo em um pacote único (.json)
      */
-    static exportHistoryPack() {
+    static exportHistoryPack(classes = null) {
         const checkpoints = VersionedBackupService.getCheckpoints();
         if (checkpoints.length === 0) {
             alert('Não há checkpoints salvos na linha do tempo para exportar.');
             return;
         }
+
+        let localClasses = [];
+        try {
+            const raw = localStorage.getItem('atividade_adaptada_classes');
+            if (raw) localClasses = JSON.parse(raw);
+        } catch (e) {
+            console.warn('Erro ao ler classes para histórico:', e);
+        }
+
+        const chkClasses = checkpoints.flatMap(c => c.classes || []);
+        const allClasses = VersionedBackupService.consolidateClasses(classes, localClasses, chkClasses);
 
         const now = new Date();
         const dateStr = now.toLocaleDateString('pt-BR').replace(/\//g, '-');
@@ -246,7 +326,11 @@ export class VersionedBackupService {
             formatVersion: "3.0",
             exportedAt: now.toISOString(),
             totalCheckpoints: checkpoints.length,
-            checkpoints: checkpoints
+            classes: allClasses,
+            checkpoints: checkpoints.map(c => ({
+                ...c,
+                classes: c.classes && c.classes.length > 0 ? c.classes : allClasses
+            }))
         };
 
         const jsonStr = JSON.stringify(payload, null, 2);
@@ -283,14 +367,61 @@ export class VersionedBackupService {
                 }));
             };
 
+            const extractAllClasses = (sourceObj, tabList) => {
+                const list = [];
+                // 1. Array de classes na raiz ou no snapshot
+                if (Array.isArray(sourceObj.classes)) list.push(...sourceObj.classes);
+                if (Array.isArray(sourceObj.turmas)) list.push(...sourceObj.turmas);
+                if (Array.isArray(sourceObj.snapshot?.classes)) list.push(...sourceObj.snapshot.classes);
+
+                // 2. Classes dentro dos checkpoints (se for history pack)
+                if (Array.isArray(sourceObj.checkpoints)) {
+                    sourceObj.checkpoints.forEach(chk => {
+                        if (Array.isArray(chk.classes)) list.push(...chk.classes);
+                        if (Array.isArray(chk.tabs)) {
+                            chk.tabs.forEach(t => {
+                                if (t?.classData) list.push(t.classData);
+                            });
+                        }
+                    });
+                }
+
+                // 3. Classes embutidas nas abas
+                if (Array.isArray(tabList)) {
+                    tabList.forEach(t => {
+                        if (t?.classData) {
+                            list.push(t.classData);
+                        } else if (t?.type === 'roulette' && Array.isArray(t.items) && t.items.length > 0) {
+                            // Se for roleta com items legados (alunos), extrai como turma
+                            list.push({
+                                id: t.classId || `cls_legacy_${t.id || Date.now()}`,
+                                name: t.topic ? `Turma: ${t.topic}` : (t.title || 'Turma da Roleta'),
+                                students: t.items.map((it, idx) => ({
+                                    id: it.id || `std_${idx}`,
+                                    name: it.name || `Aluno ${idx + 1}`,
+                                    status: it.active !== false ? 'active' : 'removed',
+                                    hits: it.hits || 0,
+                                    misses: it.misses || 0,
+                                    history: []
+                                }))
+                            });
+                        }
+                    });
+                }
+
+                return VersionedBackupService.consolidateClasses(list);
+            };
+
             // 1. Verifica se é um Pacote de Histórico completo (.dracker-pack / .json)
             if (parsed.fileFormat === "DRACKER_HISTORY_PACK" && Array.isArray(parsed.checkpoints)) {
+                const extractedClasses = extractAllClasses(parsed, []);
                 return {
                     isValid: true,
                     isHistoryPack: true,
                     checkpoints: parsed.checkpoints,
                     totalCheckpoints: parsed.totalCheckpoints || parsed.checkpoints.length,
-                    exportedAt: parsed.exportedAt || new Date().toISOString()
+                    exportedAt: parsed.exportedAt || new Date().toISOString(),
+                    classes: extractedClasses
                 };
             }
 
@@ -299,6 +430,7 @@ export class VersionedBackupService {
                 const snapshot = parsed.snapshot || {};
                 const rawTabs = parsed.activitiesData || parsed.tabs || [];
                 const tabs = sanitizeTabList(rawTabs);
+                const classes = extractAllClasses(parsed, tabs);
                 return {
                     isValid: true,
                     isVersioned: true,
@@ -313,7 +445,7 @@ export class VersionedBackupService {
                         stats: snapshot.stats || { totalActivities: tabs.length, sizeInKB: VersionedBackupService.calculateSizeKB(parsed) }
                     },
                     tabs,
-                    classes: Array.isArray(parsed.classes) ? parsed.classes : []
+                    classes
                 };
             }
 
@@ -321,6 +453,7 @@ export class VersionedBackupService {
             if (parsed.tabs && Array.isArray(parsed.tabs)) {
                 const tabs = sanitizeTabList(parsed.tabs);
                 const sizeKB = VersionedBackupService.calculateSizeKB(parsed);
+                const classes = extractAllClasses(parsed, tabs);
                 return {
                     isValid: true,
                     isVersioned: false,
@@ -335,7 +468,7 @@ export class VersionedBackupService {
                         stats: { totalActivities: tabs.length, sizeInKB: sizeKB }
                     },
                     tabs,
-                    classes: Array.isArray(parsed.classes) ? parsed.classes : []
+                    classes
                 };
             }
 
@@ -343,6 +476,7 @@ export class VersionedBackupService {
             if (Array.isArray(parsed)) {
                 const tabs = sanitizeTabList(parsed);
                 const sizeKB = VersionedBackupService.calculateSizeKB(parsed);
+                const classes = extractAllClasses({ activities: parsed }, tabs);
                 return {
                     isValid: true,
                     isVersioned: false,
@@ -356,7 +490,8 @@ export class VersionedBackupService {
                         stripImages: false,
                         stats: { totalActivities: tabs.length, sizeInKB: sizeKB }
                     },
-                    tabs
+                    tabs,
+                    classes
                 };
             }
 
@@ -365,6 +500,7 @@ export class VersionedBackupService {
             if (Array.isArray(possibleTabs)) {
                 const tabs = sanitizeTabList(possibleTabs);
                 const sizeKB = VersionedBackupService.calculateSizeKB(parsed);
+                const classes = extractAllClasses(parsed, tabs);
                 return {
                     isValid: true,
                     isVersioned: false,
@@ -378,13 +514,15 @@ export class VersionedBackupService {
                         stripImages: false,
                         stats: { totalActivities: tabs.length, sizeInKB: sizeKB }
                     },
-                    tabs
+                    tabs,
+                    classes
                 };
             }
 
             // 6. Suporte para atividade única avulsa em JSON
             if (parsed.type || parsed.content !== undefined || parsed.quizData || parsed.wordsearchData || parsed.crosswordData || parsed.questions || parsed.items) {
                 const singleTab = sanitizeTabList([parsed])[0];
+                const classes = extractAllClasses(parsed, [singleTab]);
                 return {
                     isValid: true,
                     isVersioned: false,
@@ -398,7 +536,8 @@ export class VersionedBackupService {
                         stripImages: false,
                         stats: { totalActivities: 1, sizeInKB: VersionedBackupService.calculateSizeKB(parsed) }
                     },
-                    tabs: [singleTab]
+                    tabs: [singleTab],
+                    classes
                 };
             }
 

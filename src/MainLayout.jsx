@@ -237,7 +237,7 @@ export const MainLayout = () => {
         handleMergeImport,
         handleReplaceImport,
         closeImportDialog
-    } = useBackupSystem(tabs, setTabs, setActiveTabId, setActivityType, setTopic, setClasses);
+    } = useBackupSystem(tabs, setTabs, setActiveTabId, setActivityType, setTopic, classes, setClasses);
 
     const getTabLabel = (tab) => {
         const title = tab.title || 'Sem título';
@@ -427,6 +427,7 @@ export const MainLayout = () => {
                     isOpen={backupCenterModal.isOpen}
                     onClose={closeBackupCenter}
                     currentTabs={tabs}
+                    classes={classes}
                     onRestoreTabs={restoreTabsVersioned}
                     onMergeTabs={mergeTabsVersioned}
                     onOpenSingleActivity={openSingleTabVersioned}

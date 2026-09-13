@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Sparkles, AlertCircle, Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart, X, Mic, Download, Plus } from 'lucide-react';
+import { Loader2, Sparkles, AlertCircle, Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart, X, Mic, Download, Plus, Users, ChevronDown } from 'lucide-react';
 import { ClassesManagerModal } from './roulette/ClassesManagerModal';
 import { theme } from '../styles/theme';
 import { Button } from './ui/Button';
@@ -167,25 +167,42 @@ export const Sidebar = ({
 
                     {activityType === 'roulette' && (
                         <div className="space-y-2">
-                            <label className={theme.text.label}>Selecione a Turma</label>
-                            <div className="flex gap-2">
-                                <select 
-                                    value={selectedClassId}
-                                    onChange={(e) => setSelectedClassId(e.target.value)}
-                                    className="flex-1 px-3 py-2 border border-brown-200 rounded-xl focus:ring-2 focus:ring-brown-500 outline-none bg-white text-brown-800 text-[15px] shadow-sm appearance-none"
+                            <div className="flex items-center justify-between">
+                                <label className={theme.text.label}>Selecione a Turma</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsClassesModalOpen(true)}
+                                    className="text-xs font-bold text-brown-600 hover:text-brown-800 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
+                                    title="Gerenciar todas as turmas"
                                 >
-                                    <option value="" disabled>Escolha uma turma...</option>
-                                    {classes.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                </select>
+                                    <Users className="w-3.5 h-3.5 text-brown-600" />
+                                    <span>Gerenciar Turmas</span>
+                                </button>
+                            </div>
+                            <div className="flex items-center gap-2 w-full min-w-0">
+                                <div className="relative flex-1 min-w-0">
+                                    <select 
+                                        value={selectedClassId}
+                                        onChange={(e) => setSelectedClassId(e.target.value)}
+                                        className="w-full min-w-0 truncate px-3 py-2 border border-brown-200 rounded-xl focus:ring-2 focus:ring-brown-500 outline-none bg-white text-brown-800 text-[14px] shadow-sm appearance-none pr-8 cursor-pointer"
+                                        title={classes.find(c => c.id === selectedClassId)?.name || "Escolha uma turma..."}
+                                    >
+                                        <option value="" disabled>Escolha uma turma...</option>
+                                        {classes.map(c => (
+                                            <option key={c.id} value={c.id} title={c.name}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="w-4 h-4 text-brown-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                </div>
                                 <Button 
+                                    type="button"
                                     onClick={() => setIsClassesModalOpen(true)}
                                     variant="secondary"
-                                    className="px-4"
+                                    className="shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
                                     title="Gerenciar Turmas"
                                 >
-                                    Gerenciar
+                                    <Users className="w-4 h-4 text-brown-700" />
+                                    <span>Gerenciar</span>
                                 </Button>
                             </div>
                         </div>

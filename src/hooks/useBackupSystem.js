@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { VersionedBackupService } from '../services/VersionedBackupService';
 
-export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, setTopic, setClasses) => {
+export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, setTopic, classes, setClasses) => {
     // Estado do modal legado (para compatibilidade, caso necessite)
     const [importDialog, setImportDialog] = useState({
         isOpen: false,
@@ -42,11 +42,13 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, 
             }
             VersionedBackupService.exportJsonFile(tabs, {
                 isRawTabs: true,
+                classes: classes || [],
                 metadata: {
                     versionTag: `Backup Rápido (${new Date().toLocaleDateString('pt-BR')})`,
                     description: `Backup gerado pelo botão da barra de navegação com ${tabs.length} atividade(s).`,
                     stripImages: true,
-                    author: 'Professor(a)'
+                    author: 'Professor(a)',
+                    classes: classes || []
                 }
             });
         } catch (error) {
@@ -82,18 +84,32 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, 
         }
     };
 
+    // Helper interno para restaurar e persistir turmas de forma segura e completa
+    const consolidateAndApplyClasses = (classesList, sourceTabs = []) => {
+        if (!setClasses) return;
+        
+        const tabsClassData = (sourceTabs || []).map(t => t?.classData).filter(Boolean);
+        const incoming = VersionedBackupService.consolidateClasses(classesList, tabsClassData);
+
+        if (incoming.length > 0) {
+            setClasses(prev => {
+                const merged = VersionedBackupService.consolidateClasses(prev, incoming);
+                try {
+                    localStorage.setItem('atividade_adaptada_classes', JSON.stringify(merged));
+                } catch (e) {
+                    console.warn('Erro ao salvar classes consolidadas:', e);
+                }
+                return merged;
+            });
+        }
+    };
+
     // Abrir imediatamente uma atividade individual selecionada
     const openSingleTabVersioned = (tabToOpen, classesToRestore = null) => {
         if (!tabToOpen) return;
         const cleanTab = { ...tabToOpen, hidden: false };
 
-        if (classesToRestore && Array.isArray(classesToRestore) && classesToRestore.length > 0 && setClasses) {
-            setClasses(prev => {
-                const existingIds = new Set((prev || []).map(c => c.id));
-                const toAdd = classesToRestore.filter(c => !existingIds.has(c.id));
-                return [...(prev || []), ...toAdd];
-            });
-        }
+        consolidateAndApplyClasses(classesToRestore, [cleanTab]);
 
         const existingIndex = tabs.findIndex(t => t.id === cleanTab.id);
         if (existingIndex >= 0) {
@@ -112,13 +128,7 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, 
         const unhiddenTabs = newTabs.map(t => ({ ...t, hidden: false }));
         setTabs(unhiddenTabs);
 
-        if (classesToRestore && Array.isArray(classesToRestore) && classesToRestore.length > 0 && setClasses) {
-            setClasses(prev => {
-                const existingIds = new Set((prev || []).map(c => c.id));
-                const toAdd = classesToRestore.filter(c => !existingIds.has(c.id));
-                return [...(prev || []), ...toAdd];
-            });
-        }
+        consolidateAndApplyClasses(classesToRestore, unhiddenTabs);
 
         // Prioriza a primeira atividade real restaurada (evitando selecionar 'about_system' / página inicial)
         const targetTab = unhiddenTabs.find(t => t.type && t.type !== 'about_system') 
@@ -148,13 +158,7 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, 
             return cleanTab;
         });
 
-        if (classesToRestore && Array.isArray(classesToRestore) && classesToRestore.length > 0 && setClasses) {
-            setClasses(prev => {
-                const existingIds = new Set((prev || []).map(c => c.id));
-                const toAdd = classesToRestore.filter(c => !existingIds.has(c.id));
-                return [...(prev || []), ...toAdd];
-            });
-        }
+        consolidateAndApplyClasses(classesToRestore, newTabs);
 
         setTabs(prev => [...prev, ...newTabs]);
         const targetTab = newTabs.find(t => t.type && t.type !== 'about_system') 
