@@ -18,7 +18,8 @@ import {
     Square, 
     X,
     HardDrive,
-    Info
+    Info,
+    Play
 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input, TextArea } from './ui/Input';
@@ -31,6 +32,7 @@ export const BackupVersionCenterModal = ({
     currentTabs = [],
     onRestoreTabs,
     onMergeTabs,
+    onOpenSingleActivity,
     initialTab = 'timeline',
     initialFileContent = null
 }) => {
@@ -433,9 +435,9 @@ export const BackupVersionCenterModal = ({
                                                             }
                                                         }}
                                                         className="text-xs font-bold shadow-xs bg-amber-600 hover:bg-amber-700"
-                                                        title="Restaurar instantaneamente"
+                                                        title="Restaurar instantaneamente e abrir"
                                                     >
-                                                        ⚡ Restaurar
+                                                        ⚡ Restaurar e Abrir
                                                     </Button>
 
                                                     <button
@@ -556,14 +558,17 @@ export const BackupVersionCenterModal = ({
                                                 return (
                                                     <div
                                                         key={tab.id || idx}
-                                                        onClick={() => toggleSelectActivity(tab.id)}
-                                                        className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                                                        className={`p-3.5 rounded-xl border transition-all flex items-center justify-between gap-3 ${
                                                             isSelected
                                                                 ? 'bg-amber-50/60 border-amber-400 shadow-2xs'
-                                                                : 'bg-white border-brown-200 hover:bg-brown-50 opacity-70'
+                                                                : 'bg-white border-brown-200 hover:bg-brown-50'
                                                         }`}
                                                     >
-                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                        <div 
+                                                            onClick={() => toggleSelectActivity(tab.id)}
+                                                            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+                                                            title="Marcar/desmarcar para mesclagem"
+                                                        >
                                                             <div className="text-amber-600 shrink-0">
                                                                 {isSelected ? (
                                                                     <CheckSquare className="w-5 h-5" />
@@ -580,9 +585,29 @@ export const BackupVersionCenterModal = ({
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-brown-100 text-brown-700">
-                                                            #{idx + 1}
-                                                        </span>
+
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="primary"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (onOpenSingleActivity) {
+                                                                        onOpenSingleActivity(tab);
+                                                                    } else if (onMergeTabs) {
+                                                                        onMergeTabs([tab]);
+                                                                    }
+                                                                    onClose();
+                                                                }}
+                                                                className="text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs px-2.5 py-1"
+                                                                title="Abrir esta atividade agora na área de trabalho"
+                                                            >
+                                                                <Play className="w-3.5 h-3.5 mr-1 fill-white" /> Abrir Agora
+                                                            </Button>
+                                                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-brown-100 text-brown-700">
+                                                                #{idx + 1}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 );
                                             })}
@@ -592,7 +617,7 @@ export const BackupVersionCenterModal = ({
                                     {/* Botões Finais de Restauração */}
                                     <div className="pt-4 border-t border-brown-200 flex flex-col md:flex-row items-center justify-between gap-3">
                                         <p className="text-xs text-brown-600 font-medium">
-                                            💡 <strong className="text-brown-800">Dica:</strong> Mesclar preserva suas abas atuais, enquanto Substituir Tudo faz um rollback completo.
+                                            💡 <strong className="text-brown-800">Dica:</strong> Clique em <strong>Abrir Agora</strong> em qualquer atividade para visualizá-la instantaneamente, ou use os botões abaixo.
                                         </p>
                                         
                                         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
@@ -602,7 +627,7 @@ export const BackupVersionCenterModal = ({
                                                 disabled={selectedActivityIds.size === 0}
                                                 className="font-bold text-xs shadow-xs"
                                             >
-                                                ➕ Mesclar Selecionadas (`{selectedActivityIds.size}`)
+                                                ➕ Mesclar e Abrir Selecionadas (`{selectedActivityIds.size}`)
                                             </Button>
 
                                             <Button
@@ -610,7 +635,7 @@ export const BackupVersionCenterModal = ({
                                                 onClick={executeReplaceAll}
                                                 className="font-bold text-xs shadow-md bg-brown-900 hover:bg-brown-950 text-white"
                                             >
-                                                ⚡ Substituir Sistema (`Rollback Total`)
+                                                ⚡ Substituir Tudo e Abrir (`Rollback Total`)
                                             </Button>
                                         </div>
                                     </div>

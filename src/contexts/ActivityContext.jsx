@@ -370,6 +370,17 @@ export const ActivityProvider = ({ children }) => {
         }
     }, [activeActivity]);
 
+    // Safeguard: Sincroniza activityType automaticamente se activeTabId apontar para uma atividade válida
+    useEffect(() => {
+        if (activeTabId && activeTabId !== 'about_system') {
+            const currentTab = tabs.find(t => t.id === activeTabId);
+            if (currentTab && currentTab.type && currentTab.type !== 'about_system' && activityType === 'about_system') {
+                setActivityType(currentTab.type);
+                if (currentTab.title) setTopic(currentTab.title);
+            }
+        }
+    }, [activeTabId, tabs, activityType]);
+
     const updateActivityData = (tabId, newData) => {
         setTabs(prev => prev.map(t => {
             if (t.id === tabId) {

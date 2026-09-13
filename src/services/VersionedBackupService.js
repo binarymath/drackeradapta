@@ -248,9 +248,24 @@ export class VersionedBackupService {
      */
     static parseBackupFile(fileContentStr) {
         try {
-            const parsed = JSON.parse(fileContentStr);
+            const parsed = typeof fileContentStr === 'string' ? JSON.parse(fileContentStr) : fileContentStr;
+            if (!parsed) {
+                return { isValid: false, error: 'O arquivo está vazio ou inválido.' };
+            }
 
-            // 1. Verifica se é um Pacote de Histórico completo (.dracker-pack)
+            const sanitizeTabList = (rawList) => {
+                if (!Array.isArray(rawList)) return [];
+                return rawList.filter(Boolean).map((t, idx) => ({
+                    ...t,
+                    id: t.id ? String(t.id) : `tab_imported_${Date.now()}_${idx}`,
+                    title: t.title || t.topic || `Atividade #${idx + 1}`,
+                    type: t.type || 'quiz',
+                    content: t.content !== undefined ? t.content : '',
+                    hidden: false
+                }));
+            };
+
+            // 1. Verifica se é um Pacote de Histórico completo (.dracker-pack / .json)
             if (parsed.fileFormat === "DRACKER_HISTORY_PACK" && Array.isArray(parsed.checkpoints)) {
                 return {
                     isValid: true,
@@ -261,10 +276,11 @@ export class VersionedBackupService {
                 };
             }
 
-            // 2. Verifica se é o formato versionado v3.0 (.dracker / DRACKER_VERSIONED_BACKUP)
+            // 2. Formato versionado v3.0 (.json / DRACKER_VERSIONED_BACKUP)
             if (parsed.fileFormat === "DRACKER_VERSIONED_BACKUP" || parsed.snapshot) {
                 const snapshot = parsed.snapshot || {};
-                const tabs = parsed.activitiesData || parsed.tabs || [];
+                const rawTabs = parsed.activitiesData || parsed.tabs || [];
+                const tabs = sanitizeTabList(rawTabs);
                 return {
                     isValid: true,
                     isVersioned: true,
@@ -278,12 +294,13 @@ export class VersionedBackupService {
                         stripImages: snapshot.stripImages ?? true,
                         stats: snapshot.stats || { totalActivities: tabs.length, sizeInKB: VersionedBackupService.calculateSizeKB(parsed) }
                     },
-                    tabs: Array.isArray(tabs) ? tabs : []
+                    tabs
                 };
             }
 
-            // 3. Suporte retroativo para JSON v2.0 (antigo)
+            // 3. Suporte para JSON v2.0 (objeto com chave .tabs)
             if (parsed.tabs && Array.isArray(parsed.tabs)) {
+                const tabs = sanitizeTabList(parsed.tabs);
                 const sizeKB = VersionedBackupService.calculateSizeKB(parsed);
                 return {
                     isValid: true,
@@ -291,21 +308,84 @@ export class VersionedBackupService {
                     isHistoryPack: false,
                     snapshot: {
                         versionId: parsed.version || 'v2.0',
-                        versionTag: `Backup Antigo (${parsed.exportDate ? new Date(parsed.exportDate).toLocaleDateString('pt-BR') : 'Legado'})`,
-                        description: 'Arquivo de backup importado no formato antigo.',
+                        versionTag: `Backup (${parsed.exportDate ? new Date(parsed.exportDate).toLocaleDateString('pt-BR') : 'Importado'})`,
+                        description: 'Arquivo de backup importado em formato JSON.',
                         createdAt: parsed.exportDate || new Date().toISOString(),
-                        author: 'Sistema Legado',
+                        author: 'Backup JSON',
                         stripImages: false,
-                        stats: { totalActivities: parsed.tabs.length, sizeInKB: sizeKB }
+                        stats: { totalActivities: tabs.length, sizeInKB: sizeKB }
                     },
-                    tabs: parsed.tabs
+                    tabs
                 };
             }
 
-            return { isValid: false, error: 'Estrutura de dados não reconhecida como backup do Drácker.' };
+            // 4. Suporte para Array direto de atividades [ {...}, {...} ]
+            if (Array.isArray(parsed)) {
+                const tabs = sanitizeTabList(parsed);
+                const sizeKB = VersionedBackupService.calculateSizeKB(parsed);
+                return {
+                    isValid: true,
+                    isVersioned: false,
+                    isHistoryPack: false,
+                    snapshot: {
+                        versionId: 'raw_array',
+                        versionTag: `Lista de Atividades (${tabs.length})`,
+                        description: `Arquivo JSON com lista de ${tabs.length} atividade(s).`,
+                        createdAt: new Date().toISOString(),
+                        author: 'Importação Direta',
+                        stripImages: false,
+                        stats: { totalActivities: tabs.length, sizeInKB: sizeKB }
+                    },
+                    tabs
+                };
+            }
+
+            // 5. Suporte para objetos com chave .activities ou .data
+            const possibleTabs = parsed.activities || parsed.data;
+            if (Array.isArray(possibleTabs)) {
+                const tabs = sanitizeTabList(possibleTabs);
+                const sizeKB = VersionedBackupService.calculateSizeKB(parsed);
+                return {
+                    isValid: true,
+                    isVersioned: false,
+                    isHistoryPack: false,
+                    snapshot: {
+                        versionId: 'collection',
+                        versionTag: `Coleção de Atividades (${tabs.length})`,
+                        description: `Arquivo JSON contendo ${tabs.length} atividade(s).`,
+                        createdAt: new Date().toISOString(),
+                        author: 'Importação JSON',
+                        stripImages: false,
+                        stats: { totalActivities: tabs.length, sizeInKB: sizeKB }
+                    },
+                    tabs
+                };
+            }
+
+            // 6. Suporte para atividade única avulsa em JSON
+            if (parsed.type || parsed.content !== undefined || parsed.quizData || parsed.wordsearchData || parsed.crosswordData || parsed.questions || parsed.items) {
+                const singleTab = sanitizeTabList([parsed])[0];
+                return {
+                    isValid: true,
+                    isVersioned: false,
+                    isHistoryPack: false,
+                    snapshot: {
+                        versionId: 'single_activity',
+                        versionTag: singleTab.title || 'Atividade Individual',
+                        description: 'Atividade avulsa importada diretamente em JSON.',
+                        createdAt: new Date().toISOString(),
+                        author: 'Importação Individual',
+                        stripImages: false,
+                        stats: { totalActivities: 1, sizeInKB: VersionedBackupService.calculateSizeKB(parsed) }
+                    },
+                    tabs: [singleTab]
+                };
+            }
+
+            return { isValid: false, error: 'Estrutura de dados não reconhecida como atividade ou backup válido.' };
         } catch (err) {
             console.error('Erro ao processar arquivo de backup:', err);
-            return { isValid: false, error: 'O arquivo não é um JSON válido ou está corrompido.' };
+            return { isValid: false, error: 'O arquivo não é um JSON legível ou está corrompido.' };
         }
     }
 }

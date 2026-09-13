@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { VersionedBackupService } from '../services/VersionedBackupService';
 
-export const useBackupSystem = (tabs, setTabs, setActiveTabId) => {
+export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, setTopic) => {
     // Estado do modal legado (para compatibilidade, caso necessite)
     const [importDialog, setImportDialog] = useState({
         isOpen: false,
@@ -70,36 +70,70 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId) => {
         event.target.value = null; // Reset input
     };
 
-    // Restauração versionada (Substituição total de abas)
-    const restoreTabsVersioned = (newTabs) => {
-        if (!newTabs || !Array.isArray(newTabs)) return;
-        setTabs(newTabs);
-        if (newTabs.length > 0) {
-            setActiveTabId(newTabs[newTabs.length - 1].id);
-        } else {
-            setActiveTabId('about_system');
+    // Ativa uma aba específica no sistema garantindo sincronização completa de estúdio e tema
+    const activateTabInSystem = (tab) => {
+        if (!tab) return;
+        setActiveTabId(tab.id);
+        if (setActivityType && tab.type && tab.type !== 'about_system') {
+            setActivityType(tab.type);
         }
-        alert('Área de trabalho restaurada com sucesso!');
+        if (setTopic && tab.title) {
+            setTopic(tab.title);
+        }
     };
 
-    // Mesclagem versionada de atividades específicas
+    // Abrir imediatamente uma atividade individual selecionada
+    const openSingleTabVersioned = (tabToOpen) => {
+        if (!tabToOpen) return;
+        const cleanTab = { ...tabToOpen, hidden: false };
+
+        const existingIndex = tabs.findIndex(t => t.id === cleanTab.id);
+        if (existingIndex >= 0) {
+            setTabs(prev => prev.map(t => t.id === cleanTab.id ? { ...t, ...cleanTab, hidden: false } : t));
+        } else {
+            setTabs(prev => [...prev, cleanTab]);
+        }
+
+        activateTabInSystem(cleanTab);
+        closeBackupCenter();
+    };
+
+    // Restauração versionada (Substituição total de abas e ativação imediata)
+    const restoreTabsVersioned = (newTabs) => {
+        if (!newTabs || !Array.isArray(newTabs) || newTabs.length === 0) return;
+        const unhiddenTabs = newTabs.map(t => ({ ...t, hidden: false }));
+        setTabs(unhiddenTabs);
+
+        const targetTab = unhiddenTabs[0];
+        if (targetTab) {
+            activateTabInSystem(targetTab);
+        } else {
+            setActiveTabId('about_system');
+            if (setActivityType) setActivityType('about_system');
+        }
+        closeBackupCenter();
+    };
+
+    // Mesclagem versionada de atividades específicas e ativação imediata
     const mergeTabsVersioned = (tabsToMerge) => {
         if (!tabsToMerge || !Array.isArray(tabsToMerge) || tabsToMerge.length === 0) return;
         const existingTabIds = new Set(tabs.map(t => t.id));
         
         // Garante IDs únicos na mesclagem para evitar conflito com abas já abertas
         const newTabs = tabsToMerge.map(t => {
+            const cleanTab = { ...t, hidden: false };
             if (existingTabIds.has(t.id)) {
-                return { ...t, id: `${t.id}_merged_${Date.now().toString().slice(-4)}` };
+                return { ...cleanTab, id: `${t.id}_merged_${Date.now().toString().slice(-4)}` };
             }
-            return t;
+            return cleanTab;
         });
 
-        setTabs([...tabs, ...newTabs]);
-        if (newTabs.length > 0) {
-            setActiveTabId(newTabs[newTabs.length - 1].id);
+        setTabs(prev => [...prev, ...newTabs]);
+        const targetTab = newTabs[0];
+        if (targetTab) {
+            activateTabInSystem(targetTab);
         }
-        alert(`${newTabs.length} atividade(s) mesclada(s) à sua área de trabalho!`);
+        closeBackupCenter();
     };
 
     // Métodos legados de mesclagem e substituição (mantidos por compatibilidade)
@@ -126,6 +160,7 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId) => {
         importSystemState,
         restoreTabsVersioned,
         mergeTabsVersioned,
+        openSingleTabVersioned,
         handleMergeImport,
         handleReplaceImport,
         closeImportDialog
