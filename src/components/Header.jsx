@@ -105,9 +105,9 @@ export const Header = ({
                     onClick={onBackup}
                     variant="ghost"
                     className="text-xs font-bold text-brown-700"
-                    title="Exportar rápido para .json"
+                    title="Exportar Backup (.json)"
                 >
-                    <Save className="w-3 h-3 mr-1.5" /> Backup .json
+                    <Save className="w-3 h-3 mr-1.5" /> Backup
                 </Button>
                 <label className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${theme.button.primary}`}>
                     <Upload className="w-3 h-3 mr-1.5" /> Restaurar
