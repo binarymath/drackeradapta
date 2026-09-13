@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { VersionedBackupService } from '../services/VersionedBackupService';
 
-export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, setTopic) => {
+export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, setTopic, setClasses) => {
     // Estado do modal legado (para compatibilidade, caso necessite)
     const [importDialog, setImportDialog] = useState({
         isOpen: false,
@@ -83,9 +83,17 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, 
     };
 
     // Abrir imediatamente uma atividade individual selecionada
-    const openSingleTabVersioned = (tabToOpen) => {
+    const openSingleTabVersioned = (tabToOpen, classesToRestore = null) => {
         if (!tabToOpen) return;
         const cleanTab = { ...tabToOpen, hidden: false };
+
+        if (classesToRestore && Array.isArray(classesToRestore) && classesToRestore.length > 0 && setClasses) {
+            setClasses(prev => {
+                const existingIds = new Set((prev || []).map(c => c.id));
+                const toAdd = classesToRestore.filter(c => !existingIds.has(c.id));
+                return [...(prev || []), ...toAdd];
+            });
+        }
 
         const existingIndex = tabs.findIndex(t => t.id === cleanTab.id);
         if (existingIndex >= 0) {
@@ -99,12 +107,24 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, 
     };
 
     // Restauração versionada (Substituição total de abas e ativação imediata)
-    const restoreTabsVersioned = (newTabs) => {
+    const restoreTabsVersioned = (newTabs, classesToRestore = null) => {
         if (!newTabs || !Array.isArray(newTabs) || newTabs.length === 0) return;
         const unhiddenTabs = newTabs.map(t => ({ ...t, hidden: false }));
         setTabs(unhiddenTabs);
 
-        const targetTab = unhiddenTabs[0];
+        if (classesToRestore && Array.isArray(classesToRestore) && classesToRestore.length > 0 && setClasses) {
+            setClasses(prev => {
+                const existingIds = new Set((prev || []).map(c => c.id));
+                const toAdd = classesToRestore.filter(c => !existingIds.has(c.id));
+                return [...(prev || []), ...toAdd];
+            });
+        }
+
+        // Prioriza a primeira atividade real restaurada (evitando selecionar 'about_system' / página inicial)
+        const targetTab = unhiddenTabs.find(t => t.type && t.type !== 'about_system') 
+                       || unhiddenTabs[unhiddenTabs.length - 1] 
+                       || unhiddenTabs[0];
+
         if (targetTab) {
             activateTabInSystem(targetTab);
         } else {
@@ -115,7 +135,7 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, 
     };
 
     // Mesclagem versionada de atividades específicas e ativação imediata
-    const mergeTabsVersioned = (tabsToMerge) => {
+    const mergeTabsVersioned = (tabsToMerge, classesToRestore = null) => {
         if (!tabsToMerge || !Array.isArray(tabsToMerge) || tabsToMerge.length === 0) return;
         const existingTabIds = new Set(tabs.map(t => t.id));
         
@@ -128,8 +148,18 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, 
             return cleanTab;
         });
 
+        if (classesToRestore && Array.isArray(classesToRestore) && classesToRestore.length > 0 && setClasses) {
+            setClasses(prev => {
+                const existingIds = new Set((prev || []).map(c => c.id));
+                const toAdd = classesToRestore.filter(c => !existingIds.has(c.id));
+                return [...(prev || []), ...toAdd];
+            });
+        }
+
         setTabs(prev => [...prev, ...newTabs]);
-        const targetTab = newTabs[0];
+        const targetTab = newTabs.find(t => t.type && t.type !== 'about_system') 
+                       || newTabs[0];
+
         if (targetTab) {
             activateTabInSystem(targetTab);
         }

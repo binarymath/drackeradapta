@@ -62,7 +62,70 @@ export const RouletteActivity = () => {
     
     // O ID da turma e os dados vêm da aba ativa
     const classId = activeActivity?.classId;
-    const currentClass = classes.find(c => c.id === classId);
+    
+    // Procura a turma vinculada, ou usa a primeira disponível, ou gera turma automática a partir da atividade restaurada
+    const currentClass = useMemo(() => {
+        if (classes && classes.length > 0) {
+            const found = classes.find(c => c.id === classId);
+            if (found) return found;
+            return classes[0];
+        }
+
+        // Se não houver turmas cadastradas no navegador (ex: Vercel ou cache limpo),
+        // constrói uma turma automática para que a roleta possa ser visualizada e jogada imediatamente
+        const questionsList = activeActivity?.questions || [];
+        let studentsList = [];
+        if (activeActivity?.items && activeActivity.items.length > 0) {
+            studentsList = activeActivity.items.map((item, idx) => ({
+                id: item.id || `std_auto_${idx}_${Date.now()}`,
+                name: item.name || `Aluno ${idx + 1}`,
+                status: item.active !== false ? 'active' : 'removed',
+                hits: item.hits || 0,
+                misses: item.misses || 0,
+                history: []
+            }));
+        } else if (questionsList.length > 0) {
+            studentsList = questionsList.map((q, idx) => ({
+                id: `std_auto_${idx}_${Date.now()}`,
+                name: q.name || `Aluno ${idx + 1}`,
+                status: 'active',
+                hits: 0,
+                misses: 0,
+                history: []
+            }));
+        } else {
+            studentsList = ['Ana', 'Bruno', 'Carlos', 'Daniela', 'Eduardo', 'Fernanda'].map((name, idx) => ({
+                id: `std_auto_${idx}_${Date.now()}`,
+                name,
+                status: 'active',
+                hits: 0,
+                misses: 0,
+                history: []
+            }));
+        }
+
+        return {
+            id: classId || 'class_auto_' + (activeActivity?.id || Date.now()),
+            name: activeActivity?.topic ? `Turma: ${activeActivity.topic}` : (activeActivity?.title || 'Turma da Roleta'),
+            students: studentsList
+        };
+    }, [classes, classId, activeActivity]);
+
+    // Sincroniza e registra a turma no estado global de turmas do professor
+    useEffect(() => {
+        if (currentClass) {
+            const exists = (classes || []).some(c => c.id === currentClass.id);
+            if (!exists) {
+                setClasses(prev => {
+                    if (prev.some(c => c.id === currentClass.id)) return prev;
+                    return [...prev, currentClass];
+                });
+            }
+            if (activeActivity?.id && activeActivity.classId !== currentClass.id) {
+                updateActivityData(activeActivity.id, { classId: currentClass.id });
+            }
+        }
+    }, [currentClass, classes, activeActivity?.id, activeActivity?.classId, setClasses, updateActivityData]);
 
     // MIGRATION: Se a aba foi criada antes do sistema de Turmas (legado), ela terá 'items' mas não 'classId'
     useEffect(() => {
@@ -520,7 +583,11 @@ export const RouletteActivity = () => {
         document.body.removeChild(link);
     };
 
-    if (!currentClass) {
+    const hasRouletteData = (activeActivity?.questions && activeActivity.questions.length > 0) ||
+                            (activeActivity?.items && activeActivity.items.length > 0) ||
+                            (currentClass && currentClass.students && currentClass.students.length > 0);
+
+    if (!hasRouletteData && (!classes || classes.length === 0)) {
         return (
             <div className="flex flex-col items-center justify-center w-full min-h-[600px] text-center p-8 animate-in fade-in duration-500">
                 <div className="bg-indigo-50 border-2 border-indigo-200 rounded-3xl p-12 max-w-2xl shadow-sm">
@@ -546,18 +613,18 @@ export const RouletteActivity = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-1">
                         <select 
-                            value={classId}
+                            value={classId || currentClass?.id}
                             onChange={(e) => updateActivityData(activeActivity.id, { classId: e.target.value })}
                             className="text-xl sm:text-2xl font-black text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer hover:bg-slate-100 transition-colors"
                             title="Trocar Turma para esta atividade"
                         >
-                            {classes.map(c => (
+                            {(classes && classes.length > 0 ? classes : (currentClass ? [currentClass] : [])).map(c => (
                                 <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>
                     </div>
                     <p className="text-slate-500 font-medium text-sm">
-                        {currentClass.students.length} alunos • Tema: {activeActivity?.topic || 'Geral'}
+                        {currentClass?.students?.length || 0} alunos • Tema: {activeActivity?.topic || 'Geral'}
                     </p>
                 </div>
 
@@ -879,3 +946,5 @@ export const RouletteActivity = () => {
         </div>
     );
 };
+
+export default RouletteActivity;
