@@ -23,7 +23,7 @@ const ChatDracker = lazy(() => import('./chat/ChatDracker'));
 const TradingCardMaker = lazy(() => import('./trading-cards/TradingCardMaker').then(m => ({ default: m.TradingCardMaker })));
 const NumberLineMaker = lazy(() => import('./number-line/NumberLineMaker').then(m => ({ default: m.NumberLineMaker })));
 const FractionsMaker = lazy(() => import('./fractions/FractionsMaker').then(m => ({ default: m.FractionsMaker })));
-const RouletteActivity = lazy(() => import('./roulette/RouletteActivity').then(m => ({ default: m.RouletteActivity })));
+const RouletteActivity = lazy(() => import('./roulette/RouletteActivity').then(m => ({ default: m.RouletteActivity || m.default })));
 import { TransitionQuestionsModal } from './modals/TransitionQuestionsModal';
 
 const ActivityLoadingFallback = () => (

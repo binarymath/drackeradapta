@@ -186,7 +186,7 @@ export const BackupVersionCenterModal = ({
     const executeReplaceAll = () => {
         if (!inspectedBackup || !inspectedBackup.tabs) return;
         if (window.confirm(`Atenção: Substituir tudo irá trocar suas atividades atuais pelas ${inspectedBackup.tabs.length} atividades deste backup. Confirmar Rollback Total?`)) {
-            onRestoreTabs(inspectedBackup.tabs);
+            onRestoreTabs(inspectedBackup.tabs, inspectedBackup.classes);
             onClose();
         }
     };
@@ -198,7 +198,7 @@ export const BackupVersionCenterModal = ({
             alert('Selecione pelo menos uma atividade para mesclar.');
             return;
         }
-        onMergeTabs(selected);
+        onMergeTabs(selected, inspectedBackup.classes);
         onClose();
     };
 
@@ -430,7 +430,7 @@ export const BackupVersionCenterModal = ({
                                                         variant="primary"
                                                         onClick={() => {
                                                             if (window.confirm(`Deseja restaurar sua área de trabalho para o checkpoint "${chk.versionTag}"?`)) {
-                                                                onRestoreTabs(chk.tabs || []);
+                                                                onRestoreTabs(chk.tabs || [], chk.classes || []);
                                                                 onClose();
                                                             }
                                                         }}
@@ -593,9 +593,9 @@ export const BackupVersionCenterModal = ({
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     if (onOpenSingleActivity) {
-                                                                        onOpenSingleActivity(tab);
+                                                                        onOpenSingleActivity(tab, inspectedBackup?.classes);
                                                                     } else if (onMergeTabs) {
-                                                                        onMergeTabs([tab]);
+                                                                        onMergeTabs([tab], inspectedBackup?.classes);
                                                                     }
                                                                     onClose();
                                                                 }}

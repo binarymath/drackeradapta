@@ -146,6 +146,14 @@ export class VersionedBackupService {
             const existingCheckpoints = VersionedBackupService.getCheckpoints();
             const verNum = existingCheckpoints.length + 1;
 
+            let savedClasses = [];
+            try {
+                const rawClasses = localStorage.getItem('atividade_adaptada_classes');
+                if (rawClasses) savedClasses = JSON.parse(rawClasses);
+            } catch (e) {
+                console.warn('Erro ao ler classes para backup:', e);
+            }
+
             payload = {
                 fileFormat: "DRACKER_VERSIONED_BACKUP",
                 formatVersion: "3.0",
@@ -161,11 +169,20 @@ export class VersionedBackupService {
                         sizeInKB: 0
                     }
                 },
-                activitiesData: sanitizedTabs
+                activitiesData: sanitizedTabs,
+                classes: savedClasses
             };
             payload.snapshot.stats.sizeInKB = VersionedBackupService.calculateSizeKB(payload);
         } else {
             // Se for exportação de um checkpoint existente
+            let savedClasses = [];
+            try {
+                const rawClasses = localStorage.getItem('atividade_adaptada_classes');
+                if (rawClasses) savedClasses = JSON.parse(rawClasses);
+            } catch (e) {
+                console.warn('Erro ao ler classes para backup:', e);
+            }
+
             payload = {
                 fileFormat: "DRACKER_VERSIONED_BACKUP",
                 formatVersion: "3.0",
@@ -178,7 +195,8 @@ export class VersionedBackupService {
                     stripImages: checkpointOrTabs.stripImages ?? true,
                     stats: checkpointOrTabs.stats || { totalActivities: (checkpointOrTabs.tabs || []).length, sizeInKB: 0 }
                 },
-                activitiesData: checkpointOrTabs.tabs || []
+                activitiesData: checkpointOrTabs.tabs || [],
+                classes: checkpointOrTabs.classes || savedClasses
             };
             payload.snapshot.stats.sizeInKB = VersionedBackupService.calculateSizeKB(payload);
         }
@@ -294,7 +312,8 @@ export class VersionedBackupService {
                         stripImages: snapshot.stripImages ?? true,
                         stats: snapshot.stats || { totalActivities: tabs.length, sizeInKB: VersionedBackupService.calculateSizeKB(parsed) }
                     },
-                    tabs
+                    tabs,
+                    classes: Array.isArray(parsed.classes) ? parsed.classes : []
                 };
             }
 
@@ -315,7 +334,8 @@ export class VersionedBackupService {
                         stripImages: false,
                         stats: { totalActivities: tabs.length, sizeInKB: sizeKB }
                     },
-                    tabs
+                    tabs,
+                    classes: Array.isArray(parsed.classes) ? parsed.classes : []
                 };
             }
 

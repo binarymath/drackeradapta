@@ -237,7 +237,7 @@ export const MainLayout = () => {
         handleMergeImport,
         handleReplaceImport,
         closeImportDialog
-    } = useBackupSystem(tabs, setTabs, setActiveTabId, setActivityType, setTopic);
+    } = useBackupSystem(tabs, setTabs, setActiveTabId, setActivityType, setTopic, setClasses);
 
     const getTabLabel = (tab) => {
         const title = tab.title || 'Sem título';
