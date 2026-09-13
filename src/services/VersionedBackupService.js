@@ -132,9 +132,9 @@ export class VersionedBackupService {
     }
 
     /**
-     * Gera e dispara o download de um arquivo .dracker otimizado
+     * Gera e dispara o download de um arquivo .json otimizado
      */
-    static exportDrackerFile(checkpointOrTabs, { customFileName = null, isRawTabs = false, metadata = {} } = {}) {
+    static exportJsonFile(checkpointOrTabs, { customFileName = null, isRawTabs = false, metadata = {} } = {}) {
         let payload;
         const now = new Date();
         const dateStr = now.toLocaleDateString('pt-BR').replace(/\//g, '-');
@@ -195,7 +195,7 @@ export class VersionedBackupService {
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
 
-        link.download = customFileName || `${cleanName}_${dateStr}.dracker`;
+        link.download = customFileName || `${cleanName}_${dateStr}.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -205,7 +205,14 @@ export class VersionedBackupService {
     }
 
     /**
-     * Exporta todas as versões da Linha do Tempo em um pacote único (.dracker-pack)
+     * Alias de retrocompatibilidade para exportJsonFile
+     */
+    static exportDrackerFile(checkpointOrTabs, options = {}) {
+        return VersionedBackupService.exportJsonFile(checkpointOrTabs, options);
+    }
+
+    /**
+     * Exporta todas as versões da Linha do Tempo em um pacote único (.json)
      */
     static exportHistoryPack() {
         const checkpoints = VersionedBackupService.getCheckpoints();
@@ -229,7 +236,7 @@ export class VersionedBackupService {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `dracker_historico_completo_${dateStr}.dracker`;
+        link.download = `dracker_historico_completo_${dateStr}.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -237,7 +244,7 @@ export class VersionedBackupService {
     }
 
     /**
-     * Faz o parse e valida um arquivo .dracker ou .json de backup
+     * Faz o parse e valida um arquivo .json ou legado .dracker de backup
      */
     static parseBackupFile(fileContentStr) {
         try {

@@ -213,7 +213,7 @@ export const BackupVersionCenterModal = ({
                             <History className="w-6 h-6" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-extrabold tracking-tight">Central de Versões e Backups (`.dracker`)</h2>
+                            <h2 className="text-xl font-extrabold tracking-tight">Central de Versões e Backups (.json)</h2>
                             <p className="text-xs text-amber-100/80 font-medium">
                                 Sanitarização inteligente ultra-leve • Linha do tempo local • Restauração seletiva
                             </p>
@@ -315,7 +315,7 @@ export const BackupVersionCenterModal = ({
                                             className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
                                         />
                                         <div>
-                                            <span className="font-bold">✨ Modo Otimizado Leve (.dracker)</span>
+                                            <span className="font-bold">✨ Modo Otimizado Leve (.json)</span>
                                             <p className="text-xs text-brown-600">
                                                 Descarte automático de buffers temporários e mídias Base64 pesadas (redução de até 90% do peso).
                                             </p>
@@ -327,10 +327,10 @@ export const BackupVersionCenterModal = ({
                                             variant="secondary"
                                             onClick={handleExportCurrent}
                                             className="font-bold text-xs"
-                                            title="Baixar arquivo .dracker direto no computador"
+                                            title="Baixar arquivo .json direto no computador"
                                         >
                                             <Download className="w-4 h-4 mr-1.5 text-brown-700" />
-                                            Baixar `.dracker` Atual
+                                            Baixar .json Atual
                                         </Button>
                                         <Button
                                             variant="primary"
@@ -357,7 +357,7 @@ export const BackupVersionCenterModal = ({
                                             className="text-xs font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1.5 cursor-pointer underline decoration-amber-400"
                                             title="Baixar todos os checkpoints em um único arquivo de backup"
                                         >
-                                            <Archive className="w-3.5 h-3.5" /> Baixar Pacote Completo do Histórico (`.dracker-pack`)
+                                            <Archive className="w-3.5 h-3.5" /> Baixar Pacote Completo do Histórico (.json)
                                         </button>
                                     )}
                                 </div>
@@ -417,11 +417,11 @@ export const BackupVersionCenterModal = ({
                                                 <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                                                     <Button
                                                         variant="ghost"
-                                                        onClick={() => VersionedBackupService.exportDrackerFile(chk)}
+                                                        onClick={() => VersionedBackupService.exportJsonFile(chk)}
                                                         className="text-xs font-bold text-brown-700 hover:bg-brown-100"
-                                                        title="Baixar versão como .dracker"
+                                                        title="Baixar versão como .json"
                                                     >
-                                                        <Download className="w-4 h-4 mr-1" /> Baixar `.dracker`
+                                                        <Download className="w-4 h-4 mr-1" /> Baixar .json
                                                     </Button>
                                                     
                                                     <Button
@@ -469,12 +469,12 @@ export const BackupVersionCenterModal = ({
                                             Clique aqui para selecionar seu arquivo
                                         </span>
                                         <p className="text-xs text-brown-600 mt-0.5">
-                                            Suporta arquivos `.dracker` (versionados otimizados) ou `.json` de backups anteriores
+                                            Suporta arquivos .json (otimizados ou convencionais) ou backups legados (.dracker)
                                         </p>
                                     </div>
                                     <input
                                         type="file"
-                                        accept=".dracker,.json"
+                                        accept=".json,.dracker"
                                         onChange={handleFileUpload}
                                         className="hidden"
                                     />
@@ -623,7 +623,7 @@ export const BackupVersionCenterModal = ({
                 {/* Rodapé do Modal */}
                 <div className="px-6 py-4 bg-brown-100/60 border-t border-brown-200 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-2 text-xs text-brown-700 font-medium">
-                        <CheckCircle className="w-4 h-4 text-green-600" /> Formato de Arquivo Garantido: <strong className="font-mono">.dracker</strong> (Compressão Sanitarizada)
+                        <CheckCircle className="w-4 h-4 text-green-600" /> Formato de Arquivo Garantido: <strong className="font-mono">.json</strong> (Leve e Padronizado)
                     </div>
                     <Button variant="ghost" onClick={onClose} className="font-bold text-xs">
                         Fechar Central

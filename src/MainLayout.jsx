@@ -223,7 +223,7 @@ export const MainLayout = () => {
         document.body.removeChild(link);
     };
 
-    // Backup (.dracker Versionado e Legado)
+    // Backup (.json Versionado e Legado)
     const {
         exportSystemState,
         importSystemState,

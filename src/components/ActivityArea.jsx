@@ -24,6 +24,7 @@ const TradingCardMaker = lazy(() => import('./trading-cards/TradingCardMaker').t
 const NumberLineMaker = lazy(() => import('./number-line/NumberLineMaker').then(m => ({ default: m.NumberLineMaker })));
 const FractionsMaker = lazy(() => import('./fractions/FractionsMaker').then(m => ({ default: m.FractionsMaker })));
 const RouletteActivity = lazy(() => import('./roulette/RouletteActivity').then(m => ({ default: m.RouletteActivity })));
+import { TransitionQuestionsModal } from './modals/TransitionQuestionsModal';
 
 const ActivityLoadingFallback = () => (
     <div className="flex flex-col items-center justify-center p-12 min-h-[350px] gap-4 bg-slate-50/50 rounded-2xl animate-pulse my-8">
@@ -85,8 +86,9 @@ export const ActivityArea = ({
     toggleFullWidth,
     openManualMusicEditor
 }) => {
-    const { topic, lessonDetails, activeTabId } = useActivity();
+    const { topic, lessonDetails, activeTabId, classes, addActivityTab } = useActivity();
     // --- State ---
+    const [showQuizToRouletteModal, setShowQuizToRouletteModal] = useState(false);
     const [printMode, setPrintMode] = useState('all'); // 'all', 'lyrics', 'questions'
     const [isGameMode, setIsGameMode] = useState(false);
     const [pdfShowAlternatives, setPdfShowAlternatives] = useState(true);
@@ -180,6 +182,7 @@ export const ActivityArea = ({
                     openManualMusicEditor={openManualMusicEditor}
                     activityTitle={activityTitle}
                     setActivityTitle={setActivityTitle}
+                    onPlayInRoulette={() => setShowQuizToRouletteModal(true)}
                 />
 
                 <div className={`flex-1 ${isFullWidth ? 'p-1 sm:p-2' : 'p-4 sm:p-8'} overflow-y-auto print:overflow-visible custom-scrollbar print:p-0`} ref={activityAreaRef} id="activity-area-print">
@@ -661,6 +664,17 @@ export const ActivityArea = ({
                     )}
                 </div >
             </div >
+
+            {/* Modal de Transição de Quiz para Roleta */}
+            <TransitionQuestionsModal
+                isOpen={showQuizToRouletteModal}
+                onClose={() => setShowQuizToRouletteModal(false)}
+                mode="quiz_to_roulette"
+                sourceQuestions={quizData?.questions || []}
+                sourceTopic={activityTitle || topic || 'Quiz'}
+                classes={classes}
+                addActivityTab={addActivityTab}
+            />
         </div >
     );
 };

@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useActivity } from '../../contexts/ActivityContext';
+import { useGemini } from '../../contexts/GeminiContext';
 import { RouletteWheel } from './RouletteWheel';
 import { RouletteCard } from './RouletteCard';
 import { StudentHistoryModal } from './StudentHistoryModal';
 import { RouletteQuestionsEditorModal } from './RouletteQuestionsEditorModal';
 import { RouletteStyleSelector } from './RouletteStyleSelector';
+import { TransitionQuestionsModal } from '../modals/TransitionQuestionsModal';
 import { CheckCircle, XCircle, RotateCcw, List, Download, UserX, Edit3, RotateCw, RefreshCw, Eye, EyeOff, HeartHandshake, Award, Maximize2, Minimize2 } from 'lucide-react';
 
 // Temas visuais imersivos para o palco de fundo da roleta
@@ -54,7 +56,9 @@ const STAGE_THEMES = {
 };
 
 export const RouletteActivity = () => {
-    const { activeActivity, classes, setClasses, updateActivityData } = useActivity();
+    const { activeActivity, classes, setClasses, updateActivityData, addActivityTab } = useActivity();
+    const { geminiService, selectedModel } = useGemini();
+    const [showTransitionModal, setShowTransitionModal] = useState(false);
     
     // O ID da turma e os dados vêm da aba ativa
     const classId = activeActivity?.classId;
@@ -597,6 +601,14 @@ export const RouletteActivity = () => {
                     </button>
 
                     <button 
+                        onClick={() => setShowTransitionModal(true)}
+                        className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-2xs"
+                        title="Transformar perguntas da Roleta em um Quiz com questões impressas ou interativas"
+                    >
+                        <CheckCircle className="w-4 h-4" /> Transformar em Quiz
+                    </button>
+
+                    <button 
                         onClick={handleDownloadCSV}
                         className="flex items-center gap-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-colors shadow-2xs"
                     >
@@ -851,6 +863,18 @@ export const RouletteActivity = () => {
                 onClose={() => setShowQuestionsEditor(false)}
                 activeActivity={activeActivity}
                 updateActivityData={updateActivityData}
+            />
+
+            <TransitionQuestionsModal
+                isOpen={showTransitionModal}
+                onClose={() => setShowTransitionModal(false)}
+                mode="roulette_to_quiz"
+                sourceQuestions={uniqueQuestions}
+                sourceTopic={activeActivity?.topic || 'Roleta'}
+                classes={classes}
+                geminiService={geminiService}
+                selectedModel={selectedModel}
+                addActivityTab={addActivityTab}
             />
         </div>
     );

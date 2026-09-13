@@ -28,6 +28,7 @@ export const RouletteCard = ({
     
     // Visualização da Resposta Esperada
     const [showAnswer, setShowAnswer] = useState(false);
+    const [showAlternatives, setShowAlternatives] = useState(false);
     
     // Modal interno para selecionar pergunta da lista
     const [showQuestionSelector, setShowQuestionSelector] = useState(false);
@@ -441,6 +442,36 @@ export const RouletteCard = ({
                                 <p className="text-xl sm:text-2xl text-slate-800 font-bold leading-relaxed">
                                     {winner.question}
                                 </p>
+
+                                {/* ALTERNATIVAS DE MÚLTIPLA ESCOLHA (SE VINDAS DE UM QUIZ) */}
+                                {winner.options && Array.isArray(winner.options) && winner.options.length > 0 && (
+                                    <div className="mt-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAlternatives(!showAlternatives)}
+                                            className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-full transition-colors border border-indigo-200 cursor-pointer"
+                                        >
+                                            {showAlternatives ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                            {showAlternatives ? 'Ocultar Alternativas' : 'Ver Alternativas (A, B, C, D)'}
+                                        </button>
+
+                                        {showAlternatives && (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left mt-2.5 animate-in fade-in slide-in-from-top-1">
+                                                {winner.options.map((opt, oi) => (
+                                                    <div 
+                                                        key={oi}
+                                                        className="p-2.5 rounded-xl border border-indigo-100 bg-indigo-50/50 text-xs font-medium text-slate-800 flex items-start gap-2"
+                                                    >
+                                                        <span className="w-5 h-5 rounded-md bg-indigo-600 text-white font-black flex items-center justify-center text-[11px] shrink-0">
+                                                            {String.fromCharCode(65 + oi)}
+                                                        </span>
+                                                        <span className="leading-snug pt-0.5">{opt}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* GABARITO / RESPOSTA */}

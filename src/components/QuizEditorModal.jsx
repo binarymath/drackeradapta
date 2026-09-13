@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, CheckCircle, Save, AlertCircle, GripVertical, Image, Link2 } from 'lucide-react';
+import { X, Plus, Trash2, CheckCircle, Save, AlertCircle, GripVertical, Image, Link2, Dices, Check } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -8,7 +8,9 @@ import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Input, TextArea } from './ui/Input';
 import { Card } from './ui/Card';
-
+import { useActivity } from '../contexts/ActivityContext';
+import { convertRouletteQuestionsToQuiz } from '../services/questionTransitionService';
+import { gameAudio } from '../utils/gameAudio';
 import { toDirectImageUrl, handleDriveImageError } from '../utils/urlUtils';
 
 
@@ -39,6 +41,41 @@ const BG_SWATCHES = [
 export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
     const [introText, setIntroText] = useState('');
     const [questions, setQuestions] = useState([]);
+    const { tabs } = useActivity();
+    const [showRouletteSelector, setShowRouletteSelector] = useState(false);
+    const [importSuccessMsg, setImportSuccessMsg] = useState('');
+
+    const rouletteTabs = (tabs || []).filter(t => t.type === 'roulette' && t.questions?.length > 0);
+
+    const handleImportFromRoulette = (rTab) => {
+        if (!rTab?.questions?.length) return;
+        const converted = convertRouletteQuestionsToQuiz(rTab.questions, { mode: 'multiple_choice' });
+        const newFormatted = converted.map((q, qIndex) => {
+            const options = [];
+            if (q.correct_answer) {
+                options.push({ text: q.correct_answer, isCorrect: true, id: `imp_${Date.now()}_${qIndex}_0` });
+            }
+            (q.distractors || []).forEach((d, dIndex) => {
+                options.push({ text: d, isCorrect: false, id: `imp_${Date.now()}_${qIndex}_${dIndex + 1}` });
+            });
+            return {
+                id: `q-imp-${Date.now()}-${qIndex}`,
+                statement: q.statement || '',
+                difficulty: q.difficulty || 'medium',
+                image_url: q.image_url || '',
+                image_bg_color: 'transparent',
+                options: options.length > 0 ? options : [
+                    { text: q.correct_answer || '', isCorrect: true, id: `imp_opt_0` },
+                    { text: '', isCorrect: false, id: `imp_opt_1` }
+                ],
+            };
+        });
+        setQuestions(prev => [...prev, ...newFormatted]);
+        setShowRouletteSelector(false);
+        setImportSuccessMsg(`+${newFormatted.length} questão(ões) importadas da "${rTab.title || 'Roleta'}"!`);
+        gameAudio?.playSuccess?.();
+        setTimeout(() => setImportSuccessMsg(''), 4000);
+    };
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -219,9 +256,56 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                 </Card>
 
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                         <h3 className="text-sm font-bold text-brown-700 uppercase tracking-wider">Questões ({questions.length})</h3>
+                        
+                        {rouletteTabs.length > 0 && (
+                            <div className="relative">
+                                <Button
+                                    type="button"
+                                    onClick={() => setShowRouletteSelector(!showRouletteSelector)}
+                                    variant="secondary"
+                                    className="h-8 text-xs px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 font-bold"
+                                    icon={Dices}
+                                >
+                                    Importar da Roleta...
+                                </Button>
+
+                                {showRouletteSelector && (
+                                    <div className="absolute right-0 mt-1 w-72 bg-white border border-brown-200 rounded-2xl shadow-xl z-20 p-2 animate-in fade-in slide-in-from-top-2 duration-150">
+                                        <div className="text-[10px] font-black uppercase tracking-wider text-brown-400 px-2 py-1">
+                                            Escolha uma Roleta:
+                                        </div>
+                                        <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                            {rouletteTabs.map(rt => (
+                                                <button
+                                                    key={rt.id}
+                                                    type="button"
+                                                    onClick={() => handleImportFromRoulette(rt)}
+                                                    className="w-full text-left p-2 rounded-xl hover:bg-amber-50 transition-colors flex items-center justify-between text-xs"
+                                                >
+                                                    <div className="truncate font-semibold text-brown-900">
+                                                        {rt.title || 'Roleta'}
+                                                    </div>
+                                                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                                                        {rt.questions.length} questões
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
+
+                    {/* Notificação de Sucesso */}
+                    {importSuccessMsg && (
+                        <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-xl text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top-1">
+                            <Check className="w-4 h-4 text-green-600 shrink-0" />
+                            <span>{importSuccessMsg}</span>
+                        </div>
+                    )}
 
                     {questions.map((q, qIndex) => (
                         <Card key={q.id} className="group transition-all hover:shadow-md">
