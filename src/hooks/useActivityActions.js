@@ -270,6 +270,7 @@ export const useActivityActions = () => {
                     type: 'roulette',
                     content: `Roleta sobre ${topic}`,
                     classId: selectedClassId, // Save classId to the tab so RouletteActivity knows which class it is modifying
+                    classData: selectedClass, // Save full class data directly on the tab
                     questions: generatedQuestions, // The new questions for this session
                     topic: topic // Store topic to use in history
                 });

@@ -30,6 +30,7 @@ export const BackupVersionCenterModal = ({
     isOpen,
     onClose,
     currentTabs = [],
+    classes = [],
     onRestoreTabs,
     onMergeTabs,
     onOpenSingleActivity,
@@ -79,7 +80,8 @@ export const BackupVersionCenterModal = ({
                 versionTag: newTag || `Versão ${checkpoints.length + 1}.0 - ${new Date().toLocaleDateString('pt-BR')}`,
                 description: newDesc || `Backup gerado pelo usuário com ${currentTabs.length} atividade(s).`,
                 stripImages,
-                author: newAuthor || 'Professor(a)'
+                author: newAuthor || 'Professor(a)',
+                classes: classes || []
             });
             loadCheckpoints();
             setNewTag('');
@@ -106,11 +108,13 @@ export const BackupVersionCenterModal = ({
         }
         VersionedBackupService.exportDrackerFile(currentTabs, {
             isRawTabs: true,
+            classes: classes || [],
             metadata: {
                 versionTag: `Trabalho Atual (${new Date().toLocaleDateString('pt-BR')})`,
                 description: `Backup contendo ${currentTabs.length} atividade(s).`,
                 stripImages,
-                author: newAuthor || 'Professor(a)'
+                author: newAuthor || 'Professor(a)',
+                classes: classes || []
             }
         });
     };
@@ -147,7 +151,8 @@ export const BackupVersionCenterModal = ({
                         versionTag: chk.versionTag || chk.snapshot?.versionTag,
                         description: chk.description || chk.snapshot?.description,
                         stripImages: chk.stripImages ?? true,
-                        author: chk.author || chk.snapshot?.author
+                        author: chk.author || chk.snapshot?.author,
+                        classes: chk.classes || parsed.classes || []
                     });
                 });
                 loadCheckpoints();
@@ -355,7 +360,7 @@ export const BackupVersionCenterModal = ({
                                     </h3>
                                     {checkpoints.length > 0 && (
                                         <button
-                                            onClick={() => VersionedBackupService.exportHistoryPack()}
+                                            onClick={() => VersionedBackupService.exportHistoryPack(classes)}
                                             className="text-xs font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1.5 cursor-pointer underline decoration-amber-400"
                                             title="Baixar todos os checkpoints em um único arquivo de backup"
                                         >
@@ -419,7 +424,7 @@ export const BackupVersionCenterModal = ({
                                                 <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                                                     <Button
                                                         variant="ghost"
-                                                        onClick={() => VersionedBackupService.exportJsonFile(chk)}
+                                                        onClick={() => VersionedBackupService.exportJsonFile(chk, { classes: chk.classes || classes })}
                                                         className="text-xs font-bold text-brown-700 hover:bg-brown-100"
                                                         title="Baixar versão como .json"
                                                     >
@@ -430,7 +435,7 @@ export const BackupVersionCenterModal = ({
                                                         variant="primary"
                                                         onClick={() => {
                                                             if (window.confirm(`Deseja restaurar sua área de trabalho para o checkpoint "${chk.versionTag}"?`)) {
-                                                                onRestoreTabs(chk.tabs || [], chk.classes || []);
+                                                                onRestoreTabs(chk.tabs || [], chk.classes && chk.classes.length > 0 ? chk.classes : classes);
                                                                 onClose();
                                                             }
                                                         }}

@@ -146,11 +146,14 @@ export const TransitionQuestionsModal = ({
                     includeOptions: includeOptionsInCard
                 });
 
+                const targetClass = (classes || []).find(c => c.id === selectedClassId) || null;
+
                 addActivityTab({
                     title: targetTitle || 'Roleta',
                     type: 'roulette',
                     content: `Roleta sobre ${sourceTopic || 'o tema estudado'}`,
                     classId: selectedClassId || undefined,
+                    classData: targetClass,
                     questions: rouletteQuestions,
                     topic: sourceTopic || 'Geral'
                 });

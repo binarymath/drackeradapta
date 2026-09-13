@@ -7,7 +7,8 @@ import { StudentHistoryModal } from './StudentHistoryModal';
 import { RouletteQuestionsEditorModal } from './RouletteQuestionsEditorModal';
 import { RouletteStyleSelector } from './RouletteStyleSelector';
 import { TransitionQuestionsModal } from '../modals/TransitionQuestionsModal';
-import { CheckCircle, XCircle, RotateCcw, List, Download, UserX, Edit3, RotateCw, RefreshCw, Eye, EyeOff, HeartHandshake, Award, Maximize2, Minimize2 } from 'lucide-react';
+import { ClassesManagerModal } from './ClassesManagerModal';
+import { CheckCircle, XCircle, RotateCcw, List, Download, UserX, Edit3, RotateCw, RefreshCw, Eye, EyeOff, HeartHandshake, Award, Maximize2, Minimize2, Users } from 'lucide-react';
 
 // Temas visuais imersivos para o palco de fundo da roleta
 const STAGE_THEMES = {
@@ -59,16 +60,33 @@ export const RouletteActivity = () => {
     const { activeActivity, classes, setClasses, updateActivityData, addActivityTab } = useActivity();
     const { geminiService, selectedModel } = useGemini();
     const [showTransitionModal, setShowTransitionModal] = useState(false);
+    const [showClassesModal, setShowClassesModal] = useState(false);
     
     // O ID da turma e os dados vêm da aba ativa
     const classId = activeActivity?.classId;
     
-    // Procura a turma vinculada, ou usa a primeira disponível, ou gera turma automática a partir da atividade restaurada
+    // Procura a turma vinculada, ou usa os dados próprios da aba (classData), ou primeira turma disponível, ou gera turma automática
     const currentClass = useMemo(() => {
+        // 1. Se existir turma vinculada na lista global de turmas do professor
         if (classes && classes.length > 0) {
             const found = classes.find(c => c.id === classId);
             if (found) return found;
+
+            // 2. Se a aba ativa tiver classData próprio salvo nela, prioriza ela antes de dar fallback para classes[0]
+            if (activeActivity?.classData && (activeActivity.classData.id === classId || !classId)) {
+                return activeActivity.classData;
+            }
+            if (activeActivity?.classData && activeActivity.classData.students?.length > 0) {
+                return activeActivity.classData;
+            }
+
+            // 3. Fallback para a primeira turma cadastrada caso classId não seja encontrado
             return classes[0];
+        }
+
+        // Se não houver turmas no navegador mas a atividade possui classData anexada
+        if (activeActivity?.classData && (activeActivity.classData.students?.length > 0 || activeActivity.classData.name)) {
+            return activeActivity.classData;
         }
 
         // Se não houver turmas cadastradas no navegador (ex: Vercel ou cache limpo),
@@ -121,8 +139,13 @@ export const RouletteActivity = () => {
                     return [...prev, currentClass];
                 });
             }
-            if (activeActivity?.id && activeActivity.classId !== currentClass.id) {
-                updateActivityData(activeActivity.id, { classId: currentClass.id });
+            // Só define o classId da atividade se ela NÃO tiver nenhum classId definido ainda.
+            // NUNCA sobrescreve um classId existente de outra turma.
+            if (activeActivity?.id && !activeActivity.classId && currentClass.id) {
+                updateActivityData(activeActivity.id, { 
+                    classId: currentClass.id,
+                    classData: currentClass
+                });
             }
         }
     }, [currentClass, classes, activeActivity?.id, activeActivity?.classId, setClasses, updateActivityData]);
@@ -610,20 +633,36 @@ export const RouletteActivity = () => {
             
             {/* Header da Turma */}
             <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                         <select 
                             value={classId || currentClass?.id}
-                            onChange={(e) => updateActivityData(activeActivity.id, { classId: e.target.value })}
-                            className="text-xl sm:text-2xl font-black text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer hover:bg-slate-100 transition-colors"
-                            title="Trocar Turma para esta atividade"
+                            onChange={(e) => {
+                                const chosenId = e.target.value;
+                                const chosenObj = (classes || []).find(c => c.id === chosenId);
+                                updateActivityData(activeActivity.id, { 
+                                    classId: chosenId,
+                                    classData: chosenObj || null
+                                });
+                            }}
+                            className="max-w-[200px] xs:max-w-xs sm:max-w-sm md:max-w-md truncate text-xl sm:text-2xl font-black text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer hover:bg-slate-100 transition-colors"
+                            title={currentClass?.name || "Trocar Turma para esta atividade"}
                         >
                             {(classes && classes.length > 0 ? classes : (currentClass ? [currentClass] : [])).map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
+                                <option key={c.id} value={c.id} title={c.name}>{c.name}</option>
                             ))}
                         </select>
+                        <button
+                            type="button"
+                            onClick={() => setShowClassesModal(true)}
+                            className="shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 shadow-2xs transition-colors cursor-pointer"
+                            title="Gerenciar Turmas e Alunos"
+                        >
+                            <Users className="w-4 h-4 text-indigo-600" />
+                            <span>Gerenciar Turmas</span>
+                        </button>
                     </div>
-                    <p className="text-slate-500 font-medium text-sm">
+                    <p className="text-slate-500 font-medium text-sm truncate">
                         {currentClass?.students?.length || 0} alunos • Tema: {activeActivity?.topic || 'Geral'}
                     </p>
                 </div>
@@ -943,6 +982,25 @@ export const RouletteActivity = () => {
                 selectedModel={selectedModel}
                 addActivityTab={addActivityTab}
             />
+
+            {showClassesModal && (
+                <ClassesManagerModal 
+                    isOpen={showClassesModal}
+                    onClose={() => setShowClassesModal(false)}
+                    classes={classes || []}
+                    setClasses={setClasses}
+                    selectedClassId={classId || currentClass?.id}
+                    setSelectedClassId={(newId) => {
+                        const chosen = (classes || []).find(c => c.id === newId);
+                        if (activeActivity?.id) {
+                            updateActivityData(activeActivity.id, {
+                                classId: newId,
+                                classData: chosen || null
+                            });
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };
