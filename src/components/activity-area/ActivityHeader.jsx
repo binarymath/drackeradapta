@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { FileText, Check, Pencil, Maximize2, Minimize2, PenSquare, Printer } from 'lucide-react';
+import { FileText, Check, Pencil, Maximize2, Minimize2, PenSquare, Printer, Dices } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 
@@ -16,7 +16,8 @@ export const ActivityHeader = ({
     toggleFullWidth,
     openManualMusicEditor,
     activityTitle,
-    setActivityTitle
+    setActivityTitle,
+    onPlayInRoulette
 }) => {
     return (
         <div className="p-4 border-b border-brown-100 flex items-center justify-between bg-gradient-to-r from-brown-50 to-white no-print rounded-t-2xl shadow-sm">
@@ -82,14 +83,27 @@ export const ActivityHeader = ({
                             </Button>
                         )}
                         {activityType === 'quiz' && (
-                            <Button
-                                onClick={() => setShowAnswers(!showAnswers)}
-                                variant={showAnswers ? "primary" : "secondary"}
-                                className={`h-8 text-sm px-3 ${showAnswers ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
-                                icon={showAnswers ? Check : undefined}
-                            >
-                                {showAnswers ? 'Gabarito ✓' : 'Gabarito'}
-                            </Button>
+                            <>
+                                <Button
+                                    onClick={() => setShowAnswers(!showAnswers)}
+                                    variant={showAnswers ? "primary" : "secondary"}
+                                    className={`h-8 text-sm px-3 ${showAnswers ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+                                    icon={showAnswers ? Check : undefined}
+                                >
+                                    {showAnswers ? 'Gabarito ✓' : 'Gabarito'}
+                                </Button>
+                                {onPlayInRoulette && (
+                                    <Button
+                                        onClick={onPlayInRoulette}
+                                        variant="secondary"
+                                        className="h-8 text-sm px-3 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 text-amber-900 border-amber-300 font-bold shadow-2xs transition-all"
+                                        icon={Dices}
+                                        title="Jogar estas questões na Roleta Pedagógica para sortear alunos e acionar a bomba"
+                                    >
+                                        Jogar na Roleta
+                                    </Button>
+                                )}
+                            </>
                         )}
                         {activityType === 'wordsearch' && foundWords && foundWords.length > 0 && (
                             <Button

@@ -97,7 +97,7 @@ export const Header = ({
                     onClick={() => onOpenBackupCenter ? onOpenBackupCenter('timeline') : onBackup()}
                     variant="secondary"
                     className="text-xs font-bold bg-white hover:bg-brown-50 border border-brown-300 text-brown-900 shadow-2xs"
-                    title="Central de Versões (.dracker) e Snapshots"
+                    title="Central de Versões (.json) e Snapshots"
                 >
                     <History className="w-3.5 h-3.5 mr-1.5 text-amber-600" /> Versões
                 </Button>
@@ -105,13 +105,13 @@ export const Header = ({
                     onClick={onBackup}
                     variant="ghost"
                     className="text-xs font-bold text-brown-700"
-                    title="Exportar rápido para .dracker"
+                    title="Exportar rápido para .json"
                 >
-                    <Save className="w-3 h-3 mr-1.5" /> Backup `.dracker`
+                    <Save className="w-3 h-3 mr-1.5" /> Backup .json
                 </Button>
                 <label className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${theme.button.primary}`}>
                     <Upload className="w-3 h-3 mr-1.5" /> Restaurar
-                    <input type="file" accept=".dracker,.json" onChange={onRestore} className="hidden" />
+                    <input type="file" accept=".json,.dracker" onChange={onRestore} className="hidden" />
                 </label>
             </div>
 
@@ -201,7 +201,7 @@ export const Header = ({
                             <label className="flex flex-col items-center justify-center h-auto py-2 rounded-lg cursor-pointer bg-white border border-brown-100 shadow-sm hover:bg-brown-50 hover:border-brown-300 transition-all text-brown-700 gap-1 active:scale-95">
                                 <Upload className="w-5 h-5" />
                                 <span className="text-[10px] font-bold">Restaurar</span>
-                                <input type="file" accept=".dracker,.json" onChange={onRestore} className="hidden" />
+                                <input type="file" accept=".json,.dracker" onChange={onRestore} className="hidden" />
                             </label>
                         </div>
                     </div>

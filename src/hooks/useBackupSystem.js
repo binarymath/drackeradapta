@@ -10,7 +10,7 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId) => {
         importedVersion: null
     });
 
-    // Estado da nova Central de Versões e Backups (.dracker)
+    // Estado da nova Central de Versões e Backups (.json)
     const [backupCenterModal, setBackupCenterModal] = useState({
         isOpen: false,
         initialTab: 'timeline',
@@ -33,14 +33,14 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId) => {
         });
     };
 
-    // Exportação rápida na barra superior no formato otimizado .dracker
+    // Exportação rápida na barra superior no formato otimizado .json
     const exportSystemState = () => {
         try {
             if (!tabs || tabs.length === 0) {
                 alert('Não há atividades ativas para realizar o backup.');
                 return;
             }
-            VersionedBackupService.exportDrackerFile(tabs, {
+            VersionedBackupService.exportJsonFile(tabs, {
                 isRawTabs: true,
                 metadata: {
                     versionTag: `Backup Rápido (${new Date().toLocaleDateString('pt-BR')})`,
@@ -51,7 +51,7 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId) => {
             });
         } catch (error) {
             console.error('Falha ao exportar estado do sistema:', error);
-            alert('Erro ao gerar backup versionado (`.dracker`).');
+            alert('Erro ao gerar backup (.json).');
         }
     };
 
