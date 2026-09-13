@@ -12,7 +12,8 @@ export const RouletteWheel = ({
     items = [],
     spinning = false,
     winner = null,
-    onSpinComplete
+    onSpinComplete,
+    isMaximized = false
 }) => {
     switch (style) {
         case 'slot_machine':
@@ -22,6 +23,7 @@ export const RouletteWheel = ({
                     spinning={spinning}
                     winner={winner}
                     onSpinComplete={onSpinComplete}
+                    isMaximized={isMaximized}
                 />
             );
         case 'marquee':
@@ -31,6 +33,7 @@ export const RouletteWheel = ({
                     spinning={spinning}
                     winner={winner}
                     onSpinComplete={onSpinComplete}
+                    isMaximized={isMaximized}
                 />
             );
         case 'cyberpunk':
@@ -40,6 +43,7 @@ export const RouletteWheel = ({
                     spinning={spinning}
                     winner={winner}
                     onSpinComplete={onSpinComplete}
+                    isMaximized={isMaximized}
                 />
             );
         case 'arcade':
@@ -49,6 +53,7 @@ export const RouletteWheel = ({
                     spinning={spinning}
                     winner={winner}
                     onSpinComplete={onSpinComplete}
+                    isMaximized={isMaximized}
                 />
             );
         case 'cosmic':
@@ -58,6 +63,7 @@ export const RouletteWheel = ({
                     spinning={spinning}
                     winner={winner}
                     onSpinComplete={onSpinComplete}
+                    isMaximized={isMaximized}
                 />
             );
         case 'minimalist':
@@ -67,6 +73,7 @@ export const RouletteWheel = ({
                     spinning={spinning}
                     winner={winner}
                     onSpinComplete={onSpinComplete}
+                    isMaximized={isMaximized}
                 />
             );
         case 'classic':
@@ -77,6 +84,7 @@ export const RouletteWheel = ({
                     spinning={spinning}
                     winner={winner}
                     onSpinComplete={onSpinComplete}
+                    isMaximized={isMaximized}
                 />
             );
     }

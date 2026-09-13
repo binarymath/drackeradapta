@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useActivity } from '../../contexts/ActivityContext';
 import { RouletteWheel } from './RouletteWheel';
 import { RouletteCard } from './RouletteCard';
 import { StudentHistoryModal } from './StudentHistoryModal';
 import { RouletteQuestionsEditorModal } from './RouletteQuestionsEditorModal';
 import { RouletteStyleSelector } from './RouletteStyleSelector';
-import { CheckCircle, XCircle, RotateCcw, List, Download, UserX, Edit3, RotateCw, RefreshCw, Eye, EyeOff, HeartHandshake, Award } from 'lucide-react';
+import { CheckCircle, XCircle, RotateCcw, List, Download, UserX, Edit3, RotateCw, RefreshCw, Eye, EyeOff, HeartHandshake, Award, Maximize2, Minimize2 } from 'lucide-react';
 
 // Temas visuais imersivos para o palco de fundo da roleta
 const STAGE_THEMES = {
@@ -243,6 +243,66 @@ export const RouletteActivity = () => {
         setSpinning(false);
         setShowCard(true); // Mostra o card com nome e pergunta
     };
+
+    // Modo Tela Cheia / 100% da tela para projeções e lousas interativas
+    const [isMaximized, setIsMaximized] = useState(false);
+    const arenaRef = useRef(null);
+
+    const toggleMaximize = async () => {
+        if (!isMaximized) {
+            setIsMaximized(true);
+            try {
+                if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                    await document.documentElement.requestFullscreen();
+                }
+            } catch (err) {
+                // Modo maximizado via CSS fixed funcionará mesmo se o navegador restringir a API nativa
+            }
+        } else {
+            setIsMaximized(false);
+            try {
+                if (document.fullscreenElement && document.exitFullscreen) {
+                    await document.exitFullscreen();
+                }
+            } catch (err) {
+                // Fallback silencioso
+            }
+        }
+    };
+
+    // Sincroniza saída pelo ESC do navegador, tecla F11 ou atalho de teclado
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement && isMaximized) {
+                setIsMaximized(false);
+            }
+        };
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isMaximized) {
+                setIsMaximized(false);
+                if (document.fullscreenElement && document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+            // Tecla de Espaço para girar a roleta em modo tela cheia
+            if (e.code === 'Space' && isMaximized && !spinning && !showCard && activeItems.length > 0) {
+                const targetTag = e.target?.tagName?.toUpperCase();
+                if (targetTag !== 'INPUT' && targetTag !== 'TEXTAREA' && targetTag !== 'SELECT') {
+                    e.preventDefault();
+                    handleSpin();
+                }
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isMaximized, spinning, showCard, activeItems.length]);
 
     // Permite trocar a pergunta do aluno sorteado em tempo real no card
     const handleChangeWinnerQuestion = (newQuestionObj) => {
@@ -548,7 +608,14 @@ export const RouletteActivity = () => {
             {/* Temas visuais imersivos para o palco de fundo da roleta */}
             <div className="w-full flex flex-col md:flex-row gap-8 items-start justify-center">
                 {/* Lado Esquerdo: Arena Imersiva da Roleta */}
-                <div className={`relative flex-1 w-full flex flex-col items-center justify-center p-5 sm:p-7 rounded-3xl border transition-all duration-500 overflow-hidden ${currentTheme.container}`}>
+                <div 
+                    ref={arenaRef}
+                    className={`transition-all duration-500 overflow-hidden ${
+                        isMaximized 
+                            ? `fixed inset-0 z-40 w-screen h-screen m-0 rounded-none border-0 p-4 sm:p-6 flex flex-col justify-between ${currentTheme.container}`
+                            : `relative flex-1 w-full flex flex-col items-center justify-center p-5 sm:p-7 rounded-3xl border ${currentTheme.container}`
+                    }`}
+                >
                     {/* Spotlight de Iluminação Cênica de Fundo */}
                     <div 
                         className="absolute inset-0 pointer-events-none rounded-3xl transition-all duration-500" 
@@ -558,21 +625,54 @@ export const RouletteActivity = () => {
                     <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none rounded-3xl opacity-50" />
 
                     {/* Header da Arena */}
-                    <div className="flex items-center justify-between w-full mb-3 z-10 relative">
-                        <div className="flex items-center gap-2">
-                            <h2 className="text-2xl font-black text-white tracking-wide">Roleta</h2>
-                            <span className="text-xs font-bold text-slate-400 hidden sm:inline">
+                    <div className="flex items-center justify-between w-full mb-2 sm:mb-3 z-10 relative">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide flex items-center gap-2">
+                                <span>Roleta</span>
+                                {isMaximized && (
+                                    <span className="text-xs font-bold text-amber-300 bg-amber-400/20 px-2.5 py-0.5 rounded-full border border-amber-400/30 uppercase tracking-widest hidden sm:inline">
+                                        100% Tela Cheia
+                                    </span>
+                                )}
+                            </h2>
+                            <span className="text-xs font-bold text-slate-400 hidden md:inline">
                                 | Arena de Sorteio
                             </span>
                         </div>
-                        <span className="text-xs font-bold text-amber-300 bg-amber-400/10 px-3 py-1.5 rounded-full border border-amber-400/20 flex items-center gap-1.5 shadow-xs">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            {activeItems.length} alunos na roda
-                        </span>
+
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <span className="text-xs sm:text-sm font-bold text-amber-300 bg-amber-400/10 px-3 py-1.5 rounded-full border border-amber-400/20 flex items-center gap-1.5 shadow-xs">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                {activeItems.length} alunos na roda
+                            </span>
+
+                            {/* Símbolo / Botão de Maximizar e Minimizar */}
+                            <button
+                                onClick={toggleMaximize}
+                                className={`flex items-center gap-1.5 text-xs sm:text-sm font-black px-3 sm:px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer shadow-md active:scale-95 ${
+                                    isMaximized 
+                                        ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-200 ring-2 ring-amber-400/30' 
+                                        : 'bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/40'
+                                }`}
+                                title={isMaximized ? "Minimizar Roleta (Esc)" : "Maximizar Roleta (Ocupar 100% da tela)"}
+                            >
+                                {isMaximized ? (
+                                    <>
+                                        <Minimize2 className="w-4 h-4 text-slate-950" />
+                                        <span className="hidden sm:inline">Minimizar</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Maximize2 className="w-4 h-4 text-amber-400" />
+                                        <span className="hidden sm:inline">Maximizar</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     {/* Seletor dos 6 Estilos de Roleta */}
-                    <div className="w-full z-10 relative">
+                    <div className={`w-full z-10 relative ${isMaximized ? 'max-w-4xl mx-auto' : ''}`}>
                         <RouletteStyleSelector 
                             selectedStyle={rouletteStyle}
                             onSelectStyle={handleSelectStyle}
@@ -581,22 +681,23 @@ export const RouletteActivity = () => {
                     </div>
                     
                     {/* Roda / Chassi de Roleta Central */}
-                    <div className="z-10 relative my-2 w-full flex items-center justify-center">
+                    <div className={`z-10 relative w-full flex items-center justify-center ${isMaximized ? 'flex-1 my-0' : 'my-2'}`}>
                         <RouletteWheel 
                             style={rouletteStyle}
                             items={activeItems} 
                             spinning={spinning} 
                             winner={winner} 
                             onSpinComplete={handleSpinComplete} 
+                            isMaximized={isMaximized}
                         />
                     </div>
 
                     {/* Botão de Giro Temático */}
-                    <div className="mt-6 sm:mt-8 z-10 relative">
+                    <div className={`z-10 relative ${isMaximized ? 'mb-2 sm:mb-4' : 'mt-6 sm:mt-8'}`}>
                         <button 
                             onClick={handleSpin}
                             disabled={spinning || activeItems.length === 0}
-                            className={`px-8 sm:px-10 py-4 rounded-2xl font-black text-xl sm:text-2xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3 cursor-pointer ${
+                            className={`px-8 sm:px-12 py-4 sm:py-5 rounded-2xl font-black text-xl sm:text-2xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3 cursor-pointer ${
                                 spinning || activeItems.length === 0
                                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700 opacity-60 shadow-none'
                                 : currentTheme.button

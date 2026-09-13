@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
     User, HelpCircle, Sparkles, CheckCircle, XCircle, RotateCcw, 
     Eye, EyeOff, Shuffle, ListOrdered, Users, HeartHandshake, Award,
-    Play, Pause, RotateCw, Lightbulb, ThumbsUp, Check, X, AlertTriangle
+    RotateCw, Lightbulb, ThumbsUp, Check, X, AlertTriangle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { gameAudio } from '../../utils/gameAudio';
+import { RouletteTimerBomb } from './RouletteTimerBomb';
 
 export const RouletteCard = ({ 
     winner, 
@@ -34,59 +35,13 @@ export const RouletteCard = ({
     // ==========================================
     // ESTADOS: TODOS RESPONDEM
     // ==========================================
-    const [timerSeconds, setTimerSeconds] = useState(30);
-    const [timerTotal, setTimerTotal] = useState(30);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const [timerFinished, setTimerFinished] = useState(false);
     const [showSelectionGrid, setShowSelectionGrid] = useState(false);
     const [selectedStudentIds, setSelectedStudentIds] = useState(() => new Set(activeStudents.map(s => s.id)));
-
-    // Timer effect
-    useEffect(() => {
-        let interval = null;
-        if (isTimerRunning && timerSeconds > 0) {
-            interval = setInterval(() => {
-                setTimerSeconds(prev => {
-                    if (prev <= 1) {
-                        setIsTimerRunning(false);
-                        setTimerFinished(true);
-                        gameAudio.playTimerEnd();
-                        return 0;
-                    }
-                    if (prev <= 4) {
-                        gameAudio.playTick();
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        }
-        return () => clearInterval(interval);
-    }, [isTimerRunning, timerSeconds]);
 
     // Atualiza a seleção padrão quando a lista de alunos mudar
     useEffect(() => {
         setSelectedStudentIds(new Set(activeStudents.map(s => s.id)));
     }, [activeStudents]);
-
-    const handleStartTimer = (seconds) => {
-        setTimerSeconds(seconds);
-        setTimerTotal(seconds);
-        setIsTimerRunning(true);
-        setTimerFinished(false);
-        gameAudio.playTick();
-    };
-
-    const handleToggleTimer = () => {
-        setIsTimerRunning(prev => !prev);
-        gameAudio.playTick();
-    };
-
-    const handleResetTimer = () => {
-        setIsTimerRunning(false);
-        setTimerSeconds(timerTotal);
-        setTimerFinished(false);
-        gameAudio.playTick();
-    };
 
     // ==========================================
     // ESTADOS: PRECISO DE AJUDA
@@ -242,7 +197,7 @@ export const RouletteCard = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300 relative border-4 border-amber-400 flex flex-col max-h-[92vh]">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl xl:max-w-5xl overflow-hidden animate-in zoom-in-95 duration-300 relative border-4 border-amber-400 flex flex-col max-h-[92vh]">
                 
                 {/* ============================================================ */}
                 {/* CABEÇALHO DINÂMICO CONFORME O MODO ATIVO */}
@@ -460,51 +415,63 @@ export const RouletteCard = ({
                 {/* ============================================================ */}
                 <div className="p-5 sm:p-6 overflow-y-auto space-y-5 bg-slate-50/60 flex-1 custom-scrollbar">
                     
-                    {/* CARD DA PERGUNTA */}
-                    <div className="bg-white border-2 border-indigo-100 p-5 sm:p-6 rounded-2xl shadow-sm text-center relative">
-                        <div className="inline-flex items-center justify-center gap-1.5 text-indigo-600 font-bold mb-3 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-100 text-xs">
-                            <HelpCircle className="w-4 h-4" />
-                            <span>Pergunta da Rodada</span>
-                        </div>
+                    {/* ======================================================== */}
+                    {/* GRID: PERGUNTA DA RODADA AO LADO DO CRONÔMETRO BOMBA */}
+                    {/* ======================================================== */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                        {/* Lado Esquerdo: Card da Pergunta */}
+                        <div className="lg:col-span-7 bg-white border-2 border-indigo-100 p-5 sm:p-6 rounded-2xl shadow-sm text-center relative flex flex-col justify-between">
+                            <div>
+                                <div className="inline-flex items-center justify-center gap-1.5 text-indigo-600 font-bold mb-3 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-100 text-xs">
+                                    <HelpCircle className="w-4 h-4" />
+                                    <span>Pergunta da Rodada</span>
+                                </div>
 
-                        {winner.imageUrl && (
-                            <div className="mb-4 flex justify-center">
-                                <img 
-                                    src={winner.imageUrl} 
-                                    alt="Imagem da pergunta" 
-                                    className="max-h-48 rounded-xl border-2 border-slate-200 shadow-sm object-contain"
-                                    onError={(e) => e.target.style.display='none'}
-                                />
-                            </div>
-                        )}
-
-                        <p className="text-xl sm:text-2xl text-slate-800 font-bold leading-relaxed">
-                            {winner.question}
-                        </p>
-
-                        {/* GABARITO / RESPOSTA */}
-                        {winner.answer && (
-                            <div className="mt-4 pt-3 border-t border-slate-100">
-                                <button
-                                    onClick={() => setShowAnswer(!showAnswer)}
-                                    className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 rounded-full transition-colors border border-emerald-200"
-                                >
-                                    {showAnswer ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                                    {showAnswer ? 'Ocultar Resposta' : 'Ver Resposta Esperada'}
-                                </button>
-                                
-                                {showAnswer && (
-                                    <div className="mt-3 p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-xl animate-in slide-in-from-top-2 fade-in duration-200 text-left">
-                                        <div className="text-2xs font-black uppercase tracking-wider text-emerald-700 mb-1">
-                                            Resposta Esperada:
-                                        </div>
-                                        <p className="text-emerald-900 font-semibold text-base">
-                                            {winner.answer}
-                                        </p>
+                                {winner.imageUrl && (
+                                    <div className="mb-4 flex justify-center">
+                                        <img 
+                                            src={winner.imageUrl} 
+                                            alt="Imagem da pergunta" 
+                                            className="max-h-48 rounded-xl border-2 border-slate-200 shadow-sm object-contain"
+                                            onError={(e) => e.target.style.display='none'}
+                                        />
                                     </div>
                                 )}
+
+                                <p className="text-xl sm:text-2xl text-slate-800 font-bold leading-relaxed">
+                                    {winner.question}
+                                </p>
                             </div>
-                        )}
+
+                            {/* GABARITO / RESPOSTA */}
+                            {winner.answer && (
+                                <div className="mt-4 pt-3 border-t border-slate-100">
+                                    <button
+                                        onClick={() => setShowAnswer(!showAnswer)}
+                                        className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 rounded-full transition-colors border border-emerald-200"
+                                    >
+                                        {showAnswer ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                        {showAnswer ? 'Ocultar Resposta' : 'Ver Resposta Esperada'}
+                                    </button>
+                                    
+                                    {showAnswer && (
+                                        <div className="mt-3 p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-xl animate-in slide-in-from-top-2 fade-in duration-200 text-left">
+                                            <div className="text-2xs font-black uppercase tracking-wider text-emerald-700 mb-1">
+                                                Resposta Esperada:
+                                            </div>
+                                            <p className="text-emerald-900 font-semibold text-base">
+                                                {winner.answer}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Lado Direito: Cronômetro Bomba Interativo ao lado da pergunta */}
+                        <div className="lg:col-span-5 flex justify-center w-full">
+                            <RouletteTimerBomb className="h-full" />
+                        </div>
                     </div>
 
                     {/* ======================================================== */}
@@ -512,57 +479,8 @@ export const RouletteCard = ({
                     {/* ======================================================== */}
                     {cardMode === 'todos_respondem' && (
                         <div className="bg-indigo-50/90 border-2 border-indigo-200 p-5 rounded-2xl space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            
-                            {/* Cronômetro */}
-                            <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-2xs flex flex-col items-center">
-                                <div className="text-xs font-bold text-indigo-900 mb-1 flex items-center gap-1">
-                                    ⏱️ Tempo para a Turma Responder:
-                                </div>
-                                <div className="text-4xl font-black tracking-widest font-mono text-indigo-700 my-1">
-                                    00:{timerSeconds < 10 ? `0${timerSeconds}` : timerSeconds}
-                                </div>
-                                
-                                {/* Barra de Progresso */}
-                                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden my-2">
-                                    <div 
-                                        className={`h-full transition-all duration-1000 ${
-                                            timerSeconds <= 5 ? 'bg-red-500' : timerSeconds <= 15 ? 'bg-amber-500' : 'bg-indigo-600'
-                                        }`}
-                                        style={{ width: `${(timerSeconds / (timerTotal || 30)) * 100}%` }}
-                                    ></div>
-                                </div>
-
-                                {/* Controles do Cronômetro */}
-                                <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
-                                    <button 
-                                        onClick={handleToggleTimer}
-                                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                                            isTimerRunning 
-                                            ? 'bg-amber-500 hover:bg-amber-600 text-white' 
-                                            : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                                        }`}
-                                    >
-                                        {isTimerRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                                        {isTimerRunning ? 'Pausar' : 'Iniciar'}
-                                    </button>
-
-                                    <button 
-                                        onClick={handleResetTimer}
-                                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1"
-                                    >
-                                        <RotateCcw className="w-3.5 h-3.5" /> Reiniciar
-                                    </button>
-
-                                    <div className="h-4 w-px bg-slate-200 mx-1"></div>
-
-                                    <button onClick={() => handleStartTimer(15)} className="px-2.5 py-1 text-2xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md">15s</button>
-                                    <button onClick={() => handleStartTimer(30)} className="px-2.5 py-1 text-2xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md">30s</button>
-                                    <button onClick={() => handleStartTimer(60)} className="px-2.5 py-1 text-2xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-md">60s</button>
-                                </div>
-                            </div>
-
                             {/* Ações de Pontuação Coletiva */}
-                            <div className="space-y-3 pt-2">
+                            <div className="space-y-3">
                                 <div className="text-xs font-black text-indigo-900 uppercase tracking-wider text-center">
                                     Como deseja pontuar a turma?
                                 </div>
@@ -921,7 +839,6 @@ export const RouletteCard = ({
                             <button
                                 onClick={() => {
                                     setCardMode('todos_respondem');
-                                    handleStartTimer(30);
                                 }}
                                 className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-sm transition-all transform active:scale-95 group"
                             >
