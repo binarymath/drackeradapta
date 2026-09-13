@@ -196,3 +196,24 @@ code {
   white-space: nowrap;
   animation: marquee 25s linear infinite;
 }
+
+/* Animação de tremor de explosão da Bomba */
+@keyframes bomb-shake {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: translate(-4px, 2px) rotate(-1.5deg); }
+  20%, 40%, 60%, 80% { transform: translate(4px, -2px) rotate(1.5deg); }
+}
+
+.animate-bomb-shake {
+  animation: bomb-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Animação de fagulha do pavio aceso */
+@keyframes fuse-spark {
+  0%, 100% { filter: drop-shadow(0 0 4px #fbbf24) scale(1); opacity: 1; }
+  50% { filter: drop-shadow(0 0 12px #ef4444) scale(1.3); opacity: 0.8; }
+}
+
+.animate-fuse-spark {
+  animation: fuse-spark 0.3s ease-in-out infinite;
+}

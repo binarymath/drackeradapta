@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 
-export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null, onSpinComplete }) => {
+export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null, onSpinComplete, isMaximized = false }) => {
     // Índice do aluno sendo exibido no letreiro no momento
     const [currentIndex, setCurrentIndex] = useState(0);
     // Letras ou nomes passando
@@ -180,9 +180,13 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
     const nextItem = items[(safeIdx + 1) % items.length];
 
     return (
-        <div className="relative w-full max-w-lg mx-auto flex flex-col items-center select-none">
+        <div className={`relative w-full ${
+            isMaximized ? 'max-w-3xl sm:max-w-4xl' : 'max-w-lg'
+        } mx-auto flex flex-col items-center select-none transition-all duration-300`}>
             {/* Chassis Principal Estilo Painel de Aeroporto / Estação Ferroviária */}
-            <div className="w-full bg-gradient-to-b from-slate-950 via-slate-900 to-black rounded-3xl p-5 sm:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(245,158,11,0.15)] border-4 border-slate-800 relative overflow-hidden">
+            <div className={`w-full bg-gradient-to-b from-slate-950 via-slate-900 to-black rounded-3xl ${
+                isMaximized ? 'p-6 sm:p-7' : 'p-5 sm:p-6'
+            } shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(245,158,11,0.15)] border-4 border-slate-800 relative overflow-hidden`}>
                 
                 {/* Textura de Linhas de LED sutis */}
                 <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-40" />
@@ -211,7 +215,7 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
                                     ? 'bg-emerald-400 shadow-[0_0_12px_#10b981]'
                                     : 'bg-emerald-500 shadow-[0_0_8px_#10b981]'
                         }`} />
-                        <span className="font-mono text-[11px] sm:text-xs font-black tracking-widest text-amber-400/90 uppercase">
+                        <span className={`font-mono ${isMaximized ? 'text-xs sm:text-sm' : 'text-[11px] sm:text-xs'} font-black tracking-widest text-amber-400/90 uppercase`}>
                             {spinning ? 'SORTEANDO PARTICIPANTE...' : lockedWinner ? 'ALUNO SORTEADO 🏆' : 'LETREIRO ELETRÔNICO PRONTO'}
                         </span>
                     </div>
@@ -223,15 +227,15 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
                 </div>
 
                 {/* Janela Central Mecânica: Display Split-Flap de 3 Faixas */}
-                <div className="relative bg-black rounded-2xl p-2 sm:p-3 border-2 border-slate-800/90 shadow-inner overflow-hidden">
+                <div className={`relative bg-black rounded-2xl ${isMaximized ? 'p-3 sm:p-4' : 'p-2 sm:p-3'} border-2 border-slate-800/90 shadow-inner overflow-hidden`}>
                     
                     {/* Linha Superior (Nome Anterior - Faded) */}
-                    <div className="h-10 sm:h-12 flex items-center justify-center opacity-30 text-slate-300 font-mono text-sm sm:text-base tracking-wider overflow-hidden">
+                    <div className={`${isMaximized ? 'h-12 sm:h-14 text-sm sm:text-base' : 'h-10 sm:h-12 text-sm sm:text-base'} flex items-center justify-center opacity-30 text-slate-300 font-mono tracking-wider overflow-hidden`}>
                         {prevItem?.name ? prevItem.name.toUpperCase() : '---'}
                     </div>
 
                     {/* Faixa Central em Destaque: O Split-Flap Principal */}
-                    <div className={`relative h-20 sm:h-24 my-1 rounded-xl bg-gradient-to-b from-slate-900 via-slate-950 to-black border-2 transition-all duration-200 flex items-center justify-center shadow-2xl overflow-hidden ${
+                    <div className={`relative ${isMaximized ? 'h-28 sm:h-32 my-2' : 'h-20 sm:h-24 my-1'} rounded-xl bg-gradient-to-b from-slate-900 via-slate-950 to-black border-2 transition-all duration-200 flex items-center justify-center shadow-2xl overflow-hidden ${
                         lockedWinner 
                             ? 'border-amber-400/90 shadow-[0_0_35px_rgba(245,158,11,0.4)] scale-[1.02]' 
                             : spinning 
@@ -252,7 +256,7 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
                         <div className={`z-10 px-4 sm:px-6 text-center font-mono font-black transition-all ${
                             isFlipping ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
                         }`}>
-                            <span className={`text-xl sm:text-2xl md:text-3xl tracking-widest uppercase truncate block ${
+                            <span className={`${isMaximized ? 'text-2xl sm:text-3xl md:text-4xl' : 'text-xl sm:text-2xl md:text-3xl'} tracking-widest uppercase truncate block ${
                                 lockedWinner
                                     ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 drop-shadow-[0_2px_10px_rgba(253,224,71,0.6)] animate-pulse'
                                     : spinning
@@ -270,7 +274,7 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
                     </div>
 
                     {/* Linha Inferior (Próximo Nome - Faded) */}
-                    <div className="h-10 sm:h-12 flex items-center justify-center opacity-30 text-slate-300 font-mono text-sm sm:text-base tracking-wider overflow-hidden">
+                    <div className={`${isMaximized ? 'h-12 sm:h-14 text-sm sm:text-base' : 'h-10 sm:h-12 text-sm sm:text-base'} flex items-center justify-center opacity-30 text-slate-300 font-mono tracking-wider overflow-hidden`}>
                         {nextItem?.name ? nextItem.name.toUpperCase() : '---'}
                     </div>
 

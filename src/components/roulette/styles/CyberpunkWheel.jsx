@@ -11,7 +11,7 @@ const CYBER_COLORS = [
     '#7928ca', // Violeta profundo
 ];
 
-export const CyberpunkWheel = ({ items = [], spinning = false, winner = null, onSpinComplete }) => {
+export const CyberpunkWheel = ({ items = [], spinning = false, winner = null, onSpinComplete, isMaximized = false }) => {
     const [rotation, setRotation] = useState(0);
     const [hudTick, setHudTick] = useState(0);
     const audioCtxRef = useRef(null);
@@ -148,9 +148,15 @@ export const CyberpunkWheel = ({ items = [], spinning = false, winner = null, on
     };
 
     return (
-        <div className="relative w-80 h-80 sm:w-96 sm:h-96 md:w-[440px] md:h-[440px] flex items-center justify-center select-none">
+        <div className={`relative ${
+            isMaximized 
+                ? 'w-[min(68vh,82vw)] h-[min(68vh,82vw)] sm:w-[min(70vh,84vw)] sm:h-[min(70vh,84vw)] md:w-[min(73vh,85vw)] md:h-[min(73vh,85vw)]' 
+                : 'w-80 h-80 sm:w-96 sm:h-96 md:w-[440px] md:h-[440px]'
+        } flex items-center justify-center select-none transition-all duration-300`}>
             {/* Mira Laser Superior Futurista */}
-            <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none drop-shadow-[0_0_15px_#00f0ff]">
+            <div className={`absolute left-1/2 transform -translate-x-1/2 z-30 pointer-events-none drop-shadow-[0_0_15px_#00f0ff] transition-all duration-300 ${
+                isMaximized ? '-top-10 sm:-top-12 scale-125' : '-top-7'
+            }`}>
                 <div className="flex flex-col items-center">
                     <div className="px-2 py-0.5 bg-black/90 border border-cyan-400 rounded text-[9px] font-mono font-black text-cyan-300 tracking-wider mb-1 shadow-[0_0_10px_rgba(0,240,255,0.5)]">
                         {spinning ? 'SCANNING...' : 'TARGET_LOCK'}

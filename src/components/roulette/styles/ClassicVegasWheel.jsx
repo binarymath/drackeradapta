@@ -11,7 +11,7 @@ const COLORS = [
     '#ffc400', // Amarelo sol
 ];
 
-export const ClassicVegasWheel = ({ items = [], spinning = false, winner = null, onSpinComplete }) => {
+export const ClassicVegasWheel = ({ items = [], spinning = false, winner = null, onSpinComplete, isMaximized = false }) => {
     const [rotation, setRotation] = useState(0);
     const wheelRef = useRef(null);
     const [lightsOn, setLightsOn] = useState(false);
@@ -150,9 +150,15 @@ export const ClassicVegasWheel = ({ items = [], spinning = false, winner = null,
     const lightAngles = Array.from({ length: 24 }, (_, i) => i * 15);
 
     return (
-        <div className="relative w-80 h-80 sm:w-96 sm:h-96 md:w-[440px] md:h-[440px] drop-shadow-2xl flex items-center justify-center">
+        <div className={`relative ${
+            isMaximized 
+                ? 'w-[min(68vh,82vw)] h-[min(68vh,82vw)] sm:w-[min(70vh,84vw)] sm:h-[min(70vh,84vw)] md:w-[min(73vh,85vw)] md:h-[min(73vh,85vw)]' 
+                : 'w-80 h-80 sm:w-96 sm:h-96 md:w-[440px] md:h-[440px]'
+        } drop-shadow-2xl flex items-center justify-center transition-all duration-300`}>
             {/* Ponteiro Dourado Premium */}
-            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-30 drop-shadow-xl pointer-events-none">
+            <div className={`absolute left-1/2 transform -translate-x-1/2 z-30 drop-shadow-xl pointer-events-none transition-all duration-300 ${
+                isMaximized ? '-top-8 sm:-top-10 scale-125' : '-top-6'
+            }`}>
                 <svg width="40" height="60" viewBox="0 0 40 60" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M20 60L0 20C0 8.95431 8.95431 0 20 0C31.0457 0 40 8.95431 40 20L20 60Z" fill="url(#vegasPointerGrad)" />
                     <path d="M20 55L4 20C4 11.1634 11.1634 4 20 4C28.8366 4 36 11.1634 36 20L20 55Z" fill="url(#vegasPointerInnerGrad)" />

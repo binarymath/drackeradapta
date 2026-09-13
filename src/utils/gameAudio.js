@@ -124,6 +124,85 @@ class GameAudioManager {
             osc.stop(ctx.currentTime + 0.6);
         } catch (e) {}
     }
+
+    // Som de explosão dramática de bomba (Impacto de Ruído + Sub-grave estrondoso)
+    playExplosion() {
+        try {
+            const ctx = this.getAudioContext();
+            if (!ctx) return;
+
+            const now = ctx.currentTime;
+            const duration = 1.8;
+
+            // 1. Ruído de impacto e estilhaços
+            const bufferSize = Math.floor(ctx.sampleRate * duration);
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.45));
+            }
+
+            const noiseNode = ctx.createBufferSource();
+            noiseNode.buffer = buffer;
+
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(900, now);
+            filter.frequency.exponentialRampToValueAtTime(60, now + duration);
+
+            const noiseGain = ctx.createGain();
+            noiseGain.gain.setValueAtTime(1.0, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+            noiseNode.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(ctx.destination);
+
+            // 2. Onda de choque grave (Boom de 160Hz decaindo para 25Hz)
+            const osc = ctx.createOscillator();
+            const oscGain = ctx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(160, now);
+            osc.frequency.exponentialRampToValueAtTime(25, now + 1.3);
+
+            oscGain.gain.setValueAtTime(0.95, now);
+            oscGain.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
+
+            osc.connect(oscGain);
+            oscGain.connect(ctx.destination);
+
+            noiseNode.start(now);
+            noiseNode.stop(now + duration);
+            osc.start(now);
+            osc.stop(now + 1.3);
+        } catch (e) {}
+    }
+
+    // Som de tic-tac urgente de bomba (pavio aceso)
+    playBombTick(isUrgent = false) {
+        try {
+            const ctx = this.getAudioContext();
+            if (!ctx) return;
+
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = isUrgent ? 'sawtooth' : 'square';
+            osc.frequency.setValueAtTime(isUrgent ? 1400 : 950, now);
+            osc.frequency.exponentialRampToValueAtTime(200, now + 0.04);
+
+            gain.gain.setValueAtTime(isUrgent ? 0.18 : 0.09, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.04);
+        } catch (e) {}
+    }
 }
 
 export const gameAudio = new GameAudioManager();
