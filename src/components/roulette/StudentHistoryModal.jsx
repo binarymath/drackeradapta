@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
     CheckCircle, XCircle, HeartHandshake, Zap, 
-    Printer, Filter, User, HelpCircle, Calendar, Sparkles, Award
+    Printer, Filter, User, HelpCircle, Calendar, Sparkles, Award, AlertTriangle
 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
@@ -39,6 +39,20 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                 </span>
             );
         }
+        if (item.result === 'merit') {
+            return (
+                <span className="font-bold text-xs text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> +1 Mérito
+                </span>
+            );
+        }
+        if (item.result === 'rule_violation') {
+            return (
+                <span className="font-bold text-xs text-rose-800 bg-rose-100 border border-rose-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600" /> -1 Infringiu Regra
+                </span>
+            );
+        }
         if (item.result === 'incorrect') {
             return (
                 <span className="font-bold text-xs text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
@@ -65,6 +79,12 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
         }
         if (result === 'all_correct') {
             return { backgroundColor: '#faf5ff', borderColor: '#e9d5ff' };
+        }
+        if (result === 'merit') {
+            return { backgroundColor: '#f0fdf4', borderColor: '#86efac' };
+        }
+        if (result === 'rule_violation') {
+            return { backgroundColor: '#fff1f2', borderColor: '#fecdd3' };
         }
         if (result === 'incorrect') {
             return { backgroundColor: '#fef2f2', borderColor: '#fecaca' };
@@ -128,8 +148,8 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                     <td style="padding: 8px;">${i + 1}</td>
                     <td style="padding: 8px;">${h.question}</td>
-                    <td style="padding: 8px; font-weight: bold; color: ${h.result === 'correct' ? '#15803d' : h.result === 'help_correct' ? '#0369a1' : '#b91c1c'};">
-                        ${h.result === 'correct' ? 'Acertou' : h.result === 'help_correct' ? 'Acertou com Ajuda' : h.result === 'all_correct' ? 'Desafio da Turma' : 'Errou'}
+                    <td style="padding: 8px; font-weight: bold; color: ${h.result === 'correct' ? '#15803d' : h.result === 'merit' ? '#16a34a' : h.result === 'help_correct' ? '#0369a1' : h.result === 'rule_violation' ? '#e11d48' : '#b91c1c'};">
+                        ${h.result === 'correct' ? 'Acertou' : h.result === 'merit' ? '+1 Ponto por Mérito' : h.result === 'rule_violation' ? '-1 Infringiu Regra' : h.result === 'help_correct' ? 'Acertou com Ajuda' : h.result === 'all_correct' ? 'Desafio da Turma' : 'Errou'}
                     </td>
                     <td style="padding: 8px;">${statusAjuda}</td>
                     <td style="padding: 8px; font-size: 11px; color: #64748b;">

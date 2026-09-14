@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, Flame, Volume2, VolumeX, Plus, Minus, AlertTriangle, Sparkles } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { gameAudio } from '../../utils/gameAudio';
 
 export const RouletteTimerBomb = ({ 
@@ -12,6 +13,7 @@ export const RouletteTimerBomb = ({
     const [timeLeft, setTimeLeft] = useState(30);  // Tempo restante atual
     const [isRunning, setIsRunning] = useState(false); // Inicia parado por padrão (acionado pelo usuário)
     const [isExploded, setIsExploded] = useState(false);
+    const [showFlash, setShowFlash] = useState(false);
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [customInput, setCustomInput] = useState('');
     const [showCustomInput, setShowCustomInput] = useState(false);
@@ -24,13 +26,8 @@ export const RouletteTimerBomb = ({
             intervalRef.current = setInterval(() => {
                 setTimeLeft(prev => {
                     if (prev <= 1) {
-                        // Tempo esgotou -> EXPLOSÃO DA BOMBA!
-                        setIsRunning(false);
-                        setIsExploded(true);
-                        if (soundEnabled) {
-                            gameAudio.playExplosion();
-                        }
-                        if (onExplode) onExplode();
+                        // Tempo esgotou -> EXPLOSÃO COLOSSAL DA BOMBA!
+                        triggerExplosionEffects();
                         return 0;
                     }
                     // Tic-tac urgente nos últimos 5 segundos
@@ -103,15 +100,65 @@ export const RouletteTimerBomb = ({
         }
     };
 
-    // Ação Explícita: "Não Soube Responder / Detonar Bomba"
-    const handleManualExplode = () => {
+    // Gatilho Completo da Explosão Surpreendente (Áudio + Visual + Estilhaços)
+    const triggerExplosionEffects = () => {
         setIsRunning(false);
-        setTimeLeft(0);
         setIsExploded(true);
+        setShowFlash(true);
+        setTimeout(() => setShowFlash(false), 950);
+
+        // 1. Áudio de estrondo colossal
         if (soundEnabled) {
             gameAudio.playExplosion();
         }
+
+        // 2. Vibração tátil no aparelho (se disponível)
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            try {
+                navigator.vibrate([120, 60, 450, 100, 700]);
+            } catch (e) {}
+        }
+
+        // 3. Efeito pirotécnico de estilhaços e fogo
+        try {
+            // Rajada central de fogo e estilhaços
+            confetti({
+                particleCount: 110,
+                spread: 110,
+                startVelocity: 55,
+                ticks: 240,
+                origin: { y: 0.5 },
+                colors: ['#ef4444', '#f97316', '#fbbf24', '#ffffff', '#7f1d1d', '#000000']
+            });
+
+            // Ondas de choque laterais secundárias
+            setTimeout(() => {
+                confetti({
+                    particleCount: 65,
+                    angle: 60,
+                    spread: 85,
+                    startVelocity: 45,
+                    origin: { x: 0.2, y: 0.5 },
+                    colors: ['#dc2626', '#ea580c', '#facc15']
+                });
+                confetti({
+                    particleCount: 65,
+                    angle: 120,
+                    spread: 85,
+                    startVelocity: 45,
+                    origin: { x: 0.8, y: 0.5 },
+                    colors: ['#dc2626', '#ea580c', '#facc15']
+                });
+            }, 140);
+        } catch (e) {}
+
         if (onExplode) onExplode();
+    };
+
+    // Ação Explícita: "Não Soube Responder / Detonar Bomba"
+    const handleManualExplode = () => {
+        setTimeLeft(0);
+        triggerExplosionEffects();
     };
 
     // Porcentagem do tempo restante
@@ -120,10 +167,23 @@ export const RouletteTimerBomb = ({
 
     return (
         <div className={`relative w-full max-w-[340px] sm:max-w-[380px] select-none flex flex-col ${className}`}>
+            {/* Clarão Cegante de Detonação */}
+            {showFlash && (
+                <div className="absolute inset-0 z-50 rounded-3xl bg-gradient-to-r from-orange-400 via-white to-red-500 animate-explosion-flash pointer-events-none mix-blend-screen" />
+            )}
+
+            {/* Ondas de Choque Concêntricas */}
+            {isExploded && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 overflow-hidden rounded-3xl">
+                    <div className="w-32 h-32 rounded-full border-4 border-red-500 shadow-[0_0_35px_#ef4444] animate-shockwave-ring" />
+                    <div className="w-32 h-32 rounded-full border-4 border-orange-400 shadow-[0_0_25px_#f97316] animate-shockwave-ring" style={{ animationDelay: '0.15s' }} />
+                </div>
+            )}
+
             {/* Card Principal da Bomba */}
             <div className={`relative w-full h-full rounded-3xl p-5 border-2 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col items-center justify-between ${
                 isExploded 
-                    ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-red-500 shadow-[0_0_50px_rgba(239,68,68,0.5)] animate-bomb-shake'
+                    ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-red-500 shadow-[0_0_70px_rgba(239,68,68,0.7)] animate-violent-shake'
                     : isCritical
                         ? 'bg-gradient-to-b from-red-950/90 via-slate-950 to-slate-950 border-red-500/80 shadow-[0_0_35px_rgba(239,68,68,0.4)] animate-pulse'
                         : 'bg-slate-950/80 border-amber-500/40 shadow-[0_20px_50px_rgba(0,0,0,0.8)]'
@@ -172,11 +232,20 @@ export const RouletteTimerBomb = ({
                     )}
 
                     {/* Ilustração da Bomba com Relógio Digital */}
-                    <div className="relative flex items-center justify-center">
+                    <div className="relative flex items-center justify-center my-1">
+                        {isExploded && (
+                            /* Fumaça e fuligem subindo da cratera da bomba */
+                            <div className="absolute -top-7 flex items-center gap-3 pointer-events-none">
+                                <span className="text-xl animate-smoke-billow" style={{ animationDelay: '0s' }}>💨</span>
+                                <span className="text-2xl animate-smoke-billow" style={{ animationDelay: '0.35s' }}>🔥</span>
+                                <span className="text-xl animate-smoke-billow" style={{ animationDelay: '0.7s' }}>💨</span>
+                            </div>
+                        )}
+
                         {/* Ícone Gigante da Bomba */}
                         <div className={`text-6xl sm:text-7xl transition-transform duration-300 ${
                             isExploded 
-                                ? 'scale-125 rotate-12' 
+                                ? 'scale-125 rotate-12 drop-shadow-[0_0_30px_#ef4444]' 
                                 : isCritical
                                     ? 'scale-110 animate-bounce'
                                     : isRunning
@@ -199,7 +268,7 @@ export const RouletteTimerBomb = ({
                     <div className="mt-2 text-center">
                         <div className={`font-mono font-black text-4xl sm:text-5xl tracking-wider drop-shadow-md transition-colors ${
                             isExploded 
-                                ? 'text-red-500 animate-pulse' 
+                                ? 'text-red-500 animate-pulse drop-shadow-[0_0_20px_#ef4444]' 
                                 : isCritical
                                     ? 'text-red-400 drop-shadow-[0_0_12px_#ef4444]'
                                     : isRunning
@@ -209,9 +278,15 @@ export const RouletteTimerBomb = ({
                             00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
                         </div>
                         
-                        <p className="text-[11px] font-bold text-slate-400 mt-0.5 uppercase tracking-widest">
+                        <p className={`text-[11px] sm:text-xs font-black mt-1 uppercase tracking-widest transition-all ${
+                            isExploded 
+                                ? 'text-red-400 drop-shadow-[0_0_12px_#ef4444] animate-bounce' 
+                                : isRunning 
+                                    ? (isCritical ? '⚠️ RÁPIDO! VAI EXPLODIR!' : 'Contagem Regressiva...') 
+                                    : 'Aguardando Início do Professor'
+                        }`}>
                             {isExploded 
-                                ? '💥 CABUUUM! TEMPO ESGOTADO!' 
+                                ? '💥 KABUUUUUM! A BOMBA EXPLODIU! 💥' 
                                 : isRunning 
                                     ? (isCritical ? '⚠️ RÁPIDO! VAI EXPLODIR!' : 'Contagem Regressiva...') 
                                     : 'Aguardando Início do Professor'}

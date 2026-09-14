@@ -208,6 +208,58 @@ code {
   animation: bomb-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
 }
 
+/* Terremoto violento para explosão colossal */
+@keyframes violent-earthquake {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  5% { transform: translate(-14px, 8px) scale(1.08) rotate(-4deg); }
+  10% { transform: translate(14px, -10px) scale(1.08) rotate(4deg); }
+  15% { transform: translate(-10px, -8px) scale(1.06) rotate(-3deg); }
+  20% { transform: translate(12px, 8px) scale(1.05) rotate(3deg); }
+  25% { transform: translate(-8px, 6px) scale(1.04) rotate(-2deg); }
+  35% { transform: translate(8px, -6px) scale(1.03) rotate(2deg); }
+  45% { transform: translate(-6px, 4px) scale(1.02) rotate(-1.5deg); }
+  60% { transform: translate(4px, -4px) scale(1.01) rotate(1deg); }
+  80% { transform: translate(-2px, 2px) scale(1) rotate(-0.5deg); }
+  100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+}
+
+.animate-violent-shake {
+  animation: violent-earthquake 1.3s cubic-bezier(.25,.8,.25,1) both;
+}
+
+/* Onda de choque concêntrica expansiva */
+@keyframes shockwave-ring {
+  0% { transform: scale(0.2); opacity: 1; border-width: 8px; }
+  50% { opacity: 0.8; }
+  100% { transform: scale(2.8); opacity: 0; border-width: 1px; }
+}
+
+.animate-shockwave-ring {
+  animation: shockwave-ring 1s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+/* Clarão cegante de detonação */
+@keyframes explosion-flash {
+  0% { opacity: 0; transform: scale(0.8); }
+  15% { opacity: 0.95; transform: scale(1.05); }
+  40% { opacity: 0.7; }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+.animate-explosion-flash {
+  animation: explosion-flash 0.9s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+/* Fumaça ardente pós-explosão */
+@keyframes smoke-billow {
+  0% { transform: translateY(0) scale(0.7) rotate(0deg); opacity: 0.8; }
+  100% { transform: translateY(-35px) scale(1.4) rotate(25deg); opacity: 0; }
+}
+
+.animate-smoke-billow {
+  animation: smoke-billow 2.2s ease-out infinite;
+}
+
 /* Animação de fagulha do pavio aceso */
 @keyframes fuse-spark {
   0%, 100% { filter: drop-shadow(0 0 4px #fbbf24) scale(1); opacity: 1; }
