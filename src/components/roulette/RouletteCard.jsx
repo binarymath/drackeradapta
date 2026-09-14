@@ -13,7 +13,10 @@ export const RouletteCard = ({
     allQuestions = [], 
     usedQuestions = new Set(), 
     activeStudents = [], 
+    allStudents = [],
+    availableHelpers = [],
     onChangeQuestion, 
+    onChangeStudent,
     onCorrect, 
     onIncorrect, 
     onSpinAgain, 
@@ -32,6 +35,31 @@ export const RouletteCard = ({
     
     // Modal interno para selecionar pergunta da lista
     const [showQuestionSelector, setShowQuestionSelector] = useState(false);
+
+    // Modal interno para selecionar outro aluno da turma
+    const [showStudentSelector, setShowStudentSelector] = useState(false);
+
+    // Troca aleatória para outro aluno presente na turma
+    const handleNextStudentRandom = () => {
+        const pool = (allStudents.length > 0 ? allStudents : activeStudents)
+            .filter(s => s.id !== winner.id && s.status !== 'absent');
+        if (pool.length === 0) return;
+        const nextStudent = pool[Math.floor(Math.random() * pool.length)];
+        if (onChangeStudent) {
+            onChangeStudent(nextStudent);
+            setShowStudentSelector(false);
+            gameAudio.playTick();
+        }
+    };
+
+    // Troca direta por aluno selecionado na grade
+    const handleSelectSpecificStudent = (student) => {
+        if (onChangeStudent) {
+            onChangeStudent(student);
+            setShowStudentSelector(false);
+            gameAudio.playTick();
+        }
+    };
 
     // ==========================================
     // ESTADOS: TODOS RESPONDEM
@@ -55,7 +83,8 @@ export const RouletteCard = ({
 
     // Sorteio animado de Colega Ajudante
     const handleDrawHelper = () => {
-        const potentialHelpers = activeStudents.filter(s => s.id !== winner.id);
+        const helpersPool = availableHelpers.length > 0 ? availableHelpers : activeStudents;
+        const potentialHelpers = helpersPool.filter(s => s.id !== winner.id && s.status !== 'absent');
         if (potentialHelpers.length === 0) return;
 
         setIsDrawingHelper(true);
@@ -209,14 +238,85 @@ export const RouletteCard = ({
                         <Sparkles className="w-8 h-8 text-amber-200/60 absolute top-3 left-4 animate-pulse" />
                         <Sparkles className="w-6 h-6 text-amber-200/60 absolute bottom-3 right-4 animate-pulse" />
                         
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/15 text-amber-100 text-xs font-black uppercase tracking-widest mb-1.5 backdrop-blur-sm">
-                            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                            Aluno Sorteado
+                        <div className="flex items-center justify-between relative z-10 mb-1.5 flex-wrap gap-2">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/20 text-amber-100 text-xs font-black uppercase tracking-widest backdrop-blur-sm">
+                                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                                Aluno Sorteado
+                            </div>
+
+                            {/* Controles para Trocar o Aluno Mantendo a Pergunta */}
+                            {onChangeStudent && (
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        type="button"
+                                        onClick={handleNextStudentRandom}
+                                        className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white hover:text-indigo-900 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
+                                        title="Sortear outro aluno para responder a esta pergunta"
+                                    >
+                                        <Shuffle className="w-3.5 h-3.5 text-amber-600" />
+                                        <span className="hidden sm:inline">Outro Aluno</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowStudentSelector(!showStudentSelector)}
+                                        className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white hover:text-indigo-900 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
+                                        title="Escolher outro aluno da turma para responder"
+                                    >
+                                        <Users className="w-3.5 h-3.5 text-amber-600" />
+                                        <span>{showStudentSelector ? 'Fechar Lista' : 'Trocar Aluno'}</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                        <h1 className="text-3xl sm:text-4xl font-black text-white drop-shadow-md flex items-center justify-center gap-3">
+
+                        <h1 className="text-3xl sm:text-4xl font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10">
                             <User className="w-8 h-8 sm:w-9 sm:h-9 text-amber-200" />
                             {winner.name}
                         </h1>
+
+                        {/* Seletor Retrátil de Alunos */}
+                        {showStudentSelector && (
+                            <div className="mt-3 p-3 bg-white/95 text-slate-800 rounded-2xl shadow-xl border-2 border-amber-300 max-h-52 overflow-y-auto relative z-30 text-left custom-scrollbar animate-in slide-in-from-top-2">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-black text-amber-950 uppercase tracking-wider">
+                                        Selecione quem responderá a esta pergunta:
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowStudentSelector(false)}
+                                        className="text-xs font-black text-amber-800 hover:text-amber-950 p-1"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                                    {(allStudents.length > 0 ? allStudents : activeStudents)
+                                        .filter(s => s.status !== 'absent')
+                                        .map(s => {
+                                            const isCurrent = s.id === winner.id;
+                                            return (
+                                                <button
+                                                    key={s.id}
+                                                    type="button"
+                                                    onClick={() => handleSelectSpecificStudent(s)}
+                                                    className={`p-2 rounded-xl text-xs font-bold flex items-center justify-between border transition-all text-left cursor-pointer ${
+                                                        isCurrent
+                                                            ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                                                            : 'bg-slate-50 hover:bg-amber-50 border-slate-200 text-slate-800 hover:border-amber-300'
+                                                    }`}
+                                                >
+                                                    <span className="truncate">{s.name}</span>
+                                                    {s.status === 'removed' && (
+                                                        <span className="text-[10px] font-normal opacity-70 ml-1 shrink-0">(Fora da roleta)</span>
+                                                    )}
+                                                </button>
+                                            );
+                                        })
+                                    }
+                                </div>
+                            </div>
+                        )}
 
                         {/* AVISOS EXPLÍCITOS: TEVE AJUDA E AJUDOU */}
                         {(hadHelp || helpedCount > 0) && (
@@ -716,17 +816,20 @@ export const RouletteCard = ({
                                             <select
                                                 value={helperStudent?.id || ''}
                                                 onChange={(e) => {
-                                                    const selected = activeStudents.find(s => s.id === e.target.value);
+                                                    const helpersPool = availableHelpers.length > 0 ? availableHelpers : activeStudents;
+                                                    const selected = helpersPool.find(s => s.id === e.target.value);
                                                     setHelperStudent(selected || null);
                                                     if (selected) gameAudio.playTick();
                                                 }}
-                                                className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 outline-none"
+                                                className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 outline-none cursor-pointer"
                                             >
                                                 <option value="">Escolher manualmente...</option>
-                                                {activeStudents
-                                                    .filter(s => s.id !== winner.id)
+                                                {(availableHelpers.length > 0 ? availableHelpers : activeStudents)
+                                                    .filter(s => s.id !== winner.id && s.status !== 'absent')
                                                     .map(s => (
-                                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                                        <option key={s.id} value={s.id}>
+                                                            {s.name} {s.status === 'removed' ? '(Fora da Roleta)' : ''}
+                                                        </option>
                                                     ))
                                                 }
                                             </select>

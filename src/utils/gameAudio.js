@@ -125,58 +125,122 @@ class GameAudioManager {
         } catch (e) {}
     }
 
-    // Som de explosão dramática de bomba (Impacto de Ruído + Sub-grave estrondoso)
+    // Som de explosão colossal e cinematográfica (Impacto triplo + Sub-grave sísmico + Eco de trovão)
     playExplosion() {
         try {
             const ctx = this.getAudioContext();
             if (!ctx) return;
 
             const now = ctx.currentTime;
-            const duration = 1.8;
+            const duration = 3.5;
 
-            // 1. Ruído de impacto e estilhaços
-            const bufferSize = Math.floor(ctx.sampleRate * duration);
-            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.45));
+            // Compressor / Limiter para maximizar o estrondo e impacto sonoro sem distorção indesejada
+            const compressor = ctx.createDynamicsCompressor();
+            compressor.threshold.setValueAtTime(-4, now);
+            compressor.knee.setValueAtTime(8, now);
+            compressor.ratio.setValueAtTime(18, now);
+            compressor.attack.setValueAtTime(0.001, now);
+            compressor.release.setValueAtTime(0.35, now);
+            compressor.connect(ctx.destination);
+
+            // ========================================================
+            // 1. IMPACTO INICIAL: Estalo ultra-rápido de choque (Detonation Crack)
+            // ========================================================
+            const snapBufferSize = Math.floor(ctx.sampleRate * 0.18);
+            const snapBuffer = ctx.createBuffer(1, snapBufferSize, ctx.sampleRate);
+            const snapData = snapBuffer.getChannelData(0);
+            for (let i = 0; i < snapBufferSize; i++) {
+                snapData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.025));
             }
+            const snapSource = ctx.createBufferSource();
+            snapSource.buffer = snapBuffer;
 
-            const noiseNode = ctx.createBufferSource();
-            noiseNode.buffer = buffer;
+            const snapFilter = ctx.createBiquadFilter();
+            snapFilter.type = 'highpass';
+            snapFilter.frequency.setValueAtTime(900, now);
 
-            const filter = ctx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(900, now);
-            filter.frequency.exponentialRampToValueAtTime(60, now + duration);
+            const snapGain = ctx.createGain();
+            snapGain.gain.setValueAtTime(1.5, now);
+            snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+            snapSource.connect(snapFilter);
+            snapFilter.connect(snapGain);
+            snapGain.connect(compressor);
+            snapSource.start(now);
+
+            // ========================================================
+            // 2. CORPO DA EXPLOSÃO: Ruído denso com estilhaços e queda dinâmica
+            // ========================================================
+            const noiseBufferSize = Math.floor(ctx.sampleRate * duration);
+            const noiseBuffer = ctx.createBuffer(1, noiseBufferSize, ctx.sampleRate);
+            const noiseData = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < noiseBufferSize; i++) {
+                // Adiciona micro-estalos e estilhaços pontuais
+                const crackle = Math.random() > 0.985 ? (Math.random() * 2 - 1) : 0;
+                noiseData[i] = ((Math.random() * 2 - 1) * 0.85 + crackle) * Math.exp(-i / (ctx.sampleRate * 1.1));
+            }
+            const noiseSource = ctx.createBufferSource();
+            noiseSource.buffer = noiseBuffer;
+
+            const noiseFilter = ctx.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+            noiseFilter.frequency.setValueAtTime(2800, now);
+            noiseFilter.frequency.exponentialRampToValueAtTime(70, now + 2.8);
 
             const noiseGain = ctx.createGain();
-            noiseGain.gain.setValueAtTime(1.0, now);
+            noiseGain.gain.setValueAtTime(1.8, now);
             noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
-            noiseNode.connect(filter);
-            filter.connect(noiseGain);
-            noiseGain.connect(ctx.destination);
+            noiseSource.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(compressor);
+            noiseSource.start(now);
 
-            // 2. Onda de choque grave (Boom de 160Hz decaindo para 25Hz)
-            const osc = ctx.createOscillator();
-            const oscGain = ctx.createGain();
+            // ========================================================
+            // 3. SUB-GRAVE SÍSMICO (Earthquake Sub-Bass 160Hz -> 18Hz)
+            // ========================================================
+            const subOsc = ctx.createOscillator();
+            subOsc.type = 'sawtooth';
+            subOsc.frequency.setValueAtTime(160, now);
+            subOsc.frequency.exponentialRampToValueAtTime(32, now + 0.4);
+            subOsc.frequency.exponentialRampToValueAtTime(18, now + 2.2);
 
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(160, now);
-            osc.frequency.exponentialRampToValueAtTime(25, now + 1.3);
+            const subFilter = ctx.createBiquadFilter();
+            subFilter.type = 'lowpass';
+            subFilter.frequency.setValueAtTime(200, now);
+            subFilter.frequency.exponentialRampToValueAtTime(45, now + 2.2);
 
-            oscGain.gain.setValueAtTime(0.95, now);
-            oscGain.gain.exponentialRampToValueAtTime(0.001, now + 1.3);
+            const subGain = ctx.createGain();
+            subGain.gain.setValueAtTime(2.2, now);
+            subGain.gain.exponentialRampToValueAtTime(0.001, now + 2.3);
 
-            osc.connect(oscGain);
-            oscGain.connect(ctx.destination);
+            subOsc.connect(subFilter);
+            subFilter.connect(subGain);
+            subGain.connect(compressor);
+            subOsc.start(now);
+            subOsc.stop(now + 2.3);
 
-            noiseNode.start(now);
-            noiseNode.stop(now + duration);
-            osc.start(now);
-            osc.stop(now + 1.3);
-        } catch (e) {}
+            // ========================================================
+            // 4. ONDA DE CHOQUE SECUNDÁRIA (Segundo Baque / Trovoada Estrondosa)
+            // ========================================================
+            const rumbleOsc = ctx.createOscillator();
+            rumbleOsc.type = 'triangle';
+            rumbleOsc.frequency.setValueAtTime(95, now + 0.08);
+            rumbleOsc.frequency.exponentialRampToValueAtTime(24, now + 3.0);
+
+            const rumbleGain = ctx.createGain();
+            rumbleGain.gain.setValueAtTime(0.001, now);
+            rumbleGain.gain.setValueAtTime(1.4, now + 0.08);
+            rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 3.0);
+
+            rumbleOsc.connect(rumbleGain);
+            rumbleGain.connect(compressor);
+            rumbleOsc.start(now + 0.08);
+            rumbleOsc.stop(now + 3.0);
+
+        } catch (e) {
+            console.warn("Erro ao reproduzir áudio da explosão:", e);
+        }
     }
 
     // Som de tic-tac urgente de bomba (pavio aceso)
