@@ -23,11 +23,35 @@ export const RouletteCard = ({
     onAbsent,
     onBatchResult,
     onHelpResult,
+    onGroupResult,
     showDifficulty = true,
     onToggleDifficulty
 }) => {
     // Modos de Exibição do Card: 'normal' | 'todos_respondem' | 'preciso_de_ajuda'
     const [cardMode, setCardMode] = useState('normal');
+    
+    // Suporte a Representante/Porta-Voz quando for atividade em grupo
+    const [selectedSpokesperson, setSelectedSpokesperson] = useState(null);
+    const [isDrawingSpokesperson, setIsDrawingSpokesperson] = useState(false);
+
+    const handleDrawSpokesperson = () => {
+        const members = winner?.members || [];
+        if (members.length === 0) return;
+        setIsDrawingSpokesperson(true);
+        let counter = 0;
+        const total = 12;
+        const interval = setInterval(() => {
+            const random = members[Math.floor(Math.random() * members.length)];
+            setSelectedSpokesperson(random);
+            gameAudio.playTick();
+            counter++;
+            if (counter >= total) {
+                clearInterval(interval);
+                setIsDrawingSpokesperson(false);
+                gameAudio.playSuccess();
+            }
+        }, 80);
+    };
     
     // Visualização da Resposta Esperada
     const [showAnswer, setShowAnswer] = useState(false);
@@ -233,115 +257,213 @@ export const RouletteCard = ({
                 {/* CABEÇALHO DINÂMICO CONFORME O MODO ATIVO */}
                 {/* ============================================================ */}
                 {cardMode === 'normal' && (
-                    <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-6 text-center relative overflow-hidden shrink-0 shadow-sm">
-                        <div className="absolute top-0 left-0 w-full h-full opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                        <Sparkles className="w-8 h-8 text-amber-200/60 absolute top-3 left-4 animate-pulse" />
-                        <Sparkles className="w-6 h-6 text-amber-200/60 absolute bottom-3 right-4 animate-pulse" />
-                        
-                        <div className="flex items-center justify-between relative z-10 mb-1.5 flex-wrap gap-2">
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/20 text-amber-100 text-xs font-black uppercase tracking-widest backdrop-blur-sm">
-                                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                                Aluno Sorteado
-                            </div>
+                    winner.isGroup ? (
+                        /* CABEÇALHO DO MODO GRUPOS / EQUIPES */
+                        <div 
+                            className="p-6 text-center relative overflow-hidden shrink-0 shadow-sm text-white"
+                            style={{
+                                background: winner.color 
+                                    ? `linear-gradient(135deg, ${winner.color} 0%, #1e1b4b 100%)` 
+                                    : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
+                            }}
+                        >
+                            <div className="absolute top-0 left-0 w-full h-full opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                            <Sparkles className="w-8 h-8 text-white/40 absolute top-3 left-4 animate-pulse" />
+                            <Sparkles className="w-6 h-6 text-white/40 absolute bottom-3 right-4 animate-pulse" />
+                            
+                            <div className="flex items-center justify-between relative z-10 mb-2 flex-wrap gap-2">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/30 text-white text-xs font-black uppercase tracking-widest backdrop-blur-sm border border-white/20">
+                                    <Users className="w-3.5 h-3.5 text-amber-300" />
+                                    Equipe / Grupo Sorteado
+                                </div>
 
-                            {/* Controles para Trocar o Aluno Mantendo a Pergunta */}
-                            {onChangeStudent && (
+                                {/* Controles para sortear porta-voz ou responder juntos */}
                                 <div className="flex items-center gap-1.5">
                                     <button
                                         type="button"
-                                        onClick={handleNextStudentRandom}
-                                        className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white hover:text-indigo-900 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
-                                        title="Sortear outro aluno para responder a esta pergunta"
+                                        onClick={() => setSelectedSpokesperson(null)}
+                                        className={`text-xs font-bold px-2.5 py-1 rounded-xl transition-all shadow-xs cursor-pointer ${
+                                            !selectedSpokesperson 
+                                                ? 'bg-white text-slate-900 font-black' 
+                                                : 'bg-white/20 text-white hover:bg-white/30'
+                                        }`}
+                                        title="Todos do grupo respondem juntos"
                                     >
-                                        <Shuffle className="w-3.5 h-3.5 text-amber-600" />
-                                        <span className="hidden sm:inline">Outro Aluno</span>
+                                        👥 Grupo Todo
                                     </button>
-
                                     <button
                                         type="button"
-                                        onClick={() => setShowStudentSelector(!showStudentSelector)}
-                                        className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white hover:text-indigo-900 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
-                                        title="Escolher outro aluno da turma para responder"
+                                        disabled={isDrawingSpokesperson || !winner.members || winner.members.length === 0}
+                                        onClick={handleDrawSpokesperson}
+                                        className="flex items-center gap-1 text-xs font-black bg-amber-400 hover:bg-amber-300 text-slate-950 px-2.5 py-1 rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
+                                        title="Sortear um aluno deste grupo para ser o porta-voz"
                                     >
-                                        <Users className="w-3.5 h-3.5 text-amber-600" />
-                                        <span>{showStudentSelector ? 'Fechar Lista' : 'Trocar Aluno'}</span>
+                                        <Shuffle className="w-3.5 h-3.5 text-slate-950" />
+                                        <span>{isDrawingSpokesperson ? 'Sorteando...' : 'Sortear Porta-Voz'}</span>
                                     </button>
+                                </div>
+                            </div>
+
+                            <h1 className="text-3xl sm:text-4xl font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10">
+                                <Users className="w-8 h-8 sm:w-9 sm:h-9 text-amber-300" />
+                                {winner.name}
+                            </h1>
+
+                            {/* Lista de Integrantes da Equipe */}
+                            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 relative z-10">
+                                <span className="text-2xs uppercase tracking-wider text-white/70 font-black mr-1">Integrantes:</span>
+                                {(winner.members || []).length === 0 ? (
+                                    <span className="text-xs text-white/80 italic">Sem alunos atribuídos a este grupo</span>
+                                ) : (
+                                    (winner.members || []).map(member => {
+                                        const isRep = selectedSpokesperson?.id === member.id;
+                                        return (
+                                            <button
+                                                key={member.id}
+                                                type="button"
+                                                onClick={() => setSelectedSpokesperson(isRep ? null : member)}
+                                                className={`text-xs font-bold px-2.5 py-0.5 rounded-full border transition-all cursor-pointer flex items-center gap-1 ${
+                                                    isRep 
+                                                        ? 'bg-amber-400 text-slate-950 border-amber-300 font-black shadow-sm ring-2 ring-white/60 scale-105' 
+                                                        : 'bg-black/30 hover:bg-black/50 text-white border-white/20'
+                                                }`}
+                                                title={isRep ? "Porta-voz da rodada" : "Clique para selecionar como porta-voz"}
+                                            >
+                                                {isRep && <span>⭐</span>}
+                                                <span>{member.name}</span>
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
+
+                            {selectedSpokesperson && (
+                                <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black shadow-xs animate-in zoom-in-95">
+                                    <span>⭐ Porta-voz da rodada:</span>
+                                    <strong>{selectedSpokesperson.name}</strong>
                                 </div>
                             )}
                         </div>
+                    ) : (
+                        /* CABEÇALHO DO MODO INDIVIDUAL */
+                        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-6 text-center relative overflow-hidden shrink-0 shadow-sm">
+                            <div className="absolute top-0 left-0 w-full h-full opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                            <Sparkles className="w-8 h-8 text-amber-200/60 absolute top-3 left-4 animate-pulse" />
+                            <Sparkles className="w-6 h-6 text-amber-200/60 absolute bottom-3 right-4 animate-pulse" />
+                            
+                            <div className="flex items-center justify-between relative z-10 mb-1.5 flex-wrap gap-2">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/20 text-amber-100 text-xs font-black uppercase tracking-widest backdrop-blur-sm">
+                                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                                    Aluno Sorteado
+                                </div>
 
-                        <h1 className="text-3xl sm:text-4xl font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10">
-                            <User className="w-8 h-8 sm:w-9 sm:h-9 text-amber-200" />
-                            {winner.name}
-                        </h1>
+                                {/* Controles para Trocar o Aluno Mantendo a Pergunta */}
+                                {onChangeStudent && (
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            type="button"
+                                            onClick={handleNextStudentRandom}
+                                            className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white hover:text-indigo-900 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
+                                            title="Sortear outro aluno para responder a esta pergunta"
+                                        >
+                                            <Shuffle className="w-3.5 h-3.5 text-amber-600" />
+                                            <span className="hidden sm:inline">Outro Aluno</span>
+                                        </button>
 
-                        {/* Seletor Retrátil de Alunos */}
-                        {showStudentSelector && (
-                            <div className="mt-3 p-3 bg-white/95 text-slate-800 rounded-2xl shadow-xl border-2 border-amber-300 max-h-52 overflow-y-auto relative z-30 text-left custom-scrollbar animate-in slide-in-from-top-2">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-black text-amber-950 uppercase tracking-wider">
-                                        Selecione quem responderá a esta pergunta:
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowStudentSelector(false)}
-                                        className="text-xs font-black text-amber-800 hover:text-amber-950 p-1"
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowStudentSelector(!showStudentSelector)}
+                                            className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white hover:text-indigo-900 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
+                                            title="Escolher outro aluno da turma para responder"
+                                        >
+                                            <Users className="w-3.5 h-3.5 text-amber-600" />
+                                            <span>{showStudentSelector ? 'Fechar Lista' : 'Trocar Aluno'}</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <h1 className="text-3xl sm:text-4xl font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 flex-wrap">
+                                <User className="w-8 h-8 sm:w-9 sm:h-9 text-amber-200" />
+                                <span>{winner.name}</span>
+                                {winner.groupName && (
+                                    <span 
+                                        className="text-xs font-bold px-2.5 py-1 rounded-full border shadow-2xs text-white"
+                                        style={{ backgroundColor: winner.groupColor || '#6366f1' }}
                                     >
-                                        ✕
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                                    {(allStudents.length > 0 ? allStudents : activeStudents)
-                                        .filter(s => s.status !== 'absent')
-                                        .map(s => {
-                                            const isCurrent = s.id === winner.id;
-                                            return (
-                                                <button
-                                                    key={s.id}
-                                                    type="button"
-                                                    onClick={() => handleSelectSpecificStudent(s)}
-                                                    className={`p-2 rounded-xl text-xs font-bold flex items-center justify-between border transition-all text-left cursor-pointer ${
-                                                        isCurrent
-                                                            ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                                                            : 'bg-slate-50 hover:bg-amber-50 border-slate-200 text-slate-800 hover:border-amber-300'
-                                                    }`}
-                                                >
-                                                    <span className="truncate">{s.name}</span>
-                                                    {s.status === 'removed' && (
-                                                        <span className="text-[10px] font-normal opacity-70 ml-1 shrink-0">(Fora da roleta)</span>
-                                                    )}
-                                                </button>
-                                            );
-                                        })
-                                    }
-                                </div>
-                            </div>
-                        )}
+                                        👥 {winner.groupName}
+                                    </span>
+                                )}
+                            </h1>
 
-                        {/* AVISOS EXPLÍCITOS: TEVE AJUDA E AJUDOU */}
-                        {(hadHelp || helpedCount > 0) && (
-                            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                                {hadHelp && (
-                                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-sky-100 text-sky-950 border-2 border-sky-400 font-black rounded-full text-xs shadow-xs animate-in slide-in-from-top-1">
-                                        <HeartHandshake className="w-4 h-4 text-sky-700 shrink-0" />
-                                        <span>
-                                            TEVE AJUDA: {helpCount}x
-                                            {lastHelper ? ` (com ${lastHelper})` : ''}
+                            {/* Seletor Retrátil de Alunos */}
+                            {showStudentSelector && (
+                                <div className="mt-3 p-3 bg-white/95 text-slate-800 rounded-2xl shadow-xl border-2 border-amber-300 max-h-52 overflow-y-auto relative z-30 text-left custom-scrollbar animate-in slide-in-from-top-2">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-black text-amber-950 uppercase tracking-wider">
+                                            Selecione quem responderá a esta pergunta:
                                         </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowStudentSelector(false)}
+                                            className="text-xs font-black text-amber-800 hover:text-amber-950 p-1"
+                                        >
+                                            ✕
+                                        </button>
                                     </div>
-                                )}
-                                {helpedCount > 0 && (
-                                    <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-emerald-100 text-emerald-950 border-2 border-emerald-400 font-black rounded-full text-xs shadow-xs animate-in slide-in-from-top-1">
-                                        <Award className="w-4 h-4 text-emerald-700 shrink-0" />
-                                        <span>
-                                            AJUDOU: {helpedCount}x
-                                            {lastHelped ? ` (auxiliou ${lastHelped})` : ''}
-                                        </span>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                                        {(allStudents.length > 0 ? allStudents : activeStudents)
+                                            .filter(s => s.status !== 'absent')
+                                            .map(s => {
+                                                const isCurrent = s.id === winner.id;
+                                                return (
+                                                    <button
+                                                        key={s.id}
+                                                        type="button"
+                                                        onClick={() => handleSelectSpecificStudent(s)}
+                                                        className={`p-2 rounded-xl text-xs font-bold flex items-center justify-between border transition-all text-left cursor-pointer ${
+                                                            isCurrent
+                                                                ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                                                                : 'bg-slate-50 hover:bg-amber-50 border-slate-200 text-slate-800 hover:border-amber-300'
+                                                        }`}
+                                                    >
+                                                        <span className="truncate">{s.name}</span>
+                                                        {s.status === 'removed' && (
+                                                            <span className="text-[10px] font-normal opacity-70 ml-1 shrink-0">(Fora da roleta)</span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })
+                                        }
                                     </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                                </div>
+                            )}
+
+                            {/* AVISOS EXPLÍCITOS: TEVE AJUDA E AJUDOU */}
+                            {(hadHelp || helpedCount > 0) && (
+                                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                                    {hadHelp && (
+                                        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-sky-100 text-sky-950 border-2 border-sky-400 font-black rounded-full text-xs shadow-xs animate-in slide-in-from-top-1">
+                                            <HeartHandshake className="w-4 h-4 text-sky-700 shrink-0" />
+                                            <span>
+                                                TEVE AJUDA: {helpCount}x
+                                                {lastHelper ? ` (com ${lastHelper})` : ''}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {helpedCount > 0 && (
+                                        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-emerald-100 text-emerald-950 border-2 border-emerald-400 font-black rounded-full text-xs shadow-xs animate-in slide-in-from-top-1">
+                                            <Award className="w-4 h-4 text-emerald-700 shrink-0" />
+                                            <span>
+                                                AJUDOU: {helpedCount}x
+                                                {lastHelped ? ` (auxiliou ${lastHelped})` : ''}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )
                 )}
 
                 {cardMode === 'todos_respondem' && (
@@ -967,80 +1089,143 @@ export const RouletteCard = ({
                 {/* ============================================================ */}
                 {cardMode === 'normal' && (
                     <div className="p-4 sm:p-5 bg-slate-100 border-t border-slate-200 flex flex-col gap-3 shrink-0">
-                        
-                        {/* Botões das Dinâmicas Gamificadas: TODOS RESPONDEM & PRECISO DE AJUDA */}
-                        <div className="grid grid-cols-2 gap-2.5">
-                            <button
-                                onClick={() => {
-                                    setCardMode('todos_respondem');
-                                }}
-                                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-sm transition-all transform active:scale-95 group"
-                            >
-                                <span className="text-base group-hover:scale-125 transition-transform">⚡</span>
-                                <span>Todos Respondem!</span>
-                            </button>
+                        {winner.isGroup ? (
+                            /* RODAPÉ PARA ATIVIDADES EM GRUPO */
+                            <div className="flex flex-col gap-2.5">
+                                <div className="flex items-center justify-between text-xs text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
+                                    <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                                        <Users className="w-4 h-4 text-indigo-600" />
+                                        <span>Pontuação Coletiva:</span>
+                                        <span className="font-black text-indigo-950">+{1} ponto para a equipe {winner.name}</span>
+                                        <span className="text-slate-400 font-normal">e todos os seus {(winner.members || []).length} alunos</span>
+                                    </div>
+                                    {selectedSpokesperson && (
+                                        <span className="text-2xs font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
+                                            Porta-voz: {selectedSpokesperson.name}
+                                        </span>
+                                    )}
+                                </div>
 
-                            <button
-                                onClick={() => {
-                                    setCardMode('preciso_de_ajuda');
-                                    gameAudio.playHelp();
-                                }}
-                                className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs sm:text-sm text-sky-900 bg-sky-200 hover:bg-sky-300 border border-sky-300 shadow-xs transition-all transform active:scale-95"
-                            >
-                                <HeartHandshake className="w-4 h-4 text-sky-700 shrink-0" />
-                                <span>Preciso de Ajuda</span>
-                                {hadHelp && (
-                                    <span className="ml-1 text-2xs bg-sky-300 text-sky-950 px-1.5 py-0.5 rounded-md font-bold">
-                                        Já usou {helpCount > 1 ? `(${helpCount}x)` : ''}
-                                    </span>
-                                )}
-                            </button>
-                        </div>
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-1">
+                                    <div className="flex w-full sm:w-auto gap-2">
+                                        <button 
+                                            onClick={() => {
+                                                if (onGroupResult) {
+                                                    onGroupResult({ isCorrect: true, representativeStudent: selectedSpokesperson });
+                                                } else {
+                                                    onCorrect();
+                                                }
+                                            }}
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 text-white font-black rounded-xl hover:bg-emerald-600 transition-all shadow-sm text-sm active:scale-95 cursor-pointer"
+                                        >
+                                            <CheckCircle className="w-4 h-4" />
+                                            Grupo Acertou! ✅
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={() => {
+                                                if (onGroupResult) {
+                                                    onGroupResult({ isCorrect: false, representativeStudent: selectedSpokesperson });
+                                                } else {
+                                                    onIncorrect();
+                                                }
+                                            }}
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-red-200 text-red-600 font-black rounded-xl hover:bg-red-50 hover:border-red-300 transition-all shadow-xs text-sm active:scale-95 cursor-pointer"
+                                        >
+                                            <XCircle className="w-4 h-4" />
+                                            Grupo Errou ❌
+                                        </button>
+                                    </div>
 
-                        {/* Botões de Avaliação Individual */}
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-1">
-                            <div className="flex w-full sm:w-auto gap-2">
-                                <button 
-                                    onClick={onCorrect}
-                                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500 text-white font-black rounded-xl hover:bg-emerald-600 transition-all shadow-sm text-sm active:scale-95"
-                                >
-                                    <CheckCircle className="w-4 h-4" />
-                                    Acertou
-                                </button>
-                                
-                                <button 
-                                    onClick={onIncorrect}
-                                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 bg-white border-2 border-red-200 text-red-600 font-black rounded-xl hover:bg-red-50 hover:border-red-300 transition-all shadow-xs text-sm active:scale-95"
-                                >
-                                    <XCircle className="w-4 h-4" />
-                                    Errou
-                                </button>
+                                    <div className="flex w-full sm:w-auto items-center justify-end gap-2">
+                                        <button 
+                                            onClick={onSpinAgain}
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-200/90 border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-300 transition-all shadow-2xs text-xs sm:text-sm cursor-pointer"
+                                            title="Girar novamente para outro grupo sem penalizar"
+                                        >
+                                            <RotateCw className="w-4 h-4 text-slate-500" />
+                                            <span>Rode Novamente</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-
-                            <div className="flex w-full sm:w-auto items-center justify-end gap-2">
-                                {/* RODE NOVAMENTE: NÃO REMOVE DA LISTA */}
-                                <button 
-                                    onClick={onSpinAgain}
-                                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-200/90 border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-300 transition-all shadow-2xs text-xs sm:text-sm"
-                                    title="Girar novamente sem remover nem penalizar o aluno (permanece ativo na lista)"
-                                >
-                                    <RotateCw className="w-4 h-4 text-slate-500" />
-                                    <span>Rode Novamente</span>
-                                </button>
-
-                                {/* Opção separada e discreta se o aluno faltou hoje */}
-                                {onAbsent && (
-                                    <button 
-                                        onClick={onAbsent}
-                                        className="text-2xs font-semibold text-slate-400 hover:text-orange-600 px-2 py-3 transition-colors"
-                                        title="Marcar aluno como Ausente (faltou hoje à aula)"
+                        ) : (
+                            /* RODAPÉ PARA ATIVIDADES INDIVIDUAIS */
+                            <>
+                                {/* Botões das Dinâmicas Gamificadas: TODOS RESPONDEM & PRECISO DE AJUDA */}
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    <button
+                                        onClick={() => {
+                                            setCardMode('todos_respondem');
+                                        }}
+                                        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-sm transition-all transform active:scale-95 group"
                                     >
-                                        Faltou?
+                                        <span className="text-base group-hover:scale-125 transition-transform">⚡</span>
+                                        <span>Todos Respondem!</span>
                                     </button>
-                                )}
-                            </div>
-                        </div>
 
+                                    <button
+                                        onClick={() => {
+                                            setCardMode('preciso_de_ajuda');
+                                            gameAudio.playHelp();
+                                        }}
+                                        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs sm:text-sm text-sky-900 bg-sky-200 hover:bg-sky-300 border border-sky-300 shadow-xs transition-all transform active:scale-95"
+                                    >
+                                        <HeartHandshake className="w-4 h-4 text-sky-700 shrink-0" />
+                                        <span>Preciso de Ajuda</span>
+                                        {hadHelp && (
+                                            <span className="ml-1 text-2xs bg-sky-300 text-sky-950 px-1.5 py-0.5 rounded-md font-bold">
+                                                Já usou {helpCount > 1 ? `(${helpCount}x)` : ''}
+                                            </span>
+                                        )}
+                                    </button>
+                                </div>
+
+                                {/* Botões de Avaliação Individual */}
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-1">
+                                    <div className="flex w-full sm:w-auto gap-2">
+                                        <button 
+                                            onClick={onCorrect}
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500 text-white font-black rounded-xl hover:bg-emerald-600 transition-all shadow-sm text-sm active:scale-95 cursor-pointer"
+                                        >
+                                            <CheckCircle className="w-4 h-4" />
+                                            Acertou
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={onIncorrect}
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 bg-white border-2 border-red-200 text-red-600 font-black rounded-xl hover:bg-red-50 hover:border-red-300 transition-all shadow-xs text-sm active:scale-95 cursor-pointer"
+                                        >
+                                            <XCircle className="w-4 h-4" />
+                                            Errou
+                                        </button>
+                                    </div>
+
+                                    <div className="flex w-full sm:w-auto items-center justify-end gap-2">
+                                        {/* RODE NOVAMENTE: NÃO REMOVE DA LISTA */}
+                                        <button 
+                                            onClick={onSpinAgain}
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-200/90 border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-300 transition-all shadow-2xs text-xs sm:text-sm cursor-pointer"
+                                            title="Girar novamente sem remover nem penalizar o aluno (permanece ativo na lista)"
+                                        >
+                                            <RotateCw className="w-4 h-4 text-slate-500" />
+                                            <span>Rode Novamente</span>
+                                        </button>
+
+                                        {/* Opção separada e discreta se o aluno faltou hoje */}
+                                        {onAbsent && (
+                                            <button 
+                                                onClick={onAbsent}
+                                                className="text-2xs font-semibold text-slate-400 hover:text-orange-600 px-2 py-3 transition-colors cursor-pointer"
+                                                title="Marcar aluno como Ausente (faltou hoje à aula)"
+                                            >
+                                                Faltou?
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
 
