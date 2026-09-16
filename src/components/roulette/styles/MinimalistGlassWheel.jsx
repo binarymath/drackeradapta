@@ -139,12 +139,12 @@ export const MinimalistGlassWheel = ({ items = [], spinning = false, winner = nu
     return (
         <div className={`relative ${
             isMaximized 
-                ? 'w-[min(68vh,82vw)] h-[min(68vh,82vw)] sm:w-[min(70vh,84vw)] sm:h-[min(70vh,84vw)] md:w-[min(73vh,85vw)] md:h-[min(73vh,85vw)]' 
-                : 'w-80 h-80 sm:w-96 sm:h-96 md:w-[440px] md:h-[440px]'
+                ? 'w-[min(68vh,78vw,700px)] h-[min(68vh,78vw,700px)] sm:w-[min(72vh,80vw,760px)] sm:h-[min(72vh,80vw,760px)] md:w-[min(75vh,82vw,820px)] md:h-[min(75vh,82vw,820px)]' 
+                : 'w-80 h-80 sm:w-96 sm:h-96 md:w-[460px] md:h-[460px]'
         } flex items-center justify-center select-none transition-all duration-300`}>
             {/* Ponteiro Minimalista Agulha de Precisão */}
             <div className={`absolute left-1/2 transform -translate-x-1/2 z-30 pointer-events-none drop-shadow-md transition-all duration-300 ${
-                isMaximized ? '-top-8 sm:-top-10 scale-125' : '-top-6'
+                isMaximized ? '-top-6 sm:-top-7 scale-110' : '-top-6'
             }`}>
                 <svg width="24" height="46" viewBox="0 0 24 46" fill="none">
                     <path d="M12 46L6 14C6 10.6863 8.68629 8 12 8C15.3137 8 18 10.6863 18 14L12 46Z" fill="#1e293b" />

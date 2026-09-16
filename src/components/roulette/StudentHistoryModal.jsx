@@ -1,16 +1,30 @@
 import React, { useState } from 'react';
 import { 
     CheckCircle, XCircle, HeartHandshake, Zap, 
-    Printer, Filter, User, HelpCircle, Calendar, Sparkles, Award, AlertTriangle
+    Printer, Filter, User, HelpCircle, Calendar, Sparkles, Award, AlertTriangle, Users
 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
 export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
     if (!student) return null;
 
-    const [filterMode, setFilterMode] = useState('all'); // 'all' | 'teve_ajuda' | 'ajudou'
+    const [filterMode, setFilterMode] = useState('all'); // 'all' | 'teve_ajuda' | 'ajudou' | 'em_grupo'
 
     const getResultBadge = (item) => {
+        if (item.isGroupActivity || item.groupName || item.result === 'group_correct' || item.result === 'group_activity') {
+            return (
+                <span className="font-bold text-xs text-indigo-900 bg-indigo-100 border border-indigo-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5 text-indigo-600" /> Atividade em Grupo ({item.groupName || 'Equipe'})
+                </span>
+            );
+        }
+        if (item.result === 'group_incorrect') {
+            return (
+                <span className="font-bold text-xs text-rose-900 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5 text-rose-500" /> Erro em Grupo ({item.groupName || 'Equipe'})
+                </span>
+            );
+        }
         if (item.isHelperRole) {
             return (
                 <span className="font-bold text-xs text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1">
@@ -67,7 +81,10 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
         );
     };
 
-    const getItemStyles = (result, isHelperRole) => {
+    const getItemStyles = (result, isHelperRole, isGroup) => {
+        if (isGroup) {
+            return { backgroundColor: '#f5f3ff', borderColor: '#c4b5fd' };
+        }
         if (isHelperRole) {
             return { backgroundColor: '#f0fdf4', borderColor: '#86efac' };
         }
@@ -86,13 +103,13 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
         if (result === 'rule_violation') {
             return { backgroundColor: '#fff1f2', borderColor: '#fecdd3' };
         }
-        if (result === 'incorrect') {
+        if (result === 'incorrect' || result === 'group_incorrect') {
             return { backgroundColor: '#fef2f2', borderColor: '#fecaca' };
         }
         return { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' };
     };
 
-    // Extrair histórico de ajudas
+    // Extrair histórico de ajudas e atividades em grupo
     const historyList = student.history || [];
     const helpReceivedEntries = historyList.filter(h => 
         h.result === 'help_correct' || 
@@ -101,16 +118,35 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
         (h.question && (h.question.includes('[Ajuda:') || h.question.includes('(com ajuda')))
     );
     const helpedOthersEntries = historyList.filter(h => h.helpedStudent || h.isHelperRole);
+    const groupEntries = historyList.filter(h => 
+        h.isGroupActivity || 
+        h.groupName || 
+        h.result === 'group_correct' || 
+        h.result === 'group_activity' ||
+        h.result === 'group_incorrect' ||
+        (h.question && (h.question.includes('[Grupo:') || h.question.includes('[Atividade em Grupo') || h.question.includes('[Equipe ')))
+    );
+
     const helpCount = Math.max(helpReceivedEntries.length, student.helpCount || 0);
     const helpedCount = Math.max(helpedOthersEntries.length, student.helpedCount || 0);
+    const groupCount = groupEntries.length;
+
+    // Total de pontos somados ao aluno por atividades em equipe
+    const groupPoints = groupEntries.reduce((acc, h) => {
+        if (h.pointsDelta !== undefined) return acc + Math.max(0, h.pointsDelta);
+        if (h.result === 'group_activity' || h.result === 'group_correct' || h.result === 'correct') return acc + 1;
+        return acc;
+    }, 0);
 
     // Lista filtrada
     const displayedHistory = historyList.slice().reverse().filter(h => {
         const hadHelp = h.result === 'help_correct' || h.hadHelp || h.helperName || (h.question && (h.question.includes('[Ajuda:') || h.question.includes('(com ajuda')));
         const helped = h.helpedStudent || h.isHelperRole;
+        const isGroup = h.isGroupActivity || h.groupName || h.result === 'group_correct' || h.result === 'group_activity' || h.result === 'group_incorrect' || (h.question && (h.question.includes('[Grupo:') || h.question.includes('[Atividade em Grupo') || h.question.includes('[Equipe ')));
 
         if (filterMode === 'teve_ajuda') return hadHelp;
         if (filterMode === 'ajudou') return helped;
+        if (filterMode === 'em_grupo') return isGroup;
         return true;
     });
 
@@ -134,22 +170,36 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
             </li>
         `).join('');
 
+        const groupEntriesHtml = groupEntries.map((h, i) => `
+            <li style="margin-bottom: 8px;">
+                <strong>Questão ${i + 1}:</strong> ${h.question}<br/>
+                <span style="color: #4338ca; font-weight: bold;">GRUPO:</span> ${h.groupName || 'Equipe'} 
+                ${h.representativeName ? `<em>(Representante: ${h.representativeName})</em>` : ''} — 
+                <strong>${h.result === 'group_correct' || h.result === 'correct' ? '✅ Pontuou com a equipe' : '❌ Erro em grupo'}</strong>
+                <em>(${new Date(h.date).toLocaleDateString()} ${new Date(h.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})</em>
+            </li>
+        `).join('');
+
         const allQuestionsHtml = historyList.map((h, i) => {
             const hadHelp = h.result === 'help_correct' || h.hadHelp || h.helperName || (h.question && (h.question.includes('[Ajuda:') || h.question.includes('(com ajuda')));
             const helped = h.helpedStudent || h.isHelperRole;
+            const isGroup = h.isGroupActivity || h.groupName || h.result === 'group_correct' || h.result === 'group_incorrect';
+            
             let statusAjuda = '-';
             if (hadHelp) {
                 statusAjuda = `<span style="color: #0284c7; font-weight: bold;">TEVE AJUDA (${h.helperName ? `com ${h.helperName}` : h.helpDescription || 'Apoio'})</span>`;
             } else if (helped) {
                 statusAjuda = `<span style="color: #16a34a; font-weight: bold;">AJUDOU (${h.helpedStudent})</span>`;
+            } else if (isGroup) {
+                statusAjuda = `<span style="color: #4338ca; font-weight: bold;">EM GRUPO (${h.groupName || 'Equipe'})</span>`;
             }
 
             return `
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                     <td style="padding: 8px;">${i + 1}</td>
                     <td style="padding: 8px;">${h.question}</td>
-                    <td style="padding: 8px; font-weight: bold; color: ${h.result === 'correct' ? '#15803d' : h.result === 'merit' ? '#16a34a' : h.result === 'help_correct' ? '#0369a1' : h.result === 'rule_violation' ? '#e11d48' : '#b91c1c'};">
-                        ${h.result === 'correct' ? 'Acertou' : h.result === 'merit' ? '+1 Ponto por Mérito' : h.result === 'rule_violation' ? '-1 Infringiu Regra' : h.result === 'help_correct' ? 'Acertou com Ajuda' : h.result === 'all_correct' ? 'Desafio da Turma' : 'Errou'}
+                    <td style="padding: 8px; font-weight: bold; color: ${h.result === 'correct' || h.result === 'group_correct' ? '#15803d' : h.result === 'merit' ? '#16a34a' : h.result === 'help_correct' ? '#0369a1' : h.result === 'rule_violation' ? '#e11d48' : '#b91c1c'};">
+                        ${h.result === 'correct' || h.result === 'group_correct' ? 'Acertou' : h.result === 'merit' ? '+1 Ponto por Mérito' : h.result === 'rule_violation' ? '-1 Infringiu Regra' : h.result === 'help_correct' ? 'Acertou com Ajuda' : h.result === 'all_correct' ? 'Desafio da Turma' : 'Errou'}
                     </td>
                     <td style="padding: 8px;">${statusAjuda}</td>
                     <td style="padding: 8px; font-size: 11px; color: #64748b;">
@@ -172,6 +222,7 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                         .metric-val { font-size: 24px; font-weight: 900; margin-top: 4px; }
                         .help-box { background: #f0f9ff; border: 2px solid #7dd3fc; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
                         .helped-box { background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+                        .group-box { background: #f5f3ff; border: 2px solid #c4b5fd; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
                         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; margin-top: 12px; }
                         th { background: #f1f5f9; padding: 8px; border-bottom: 2px solid #cbd5e1; }
                     </style>
@@ -197,7 +248,20 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                             <div style="color: #15803d; font-weight: bold;">AJUDOU</div>
                             <div class="metric-val" style="color: #16a34a;">${helpedCount}</div>
                         </div>
+                        <div class="metric-card" style="border-color: #c4b5fd; background: #f5f3ff;">
+                            <div style="color: #4338ca; font-weight: bold;">EM GRUPO</div>
+                            <div class="metric-val" style="color: #6366f1;">${groupCount}</div>
+                        </div>
                     </div>
+
+                    ${groupEntries.length > 0 ? `
+                        <div class="group-box">
+                            <h3 style="margin-top: 0; color: #4338ca;">👥 Ocorrências de ATIVIDADES EM GRUPO:</h3>
+                            <ul style="padding-left: 20px; margin-bottom: 0;">
+                                ${groupEntriesHtml}
+                            </ul>
+                        </div>
+                    ` : ''}
 
                     ${helpReceivedEntries.length > 0 ? `
                         <div class="help-box">
@@ -224,7 +288,7 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                                 <th>#</th>
                                 <th>Pergunta</th>
                                 <th>Resultado</th>
-                                <th>Teve Ajuda / Ajudou</th>
+                                <th>Dinâmica Pedagógica</th>
                                 <th>Data/Hora</th>
                             </tr>
                         </thead>
@@ -247,13 +311,14 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
         <Modal isOpen={isOpen} onClose={onClose} title={`Relatório do Aluno: ${student.name}`} maxWidth="max-w-2xl">
             <div className="space-y-5">
                 
-                {/* Métricas Principais com "Teve Ajuda" e "Ajudou" explícitos */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {/* Métricas Principais com "Teve Ajuda", "Ajudou" e "Em Grupo" explícitos */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                     <div className="text-center bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                        <div className="text-2xs font-black text-slate-500 uppercase tracking-wider mb-0.5">Acertos</div>
+                        <div className="text-2xs font-black text-slate-500 uppercase tracking-wider mb-0.5">Pontos Totais</div>
                         <div className="text-2xl font-black text-emerald-600 flex items-center justify-center gap-1">
                             <CheckCircle className="w-5 h-5" /> {student.hits || 0}
                         </div>
+                        <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Individuais + Equipe</div>
                     </div>
 
                     <div className="text-center bg-slate-50 p-3 rounded-2xl border border-slate-200">
@@ -261,6 +326,7 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                         <div className="text-2xl font-black text-red-500 flex items-center justify-center gap-1">
                             <XCircle className="w-5 h-5" /> {student.misses || 0}
                         </div>
+                        <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Registrados</div>
                     </div>
 
                     <div className="text-center bg-sky-50/80 p-3 rounded-2xl border-2 border-sky-300">
@@ -268,6 +334,7 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                         <div className="text-2xl font-black text-sky-600 flex items-center justify-center gap-1">
                             <HeartHandshake className="w-5 h-5 text-sky-600" /> {helpCount}
                         </div>
+                        <div className="text-[10px] text-sky-700 font-bold mt-0.5">Rodadas apoiadas</div>
                     </div>
 
                     <div className="text-center bg-emerald-50/80 p-3 rounded-2xl border-2 border-emerald-300">
@@ -275,13 +342,24 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                         <div className="text-2xl font-black text-emerald-600 flex items-center justify-center gap-1">
                             <Award className="w-5 h-5 text-emerald-600" /> {helpedCount}
                         </div>
+                        <div className="text-[10px] text-emerald-700 font-bold mt-0.5">Auxiliou colega</div>
+                    </div>
+
+                    <div className="text-center bg-indigo-50/80 p-3 rounded-2xl border-2 border-indigo-300">
+                        <div className="text-2xs font-black text-indigo-900 uppercase tracking-wider mb-0.5">Em Grupo</div>
+                        <div className="text-2xl font-black text-indigo-600 flex items-center justify-center gap-1">
+                            <Users className="w-5 h-5 text-indigo-600" /> {groupCount}
+                        </div>
+                        <div className="text-[10px] text-indigo-700 font-bold mt-0.5">
+                            {groupPoints > 0 ? `+${groupPoints} pts no total` : 'participações'}
+                        </div>
                     </div>
                 </div>
 
                 {/* Filtros e Ações */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200">
                     {/* Abas de filtro explícitas */}
-                    <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                    <div className="flex bg-slate-100 p-1 rounded-xl gap-1 flex-wrap">
                         <button
                             onClick={() => setFilterMode('all')}
                             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -291,6 +369,17 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                             }`}
                         >
                             Todas ({historyList.length})
+                        </button>
+                        <button
+                            onClick={() => setFilterMode('em_grupo')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                                filterMode === 'em_grupo' 
+                                ? 'bg-indigo-600 text-white shadow-2xs font-black' 
+                                : 'text-slate-600 hover:bg-white/60'
+                            }`}
+                        >
+                            <Users className="w-3.5 h-3.5" />
+                            <span>Em Grupo ({groupCount})</span>
                         </button>
                         <button
                             onClick={() => setFilterMode('teve_ajuda')}
@@ -319,7 +408,7 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                     {/* Botão de Impressão */}
                     <button
                         onClick={handlePrintReport}
-                        className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl transition-all shadow-2xs"
+                        className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl transition-all shadow-2xs cursor-pointer"
                         title="Imprimir ou salvar relatório individual deste aluno"
                     >
                         <Printer className="w-3.5 h-3.5 text-indigo-600" />
@@ -331,7 +420,13 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                 <div className="space-y-2.5 max-h-[46vh] overflow-y-auto pr-1.5 custom-scrollbar">
                     {displayedHistory.length === 0 ? (
                         <p className="text-slate-400 italic text-center py-8 text-sm">
-                            {filterMode === 'teve_ajuda' ? 'Nenhuma pergunta onde o aluno teve ajuda.' : filterMode === 'ajudou' ? 'Nenhuma ocorrência onde o aluno ajudou um colega.' : 'Nenhuma pergunta respondida ainda.'}
+                            {filterMode === 'teve_ajuda' 
+                                ? 'Nenhuma pergunta onde o aluno teve ajuda.' 
+                                : filterMode === 'ajudou' 
+                                    ? 'Nenhuma ocorrência onde o aluno ajudou um colega.' 
+                                    : filterMode === 'em_grupo'
+                                        ? 'Nenhuma atividade em grupo registrada para este aluno.'
+                                        : 'Nenhuma pergunta respondida ainda.'}
                         </p>
                     ) : (
                         displayedHistory.map((item, idx) => {
@@ -340,12 +435,15 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                                 item.helperName || 
                                 (item.question && (item.question.includes('[Ajuda:') || item.question.includes('(com ajuda')));
                             const isHelperRole = item.helpedStudent || item.isHelperRole;
+                            const isGroupItem = item.isGroupActivity || item.groupName || item.result === 'group_correct' || item.result === 'group_activity' || item.result === 'group_incorrect' || (item.question && (item.question.includes('[Grupo:') || item.question.includes('[Atividade em Grupo') || item.question.includes('[Equipe ')));
+                            const repName = item.representative || item.representativeName;
+                            const isGroupWin = (item.pointsDelta !== undefined ? item.pointsDelta > 0 : (item.result === 'group_correct' || item.result === 'group_activity' || item.result === 'correct'));
 
                             return (
                                 <div 
                                     key={idx} 
                                     className="p-4 rounded-xl border flex flex-col gap-2.5 transition-all shadow-2xs"
-                                    style={getItemStyles(item.result, isHelperRole)}
+                                    style={getItemStyles(item.result, isHelperRole, isGroupItem)}
                                 >
                                     <div className="flex justify-between items-center">
                                         {getResultBadge(item)}
@@ -363,6 +461,39 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                                     <p className="text-slate-800 font-medium text-sm leading-snug">
                                         {item.question}
                                     </p>
+
+                                    {/* BLOCO EXPLÍCITO: ATIVIDADE EM GRUPO */}
+                                    {isGroupItem && (
+                                        <div className="bg-indigo-100/80 border-2 border-indigo-400 p-3 rounded-xl flex items-start gap-2.5 text-xs text-indigo-950 font-medium animate-in fade-in">
+                                            <span className="bg-indigo-600 text-white font-black px-2 py-0.5 rounded uppercase tracking-wider text-2xs shrink-0 mt-0.5 shadow-2xs">
+                                                EM GRUPO
+                                            </span>
+                                            <div className="leading-relaxed flex-1">
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                    <span>Atividade realizada em conjunto com a equipe: </span>
+                                                    <span className="font-black text-indigo-950 bg-white px-2 py-0.5 rounded border border-indigo-300">{item.groupName || 'Equipe'}</span>
+                                                    {repName && (
+                                                        <span className="text-indigo-900 font-bold">
+                                                            (Representante da rodada: <strong>{repName}</strong>)
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="mt-1 flex items-center gap-2">
+                                                    {isGroupWin ? (
+                                                        <span className="font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 inline-flex items-center gap-1">
+                                                            <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                                            +{item.pointsDelta !== undefined ? item.pointsDelta : 1} ponto somado à pontuação individual deste aluno!
+                                                        </span>
+                                                    ) : (
+                                                        <span className="font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 inline-flex items-center gap-1">
+                                                            <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                                                            Equipe não pontuou nesta rodada.
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* BLOCO EXPLÍCITO: TEVE AJUDA */}
                                     {hadItemHelp && (
