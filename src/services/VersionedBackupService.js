@@ -94,12 +94,16 @@ export class VersionedBackupService {
                     classMap.set(key, {
                         id: item.id ? String(item.id) : `cls_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
                         name: item.name || 'Turma Sem Nome',
-                        students: Array.isArray(item.students) ? item.students : []
+                        students: Array.isArray(item.students) ? item.students : [],
+                        groups: Array.isArray(item.groups) ? item.groups : (item.groups || [])
                     });
                 } else {
                     const existing = classMap.get(key);
                     if ((!existing.students || existing.students.length === 0) && Array.isArray(item.students) && item.students.length > 0) {
                         existing.students = item.students;
+                    }
+                    if ((!existing.groups || existing.groups.length === 0) && Array.isArray(item.groups) && item.groups.length > 0) {
+                        existing.groups = item.groups;
                     }
                 }
             });

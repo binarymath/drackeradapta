@@ -203,22 +203,22 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
 
     return (
         <div className={`relative w-full ${
-            isMaximized ? 'max-w-3xl sm:max-w-4xl' : 'max-w-lg'
-        } mx-auto flex items-center justify-center select-none py-2 transition-all duration-300`}>
+            isMaximized ? 'max-w-3xl sm:max-w-4xl md:max-w-5xl' : 'max-w-lg'
+        } mx-auto flex items-center justify-center select-none py-1 transition-all duration-300`}>
             
             {/* ======================================================== */}
             {/* CORPO DO CHASSI DO CAÇA-MOEDAS (SLOT MACHINE CABINET) */}
             {/* ======================================================== */}
             <div className={`w-full relative bg-gradient-to-b from-red-900 via-red-950 to-slate-950 rounded-3xl ${
-                isMaximized ? 'p-5 sm:p-7' : 'p-4 sm:p-6'
+                isMaximized ? 'p-3.5 sm:p-5 md:p-6' : 'p-4 sm:p-6'
             } shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_40px_rgba(239,68,68,0.25)] border-4 border-yellow-500/80`}>
                 
                 {/* Textura de Acabamento Cromado Superior */}
-                <div className="absolute top-0 inset-x-0 h-4 bg-gradient-to-r from-yellow-600 via-amber-300 to-yellow-600 rounded-t-2xl opacity-90" />
+                <div className="absolute top-0 inset-x-0 h-3 bg-gradient-to-r from-yellow-600 via-amber-300 to-yellow-600 rounded-t-2xl opacity-90" />
 
                 {/* ==================== 1. TESTEIRA COM LÂMPADAS (TOP MARQUEE) ==================== */}
                 <div className={`relative bg-gradient-to-r from-yellow-700 via-amber-400 to-yellow-700 rounded-2xl ${
-                    isMaximized ? 'p-4 mb-5' : 'p-3 mb-4'
+                    isMaximized ? 'p-2 sm:p-3 mb-2 sm:mb-3' : 'p-3 mb-4'
                 } shadow-lg border-2 border-yellow-300 text-center overflow-hidden`}>
                     {/* Linha de Lâmpadas piscantes */}
                     <div className="flex items-center justify-between px-2 mb-1">
@@ -228,7 +228,7 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
                                 <div
                                     key={i}
                                     className={`${
-                                        isMaximized ? 'w-3 h-3 sm:w-4 sm:h-4' : 'w-2.5 h-2.5 sm:w-3 sm:h-3'
+                                        isMaximized ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-2.5 h-2.5 sm:w-3 sm:h-3'
                                     } rounded-full border border-black/30 transition-all ${
                                         isLit
                                             ? 'bg-yellow-100 shadow-[0_0_8px_#ffffff]'
@@ -240,33 +240,33 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
                     </div>
 
                     {/* Título Estilo Cassino */}
-                    <div className="bg-slate-950/90 py-1.5 px-3 rounded-xl border border-yellow-400/60 flex items-center justify-center gap-2">
-                        <span className="text-sm sm:text-base">⭐</span>
+                    <div className="bg-slate-950/90 py-1.5 px-3 rounded-xl border border-yellow-400/60 flex items-center justify-center gap-1.5">
+                        <span className="text-xs sm:text-sm">⭐</span>
                         <h3 className={`font-black ${
-                            isMaximized ? 'text-sm sm:text-base md:text-lg' : 'text-xs sm:text-sm md:text-base'
+                            isMaximized ? 'text-xs sm:text-base md:text-lg' : 'text-xs sm:text-sm md:text-base'
                         } tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400 uppercase drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]`}>
                             CAÇA-MOEDAS DOS ALUNOS
                         </h3>
-                        <span className="text-sm sm:text-base">⭐</span>
+                        <span className="text-xs sm:text-sm">⭐</span>
                     </div>
                 </div>
 
                 {/* ==================== 2. JANELA CENTRAL DOS ROLOS (REELS DISPLAY) ==================== */}
                 <div className={`relative bg-gradient-to-b from-slate-950 via-slate-900 to-black rounded-2xl ${
-                    isMaximized ? 'p-4 sm:p-5' : 'p-3 sm:p-4'
+                    isMaximized ? 'p-3 sm:p-4 md:p-5' : 'p-3 sm:p-4'
                 } border-4 border-yellow-500 shadow-inner`}>
                     
                     {/* Linha de Pagamento Central (Payline Dourada) */}
                     <div className={`absolute inset-x-0 top-1/2 -translate-y-1/2 ${
-                        isMaximized ? 'h-24 sm:h-28' : 'h-16 sm:h-20'
+                        isMaximized ? 'h-24 sm:h-32 md:h-40' : 'h-16 sm:h-20'
                     } border-y-2 border-yellow-400/40 bg-yellow-400/5 pointer-events-none z-10`} />
 
                     {/* Grade de 3 Rolos (Esquerdo / Aluno Central / Direito) */}
-                    <div className="grid grid-cols-12 gap-2 relative z-20 items-center">
+                    <div className="grid grid-cols-12 gap-2 sm:gap-3 relative z-20 items-center">
                         
                         {/* Rolo Esquerdo (Símbolo Clássico 777) */}
-                        <div className={`col-span-3 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-950 rounded-xl ${
-                            isMaximized ? 'h-28 sm:h-32 text-4xl sm:text-5xl' : 'h-20 sm:h-24 text-3xl sm:text-4xl'
+                        <div className={`col-span-3 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-950 rounded-xl sm:rounded-2xl ${
+                            isMaximized ? 'h-28 sm:h-36 md:h-44 text-4xl sm:text-5xl md:text-6xl' : 'h-20 sm:h-24 text-3xl sm:text-4xl'
                         } flex items-center justify-center border-2 border-slate-700 shadow-lg`}>
                             <span className={spinning ? 'animate-bounce' : ''}>
                                 {leftSymbol}
@@ -274,9 +274,9 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
                         </div>
 
                         {/* Rolo Central Principal: NOME DO ALUNO SORTEADO */}
-                        <div className={`col-span-6 rounded-xl ${
-                            isMaximized ? 'h-28 sm:h-32' : 'h-20 sm:h-24'
-                        } flex flex-col items-center justify-center border-2 transition-all duration-300 px-2 text-center overflow-hidden shadow-2xl ${
+                        <div className={`col-span-6 rounded-xl sm:rounded-2xl ${
+                            isMaximized ? 'h-28 sm:h-36 md:h-44' : 'h-20 sm:h-24'
+                        } flex flex-col items-center justify-center border-2 transition-all duration-300 px-2 sm:px-4 text-center overflow-hidden shadow-2xl ${
                             lockedWinner
                                 ? 'bg-gradient-to-b from-amber-500/20 via-yellow-500/30 to-amber-600/20 border-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.5)] scale-105'
                                 : spinning
@@ -284,7 +284,7 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
                                     : 'bg-slate-900 border-slate-700'
                         }`}>
                             <span className={`${
-                                isMaximized ? 'text-[11px] sm:text-xs' : 'text-[9px] sm:text-[10px]'
+                                isMaximized ? 'text-[10px] sm:text-xs md:text-sm' : 'text-[9px] sm:text-[10px]'
                             } font-black text-amber-400 uppercase tracking-widest mb-0.5`}>
                                 {lockedWinner ? '🏆 JACKPOT ALUNO 🏆' : spinning ? 'SORTEANDO...' : 'ALUNO NA VEZ'}
                             </span>
@@ -292,16 +292,16 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
                                 lockedWinner
                                     ? `${isMaximized ? 'text-2xl sm:text-3xl md:text-4xl' : 'text-lg sm:text-xl md:text-2xl'} text-yellow-300 drop-shadow-[0_2px_8px_rgba(253,224,71,0.8)] animate-pulse`
                                     : spinning
-                                        ? `${isMaximized ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'} text-amber-400`
-                                        : `${isMaximized ? 'text-xl sm:text-2xl md:text-3xl' : 'text-base sm:text-lg'} text-white`
+                                        ? `${isMaximized ? 'text-lg sm:text-2xl md:text-3xl' : 'text-base sm:text-lg'} text-amber-400`
+                                        : `${isMaximized ? 'text-lg sm:text-2xl md:text-3xl' : 'text-base sm:text-lg'} text-white`
                             }`}>
                                 {currentStudent?.name || 'PRONTO'}
                             </span>
                         </div>
 
                         {/* Rolo Direito (Símbolo Clássico 777) */}
-                        <div className={`col-span-3 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-950 rounded-xl ${
-                            isMaximized ? 'h-28 sm:h-32 text-4xl sm:text-5xl' : 'h-20 sm:h-24 text-3xl sm:text-4xl'
+                        <div className={`col-span-3 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-950 rounded-xl sm:rounded-2xl ${
+                            isMaximized ? 'h-28 sm:h-36 md:h-44 text-4xl sm:text-5xl md:text-6xl' : 'h-20 sm:h-24 text-3xl sm:text-4xl'
                         } flex items-center justify-center border-2 border-slate-700 shadow-lg`}>
                             <span className={spinning ? 'animate-bounce' : ''}>
                                 {rightSymbol}
@@ -314,30 +314,30 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
                 </div>
 
                 {/* ==================== 3. SLOT DE MOEDAS (INSERT COIN BEZEL) ==================== */}
-                <div className="mt-4 flex items-center justify-between bg-black/60 rounded-xl p-2.5 border border-yellow-500/40">
+                <div className={`${isMaximized ? 'mt-2 p-1.5' : 'mt-4 p-2.5'} flex items-center justify-between bg-black/60 rounded-xl border border-yellow-500/40`}>
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 border border-yellow-200 flex items-center justify-center shadow-md animate-[spin_8s_linear_infinite]">
-                            <span className="text-xs font-black text-amber-950">🪙</span>
+                        <div className={`${isMaximized ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 border border-yellow-200 flex items-center justify-center shadow-md animate-[spin_8s_linear_infinite]`}>
+                            <span className={`${isMaximized ? 'text-[10px]' : 'text-xs'} font-black text-amber-950`}>🪙</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-black tracking-widest text-amber-400 uppercase">
+                            <span className="text-[9px] font-black tracking-widest text-amber-400 uppercase">
                                 ENTRADA DE MOEDAS:
                             </span>
-                            <span className="text-[11px] font-mono text-slate-300 font-bold">
+                            <span className="text-[10px] font-mono text-slate-300 font-bold">
                                 CRÉDITOS: <span className="text-emerald-400 font-black">ILIMITADOS ∞</span>
                             </span>
                         </div>
                     </div>
 
                     {/* Fenda da Moeda (Coin Slot Bezel) */}
-                    <div className="flex items-center gap-1 bg-slate-900 px-3 py-1.5 rounded-lg border border-yellow-400/50 shadow-inner">
-                        <div className="w-1 h-5 bg-black rounded-full border border-yellow-500/70 mr-1" />
-                        <span className="text-[10px] font-mono font-black text-amber-300">25¢ INSERT</span>
+                    <div className={`flex items-center gap-1 bg-slate-900 ${isMaximized ? 'px-2 py-1' : 'px-3 py-1.5'} rounded-lg border border-yellow-400/50 shadow-inner`}>
+                        <div className="w-1 h-4 bg-black rounded-full border border-yellow-500/70 mr-1" />
+                        <span className="text-[9px] font-mono font-black text-amber-300">25¢ INSERT</span>
                     </div>
                 </div>
 
                 {/* ==================== 4. BANDEJA DE MOEDAS INFERIOR (COIN TRAY) ==================== */}
-                <div className="mt-3 relative bg-gradient-to-b from-slate-900 via-slate-800 to-slate-950 rounded-2xl p-3 border-2 border-slate-700 shadow-2xl flex items-center justify-center overflow-hidden">
+                <div className={`${isMaximized ? 'mt-1.5 p-1.5' : 'mt-3 p-3'} relative bg-gradient-to-b from-slate-900 via-slate-800 to-slate-950 rounded-2xl border-2 border-slate-700 shadow-2xl flex items-center justify-center overflow-hidden`}>
                     <div className="flex items-center gap-1.5 flex-wrap justify-center py-0.5">
                         {/* Moedas empilhadas na bandeja */}
                         {Array.from({ length: 7 }).map((_, idx) => (

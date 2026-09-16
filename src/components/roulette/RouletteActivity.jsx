@@ -8,7 +8,9 @@ import { RouletteQuestionsEditorModal } from './RouletteQuestionsEditorModal';
 import { RouletteStyleSelector } from './RouletteStyleSelector';
 import { TransitionQuestionsModal } from '../modals/TransitionQuestionsModal';
 import { ClassesManagerModal } from './ClassesManagerModal';
-import { CheckCircle, XCircle, RotateCcw, List, Download, UserX, Edit3, RotateCw, RefreshCw, Eye, EyeOff, HeartHandshake, Award, Maximize2, Minimize2, Users, Plus, Minus, Target, UserMinus, Sparkles, AlertTriangle } from 'lucide-react';
+import { GroupsManagerModal } from './GroupsManagerModal';
+import { RouletteSidebar } from './RouletteSidebar';
+import { CheckCircle, XCircle, RotateCcw, List, Download, UserX, Edit3, RotateCw, RefreshCw, Eye, EyeOff, HeartHandshake, Award, Maximize2, Minimize2, Users, Plus, Minus, Target, UserMinus, Sparkles, AlertTriangle, User, Trophy, ChevronRight, ChevronLeft } from 'lucide-react';
 import { gameAudio } from '../../utils/gameAudio';
 
 // Temas visuais imersivos para o palco de fundo da roleta
@@ -62,7 +64,21 @@ export const RouletteActivity = () => {
     const { geminiService, selectedModel } = useGemini();
     const [showTransitionModal, setShowTransitionModal] = useState(false);
     const [showClassesModal, setShowClassesModal] = useState(false);
+    const [showGroupsModal, setShowGroupsModal] = useState(false);
     
+    // Modo de jogo da Roleta: 'individual' (alunos) | 'groups' (equipes)
+    const [gameMode, setGameMode] = useState(() => {
+        return activeActivity?.gameMode || 'individual';
+    });
+
+    // Aba de visualização do placar lateral: 'students' | 'groups'
+    const [placarTab, setPlacarTab] = useState(() => {
+        return activeActivity?.gameMode === 'groups' ? 'groups' : 'students';
+    });
+
+    // Estado de visibilidade do Sidebar retrátil de alunos e placar (abre para a direita a partir da esquerda)
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
     // O ID da turma e os dados vêm da aba ativa
     const classId = activeActivity?.classId;
     
@@ -71,23 +87,35 @@ export const RouletteActivity = () => {
         // 1. Se existir turma vinculada na lista global de turmas do professor
         if (classes && classes.length > 0) {
             const found = classes.find(c => c.id === classId);
-            if (found) return found;
+            if (found) {
+                return { ...found, groups: Array.isArray(found.groups) ? found.groups : [] };
+            }
 
             // 2. Se a aba ativa tiver classData próprio salvo nela, prioriza ela antes de dar fallback para classes[0]
             if (activeActivity?.classData && (activeActivity.classData.id === classId || !classId)) {
-                return activeActivity.classData;
+                return {
+                    ...activeActivity.classData,
+                    groups: Array.isArray(activeActivity.classData.groups) ? activeActivity.classData.groups : []
+                };
             }
             if (activeActivity?.classData && activeActivity.classData.students?.length > 0) {
-                return activeActivity.classData;
+                return {
+                    ...activeActivity.classData,
+                    groups: Array.isArray(activeActivity.classData.groups) ? activeActivity.classData.groups : []
+                };
             }
 
             // 3. Fallback para a primeira turma cadastrada caso classId não seja encontrado
-            return classes[0];
+            const first = classes[0];
+            return { ...first, groups: Array.isArray(first.groups) ? first.groups : [] };
         }
 
         // Se não houver turmas no navegador mas a atividade possui classData anexada
         if (activeActivity?.classData && (activeActivity.classData.students?.length > 0 || activeActivity.classData.name)) {
-            return activeActivity.classData;
+            return {
+                ...activeActivity.classData,
+                groups: Array.isArray(activeActivity.classData.groups) ? activeActivity.classData.groups : []
+            };
         }
 
         // Se não houver turmas cadastradas no navegador (ex: Vercel ou cache limpo),
@@ -126,7 +154,8 @@ export const RouletteActivity = () => {
         return {
             id: classId || 'class_auto_' + (activeActivity?.id || Date.now()),
             name: activeActivity?.topic ? `Turma: ${activeActivity.topic}` : (activeActivity?.title || 'Turma da Roleta'),
-            students: studentsList
+            students: studentsList,
+            groups: []
         };
     }, [classes, classId, activeActivity]);
 
@@ -260,11 +289,28 @@ export const RouletteActivity = () => {
         return new Set(activeActivity?.removedStudentIds || []);
     }, [activeActivity?.removedStudentIds]);
 
+    // Grupos cadastrados na turma atual
+    const currentGroups = useMemo(() => {
+        return (currentClass?.groups && Array.isArray(currentClass.groups)) ? currentClass.groups : [];
+    }, [currentClass?.groups]);
+
+    // Mapeamento de cada aluno para seu respectivo grupo (compatível com ID numérico e string)
+    const studentToGroupMap = useMemo(() => {
+        const map = new Map();
+        currentGroups.forEach(g => {
+            (g.studentIds || []).forEach(sId => {
+                map.set(sId, g);
+                map.set(String(sId), g);
+            });
+        });
+        return map;
+    }, [currentGroups]);
+
     // Combina os dados persistentes da turma com as perguntas geradas para esta aba
     const combinedItems = useMemo(() => {
         if (!currentClass) return [];
         
-        return currentClass.students.map((student, idx) => {
+        return (currentClass.students || []).map((student, idx) => {
             const questionObj = uniqueQuestions.length > 0 ? uniqueQuestions[idx % uniqueQuestions.length] : null;
             const rawQuestion = questionObj ? questionObj.question : 'Nenhuma pergunta gerada para esta sessão.';
             
@@ -276,10 +322,15 @@ export const RouletteActivity = () => {
             if (activityRemovedIds.has(student.id)) {
                 effectiveStatus = 'removed';
             }
+
+            const studentGroup = studentToGroupMap.get(student.id) || studentToGroupMap.get(String(student.id));
                 
             return {
                 ...student,
                 status: effectiveStatus,
+                groupName: studentGroup?.name || null,
+                groupColor: studentGroup?.color || null,
+                groupId: studentGroup?.id || null,
                 question: rawQuestion,
                 answer: questionObj ? questionObj.answer : '',
                 difficulty: questionObj ? questionObj.difficulty : 'Média',
@@ -287,41 +338,164 @@ export const RouletteActivity = () => {
                 questionId: questionObj ? questionObj.id : null
             };
         });
-    }, [currentClass, uniqueQuestions, activityRemovedIds]);
+    }, [currentClass, uniqueQuestions, activityRemovedIds, studentToGroupMap]);
 
     const activeItems = combinedItems.filter(i => i.status === 'active');
     // Alunos disponíveis para ajudar (inclui os que foram retirados da roleta ou já acertaram)
     const availableHelpers = combinedItems.filter(i => i.status !== 'absent');
 
-    // Salvar estado na Turma Global
-    const updateStudentInClass = (studentId, updates, historyEntry = null) => {
-        const newClasses = classes.map(c => {
-            if (c.id === classId) {
-                const newStudents = c.students.map(s => {
-                    if (s.id === studentId) {
-                        const updatedStudent = { ...s, ...updates };
-                        if (historyEntry) {
-                            updatedStudent.history = [...(s.history || []), historyEntry];
-                        }
-                        return updatedStudent;
-                    }
-                    return s;
-                });
-                return { ...c, students: newStudents };
-            }
-            return c;
+    // Equipes/Grupos ativos preparados para a roleta e placar
+    const activeGroupItems = useMemo(() => {
+        if (!currentClass || currentGroups.length === 0) return [];
+        return currentGroups.map((g, idx) => {
+            const memberIdSet = new Set((g.studentIds || []).map(String));
+            const members = (currentClass.students || []).filter(s => memberIdSet.has(String(s.id)));
+            const questionObj = uniqueQuestions.length > 0 ? uniqueQuestions[idx % uniqueQuestions.length] : null;
+            const rawQuestion = questionObj ? questionObj.question : 'Nenhuma pergunta gerada para esta sessão.';
+
+            return {
+                id: g.id,
+                name: g.name,
+                color: g.color || '#6366f1',
+                isGroup: true,
+                studentIds: g.studentIds || [],
+                members: members,
+                hits: g.hits || 0,
+                misses: g.misses || 0,
+                history: g.history || [],
+                question: rawQuestion,
+                answer: questionObj ? questionObj.answer : '',
+                difficulty: questionObj ? questionObj.difficulty : 'Média',
+                imageUrl: questionObj ? questionObj.imageUrl : null,
+                questionId: questionObj ? questionObj.id : null
+            };
         });
-        setClasses(newClasses);
+    }, [currentClass, currentGroups, uniqueQuestions]);
+
+    // Função mestra unificada para salvar alterações na turma (atualiza classes globalmente e activeActivity.classData)
+    const saveClassUpdates = (updater) => {
+        const targetClassId = currentClass?.id || classId;
+        if (!targetClassId || !currentClass) return;
+
+        const updatedClass = updater(currentClass);
+
+        setClasses(prevClasses => {
+            const safePrev = Array.isArray(prevClasses) ? prevClasses : [];
+            const exists = safePrev.some(c => String(c.id) === String(targetClassId));
+            if (exists) {
+                return safePrev.map(c => String(c.id) === String(targetClassId) ? updatedClass : c);
+            } else {
+                return [...safePrev, updatedClass];
+            }
+        });
+
+        if (activeActivity?.id && updateActivityData) {
+            updateActivityData(activeActivity.id, {
+                classId: targetClassId,
+                classData: updatedClass
+            });
+        }
+    };
+
+    // Reconciliação inteligente: Garante que pontos e histórico de equipes anteriores reflitam na pontuação individual
+    useEffect(() => {
+        if (!currentClass || !currentClass.groups || currentClass.groups.length === 0) return;
+        
+        let needsSync = false;
+        const reconciledStudents = (currentClass.students || []).map(student => {
+            const studentIdStr = String(student.id);
+            const studentGroup = (currentClass.groups || []).find(g => 
+                (g.studentIds || []).some(id => String(id) === studentIdStr)
+            );
+            if (!studentGroup || !studentGroup.history || studentGroup.history.length === 0) {
+                return student;
+            }
+
+            const currentHistory = student.history || [];
+            const missingEntries = studentGroup.history.filter(gh => {
+                return !currentHistory.some(sh => 
+                    sh.date === gh.date || 
+                    (sh.isGroupActivity && (sh.groupId === studentGroup.id || sh.question?.includes(studentGroup.name)))
+                );
+            });
+
+            if (missingEntries.length > 0) {
+                needsSync = true;
+                let addedHits = 0;
+                let addedMisses = 0;
+                const newHistoryEntries = missingEntries.map(gh => {
+                    const isWin = gh.result === 'correct' || gh.result === 'group_correct' || gh.result === 'group_activity' || (gh.pointsDelta && gh.pointsDelta > 0);
+                    if (isWin) {
+                        addedHits += (gh.pointsDelta !== undefined ? gh.pointsDelta : 1);
+                    } else if (gh.result === 'incorrect' || gh.result === 'group_incorrect') {
+                        addedMisses += 1;
+                    }
+                    return {
+                        date: gh.date || Date.now(),
+                        topic: gh.topic || 'Sem tema',
+                        question: gh.question?.startsWith('[Equipe') ? gh.question : `[Equipe ${studentGroup.name}] ${gh.question}`,
+                        result: isWin ? 'group_activity' : 'incorrect',
+                        isGroupActivity: true,
+                        groupId: studentGroup.id,
+                        groupName: studentGroup.name,
+                        representative: gh.representative || null,
+                        pointsDelta: isWin ? (gh.pointsDelta !== undefined ? gh.pointsDelta : 1) : 0
+                    };
+                });
+
+                return {
+                    ...student,
+                    hits: Math.max(0, (student.hits || 0) + addedHits),
+                    misses: Math.max(0, (student.misses || 0) + addedMisses),
+                    history: [...currentHistory, ...newHistoryEntries]
+                };
+            }
+
+            return student;
+        });
+
+        if (needsSync) {
+            saveClassUpdates(prev => ({
+                ...prev,
+                students: reconciledStudents
+            }));
+        }
+    }, [currentClass?.groups, currentClass?.id]);
+
+    // Salvar grupos na turma e no estado da atividade
+    const handleSaveGroups = (updatedGroups) => {
+        saveClassUpdates(prev => ({
+            ...prev,
+            groups: updatedGroups
+        }));
+    };
+
+    // Salvar estado do aluno na Turma Global
+    const updateStudentInClass = (studentId, updates, historyEntry = null) => {
+        saveClassUpdates(prev => {
+            const newStudents = (prev.students || []).map(s => {
+                if (String(s.id) === String(studentId)) {
+                    const updatedStudent = { ...s, ...updates };
+                    if (historyEntry) {
+                        updatedStudent.history = [...(s.history || []), historyEntry];
+                    }
+                    return updatedStudent;
+                }
+                return s;
+            });
+            return { ...prev, students: newStudents };
+        });
     };
 
     const handleSpin = () => {
-        if (spinning || activeItems.length === 0) return;
+        const pool = gameMode === 'groups' ? activeGroupItems : activeItems;
+        if (spinning || pool.length === 0) return;
         setSpinning(true);
         setShowCard(false);
         setWinner(null);
         
-        const randomIdx = Math.floor(Math.random() * activeItems.length);
-        const selectedWinner = activeItems[randomIdx];
+        const randomIdx = Math.floor(Math.random() * pool.length);
+        const selectedWinner = pool[randomIdx];
 
         // Tentar selecionar uma pergunta que ainda NÃO foi usada nesta sessão para evitar repetição
         let questionObj = null;
@@ -551,31 +725,29 @@ export const RouletteActivity = () => {
     const handleBatchResult = ({ studentIds, questionText }) => {
         if (!studentIds || studentIds.length === 0) return;
 
+        const idSet = new Set((studentIds || []).map(String));
         const now = Date.now();
-        const newClasses = classes.map(c => {
-            if (c.id === classId) {
-                const newStudents = c.students.map(s => {
-                    if (studentIds.includes(s.id)) {
-                        const historyEntry = {
-                            date: now,
-                            topic: activeActivity?.topic || 'Sem tema',
-                            question: `[Desafio da Turma] ${questionText}`,
-                            result: 'all_correct'
-                        };
-                        return {
-                            ...s,
-                            hits: (s.hits || 0) + 1,
-                            history: [...(s.history || []), historyEntry]
-                        };
-                    }
-                    return s;
-                });
-                return { ...c, students: newStudents };
-            }
-            return c;
+
+        saveClassUpdates(prev => {
+            const newStudents = (prev.students || []).map(s => {
+                if (idSet.has(String(s.id))) {
+                    const historyEntry = {
+                        date: now,
+                        topic: activeActivity?.topic || 'Sem tema',
+                        question: `[Desafio da Turma] ${questionText}`,
+                        result: 'all_correct'
+                    };
+                    return {
+                        ...s,
+                        hits: (s.hits || 0) + 1,
+                        history: [...(s.history || []), historyEntry]
+                    };
+                }
+                return s;
+            });
+            return { ...prev, students: newStudents };
         });
 
-        setClasses(newClasses);
         setUsedQuestions(prev => new Set([...prev, questionText]));
         setShowCard(false);
         setWinner(null);
@@ -586,7 +758,7 @@ export const RouletteActivity = () => {
         if (!winner) return;
 
         const now = Date.now();
-        const helperStudent = helperStudentId ? currentClass?.students.find(s => s.id === helperStudentId) : null;
+        const helperStudent = helperStudentId ? currentClass?.students?.find(s => String(s.id) === String(helperStudentId)) : null;
         const helperName = helperStudent ? helperStudent.name : null;
 
         let helpDescription = '';
@@ -600,61 +772,238 @@ export const RouletteActivity = () => {
             helpDescription = 'Apoio Pedagógico';
         }
 
-        const newClasses = classes.map(c => {
-            if (c.id === classId) {
-                const newStudents = c.students.map(s => {
-                    // Atualiza o aluno sorteado
-                    if (s.id === winner.id) {
-                        const historyEntry = {
-                            date: now,
-                            topic: activeActivity?.topic || 'Sem tema',
-                            question: `${questionText} [Ajuda: ${helpDescription}]`,
-                            result: isCorrect ? 'help_correct' : 'incorrect',
-                            helperName: helperName || undefined,
-                            helpType: helpType,
-                            helpDescription: helpDescription,
-                            hadHelp: true
-                        };
-                        return {
-                            ...s,
-                            hits: isCorrect ? (s.hits || 0) + 1 : (s.hits || 0),
-                            misses: !isCorrect ? (s.misses || 0) + 1 : (s.misses || 0),
-                            helpCount: (s.helpCount || 0) + 1,
-                            hadHelp: true,
-                            history: [...(s.history || []), historyEntry]
-                        };
-                    }
-                    // Se houver colega ajudante, registra explicitamente que AJUDOU!
-                    if (helperStudentId && s.id === helperStudentId) {
-                        const helperHistoryEntry = {
-                            date: now,
-                            topic: activeActivity?.topic || 'Sem tema',
-                            question: `Ajudou ${winner.name} em: ${questionText}`,
-                            result: isCorrect ? 'help_correct' : 'incorrect',
-                            helpedStudent: winner.name,
-                            isHelperRole: true
-                        };
-                        return {
-                            ...s,
-                            hits: isCorrect ? (s.hits || 0) + 1 : (s.hits || 0),
-                            helpedCount: (s.helpedCount || 0) + 1,
-                            history: [...(s.history || []), helperHistoryEntry]
-                        };
-                    }
-                    return s;
-                });
-                return { ...c, students: newStudents };
-            }
-            return c;
+        saveClassUpdates(prev => {
+            const newStudents = (prev.students || []).map(s => {
+                // Atualiza o aluno sorteado
+                if (String(s.id) === String(winner.id)) {
+                    const historyEntry = {
+                        date: now,
+                        topic: activeActivity?.topic || 'Sem tema',
+                        question: `${questionText} [Ajuda: ${helpDescription}]`,
+                        result: isCorrect ? 'help_correct' : 'incorrect',
+                        helperName: helperName || undefined,
+                        helpType: helpType,
+                        helpDescription: helpDescription,
+                        hadHelp: true
+                    };
+                    return {
+                        ...s,
+                        hits: isCorrect ? (s.hits || 0) + 1 : (s.hits || 0),
+                        misses: !isCorrect ? (s.misses || 0) + 1 : (s.misses || 0),
+                        helpCount: (s.helpCount || 0) + 1,
+                        hadHelp: true,
+                        history: [...(s.history || []), historyEntry]
+                    };
+                }
+                // Se houver colega ajudante, registra explicitamente que AJUDOU!
+                if (helperStudentId && String(s.id) === String(helperStudentId)) {
+                    const helperHistoryEntry = {
+                        date: now,
+                        topic: activeActivity?.topic || 'Sem tema',
+                        question: `Ajudou ${winner.name} em: ${questionText}`,
+                        result: isCorrect ? 'help_correct' : 'incorrect',
+                        helpedStudent: winner.name,
+                        isHelperRole: true
+                    };
+                    return {
+                        ...s,
+                        hits: isCorrect ? (s.hits || 0) + 1 : (s.hits || 0),
+                        helpedCount: (s.helpedCount || 0) + 1,
+                        history: [...(s.history || []), helperHistoryEntry]
+                    };
+                }
+                return s;
+            });
+            return { ...prev, students: newStudents };
         });
-
-        setClasses(newClasses);
 
         if (isCorrect) {
             // Remove o aluno APENAS desta atividade atual
             handleToggleStudentActivityStatus(winner.id, 'remove');
             setUsedQuestions(prev => new Set([...prev, questionText]));
         }
+        setShowCard(false);
+        setWinner(null);
+    };
+
+    // Escolher manualmente uma equipe específica para responder
+    const handleSelectGroupManually = (groupId) => {
+        const group = activeGroupItems.find(g => g.id === groupId);
+        if (!group) return;
+
+        let questionObj = null;
+        if (uniqueQuestions.length > 0) {
+            const unused = uniqueQuestions.filter(q => !usedQuestions.has(q.question));
+            if (unused.length > 0) {
+                questionObj = unused[Math.floor(Math.random() * unused.length)];
+            } else {
+                const gIdx = activeGroupItems.findIndex(g => g.id === groupId);
+                questionObj = uniqueQuestions[(gIdx >= 0 ? gIdx : 0) % uniqueQuestions.length];
+            }
+        }
+
+        const rawQuestion = questionObj ? questionObj.question : 'Nenhuma pergunta gerada para esta sessão.';
+
+        setWinner({
+            ...group,
+            question: rawQuestion,
+            answer: questionObj?.answer || '',
+            difficulty: questionObj?.difficulty || 'Média',
+            imageUrl: questionObj?.imageUrl || null,
+            questionId: questionObj?.id || null
+        });
+        setShowCard(true);
+        gameAudio.playTick();
+    };
+
+    // Ajuste rápido de pontuação de equipes (+1 Mérito / -1 Regra)
+    // Atualiza a equipe E todos os seus integrantes no total de pontos e no histórico individual!
+    const handleAdjustGroupPoints = (groupId, delta, reason) => {
+        const group = currentGroups.find(g => String(g.id) === String(groupId));
+        if (!group) return;
+
+        const isMerit = reason === 'merit' || delta > 0;
+        const now = Date.now();
+        const topic = activeActivity?.topic || 'Sem tema';
+        const label = isMerit 
+            ? `[Equipe ${group.name}] Bônus por Mérito (+${delta} Ponto${Math.abs(delta) > 1 ? 's' : ''})`
+            : `[Equipe ${group.name}] Penalidade: Infringiu regra (-${Math.abs(delta)} Ponto${Math.abs(delta) > 1 ? 's' : ''})`;
+
+        const groupHistoryEntry = {
+            date: now,
+            topic,
+            question: label,
+            result: isMerit ? 'merit' : 'rule_violation',
+            pointsDelta: delta,
+            isGroupActivity: true
+        };
+
+        const studentHistoryEntry = {
+            date: now,
+            topic,
+            question: label,
+            result: isMerit ? 'group_activity' : 'rule_violation',
+            pointsDelta: delta,
+            isGroupActivity: true,
+            groupId: group.id,
+            groupName: group.name
+        };
+
+        const memberIdSet = new Set((group.studentIds || []).map(String));
+
+        saveClassUpdates(prev => {
+            const updatedGroups = (prev.groups || []).map(g => {
+                if (String(g.id) === String(groupId)) {
+                    const currentHits = g.hits || 0;
+                    return {
+                        ...g,
+                        hits: Math.max(0, currentHits + delta),
+                        history: [...(g.history || []), groupHistoryEntry]
+                    };
+                }
+                return g;
+            });
+
+            // ATUALIZAÇÃO CRUCIAL: Reflete a pontuação para cada integrante da equipe
+            const updatedStudents = (prev.students || []).map(s => {
+                if (memberIdSet.has(String(s.id))) {
+                    const currentHits = s.hits || 0;
+                    return {
+                        ...s,
+                        hits: Math.max(0, currentHits + delta),
+                        history: [...(s.history || []), studentHistoryEntry]
+                    };
+                }
+                return s;
+            });
+
+            return {
+                ...prev,
+                groups: updatedGroups,
+                students: updatedStudents
+            };
+        });
+
+        if (isMerit) {
+            gameAudio.playSuccess();
+        } else {
+            gameAudio.playTick();
+        }
+    };
+
+    // Ação: RESULTADO DE ATIVIDADE EM GRUPO / EQUIPE
+    // Atribui pontos à equipe E a cada aluno integrante no placar individual e histórico!
+    const handleGroupResult = ({ isCorrect, representativeStudent }) => {
+        if (!winner) return;
+        const targetGroupId = winner.id;
+        const groupName = winner.name;
+        const memberIdSet = new Set((winner.studentIds || []).map(String));
+        const now = Date.now();
+        const topic = activeActivity?.topic || 'Sem tema';
+        const questionText = winner.question;
+
+        const groupHistoryEntry = {
+            date: now,
+            topic: topic,
+            question: questionText,
+            result: isCorrect ? 'correct' : 'incorrect',
+            representative: representativeStudent?.name || null,
+            isGroupActivity: true,
+            pointsDelta: isCorrect ? 1 : 0
+        };
+
+        const studentHistoryEntry = {
+            date: now,
+            topic: topic,
+            question: `[Equipe ${groupName}] ${questionText}`,
+            result: isCorrect ? 'group_activity' : 'incorrect',
+            isGroupActivity: true,
+            groupId: targetGroupId,
+            groupName: groupName,
+            representative: representativeStudent?.name || null,
+            pointsDelta: isCorrect ? 1 : 0
+        };
+
+        saveClassUpdates(prev => {
+            const updatedGroups = (prev.groups || []).map(g => {
+                if (String(g.id) === String(targetGroupId)) {
+                    return {
+                        ...g,
+                        hits: isCorrect ? (g.hits || 0) + 1 : (g.hits || 0),
+                        misses: !isCorrect ? (g.misses || 0) + 1 : (g.misses || 0),
+                        history: [...(g.history || []), groupHistoryEntry]
+                    };
+                }
+                return g;
+            });
+
+            // ATUALIZAÇÃO CRUCIAL: Reflete a pontuação para cada integrante da equipe
+            const updatedStudents = (prev.students || []).map(s => {
+                if (memberIdSet.has(String(s.id))) {
+                    return {
+                        ...s,
+                        hits: isCorrect ? (s.hits || 0) + 1 : (s.hits || 0),
+                        misses: !isCorrect ? (s.misses || 0) + 1 : (s.misses || 0),
+                        history: [...(s.history || []), studentHistoryEntry]
+                    };
+                }
+                return s;
+            });
+
+            return {
+                ...prev,
+                groups: updatedGroups,
+                students: updatedStudents
+            };
+        });
+
+        setUsedQuestions(prev => new Set([...prev, questionText]));
+        if (isCorrect) {
+            gameAudio.playSuccess();
+        } else {
+            gameAudio.playTick();
+        }
+
         setShowCard(false);
         setWinner(null);
     };
@@ -670,7 +1019,7 @@ export const RouletteActivity = () => {
     const handleDownloadCSV = () => {
         if (!currentClass) return;
         
-        let csvContent = "Nome do Aluno,Acertos/Pontos,Erros,Méritos (+1),Infrações Regra (-1),TEVE AJUDA (Qtd),Detalhes de TEVE AJUDA,AJUDOU (Qtd),Detalhes de AJUDOU,Status na Atividade,Última Pergunta Respondida\n";
+        let csvContent = "Nome do Aluno,Equipe/Grupo,Acertos/Pontos,Erros,Méritos (+1),Infrações Regra (-1),TEVE AJUDA (Qtd),Detalhes de TEVE AJUDA,AJUDOU (Qtd),Detalhes de AJUDOU,Atividades em Grupo (Qtd),Status na Atividade,Última Pergunta Respondida\n";
         
         currentClass.students.forEach(s => {
             const history = s.history || [];
@@ -678,8 +1027,11 @@ export const RouletteActivity = () => {
                 h.result === 'help_correct' || h.hadHelp || h.helperName || (h.question && h.question.includes('[Ajuda:')) || (h.question && h.question.includes('(com ajuda'))
             );
             const helpedOthersEntries = history.filter(h => h.helpedStudent || h.isHelperRole);
+            const groupEntries = history.filter(h => h.isGroupActivity || h.result === 'group_activity');
             const helpCount = Math.max(helpReceivedEntries.length, s.helpCount || 0);
             const helpedCount = Math.max(helpedOthersEntries.length, s.helpedCount || 0);
+            const groupCount = groupEntries.length;
+            const studentGroup = studentToGroupMap.get(s.id) || studentToGroupMap.get(String(s.id));
             
             const lastQuestion = history.length > 0 
                 ? history[history.length - 1].question.replace(/"/g, '""')
@@ -702,8 +1054,22 @@ export const RouletteActivity = () => {
             const violationsCount = history.filter(h => h.result === 'rule_violation').length;
             const statusStr = s.status === 'active' ? 'Ativo na Roleta' : s.status === 'removed' ? 'Fora da Roleta (Disponível p/ Ajuda)' : 'Ausente';
             
-            csvContent += `"${s.name}",${s.hits || 0},${s.misses || 0},${meritsCount},${violationsCount},${helpCount},"${helpDetailsStr.replace(/"/g, '""')}",${helpedCount},"${helpedDetailsStr.replace(/"/g, '""')}","${statusStr}","${lastQuestion}"\n`;
+            csvContent += `"${s.name}","${studentGroup ? studentGroup.name : 'Sem Equipe'}",${s.hits || 0},${s.misses || 0},${meritsCount},${violationsCount},${helpCount},"${helpDetailsStr.replace(/"/g, '""')}",${helpedCount},"${helpedDetailsStr.replace(/"/g, '""')}",${groupCount},"${statusStr}","${lastQuestion}"\n`;
         });
+
+        // Adicionar Placar de Equipes ao final do relatório caso existam grupos
+        if (currentGroups.length > 0) {
+            csvContent += "\n\n--- PLACAR DE EQUIPES / GRUPOS ---\n";
+            csvContent += "Equipe,Pontos/Acertos,Erros,Total Membros,Alunos Integrantes\n";
+            currentGroups.forEach(g => {
+                const memberIdSet = new Set((g.studentIds || []).map(String));
+                const memberNames = (currentClass.students || [])
+                    .filter(s => memberIdSet.has(String(s.id)))
+                    .map(s => s.name)
+                    .join(', ');
+                csvContent += `"${g.name}",${g.hits || 0},${g.misses || 0},${memberIdSet.size},"${memberNames.replace(/"/g, '""')}"\n`;
+            });
+        }
 
         // Adiciona BOM (\uFEFF) para garantir abertura com acentos corretos no Excel (padrão brasileiro)
         const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -771,6 +1137,15 @@ export const RouletteActivity = () => {
                             <Users className="w-4 h-4 text-indigo-600" />
                             <span>Gerenciar Turmas</span>
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowGroupsModal(true)}
+                            className="shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 shadow-2xs transition-colors cursor-pointer"
+                            title="Gerenciar Grupos e Equipes da Turma"
+                        >
+                            <Users className="w-4 h-4 text-purple-600" />
+                            <span>Grupos ({currentGroups.length})</span>
+                        </button>
                     </div>
                     <p className="text-slate-500 font-medium text-sm truncate">
                         {currentClass?.students?.length || 0} alunos • Tema: {activeActivity?.topic || 'Geral'}
@@ -830,18 +1205,28 @@ export const RouletteActivity = () => {
                     >
                         <Download className="w-4 h-4" /> Baixar Relatório
                     </button>
+
+                    {/* Botão de Destaque na Barra Superior para Abrir a Lateral de Alunos & Placar */}
+                    <button 
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md active:scale-95 cursor-pointer"
+                        title="Abrir Painel Lateral de Alunos e Placar"
+                    >
+                        <Users className="w-4 h-4" />
+                        <span>Placar & Alunos ({combinedItems.length})</span>
+                    </button>
                 </div>
             </div>
 
-            {/* Temas visuais imersivos para o palco de fundo da roleta */}
-            <div className="w-full flex flex-col md:flex-row gap-8 items-start justify-center">
-                {/* Lado Esquerdo: Arena Imersiva da Roleta */}
+            {/* Palco central com arena temática da roleta */}
+            <div className="w-full flex justify-center items-center">
+                {/* Arena Imersiva da Roleta */}
                 <div 
                     ref={arenaRef}
-                    className={`transition-all duration-500 overflow-hidden ${
+                    className={`transition-all duration-500 ${
                         isMaximized 
-                            ? `fixed inset-0 z-40 w-screen h-screen m-0 rounded-none border-0 p-4 sm:p-6 flex flex-col justify-between ${currentTheme.container}`
-                            : `relative flex-1 w-full flex flex-col items-center justify-center p-5 sm:p-7 rounded-3xl border ${currentTheme.container}`
+                            ? `fixed inset-0 z-40 w-full h-[100dvh] max-h-[100dvh] m-0 rounded-none border-0 p-3 sm:p-5 md:p-6 flex flex-col justify-between overflow-y-auto overflow-x-hidden ${currentTheme.container}`
+                            : `w-full max-w-5xl relative flex flex-col items-center justify-center p-5 sm:p-7 rounded-3xl border overflow-hidden ${currentTheme.container}`
                     }`}
                 >
                     {/* Spotlight de Iluminação Cênica de Fundo */}
@@ -853,9 +1238,9 @@ export const RouletteActivity = () => {
                     <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none rounded-3xl opacity-50" />
 
                     {/* Header da Arena */}
-                    <div className="flex items-center justify-between w-full mb-2 sm:mb-3 z-10 relative">
+                    <div className="flex flex-wrap items-center justify-between w-full mb-1.5 sm:mb-2 z-10 relative gap-2 shrink-0">
                         <div className="flex items-center gap-2 sm:gap-3">
-                            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide flex items-center gap-2">
+                            <h2 className={`${isMaximized ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl'} font-black text-white tracking-wide flex items-center gap-2`}>
                                 <span>Roleta</span>
                                 {isMaximized && (
                                     <span className="text-xs font-bold text-amber-300 bg-amber-400/20 px-2.5 py-0.5 rounded-full border border-amber-400/30 uppercase tracking-widest hidden sm:inline">
@@ -868,11 +1253,62 @@ export const RouletteActivity = () => {
                             </span>
                         </div>
 
+                        {/* Seletor de Modo: Individual vs Equipes */}
+                        <div className="flex items-center bg-black/40 backdrop-blur-md p-1 rounded-xl border border-white/10 shadow-inner">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setGameMode('individual');
+                                    setPlacarTab('students');
+                                    if (activeActivity && updateActivityData) updateActivityData(activeActivity.id, { gameMode: 'individual' });
+                                }}
+                                disabled={spinning}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                                    gameMode === 'individual'
+                                        ? 'bg-indigo-600 text-white shadow-md'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                <User className="w-3.5 h-3.5" />
+                                <span>Individual</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setGameMode('groups');
+                                    setPlacarTab('groups');
+                                    if (activeActivity && updateActivityData) updateActivityData(activeActivity.id, { gameMode: 'groups' });
+                                }}
+                                disabled={spinning}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                                    gameMode === 'groups'
+                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
+                                        : 'text-slate-400 hover:text-white'
+                                }`}
+                            >
+                                <Users className="w-3.5 h-3.5" />
+                                <span>Equipes ({currentGroups.length})</span>
+                            </button>
+                        </div>
+
                         <div className="flex items-center gap-2 sm:gap-3">
                             <span className="text-xs sm:text-sm font-bold text-amber-300 bg-amber-400/10 px-3 py-1.5 rounded-full border border-amber-400/20 flex items-center gap-1.5 shadow-xs">
                                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                                {activeItems.length} alunos na roda
+                                {gameMode === 'groups' ? `${activeGroupItems.length} equipes na roda` : `${activeItems.length} alunos na roda`}
                             </span>
+
+                            {/* Botão para abrir o painel lateral de alunos diretamente da arena */}
+                            <button
+                                onClick={() => setIsSidebarOpen(true)}
+                                className="flex items-center gap-1.5 text-xs sm:text-sm font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40 px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-md active:scale-95"
+                                title="Abrir Painel Lateral de Alunos & Placar"
+                            >
+                                <Users className="w-3.5 h-3.5 text-indigo-300" />
+                                <span className="hidden sm:inline">Placar</span>
+                                <span className="bg-indigo-500/40 text-indigo-200 text-2xs font-black px-1.5 py-0.2 rounded-full border border-indigo-400/30">
+                                    {combinedItems.length}
+                                </span>
+                            </button>
 
                             {/* Símbolo / Botão de Maximizar e Minimizar */}
                             <button
@@ -899,20 +1335,37 @@ export const RouletteActivity = () => {
                         </div>
                     </div>
 
+                    {/* Alerta / Convite amigável quando Modo Grupos estiver ativo mas sem grupos */}
+                    {gameMode === 'groups' && currentGroups.length === 0 && (
+                        <div className="z-20 my-2 max-w-md w-full bg-purple-950/80 border border-purple-500/50 backdrop-blur-md rounded-2xl p-4 text-center shadow-xl animate-in fade-in shrink-0">
+                            <Users className="w-8 h-8 text-purple-300 mx-auto mb-1.5" />
+                            <h4 className="text-white font-bold text-sm mb-1">Nenhuma equipe cadastrada ainda</h4>
+                            <p className="text-purple-200 text-xs mb-2.5">Organize os alunos em grupos para girar a roleta por equipes e pontuar juntos!</p>
+                            <button
+                                type="button"
+                                onClick={() => setShowGroupsModal(true)}
+                                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl transition-all shadow-md cursor-pointer inline-flex items-center gap-1.5"
+                            >
+                                <Plus className="w-4 h-4" /> Criar Equipes Agora
+                            </button>
+                        </div>
+                    )}
+
                     {/* Seletor dos 6 Estilos de Roleta */}
-                    <div className={`w-full z-10 relative ${isMaximized ? 'max-w-4xl mx-auto' : ''}`}>
+                    <div className={`w-full z-10 relative shrink-0 ${isMaximized ? 'max-w-4xl mx-auto' : ''}`}>
                         <RouletteStyleSelector 
                             selectedStyle={rouletteStyle}
                             onSelectStyle={handleSelectStyle}
                             disabled={spinning}
+                            compact={isMaximized}
                         />
                     </div>
                     
                     {/* Roda / Chassi de Roleta Central */}
-                    <div className={`z-10 relative w-full flex items-center justify-center ${isMaximized ? 'flex-1 my-0' : 'my-2'}`}>
+                    <div className={`z-10 relative w-full flex items-center justify-center min-h-0 ${isMaximized ? 'flex-1 my-0.5' : 'my-2'}`}>
                         <RouletteWheel 
                             style={rouletteStyle}
-                            items={activeItems} 
+                            items={gameMode === 'groups' ? activeGroupItems : activeItems} 
                             spinning={spinning} 
                             winner={winner} 
                             onSpinComplete={handleSpinComplete} 
@@ -921,214 +1374,113 @@ export const RouletteActivity = () => {
                     </div>
 
                     {/* Botão de Giro Temático e Seletor Manual */}
-                    <div className={`z-10 relative flex flex-col items-center gap-3 ${isMaximized ? 'mb-2 sm:mb-4' : 'mt-6 sm:mt-8'}`}>
+                    <div className={`z-10 relative flex flex-col items-center shrink-0 ${isMaximized ? 'gap-1.5 sm:gap-2 mb-1 sm:mb-1.5' : 'gap-3 mt-6 sm:mt-8'}`}>
                         <button 
                             onClick={handleSpin}
-                            disabled={spinning || activeItems.length === 0}
-                            className={`px-8 sm:px-12 py-4 sm:py-5 rounded-2xl font-black text-xl sm:text-2xl transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3 cursor-pointer ${
-                                spinning || activeItems.length === 0
+                            disabled={spinning || (gameMode === 'groups' ? activeGroupItems.length === 0 : activeItems.length === 0)}
+                            className={`rounded-2xl font-black transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2.5 sm:gap-3 cursor-pointer shadow-xl ${
+                                isMaximized
+                                    ? 'px-6 sm:px-10 py-2.5 sm:py-3 text-base sm:text-lg md:text-xl'
+                                    : 'px-8 sm:px-12 py-4 sm:py-5 text-xl sm:text-2xl'
+                            } ${
+                                spinning || (gameMode === 'groups' ? activeGroupItems.length === 0 : activeItems.length === 0)
                                 ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700 opacity-60 shadow-none'
                                 : currentTheme.button
                             }`}
                         >
-                            {spinning ? currentTheme.spinningLabel : currentTheme.label}
+                            {spinning ? currentTheme.spinningLabel : (gameMode === 'groups' ? 'GIRAR EQUIPES! 🏆' : currentTheme.label)}
                         </button>
 
                         {/* Seletor Manual Rápido no Palco */}
                         <div className="flex items-center gap-2">
-                            <select
-                                value=""
-                                onChange={(e) => {
-                                    if (e.target.value) {
-                                        handleSelectStudentManually(e.target.value);
-                                    }
-                                }}
-                                disabled={spinning || combinedItems.length === 0}
-                                className="text-xs sm:text-sm font-bold bg-black/40 hover:bg-black/60 text-white/90 border border-white/20 hover:border-amber-400/50 rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-all shadow-md backdrop-blur-sm"
-                                title="Escolher manualmente um aluno específico para responder agora"
-                            >
-                                <option value="" disabled className="text-slate-900 bg-white">🎯 Escolher Aluno Manualmente...</option>
-                                {combinedItems
-                                    .filter(s => s.status !== 'absent')
-                                    .map(s => (
-                                        <option key={s.id} value={s.id} className="text-slate-900 bg-white">
-                                            {s.name} {s.status === 'removed' ? '(Fora da Roleta)' : ''}
+                            {gameMode === 'groups' ? (
+                                <select
+                                    value=""
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            handleSelectGroupManually(e.target.value);
+                                        }
+                                    }}
+                                    disabled={spinning || activeGroupItems.length === 0}
+                                    className="text-xs sm:text-sm font-bold bg-black/40 hover:bg-black/60 text-white/90 border border-white/20 hover:border-amber-400/50 rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-all shadow-md backdrop-blur-sm"
+                                    title="Escolher manualmente uma equipe específica para responder agora"
+                                >
+                                    <option value="" disabled className="text-slate-900 bg-white">🎯 Escolher Equipe Manualmente...</option>
+                                    {activeGroupItems.map(g => (
+                                        <option key={g.id} value={g.id} className="text-slate-900 bg-white">
+                                            {g.name} ({g.members?.length || 0} alunos)
                                         </option>
-                                    ))
-                                }
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Lado Direito: Placar e Histórico */}
-                <div className="w-full md:w-[420px] flex flex-col gap-6">
-                    {/* Placar */}
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-                        <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                <List className="w-5 h-5 text-indigo-500" />
-                                Placar da Turma
-                            </h3>
-                            <span className="text-xs font-bold text-slate-400">
-                                {combinedItems.filter(s => s.status === 'removed').length} fora da roleta
-                            </span>
-                        </div>
-
-                        {/* Legenda Explícita de Ajuda */}
-                        <div className="flex items-center gap-2 mb-3 text-2xs font-bold">
-                            <span className="bg-sky-50 text-sky-800 border border-sky-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                <HeartHandshake className="w-3 h-3 text-sky-600" /> Teve Ajuda
-                            </span>
-                            <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                <Award className="w-3 h-3 text-emerald-600" /> Ajudou
-                            </span>
-                        </div>
-                        
-                        <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1.5 custom-scrollbar">
-                            {combinedItems.map(student => {
-                                const studentHelps = (student.history || []).filter(h => 
-                                    h.result === 'help_correct' || h.hadHelp || h.helperName || (h.question && h.question.includes('(com ajuda')) || (h.question && h.question.includes('[Ajuda:'))
-                                );
-                                const hadHelp = studentHelps.length > 0 || !!student.hadHelp || (student.helpCount && student.helpCount > 0);
-                                const helpCount = Math.max(studentHelps.length, student.helpCount || 0);
-
-                                const studentHelpedOthers = (student.history || []).filter(h => h.helpedStudent || h.isHelperRole);
-                                const helpedCount = Math.max(studentHelpedOthers.length, student.helpedCount || 0);
-
-                                return (
-                                <div key={student.id} className={`flex flex-col p-2.5 rounded-xl border transition-colors ${student.status === 'active' ? 'bg-indigo-50/40 border-indigo-100' : 'bg-slate-50 border-slate-200 opacity-80'}`}>
-                                    {/* Linha Principal: Nome do Aluno e Pontuação */}
-                                    <div className="flex items-center justify-between gap-1.5">
-                                        <div className="min-w-0 flex items-center gap-1.5 flex-1">
-                                            <span className={`font-bold text-sm truncate ${student.status === 'active' ? 'text-indigo-950' : 'text-slate-500 line-through'}`} title={student.name}>
-                                                {student.name}
-                                            </span>
-                                            {student.status === 'absent' && (
-                                                <span className="text-2xs text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.2 rounded font-semibold no-underline shrink-0">
-                                                    Ausente
-                                                </span>
-                                            )}
-                                            {student.status === 'removed' && (
-                                                <span className="text-2xs text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.2 rounded font-semibold no-underline shrink-0" title="Fora da roleta nesta atividade (continua disponível em Ajuda)">
-                                                    Fora da Roleta
-                                                </span>
-                                            )}
-                                        </div>
-                                        
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            {/* Botões de Pontuação Rápida: +1 Mérito e -1 Regra */}
-                                            <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleAdjustPoints(student.id, 1, 'merit')}
-                                                    className="px-1.5 py-0.5 text-emerald-700 hover:bg-emerald-50 rounded flex items-center gap-0.5 text-xs font-black transition-colors cursor-pointer"
-                                                    title="Aumentar 1 ponto por mérito (+1)"
-                                                >
-                                                    <Plus className="w-3 h-3 text-emerald-600" />
-                                                    <span>1</span>
-                                                </button>
-                                                <div className="w-[1px] h-3.5 bg-slate-200 mx-0.5" />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleAdjustPoints(student.id, -1, 'rule_violation')}
-                                                    className="px-1.5 py-0.5 text-rose-700 hover:bg-rose-50 rounded flex items-center gap-0.5 text-xs font-black transition-colors cursor-pointer"
-                                                    title="Diminuir 1 ponto por infringir regra do jogo (-1)"
-                                                >
-                                                    <Minus className="w-3 h-3 text-rose-600" />
-                                                    <span>1</span>
-                                                </button>
-                                            </div>
-
-                                            {/* Contador de Acertos e Erros (abre modal) */}
-                                            <button 
-                                                onClick={() => setHistoryStudent(student)}
-                                                className="flex items-center gap-1 text-xs font-bold bg-white border border-slate-200 px-1.5 py-1 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
-                                                title="Ver Relatório Detalhado"
-                                            >
-                                                <span className="text-emerald-600 flex items-center gap-0.5" title="Acertos / Pontos">
-                                                    <CheckCircle className="w-3.5 h-3.5" /> {student.hits || 0}
-                                                </span>
-                                                <span className="text-red-500 flex items-center gap-0.5" title="Erros">
-                                                    <XCircle className="w-3.5 h-3.5" /> {student.misses || 0}
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Linha de Tags: Teve Ajuda e Ajudou (Menores e Bem Postadas) */}
-                                    {(hadHelp || helpedCount > 0) && (
-                                        <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-indigo-100/60 flex-wrap">
-                                            {hadHelp && (
-                                                <span 
-                                                    className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-800 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-md shadow-2xs no-underline"
-                                                    title={`Este aluno teve ajuda nesta aula (${helpCount}x)`}
-                                                >
-                                                    <HeartHandshake className="w-3 h-3 text-sky-600 shrink-0" />
-                                                    <span>Teve Ajuda</span>
-                                                    <span className="bg-sky-200/80 text-sky-950 font-black px-1 rounded text-[10px] leading-tight">
-                                                        {helpCount}
-                                                    </span>
-                                                </span>
-                                            )}
-
-                                            {helpedCount > 0 && (
-                                                <span 
-                                                    className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md shadow-2xs no-underline"
-                                                    title={`Este aluno ajudou colegas (${helpedCount}x)`}
-                                                >
-                                                    <Award className="w-3 h-3 text-emerald-600 shrink-0" />
-                                                    <span>Ajudou</span>
-                                                    <span className="bg-emerald-200/80 text-emerald-950 font-black px-1 rounded text-[10px] leading-tight">
-                                                        {helpedCount}
-                                                    </span>
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                    
-                                    {/* Linha de Ações Rápidas: Chamar p/ Responder e Tirar/Colocar na Roleta */}
-                                    <div className="flex items-center justify-between gap-1 mt-2 pt-1.5 border-t border-slate-100">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleSelectStudentManually(student.id)}
-                                            disabled={spinning}
-                                            className="text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors shadow-2xs cursor-pointer"
-                                            title="Escolher este aluno manualmente para responder agora"
-                                        >
-                                            <Target className="w-3.5 h-3.5 text-indigo-600" />
-                                            <span>Chamar Aluno</span>
-                                        </button>
-
-                                        {student.status === 'active' ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleToggleStudentActivityStatus(student.id, 'remove')}
-                                                className="text-2xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
-                                                title="Remover este aluno da roleta para esta atividade (continua disponível em Ajuda)"
-                                            >
-                                                <UserMinus className="w-3 h-3 text-slate-400 hover:text-rose-500" />
-                                                <span>Tirar da Roleta</span>
-                                            </button>
-                                        ) : (
-                                            <button 
-                                                type="button"
-                                                onClick={() => handleReactivate(student.id)}
-                                                className="text-2xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
-                                                title="Colocar aluno de volta na roleta para esta atividade"
-                                            >
-                                                <RotateCcw className="w-3 h-3 text-emerald-600" />
-                                                <span>Colocar na Roleta</span>
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                                );
-                            })}
+                                    ))}
+                                </select>
+                            ) : (
+                                <select
+                                    value=""
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            handleSelectStudentManually(e.target.value);
+                                        }
+                                    }}
+                                    disabled={spinning || combinedItems.length === 0}
+                                    className="text-xs sm:text-sm font-bold bg-black/40 hover:bg-black/60 text-white/90 border border-white/20 hover:border-amber-400/50 rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-all shadow-md backdrop-blur-sm"
+                                    title="Escolher manualmente um aluno específico para responder agora"
+                                >
+                                    <option value="" disabled className="text-slate-900 bg-white">🎯 Escolher Aluno Manualmente...</option>
+                                    {combinedItems
+                                        .filter(s => s.status !== 'absent')
+                                        .map(s => (
+                                            <option key={s.id} value={s.id} className="text-slate-900 bg-white">
+                                                {s.name} {s.status === 'removed' ? '(Fora da Roleta)' : ''}
+                                            </option>
+                                        ))
+                                    }
+                                </select>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Botão Flutuante Criativo na Borda Direita para Abrir a Sidebar */}
+            {!isSidebarOpen && (
+                <button
+                    type="button"
+                    onClick={() => setIsSidebarOpen(true)}
+                    className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white/95 hover:bg-white text-slate-800 border border-r-0 border-indigo-200/90 shadow-xl hover:shadow-2xl rounded-l-2xl py-3 px-2 sm:px-2.5 flex flex-col items-center gap-2 group transition-all duration-300 hover:-translate-x-1 cursor-pointer backdrop-blur-md"
+                    title="Abrir Painel Lateral de Alunos & Placar (Direita)"
+                >
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-sm group-hover:scale-110 transition-transform">
+                        <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <span className="text-[10px] sm:text-[11px] font-black text-slate-700 tracking-wider [writing-mode:vertical-rl] rotate-180 flex items-center gap-1">
+                        <ChevronLeft className="w-3 h-3 text-indigo-500 -rotate-90 group-hover:-translate-y-0.5 transition-transform" />
+                        Placar & Alunos
+                    </span>
+                    <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-1.5 py-0.5 rounded-full border border-indigo-200">
+                        {combinedItems.length}
+                    </span>
+                </button>
+            )}
+
+            {/* Sidebar Lateral de Alunos & Placar (Retrátil à Direita, abre para a esquerda e fecha somente pelo botão Fechar) */}
+            <RouletteSidebar 
+                isOpen={isSidebarOpen}
+                onClose={() => setIsSidebarOpen(false)}
+                placarTab={placarTab}
+                setPlacarTab={setPlacarTab}
+                combinedItems={combinedItems}
+                currentGroups={currentGroups}
+                currentClass={currentClass}
+                studentToGroupMap={studentToGroupMap}
+                spinning={spinning}
+                onAdjustPoints={handleAdjustPoints}
+                onAdjustGroupPoints={handleAdjustGroupPoints}
+                onSelectStudentManually={handleSelectStudentManually}
+                onSelectGroupManually={handleSelectGroupManually}
+                onToggleStudentActivityStatus={handleToggleStudentActivityStatus}
+                onReactivate={handleReactivate}
+                onOpenHistory={(student) => setHistoryStudent(student)}
+                onOpenGroupsModal={() => setShowGroupsModal(true)}
+            />
 
             {/* CARD DO RESULTADO DO SORTEIO */}
             {showCard && winner && (
@@ -1147,6 +1499,7 @@ export const RouletteActivity = () => {
                     onAbsent={() => handleResult('absent')}
                     onBatchResult={handleBatchResult}
                     onHelpResult={handleHelpResult}
+                    onGroupResult={handleGroupResult}
                     showDifficulty={showDifficulty}
                     onToggleDifficulty={handleToggleDifficulty}
                 />
@@ -1195,6 +1548,15 @@ export const RouletteActivity = () => {
                     }}
                 />
             )}
+
+            <GroupsManagerModal 
+                isOpen={showGroupsModal}
+                onClose={() => setShowGroupsModal(false)}
+                currentClass={currentClass}
+                groups={currentGroups}
+                students={combinedItems && combinedItems.length > 0 ? combinedItems : (currentClass?.students || [])}
+                onSaveGroups={handleSaveGroups}
+            />
         </div>
     );
 };
