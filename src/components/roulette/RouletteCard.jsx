@@ -2,11 +2,60 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
     User, HelpCircle, Sparkles, CheckCircle, XCircle, RotateCcw, 
     Eye, EyeOff, Shuffle, ListOrdered, Users, HeartHandshake, Award,
-    RotateCw, Lightbulb, ThumbsUp, Check, X, AlertTriangle
+    RotateCw, Lightbulb, ThumbsUp, Check, X, AlertTriangle, Type, ZoomIn, ZoomOut
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { gameAudio } from '../../utils/gameAudio';
 import { RouletteTimerBomb } from './RouletteTimerBomb';
+
+// Configuração de Escala de Fonte para Projeção e Acessibilidade Visual
+const FONT_LEVELS = [
+    {
+        id: 0,
+        label: 'Pequena',
+        percent: '85%',
+        questionClass: 'text-lg sm:text-xl',
+        optionsClass: 'text-xs sm:text-sm',
+        answerClass: 'text-sm sm:text-base',
+        nameClass: 'text-2xl sm:text-3xl'
+    },
+    {
+        id: 1,
+        label: 'Normal',
+        percent: '100%',
+        questionClass: 'text-xl sm:text-2xl',
+        optionsClass: 'text-xs sm:text-sm',
+        answerClass: 'text-base sm:text-lg',
+        nameClass: 'text-3xl sm:text-4xl'
+    },
+    {
+        id: 2,
+        label: 'Grande',
+        percent: '125%',
+        questionClass: 'text-2xl sm:text-3xl',
+        optionsClass: 'text-sm sm:text-base',
+        answerClass: 'text-lg sm:text-xl',
+        nameClass: 'text-4xl sm:text-5xl'
+    },
+    {
+        id: 3,
+        label: 'Muito Grande',
+        percent: '150%',
+        questionClass: 'text-3xl sm:text-4xl md:text-5xl',
+        optionsClass: 'text-base sm:text-lg',
+        answerClass: 'text-xl sm:text-2xl',
+        nameClass: 'text-4xl sm:text-5xl md:text-6xl'
+    },
+    {
+        id: 4,
+        label: 'Gigante (Projetor)',
+        percent: '180%',
+        questionClass: 'text-4xl sm:text-5xl md:text-6xl',
+        optionsClass: 'text-lg sm:text-xl',
+        answerClass: 'text-2xl sm:text-3xl',
+        nameClass: 'text-5xl sm:text-6xl'
+    }
+];
 
 export const RouletteCard = ({ 
     winner, 
@@ -27,6 +76,53 @@ export const RouletteCard = ({
     showDifficulty = true,
     onToggleDifficulty
 }) => {
+    // Controle de Tamanho de Fonte para Acessibilidade / Lousa / Projetor
+    const [fontLevel, setFontLevel] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('preferred_roulette_card_font_level');
+            if (saved !== null) {
+                const parsed = parseInt(saved, 10);
+                if (!isNaN(parsed) && parsed >= 0 && parsed < FONT_LEVELS.length) return parsed;
+            }
+        }
+        return 1; // 100% Normal por padrão
+    });
+
+    const handleIncreaseFont = () => {
+        setFontLevel(prev => {
+            const next = Math.min(FONT_LEVELS.length - 1, prev + 1);
+            try { localStorage.setItem('preferred_roulette_card_font_level', String(next)); } catch (e) {}
+            gameAudio.playTick();
+            return next;
+        });
+    };
+
+    const handleDecreaseFont = () => {
+        setFontLevel(prev => {
+            const next = Math.max(0, prev - 1);
+            try { localStorage.setItem('preferred_roulette_card_font_level', String(next)); } catch (e) {}
+            gameAudio.playTick();
+            return next;
+        });
+    };
+
+    const handleResetFont = () => {
+        setFontLevel(1);
+        try { localStorage.setItem('preferred_roulette_card_font_level', '1'); } catch (e) {}
+        gameAudio.playTick();
+    };
+
+    const currentFont = FONT_LEVELS[fontLevel] || FONT_LEVELS[1];
+
+    // Modo de Exibição do Cronômetro Bomba: 'normal' (como está) | 'minimized' (separado no canto) | 'maximized' (destaque grande)
+    const [timerViewMode, setTimerViewMode] = useState(() => {
+        try {
+            return localStorage.getItem('preferred_roulette_timer_mode') || 'normal';
+        } catch (e) {
+            return 'normal';
+        }
+    });
+
     // Modos de Exibição do Card: 'normal' | 'todos_respondem' | 'preciso_de_ajuda'
     const [cardMode, setCardMode] = useState('normal');
     
@@ -250,8 +346,18 @@ export const RouletteCard = ({
     const lastHelped = helpedEntries[helpedEntries.length - 1]?.helpedStudent;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl xl:max-w-5xl overflow-hidden animate-in zoom-in-95 duration-300 relative border-4 border-amber-400 flex flex-col max-h-[92vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-3 md:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-300">
+            {/* CONTAINER FLEX: ACOPLA O CARD DO ALUNO E O CRONÔMETRO LADO A LADO COM A MESMA ALTURA */}
+            <div className={`h-[92vh] max-h-[92vh] mx-auto flex flex-col lg:flex-row items-stretch ${
+                timerViewMode === 'normal' 
+                    ? 'w-[96vw] max-w-[1560px] gap-2.5 sm:gap-3' 
+                    : 'w-[90vw] max-w-[1150px] gap-0'
+            } transition-all duration-300`}>
+                
+                {/* ============================================================ */}
+                {/* 1. CARD PRINCIPAL DO ALUNO SORTEADO */}
+                {/* ============================================================ */}
+                <div className="bg-white rounded-3xl shadow-2xl flex-1 min-w-0 h-full overflow-hidden animate-in zoom-in-95 duration-300 relative border-4 border-amber-400 flex flex-col transition-all">
                 
                 {/* ============================================================ */}
                 {/* CABEÇALHO DINÂMICO CONFORME O MODO ATIVO */}
@@ -277,8 +383,54 @@ export const RouletteCard = ({
                                     Equipe / Grupo Sorteado
                                 </div>
 
-                                {/* Controles para sortear porta-voz ou responder juntos */}
-                                <div className="flex items-center gap-1.5">
+                                {/* Controles para sortear porta-voz, zoom e responder juntos */}
+                                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                    {/* Chip para reacoplar cronômetro se minimizado */}
+                                    {timerViewMode === 'minimized' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setTimerViewMode('normal');
+                                                try { localStorage.setItem('preferred_roulette_timer_mode', 'normal'); } catch (e) {}
+                                            }}
+                                            className="flex items-center gap-1 text-xs font-black text-slate-950 bg-amber-400 hover:bg-amber-300 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer animate-in fade-in"
+                                            title="Acoplar cronômetro de volta ao lado direito do card"
+                                        >
+                                            <span>💣</span>
+                                            <span className="hidden sm:inline">Acoplar Cronômetro</span>
+                                        </button>
+                                    )}
+                                    {/* Controle de Fonte */}
+                                    <div className="flex items-center gap-1 bg-black/25 border border-white/20 rounded-xl px-2 py-1 shadow-2xs backdrop-blur-xs text-white text-xs" title={`Tamanho da fonte: ${currentFont.label} (${currentFont.percent})`}>
+                                        <Type className="w-3.5 h-3.5 text-white/80" />
+                                        <button
+                                            type="button"
+                                            onClick={handleDecreaseFont}
+                                            disabled={fontLevel <= 0}
+                                            className="w-5 h-5 flex items-center justify-center font-black rounded-lg hover:bg-white/20 active:scale-95 disabled:opacity-30 cursor-pointer transition-colors"
+                                            title="Diminuir fonte (A-)"
+                                        >
+                                            A-
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleResetFont}
+                                            className="px-1 py-0.5 rounded text-[11px] font-black bg-white/20 hover:bg-white/30 cursor-pointer transition-colors"
+                                            title="Tamanho padrão (100%)"
+                                        >
+                                            {currentFont.percent}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleIncreaseFont}
+                                            disabled={fontLevel >= FONT_LEVELS.length - 1}
+                                            className="w-5 h-5 flex items-center justify-center font-black rounded-lg hover:bg-white/20 active:scale-95 disabled:opacity-30 cursor-pointer transition-colors"
+                                            title="Aumentar fonte para projeção (A+)"
+                                        >
+                                            A+
+                                        </button>
+                                    </div>
+
                                     <button
                                         type="button"
                                         onClick={() => setSelectedSpokesperson(null)}
@@ -304,9 +456,9 @@ export const RouletteCard = ({
                                 </div>
                             </div>
 
-                            <h1 className="text-3xl sm:text-4xl font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10">
-                                <Users className="w-8 h-8 sm:w-9 sm:h-9 text-amber-300" />
-                                {winner.name}
+                            <h1 className={`${currentFont.nameClass} font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 transition-all text-center`}>
+                                <Users className="w-8 h-8 sm:w-9 sm:h-9 text-amber-300 shrink-0" />
+                                <span>{winner.name}</span>
                             </h1>
 
                             {/* Lista de Integrantes da Equipe */}
@@ -357,34 +509,83 @@ export const RouletteCard = ({
                                     Aluno Sorteado
                                 </div>
 
-                                {/* Controles para Trocar o Aluno Mantendo a Pergunta */}
-                                {onChangeStudent && (
-                                    <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                    {/* Chip para reacoplar cronômetro se minimizado */}
+                                    {timerViewMode === 'minimized' && (
                                         <button
                                             type="button"
-                                            onClick={handleNextStudentRandom}
-                                            className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white hover:text-indigo-900 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
-                                            title="Sortear outro aluno para responder a esta pergunta"
+                                            onClick={() => {
+                                                setTimerViewMode('normal');
+                                                try { localStorage.setItem('preferred_roulette_timer_mode', 'normal'); } catch (e) {}
+                                            }}
+                                            className="flex items-center gap-1 text-xs font-black text-slate-950 bg-amber-300 hover:bg-amber-200 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer animate-in fade-in"
+                                            title="Acoplar cronômetro de volta ao lado direito do card"
                                         >
-                                            <Shuffle className="w-3.5 h-3.5 text-amber-600" />
-                                            <span className="hidden sm:inline">Outro Aluno</span>
+                                            <span>💣</span>
+                                            <span className="hidden sm:inline">Acoplar Cronômetro</span>
                                         </button>
+                                    )}
 
+                                    {/* Controle de Tamanho da Fonte */}
+                                    <div className="flex items-center gap-1 bg-black/20 border border-white/25 rounded-xl px-2 py-1 shadow-2xs backdrop-blur-xs text-white text-xs" title={`Tamanho da fonte: ${currentFont.label} (${currentFont.percent})`}>
+                                        <Type className="w-3.5 h-3.5 text-amber-200" />
                                         <button
                                             type="button"
-                                            onClick={() => setShowStudentSelector(!showStudentSelector)}
-                                            className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white hover:text-indigo-900 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
-                                            title="Escolher outro aluno da turma para responder"
+                                            onClick={handleDecreaseFont}
+                                            disabled={fontLevel <= 0}
+                                            className="w-5 h-5 flex items-center justify-center font-black rounded-lg hover:bg-white/20 active:scale-95 disabled:opacity-30 cursor-pointer transition-colors"
+                                            title="Diminuir fonte (A-)"
                                         >
-                                            <Users className="w-3.5 h-3.5 text-amber-600" />
-                                            <span>{showStudentSelector ? 'Fechar Lista' : 'Trocar Aluno'}</span>
+                                            A-
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleResetFont}
+                                            className="px-1 py-0.5 rounded text-[11px] font-black bg-white/20 hover:bg-white/30 cursor-pointer transition-colors"
+                                            title="Tamanho padrão (100%)"
+                                        >
+                                            {currentFont.percent}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleIncreaseFont}
+                                            disabled={fontLevel >= FONT_LEVELS.length - 1}
+                                            className="w-5 h-5 flex items-center justify-center font-black rounded-lg hover:bg-white/20 active:scale-95 disabled:opacity-30 cursor-pointer transition-colors"
+                                            title="Aumentar fonte para projeção (A+)"
+                                        >
+                                            A+
                                         </button>
                                     </div>
-                                )}
+
+                                    {/* Controles para Trocar o Aluno Mantendo a Pergunta */}
+                                    {onChangeStudent && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={handleNextStudentRandom}
+                                                className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white hover:text-indigo-900 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
+                                                title="Sortear outro aluno para responder a esta pergunta"
+                                            >
+                                                <Shuffle className="w-3.5 h-3.5 text-amber-600" />
+                                                <span className="hidden sm:inline">Outro Aluno</span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowStudentSelector(!showStudentSelector)}
+                                                className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white hover:text-indigo-900 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
+                                                title="Escolher outro aluno da turma para responder"
+                                            >
+                                                <Users className="w-3.5 h-3.5 text-amber-600" />
+                                                <span>{showStudentSelector ? 'Fechar Lista' : 'Trocar Aluno'}</span>
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
-                            <h1 className="text-3xl sm:text-4xl font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 flex-wrap">
-                                <User className="w-8 h-8 sm:w-9 sm:h-9 text-amber-200" />
+                            <h1 className={`${currentFont.nameClass} font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 flex-wrap transition-all text-center`}>
+                                <User className="w-8 h-8 sm:w-9 sm:h-9 text-amber-200 shrink-0" />
                                 <span>{winner.name}</span>
                                 {winner.groupName && (
                                     <span 
@@ -547,10 +748,42 @@ export const RouletteCard = ({
                         )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                        {/* Seletor de Tamanho da Fonte */}
+                        <div className="hidden sm:flex items-center bg-white border border-slate-200 rounded-xl px-2 py-1 shadow-2xs gap-1" title={`Tamanho da fonte: ${currentFont.label} (${currentFont.percent})`}>
+                            <Type className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-[11px] font-bold text-slate-500 hidden md:inline">Fonte:</span>
+                            <button
+                                type="button"
+                                onClick={handleDecreaseFont}
+                                disabled={fontLevel <= 0}
+                                className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black text-slate-700 hover:bg-slate-100 active:scale-95 disabled:opacity-30 cursor-pointer"
+                                title="Diminuir fonte (A-)"
+                            >
+                                A-
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleResetFont}
+                                className="px-1.5 py-0.5 rounded text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 cursor-pointer"
+                                title="Voltar ao tamanho normal (100%)"
+                            >
+                                {currentFont.percent}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleIncreaseFont}
+                                disabled={fontLevel >= FONT_LEVELS.length - 1}
+                                className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black text-slate-700 hover:bg-slate-100 active:scale-95 disabled:opacity-30 cursor-pointer"
+                                title="Aumentar fonte para projeção (A+)"
+                            >
+                                A+
+                            </button>
+                        </div>
+
                         <button
                             onClick={handleNextQuestion}
-                            className="flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs"
+                            className="flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
                             title="Sortear outra pergunta diferente para este aluno"
                         >
                             <Shuffle className="w-3.5 h-3.5 text-indigo-600" />
@@ -559,7 +792,7 @@ export const RouletteCard = ({
 
                         <button
                             onClick={() => setShowQuestionSelector(!showQuestionSelector)}
-                            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs"
+                            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
                             title="Ver lista de todas as perguntas disponíveis"
                         >
                             <ListOrdered className="w-3.5 h-3.5 text-slate-500" />
@@ -639,15 +872,65 @@ export const RouletteCard = ({
                 <div className="p-5 sm:p-6 overflow-y-auto space-y-5 bg-slate-50/60 flex-1 custom-scrollbar">
                     
                     {/* ======================================================== */}
-                    {/* GRID: PERGUNTA DA RODADA AO LADO DO CRONÔMETRO BOMBA */}
+                    {/* CARD DA PERGUNTA DA RODADA (LARGURA TOTAL DO CARD DO ALUNO) */}
                     {/* ======================================================== */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-                        {/* Lado Esquerdo: Card da Pergunta */}
-                        <div className="lg:col-span-7 bg-white border-2 border-indigo-100 p-5 sm:p-6 rounded-2xl shadow-sm text-center relative flex flex-col justify-between">
-                            <div>
-                                <div className="inline-flex items-center justify-center gap-1.5 text-indigo-600 font-bold mb-3 bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-100 text-xs">
-                                    <HelpCircle className="w-4 h-4" />
-                                    <span>Pergunta da Rodada</span>
+                    <div className="w-full bg-white border-2 border-indigo-100 p-5 sm:p-6 rounded-2xl shadow-sm text-center relative flex flex-col justify-between transition-all duration-300">
+                        <div>
+                            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <div className="inline-flex items-center justify-center gap-1.5 text-indigo-600 font-bold bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-100 text-xs">
+                                        <HelpCircle className="w-4 h-4" />
+                                        <span>Pergunta da Rodada</span>
+                                    </div>
+
+                                    {/* Chip para restaurar cronômetro se estiver minimizado no canto */}
+                                    {timerViewMode === 'minimized' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setTimerViewMode('normal');
+                                                try { localStorage.setItem('preferred_roulette_timer_mode', 'normal'); } catch (e) {}
+                                            }}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer animate-in fade-in"
+                                            title="Acoplar o cronômetro de volta ao lado direito do card"
+                                        >
+                                            <span>💣</span>
+                                            <span>Acoplar Cronômetro</span>
+                                            <span className="text-2xs opacity-70">⤢</span>
+                                        </button>
+                                    )}
+                                    </div>
+
+                                    {/* Ajuste de Fonte Rápido direto no card de pergunta */}
+                                    <div className="inline-flex items-center gap-1 bg-slate-100/90 border border-slate-200 px-2 py-0.5 rounded-xl shadow-2xs">
+                                        <span className="text-[11px] font-bold text-slate-500">Fonte:</span>
+                                        <button
+                                            type="button"
+                                            onClick={handleDecreaseFont}
+                                            disabled={fontLevel <= 0}
+                                            className="w-5 h-5 rounded flex items-center justify-center text-xs font-black text-slate-700 hover:bg-white active:scale-90 disabled:opacity-30 cursor-pointer"
+                                            title="Diminuir fonte (A-)"
+                                        >
+                                            A-
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleResetFont}
+                                            className="px-1.5 text-[11px] font-bold text-indigo-700 hover:bg-white rounded cursor-pointer"
+                                            title="Tamanho padrão (100%)"
+                                        >
+                                            {currentFont.percent}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleIncreaseFont}
+                                            disabled={fontLevel >= FONT_LEVELS.length - 1}
+                                            className="w-5 h-5 rounded flex items-center justify-center text-xs font-black text-slate-700 hover:bg-white active:scale-90 disabled:opacity-30 cursor-pointer"
+                                            title="Aumentar fonte para projeção (A+)"
+                                        >
+                                            A+
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {winner.imageUrl && (
@@ -661,7 +944,7 @@ export const RouletteCard = ({
                                     </div>
                                 )}
 
-                                <p className="text-xl sm:text-2xl text-slate-800 font-bold leading-relaxed">
+                                <p className={`${currentFont.questionClass} text-slate-800 font-bold leading-relaxed transition-all`}>
                                     {winner.question}
                                 </p>
 
@@ -682,7 +965,7 @@ export const RouletteCard = ({
                                                 {winner.options.map((opt, oi) => (
                                                     <div 
                                                         key={oi}
-                                                        className="p-2.5 rounded-xl border border-indigo-100 bg-indigo-50/50 text-xs font-medium text-slate-800 flex items-start gap-2"
+                                                        className={`p-2.5 rounded-xl border border-indigo-100 bg-indigo-50/50 ${currentFont.optionsClass} font-medium text-slate-800 flex items-start gap-2 transition-all`}
                                                     >
                                                         <span className="w-5 h-5 rounded-md bg-indigo-600 text-white font-black flex items-center justify-center text-[11px] shrink-0">
                                                             {String.fromCharCode(65 + oi)}
@@ -701,7 +984,7 @@ export const RouletteCard = ({
                                 <div className="mt-4 pt-3 border-t border-slate-100">
                                     <button
                                         onClick={() => setShowAnswer(!showAnswer)}
-                                        className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 rounded-full transition-colors border border-emerald-200"
+                                        className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 rounded-full transition-colors border border-emerald-200 cursor-pointer"
                                     >
                                         {showAnswer ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                         {showAnswer ? 'Ocultar Resposta' : 'Ver Resposta Esperada'}
@@ -712,7 +995,7 @@ export const RouletteCard = ({
                                             <div className="text-2xs font-black uppercase tracking-wider text-emerald-700 mb-1">
                                                 Resposta Esperada:
                                             </div>
-                                            <p className="text-emerald-900 font-semibold text-base">
+                                            <p className={`text-emerald-900 font-semibold ${currentFont.answerClass} transition-all`}>
                                                 {winner.answer}
                                             </p>
                                         </div>
@@ -720,12 +1003,6 @@ export const RouletteCard = ({
                                 </div>
                             )}
                         </div>
-
-                        {/* Lado Direito: Cronômetro Bomba Interativo ao lado da pergunta */}
-                        <div className="lg:col-span-5 flex justify-center w-full">
-                            <RouletteTimerBomb className="h-full" />
-                        </div>
-                    </div>
 
                     {/* ======================================================== */}
                     {/* CONTEÚDO ESPECÍFICO: MODO "TODOS RESPONDEM" */}
@@ -1230,6 +1507,23 @@ export const RouletteCard = ({
                 )}
 
             </div>
+            {/* FIM DO CARD PRINCIPAL DO ALUNO */}
+
+            {/* ============================================================ */}
+            {/* 2. PAINEL DIREITO: CRONÔMETRO BOMBA ACOPLADO (MESMA ALTURA) */}
+            {/* ============================================================ */}
+            <div className={timerViewMode === 'normal' 
+                ? 'w-full lg:w-[380px] xl:w-[415px] 2xl:w-[435px] shrink-0 h-full self-stretch flex flex-col animate-in fade-in slide-in-from-right-3 duration-300' 
+                : 'contents'
+            }>
+                <RouletteTimerBomb 
+                    className="h-full w-full"
+                    viewMode={timerViewMode}
+                    onViewModeChange={setTimerViewMode}
+                />
+            </div>
+
         </div>
-    );
+    </div>
+);
 };

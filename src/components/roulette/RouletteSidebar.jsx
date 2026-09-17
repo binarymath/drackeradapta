@@ -37,8 +37,11 @@ export const RouletteSidebar = ({
     onSelectGroupManually,
     onToggleStudentActivityStatus,
     onReactivate,
+    onActivateAll,
+    onDeactivateAll,
     onOpenHistory,
-    onOpenGroupsModal
+    onOpenGroupsModal,
+    onOpenClassesModal
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'removed' | 'help'
@@ -169,8 +172,19 @@ export const RouletteSidebar = ({
                                 type="button"
                                 onClick={onOpenGroupsModal}
                                 className="text-xs font-bold text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                                title="Gerenciar equipes e seus integrantes"
                             >
                                 <Edit3 className="w-3 h-3" /> Gerenciar
+                            </button>
+                        )}
+                        {placarTab === 'students' && (
+                            <button
+                                type="button"
+                                onClick={onOpenClassesModal}
+                                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                                title="Cadastrar novos alunos, editar nomes ou remover alunos da turma"
+                            >
+                                <Edit3 className="w-3 h-3" /> Gerenciar Turma
                             </button>
                         )}
                     </div>
@@ -196,55 +210,100 @@ export const RouletteSidebar = ({
                         )}
                     </div>
 
-                    {/* Chips de Filtro para a Aba de Alunos */}
+                    {/* Chips de Filtro e Ações Rápidas para a Aba de Alunos */}
                     {placarTab === 'students' && (
-                        <div className="flex items-center gap-1.5 mt-2.5 overflow-x-auto pb-0.5 custom-scrollbar text-2xs font-bold">
-                            <button
-                                type="button"
-                                onClick={() => setStatusFilter('all')}
-                                className={`px-2 py-1 rounded-lg border transition-all cursor-pointer shrink-0 ${
-                                    statusFilter === 'all'
-                                        ? 'bg-slate-800 text-white border-slate-800'
-                                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                                }`}
-                            >
-                                Todos ({combinedItems.length})
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setStatusFilter('active')}
-                                className={`px-2 py-1 rounded-lg border transition-all cursor-pointer shrink-0 ${
-                                    statusFilter === 'active'
-                                        ? 'bg-indigo-600 text-white border-indigo-600'
-                                        : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-                                }`}
-                            >
-                                Na Roleta ({activeCount})
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setStatusFilter('removed')}
-                                className={`px-2 py-1 rounded-lg border transition-all cursor-pointer shrink-0 ${
-                                    statusFilter === 'removed'
-                                        ? 'bg-slate-700 text-white border-slate-700'
-                                        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-                                }`}
-                            >
-                                Fora ({removedCount})
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setStatusFilter('help')}
-                                className={`px-2 py-1 rounded-lg border transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
-                                    statusFilter === 'help'
-                                        ? 'bg-sky-600 text-white border-sky-600'
-                                        : 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100'
-                                }`}
-                            >
-                                <HeartHandshake className="w-3 h-3 text-sky-600" />
-                                <span>Ajuda ({helpTotalCount})</span>
-                            </button>
-                        </div>
+                        <>
+                            <div className="flex items-center gap-1.5 mt-2.5 overflow-x-auto pb-0.5 custom-scrollbar text-2xs font-bold">
+                                <button
+                                    type="button"
+                                    onClick={() => setStatusFilter('all')}
+                                    className={`px-2 py-1 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                                        statusFilter === 'all'
+                                            ? 'bg-slate-800 text-white border-slate-800'
+                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    Todos ({combinedItems.length})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setStatusFilter('active')}
+                                    className={`px-2 py-1 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                                        statusFilter === 'active'
+                                            ? 'bg-indigo-600 text-white border-indigo-600'
+                                            : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                                    }`}
+                                >
+                                    Na Roleta ({activeCount})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setStatusFilter('removed')}
+                                    className={`px-2 py-1 rounded-lg border transition-all cursor-pointer shrink-0 ${
+                                        statusFilter === 'removed'
+                                            ? 'bg-slate-700 text-white border-slate-700'
+                                            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                                    }`}
+                                >
+                                    Fora ({removedCount})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setStatusFilter('help')}
+                                    className={`px-2 py-1 rounded-lg border transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+                                        statusFilter === 'help'
+                                            ? 'bg-sky-600 text-white border-sky-600'
+                                            : 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100'
+                                    }`}
+                                >
+                                    <HeartHandshake className="w-3 h-3 text-sky-600" />
+                                    <span>Ajuda ({helpTotalCount})</span>
+                                </button>
+                            </div>
+
+                            {/* Barra de Ações Rápidas: Colocar Todos / Tirar Todos da Roleta */}
+                            <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-100 text-2xs">
+                                <span className="font-semibold text-slate-500">
+                                    <strong className="text-indigo-600 font-bold">{activeCount}</strong> na roleta • <strong className="text-slate-600 font-bold">{removedCount}</strong> fora
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        type="button"
+                                        onClick={onActivateAll}
+                                        disabled={removedCount === 0}
+                                        className="font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed border border-emerald-200 px-2 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
+                                        title="Colocar todos os alunos na roleta (recolocar na roda)"
+                                    >
+                                        <RotateCcw className="w-3 h-3 text-emerald-600" /> Colocar Todos
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={onDeactivateAll}
+                                        disabled={activeCount === 0}
+                                        className="font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 disabled:opacity-40 disabled:cursor-not-allowed border border-rose-200 px-2 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95"
+                                        title="Tirar todos os alunos da roleta"
+                                    >
+                                        <UserMinus className="w-3 h-3 text-rose-500" /> Tirar Todos
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Aviso de Filtro Ativo para não confundir o usuário */}
+                            {statusFilter !== 'all' && (
+                                <div className="flex items-center justify-between bg-indigo-50/80 border border-indigo-100 px-2.5 py-1.5 rounded-xl text-2xs text-indigo-900 mt-2 font-medium">
+                                    <span>
+                                        Exibindo: <strong>{statusFilter === 'active' ? 'Apenas na roleta' : statusFilter === 'removed' ? 'Apenas fora da roleta' : 'Apenas com ajuda'}</strong>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setStatusFilter('all')}
+                                        className="font-black text-indigo-600 hover:text-indigo-900 underline cursor-pointer"
+                                    >
+                                        Ver Todos ({combinedItems.length})
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 
@@ -445,15 +504,28 @@ export const RouletteSidebar = ({
                                                         </span>
                                                     )}
 
-                                                    {student.status === 'absent' && (
-                                                        <span className="text-2xs text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.2 rounded font-semibold shrink-0">
-                                                            Ausente
-                                                        </span>
-                                                    )}
-                                                    {student.status === 'removed' && (
-                                                        <span className="text-2xs text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.2 rounded font-semibold shrink-0" title="Fora da roleta nesta atividade (continua disponível em Ajuda)">
-                                                            Fora
-                                                        </span>
+                                                    {student.status === 'active' ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onToggleStudentActivityStatus(student.id, 'remove')}
+                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-rose-100 hover:text-rose-700 hover:border-rose-300 transition-all cursor-pointer group/toggle shrink-0 shadow-2xs"
+                                                            title="Aluno ativo na roleta. Clique para tirar da roleta."
+                                                        >
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 group-hover/toggle:bg-rose-500 animate-pulse" />
+                                                            <span className="group-hover/toggle:hidden">Na Roleta</span>
+                                                            <span className="hidden group-hover/toggle:inline">Tirar</span>
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onReactivate(student.id)}
+                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-extrabold bg-slate-200 text-slate-700 border border-slate-300 hover:bg-emerald-100 hover:text-emerald-800 hover:border-emerald-300 transition-all cursor-pointer group/toggle shrink-0 shadow-2xs"
+                                                            title={`Aluno ${student.status === 'absent' ? 'marcado como ausente' : 'fora da roleta'}. Clique para colocar de volta na roleta.`}
+                                                        >
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400 group-hover/toggle:bg-emerald-500" />
+                                                            <span className="group-hover/toggle:hidden">{student.status === 'absent' ? 'Ausente' : 'Fora da Roleta'}</span>
+                                                            <span className="hidden group-hover/toggle:inline">Colocar</span>
+                                                        </button>
                                                     )}
                                                 </div>
                                                 
@@ -543,12 +615,12 @@ export const RouletteSidebar = ({
                                             )}
                                             
                                             {/* Linha de Ações: Chamar p/ Responder e Tirar/Colocar na Roleta */}
-                                            <div className="flex items-center justify-between gap-1 mt-2.5 pt-2 border-t border-slate-100">
+                                            <div className="flex items-center justify-between gap-1.5 mt-2.5 pt-2 border-t border-slate-100">
                                                 <button
                                                     type="button"
                                                     onClick={() => onSelectStudentManually(student.id)}
                                                     disabled={spinning}
-                                                    className="text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+                                                    className="text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 active:scale-95"
                                                     title="Escolher este aluno manualmente para responder agora"
                                                 >
                                                     <Target className="w-3.5 h-3.5 text-indigo-600" />
@@ -559,20 +631,20 @@ export const RouletteSidebar = ({
                                                     <button
                                                         type="button"
                                                         onClick={() => onToggleStudentActivityStatus(student.id, 'remove')}
-                                                        className="text-2xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
-                                                        title="Remover este aluno da roleta para esta atividade (continua disponível em Ajuda)"
+                                                        className="text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer hover:shadow-xs active:scale-95"
+                                                        title="Remover este aluno da roleta para esta atividade (não será sorteado)"
                                                     >
-                                                        <UserMinus className="w-3 h-3 text-slate-400 hover:text-rose-500" />
+                                                        <UserMinus className="w-3.5 h-3.5 text-rose-600" />
                                                         <span>Tirar da Roleta</span>
                                                     </button>
                                                 ) : (
                                                     <button 
                                                         type="button"
                                                         onClick={() => onReactivate(student.id)}
-                                                        className="text-2xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
-                                                        title="Colocar aluno de volta na roleta para esta atividade"
+                                                        className="text-xs font-black text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer hover:shadow-xs active:scale-95"
+                                                        title="Colocar este aluno de volta na roleta para esta atividade"
                                                     >
-                                                        <RotateCcw className="w-3 h-3 text-emerald-600" />
+                                                        <RotateCcw className="w-3.5 h-3.5 text-emerald-700" />
                                                         <span>Colocar na Roleta</span>
                                                     </button>
                                                 )}
