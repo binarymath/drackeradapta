@@ -286,7 +286,7 @@ export const RouletteActivity = () => {
 
     // Conjunto de IDs de alunos removidos da roleta especificamente para esta atividade (aba)
     const activityRemovedIds = useMemo(() => {
-        return new Set(activeActivity?.removedStudentIds || []);
+        return new Set((activeActivity?.removedStudentIds || []).map(String));
     }, [activeActivity?.removedStudentIds]);
 
     // Grupos cadastrados na turma atual
@@ -319,7 +319,7 @@ export const RouletteActivity = () => {
             // 2. Se estiver na lista de removidos desta atividade específica, fica 'removed'
             // 3. Caso contrário, fica 'active'
             let effectiveStatus = student.status === 'absent' ? 'absent' : 'active';
-            if (activityRemovedIds.has(student.id)) {
+            if (activityRemovedIds.has(String(student.id))) {
                 effectiveStatus = 'removed';
             }
 
@@ -634,14 +634,41 @@ export const RouletteActivity = () => {
     // Alterna o status do aluno especificamente para esta atividade (aba)
     const handleToggleStudentActivityStatus = (studentId, action) => {
         if (!activeActivity?.id || !updateActivityData) return;
-        const currentRemoved = new Set(activeActivity?.removedStudentIds || []);
+        const sIdStr = String(studentId);
+        const currentRemoved = new Set((activeActivity?.removedStudentIds || []).map(String));
         if (action === 'remove') {
-            currentRemoved.add(studentId);
+            currentRemoved.add(sIdStr);
         } else {
-            currentRemoved.delete(studentId);
+            currentRemoved.delete(sIdStr);
+            // Se o aluno estava como 'absent' no cadastro global, reativa para 'active'
+            updateStudentInClass(studentId, { status: 'active' });
         }
         updateActivityData(activeActivity.id, {
             removedStudentIds: Array.from(currentRemoved)
+        });
+        gameAudio.playTick();
+    };
+
+    // Coloca todos os alunos presentes de volta na roleta para esta atividade
+    const handleActivateAll = () => {
+        if (!activeActivity?.id || !updateActivityData) return;
+        updateActivityData(activeActivity.id, {
+            removedStudentIds: []
+        });
+        // Restaura status de alunos ausentes na turma global para ativo
+        saveClassUpdates(prev => ({
+            ...prev,
+            students: (prev.students || []).map(s => s.status === 'absent' ? { ...s, status: 'active' } : s)
+        }));
+        gameAudio.playSuccess();
+    };
+
+    // Tira todos os alunos da roleta para esta atividade
+    const handleDeactivateAll = () => {
+        if (!activeActivity?.id || !updateActivityData || !currentClass) return;
+        const allIds = (currentClass.students || []).map(s => String(s.id));
+        updateActivityData(activeActivity.id, {
+            removedStudentIds: allIds
         });
         gameAudio.playTick();
     };
@@ -1375,6 +1402,20 @@ export const RouletteActivity = () => {
 
                     {/* Botão de Giro Temático e Seletor Manual */}
                     <div className={`z-10 relative flex flex-col items-center shrink-0 ${isMaximized ? 'gap-1.5 sm:gap-2 mb-1 sm:mb-1.5' : 'gap-3 mt-6 sm:mt-8'}`}>
+                        {/* Aviso amigável quando todos os alunos foram retirados da roleta */}
+                        {gameMode !== 'groups' && activeItems.length === 0 && (
+                            <div className="flex flex-col sm:flex-row items-center gap-2.5 bg-amber-500/25 border border-amber-400/60 backdrop-blur-md px-4 py-2.5 rounded-2xl text-amber-100 text-xs font-bold shadow-xl animate-fade-in">
+                                <span>⚠️ Todos os alunos estão fora da roleta.</span>
+                                <button
+                                    type="button"
+                                    onClick={handleActivateAll}
+                                    className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl transition-all shadow-sm cursor-pointer flex items-center gap-1.5 text-xs"
+                                >
+                                    <RotateCcw className="w-3.5 h-3.5" /> Colocar Todos na Roleta
+                                </button>
+                            </div>
+                        )}
+
                         <button 
                             onClick={handleSpin}
                             disabled={spinning || (gameMode === 'groups' ? activeGroupItems.length === 0 : activeItems.length === 0)}
@@ -1388,7 +1429,13 @@ export const RouletteActivity = () => {
                                 : currentTheme.button
                             }`}
                         >
-                            {spinning ? currentTheme.spinningLabel : (gameMode === 'groups' ? 'GIRAR EQUIPES! 🏆' : currentTheme.label)}
+                            {spinning 
+                                ? currentTheme.spinningLabel 
+                                : (gameMode === 'groups' 
+                                    ? (activeGroupItems.length === 0 ? 'NENHUMA EQUIPE ATIVA' : 'GIRAR EQUIPES! 🏆') 
+                                    : (activeItems.length === 0 ? 'NENHUM ALUNO NA ROLETA ⚠️' : currentTheme.label)
+                                  )
+                            }
                         </button>
 
                         {/* Seletor Manual Rápido no Palco */}
@@ -1478,8 +1525,11 @@ export const RouletteActivity = () => {
                 onSelectGroupManually={handleSelectGroupManually}
                 onToggleStudentActivityStatus={handleToggleStudentActivityStatus}
                 onReactivate={handleReactivate}
+                onActivateAll={handleActivateAll}
+                onDeactivateAll={handleDeactivateAll}
                 onOpenHistory={(student) => setHistoryStudent(student)}
                 onOpenGroupsModal={() => setShowGroupsModal(true)}
+                onOpenClassesModal={() => setShowClassesModal(true)}
             />
 
             {/* CARD DO RESULTADO DO SORTEIO */}
