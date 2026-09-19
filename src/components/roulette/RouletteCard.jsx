@@ -74,7 +74,10 @@ export const RouletteCard = ({
     onHelpResult,
     onGroupResult,
     showDifficulty = true,
-    onToggleDifficulty
+    onToggleDifficulty,
+    onTimerExplode = null,
+    onRevealAnswer = null,
+    onRevealHint = null
 }) => {
     // Controle de Tamanho de Fonte para Acessibilidade / Lousa / Projetor
     const [fontLevel, setFontLevel] = useState(() => {
@@ -166,7 +169,7 @@ export const RouletteCard = ({
         if (pool.length === 0) return;
         const nextStudent = pool[Math.floor(Math.random() * pool.length)];
         if (onChangeStudent) {
-            onChangeStudent(nextStudent);
+            onChangeStudent(nextStudent, 'random');
             setShowStudentSelector(false);
             gameAudio.playTick();
         }
@@ -175,7 +178,7 @@ export const RouletteCard = ({
     // Troca direta por aluno selecionado na grade
     const handleSelectSpecificStudent = (student) => {
         if (onChangeStudent) {
-            onChangeStudent(student);
+            onChangeStudent(student, 'specific');
             setShowStudentSelector(false);
             gameAudio.playTick();
         }
@@ -282,7 +285,7 @@ export const RouletteCard = ({
         }
 
         if (nextQ && onChangeQuestion) {
-            onChangeQuestion(nextQ);
+            onChangeQuestion(nextQ, 'random');
             setShowAnswer(false);
             setShowHintRevealed(false);
         }
@@ -290,7 +293,7 @@ export const RouletteCard = ({
 
     const handleSelectSpecificQuestion = (q) => {
         if (onChangeQuestion) {
-            onChangeQuestion(q);
+            onChangeQuestion(q, 'specific');
             setShowAnswer(false);
             setShowHintRevealed(false);
             setShowQuestionSelector(false);
@@ -983,7 +986,10 @@ export const RouletteCard = ({
                             {winner.answer && (
                                 <div className="mt-4 pt-3 border-t border-slate-100">
                                     <button
-                                        onClick={() => setShowAnswer(!showAnswer)}
+                                        onClick={() => {
+                                            if (!showAnswer && onRevealAnswer) onRevealAnswer();
+                                            setShowAnswer(!showAnswer);
+                                        }}
                                         className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 rounded-full transition-colors border border-emerald-200 cursor-pointer"
                                     >
                                         {showAnswer ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -1290,7 +1296,11 @@ export const RouletteCard = ({
                                                 A pista revela as letras da resposta ou o professor pode dar uma dica oral!
                                             </p>
                                             <button
-                                                onClick={() => { setShowHintRevealed(true); gameAudio.playTick(); }}
+                                                onClick={() => { 
+                                                    setShowHintRevealed(true); 
+                                                    if (onRevealHint) onRevealHint();
+                                                    gameAudio.playTick(); 
+                                                }}
                                                 className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-xs shadow-xs transition-all"
                                             >
                                                 Revelar Letras da Resposta 🔍
@@ -1520,6 +1530,7 @@ export const RouletteCard = ({
                     className="h-full w-full"
                     viewMode={timerViewMode}
                     onViewModeChange={setTimerViewMode}
+                    onExplode={onTimerExplode}
                 />
             </div>
 

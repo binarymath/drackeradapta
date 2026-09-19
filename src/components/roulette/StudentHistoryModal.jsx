@@ -1,14 +1,30 @@
 import React, { useState } from 'react';
 import { 
     CheckCircle, XCircle, HeartHandshake, Zap, 
-    Printer, Filter, User, HelpCircle, Calendar, Sparkles, Award, AlertTriangle, Users
+    Printer, Filter, User, HelpCircle, Calendar, Sparkles, Award, AlertTriangle, Users,
+    Copy, Check, Bot, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
-export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
+export const StudentHistoryModal = ({ 
+    isOpen, 
+    onClose, 
+    student,
+    geminiService = null,
+    selectedModel = 'gemini-2.5-flash',
+    topic = '',
+    currentClass = null
+}) => {
     if (!student) return null;
 
     const [filterMode, setFilterMode] = useState('all'); // 'all' | 'teve_ajuda' | 'ajudou' | 'em_grupo'
+    
+    // Estado do Parecer Pedagógico com IA
+    const [aiReport, setAiReport] = useState('');
+    const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+    const [aiError, setAiError] = useState(null);
+    const [copiedAi, setCopiedAi] = useState(false);
+    const [isAiCardExpanded, setIsAiCardExpanded] = useState(true);
 
     const getResultBadge = (item) => {
         if (item.isGroupActivity || item.groupName || item.result === 'group_correct' || item.result === 'group_activity') {
@@ -150,6 +166,61 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
         return true;
     });
 
+    // Geração do Parecer Pedagógico Individual com IA
+    const handleGenerateStudentAi = async () => {
+        if (!geminiService || !geminiService.apiKey) {
+            setAiError('Chave da API Gemini não configurada.');
+            return;
+        }
+
+        setIsGeneratingAi(true);
+        setAiError(null);
+
+        const prompt = `
+Você é um consultor pedagógico e especialista em avaliação formativa para o Ensino Fundamental e Médio.
+Escreva um Parecer Pedagógico Individual Descritivo (máximo 3 parágrafos concisos, fluidos e humanizados) sobre o desempenho deste estudante para inclusão no diário de classe ou envio à coordenação/família:
+
+DADOS DO ESTUDANTE:
+- Aluno(a): "${student.name}"
+- Turma: "${currentClass?.name || 'Turma Selecionada'}"
+- Conteúdo/Tema Trabalhado: "${topic || 'Conteúdo Curricular'}"
+- Total de Acertos na Roleta: ${student.hits || 0}
+- Total de Erros: ${student.misses || 0}
+- Rodadas em que Solicitou e Recebeu Ajuda: ${helpCount}
+- Ocorrências em que Ajudou Colegas (Solidariedade/Mentoria): ${helpedCount}
+- Participações em Rodadas em Equipe/Grupo: ${groupCount}
+- Perguntas Respondidas pelo Estudante:
+${historyList.map((h, i) => `  ${i + 1}. Questão: "${h.question}" | Resultado: ${h.result === 'correct' || h.result === 'help_correct' ? 'Acertou' : h.result === 'merit' ? '+1 Mérito' : h.result === 'rule_violation' ? '-1 Infração' : 'Errou'} | Teve Ajuda: ${h.hadHelp || h.helperName ? `Sim (${h.helperName || 'colega'})` : 'Não'}`).join('\n') || '  (Sem perguntas registradas ainda)'}
+
+DIRETRIZES DO PARECER:
+1. Primeiro Parágrafo (Domínio Conceitual & Participação): Avalie como o estudante lidou com o tema, seu engajamento nas rodadas da roleta e grau de segurança cognitiva ao responder.
+2. Segundo Parágrafo (Dimensão Socioemocional & Cooperação): Analise sua postura frente aos desafios (se teve autonomia ou precisou de apoio) e destaque se atuou com empatia e espírito coletivo ajudando colegas.
+3. Terceiro Parágrafo (Recomendação Pedagógica Personalizada): Indique um direcionamento prático para a continuidade dos estudos (ex: consolidar pontos com mais erros, avançar para novos desafios ou estimular sua liderança positiva).
+Tom formal, acolhedor e focado no crescimento integral do aluno.
+`;
+
+        try {
+            const text = await geminiService.generateText(prompt, {
+                model: selectedModel || 'gemini-2.5-flash',
+                temperature: 0.7
+            });
+            setAiReport(text.trim());
+            setIsAiCardExpanded(true);
+        } catch (err) {
+            console.error('Erro ao gerar parecer pedagógico do aluno com IA:', err);
+            setAiError('Não foi possível gerar o parecer no momento. Tente novamente.');
+        } finally {
+            setIsGeneratingAi(false);
+        }
+    };
+
+    const handleCopyAiReport = () => {
+        if (!aiReport) return;
+        navigator.clipboard.writeText(aiReport);
+        setCopiedAi(true);
+        setTimeout(() => setCopiedAi(false), 2000);
+    };
+
     // Impressão / Exportação do Relatório Individual
     const handlePrintReport = () => {
         const printWindow = window.open('', '_blank');
@@ -223,13 +294,14 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                         .help-box { background: #f0f9ff; border: 2px solid #7dd3fc; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
                         .helped-box { background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
                         .group-box { background: #f5f3ff; border: 2px solid #c4b5fd; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
+                        .ai-box { background: #fdf4ff; border: 2px solid #c084fc; border-radius: 12px; padding: 16px; margin-bottom: 20px; }
                         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; margin-top: 12px; }
                         th { background: #f1f5f9; padding: 8px; border-bottom: 2px solid #cbd5e1; }
                     </style>
                 </head>
                 <body>
                     <h1>Relatório de Desempenho e Interações Pedagógicas</h1>
-                    <div class="subtitle">Aluno(a): <strong>${student.name}</strong> • Data de Emissão: ${new Date().toLocaleDateString()}</div>
+                    <div class="subtitle">Aluno(a): <strong>${student.name}</strong> • Turma: <strong>${currentClass?.name || '-'}</strong> • Data de Emissão: ${new Date().toLocaleDateString()}</div>
                     
                     <div class="metrics">
                         <div class="metric-card">
@@ -253,6 +325,13 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                             <div class="metric-val" style="color: #6366f1;">${groupCount}</div>
                         </div>
                     </div>
+
+                    ${aiReport ? `
+                        <div class="ai-box">
+                            <h3 style="margin-top: 0; color: #7e22ce;">✨ Parecer Pedagógico Descritivo (Inteligência Artificial):</h3>
+                            <p style="font-size: 13px; line-height: 1.6; color: #1e293b; white-space: pre-wrap; margin: 0;">${aiReport}</p>
+                        </div>
+                    ` : ''}
 
                     ${groupEntries.length > 0 ? `
                         <div class="group-box">
@@ -309,7 +388,7 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={`Relatório do Aluno: ${student.name}`} maxWidth="max-w-2xl">
-            <div className="space-y-5">
+            <div className="space-y-4">
                 
                 {/* Métricas Principais com "Teve Ajuda", "Ajudou" e "Em Grupo" explícitos */}
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
@@ -354,6 +433,83 @@ export const StudentHistoryModal = ({ isOpen, onClose, student }) => {
                             {groupPoints > 0 ? `+${groupPoints} pts no total` : 'participações'}
                         </div>
                     </div>
+                </div>
+
+                {/* Card do Parecer Pedagógico Individual com IA */}
+                <div className="bg-gradient-to-br from-indigo-950 via-slate-950 to-purple-950 border border-indigo-500/30 rounded-2xl p-3.5 text-white shadow-xs">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300">
+                                <Bot className="w-4 h-4" />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-xs text-indigo-200 flex items-center gap-1.5">
+                                    <span>Parecer Individual com IA</span>
+                                    <span className="text-[10px] bg-indigo-500/30 border border-indigo-400/40 text-indigo-300 px-1.5 py-0.2 rounded-md font-mono">
+                                        Gemini
+                                    </span>
+                                </h4>
+                                <p className="text-[11px] text-slate-400">
+                                    Diagnóstico descritivo para diário de classe e acompanhamento
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                            {aiReport && (
+                                <button
+                                    type="button"
+                                    onClick={handleCopyAiReport}
+                                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1 border border-white/20"
+                                    title="Copiar parecer pedagógico"
+                                >
+                                    {copiedAi ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                    <span>{copiedAi ? 'Copiado!' : 'Copiar'}</span>
+                                </button>
+                            )}
+
+                            <button
+                                type="button"
+                                disabled={isGeneratingAi}
+                                onClick={handleGenerateStudentAi}
+                                className="px-3 py-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs disabled:opacity-50 active:scale-95"
+                            >
+                                <Sparkles className={`w-3.5 h-3.5 text-amber-300 ${isGeneratingAi ? 'animate-spin' : ''}`} />
+                                <span>{isGeneratingAi ? 'Analisando...' : aiReport ? 'Regerar' : '✨ Gerar Parecer IA'}</span>
+                            </button>
+
+                            {aiReport && (
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAiCardExpanded(!isAiCardExpanded)}
+                                    className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                                    title={isAiCardExpanded ? 'Recolher' : 'Expandir'}
+                                >
+                                    {isAiCardExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {aiError && (
+                        <div className="bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs p-2.5 rounded-xl mt-2.5">
+                            {aiError}
+                        </div>
+                    )}
+
+                    {isAiCardExpanded && (
+                        <div className="mt-2.5">
+                            {aiReport ? (
+                                <div className="bg-white/5 border border-white/10 p-3 rounded-xl text-xs text-slate-200 leading-relaxed font-sans whitespace-pre-wrap animate-in fade-in">
+                                    {aiReport}
+                                </div>
+                            ) : (
+                                <div className="bg-white/5 border border-dashed border-white/10 p-3 rounded-xl text-xs text-slate-400 text-center">
+                                    Clique em <strong>"✨ Gerar Parecer IA"</strong> para obter uma avaliação individualizada sobre a compreensão, cooperação e desenvolvimento de <strong>{student.name}</strong>.
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Filtros e Ações */}

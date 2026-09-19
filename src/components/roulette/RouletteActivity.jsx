@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useActivity } from '../../contexts/ActivityContext';
 import { useGemini } from '../../contexts/GeminiContext';
 import { RouletteWheel } from './RouletteWheel';
@@ -69,6 +69,17 @@ export const RouletteActivity = () => {
     const [showClassReportModal, setShowClassReportModal] = useState(false);
     const [currentSessionId] = useState(() => 'sess_' + Date.now());
     const [sessionStartTime] = useState(() => Date.now());
+
+    // Histórico detalhado de ações e toques nos botões da roleta nesta aula/atividade
+    const [interactionLogs, setInteractionLogs] = useState(() => {
+        return Array.isArray(activeActivity?.interactionLogs) ? activeActivity.interactionLogs : [];
+    });
+
+    useEffect(() => {
+        if (activeActivity?.interactionLogs && Array.isArray(activeActivity.interactionLogs)) {
+            setInteractionLogs(activeActivity.interactionLogs);
+        }
+    }, [activeActivity?.id]);
     
     // Modo de jogo da Roleta: 'individual' (alunos) | 'groups' (equipes)
     const [gameMode, setGameMode] = useState(() => {
@@ -261,6 +272,12 @@ export const RouletteActivity = () => {
     const handleToggleDifficulty = () => {
         const next = !showDifficulty;
         setShowDifficulty(next);
+        logTeacherAction(
+            'toggle_difficulty',
+            next ? 'Dificuldade Exibida' : 'Dificuldade Ocultada',
+            `Professor ${next ? 'ativou a exibição' : 'ocultou a exibição'} do nível de dificuldade das perguntas no card.`,
+            {}
+        );
         if (activeActivity && updateActivityData) {
             updateActivityData(activeActivity.id, { showDifficulty: next });
         }
@@ -515,6 +532,18 @@ export const RouletteActivity = () => {
 
         const rawQuestion = questionObj ? questionObj.question : 'Nenhuma pergunta gerada para esta sessão.';
 
+        logTeacherAction(
+            'spin',
+            'Giro da Roleta',
+            `Roleta girada no modo ${gameMode === 'groups' ? 'Equipes' : 'Individual'}. Sorteado(a): "${selectedWinner.name}"`,
+            {
+                studentName: selectedWinner.name,
+                studentId: selectedWinner.id,
+                targetName: selectedWinner.name,
+                question: rawQuestion
+            }
+        );
+
         setWinner({
             ...selectedWinner,
             question: rawQuestion,
@@ -590,9 +619,66 @@ export const RouletteActivity = () => {
         };
     }, [isMaximized, spinning, showCard, activeItems.length]);
 
+    // Registra todos os toques nos botões da roleta, trocas de aluno, trocas de pergunta, ausências e decisões
+    const logTeacherAction = useCallback((type, title, description, details = {}) => {
+        const now = Date.now();
+        const dateObj = new Date(now);
+        const timeFormatted = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        
+        // Calcula tempo decorrido desde o início da sessão da aula (+05:23)
+        const elapsedMs = Math.max(0, now - (sessionStartTime || now));
+        const elapsedMinutes = Math.floor(elapsedMs / 60000);
+        const elapsedSeconds = Math.floor((elapsedMs % 60000) / 1000);
+        const elapsedFormatted = `+${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`;
+
+        // Categoria para filtros na interface
+        let category = 'system';
+        if (type.startsWith('swap')) category = 'swap';
+        else if (type.includes('spin')) category = 'spin';
+        else if (type.includes('student') || type.includes('absent') || type.includes('roster') || type.includes('activate')) category = 'roster';
+        else if (type.includes('correct') || type.includes('incorrect') || type.includes('help') || type.includes('batch') || type.includes('group')) category = 'eval';
+        else if (type.includes('point') || type.includes('merit') || type.includes('penalty')) category = 'point';
+
+        const newLogEntry = {
+            id: `act_${now}_${Math.random().toString(36).slice(2, 7)}`,
+            timestamp: now,
+            timeFormatted,
+            elapsedFormatted,
+            sessionId: currentSessionId,
+            gameMode,
+            type,
+            category,
+            title,
+            description,
+            ...details
+        };
+
+        setInteractionLogs(prev => {
+            const updated = [newLogEntry, ...(Array.isArray(prev) ? prev : [])].slice(0, 500);
+            if (activeActivity?.id && updateActivityData) {
+                updateActivityData(activeActivity.id, { interactionLogs: updated });
+            }
+            return updated;
+        });
+    }, [currentSessionId, sessionStartTime, gameMode, activeActivity?.id, updateActivityData]);
+
     // Permite trocar o aluno sorteado em tempo real diretamente no card (mantendo a pergunta)
-    const handleChangeWinnerStudent = (newStudentObj) => {
+    const handleChangeWinnerStudent = (newStudentObj, swapMode = 'random') => {
         if (!newStudentObj) return;
+        const prevName = winner?.name || 'Aluno';
+        logTeacherAction(
+            'swap_student',
+            'Troca de Aluno Sorteado',
+            `Aluno trocado de "${prevName}" para "${newStudentObj.name}" (${swapMode === 'specific' ? 'selecionado da lista' : 'sorteio aleatório'}). Pergunta mantida.`,
+            {
+                previousStudentName: prevName,
+                previousStudentId: winner?.id,
+                studentName: newStudentObj.name,
+                studentId: newStudentObj.id,
+                question: winner?.question,
+                swapMode
+            }
+        );
         setWinner(prev => ({
             ...newStudentObj,
             question: prev?.question || newStudentObj.question,
@@ -623,6 +709,17 @@ export const RouletteActivity = () => {
 
         const rawQuestion = questionObj ? questionObj.question : 'Nenhuma pergunta gerada para esta sessão.';
 
+        logTeacherAction(
+            'manual_select_student',
+            'Seleção Manual de Aluno',
+            `Professor escolheu diretamente "${student.name}" para responder. Pergunta atribuída: "${rawQuestion.slice(0, 50)}..."`,
+            {
+                studentName: student.name,
+                studentId: student.id,
+                question: rawQuestion
+            }
+        );
+
         setWinner({
             ...student,
             question: rawQuestion,
@@ -650,6 +747,22 @@ export const RouletteActivity = () => {
         updateActivityData(activeActivity.id, {
             removedStudentIds: Array.from(currentRemoved)
         });
+
+        const student = combinedItems.find(s => String(s.id) === String(studentId));
+        const sName = student?.name || `Aluno #${studentId}`;
+        logTeacherAction(
+            action === 'remove' ? 'student_removed' : 'student_reactivated',
+            action === 'remove' ? 'Aluno Retirado da Roleta' : 'Aluno Recolocado na Roleta',
+            action === 'remove' 
+                ? `Aluno "${sName}" foi retirado da roleta desta atividade.` 
+                : `Aluno "${sName}" foi recolocado de volta na roleta.`,
+            {
+                studentName: sName,
+                studentId,
+                action
+            }
+        );
+
         gameAudio.playTick();
     };
 
@@ -664,6 +777,14 @@ export const RouletteActivity = () => {
             ...prev,
             students: (prev.students || []).map(s => s.status === 'absent' ? { ...s, status: 'active' } : s)
         }));
+
+        logTeacherAction(
+            'activate_all',
+            'Todos os Alunos Recolocados',
+            'Professor colocou todos os alunos da turma de volta na roleta.',
+            {}
+        );
+
         gameAudio.playSuccess();
     };
 
@@ -674,6 +795,14 @@ export const RouletteActivity = () => {
         updateActivityData(activeActivity.id, {
             removedStudentIds: allIds
         });
+
+        logTeacherAction(
+            'deactivate_all',
+            'Todos os Alunos Retirados da Roleta',
+            'Professor retirou todos os alunos da roleta para realizar sorteios manuais ou específicos.',
+            {}
+        );
+
         gameAudio.playTick();
     };
 
@@ -700,6 +829,18 @@ export const RouletteActivity = () => {
 
         updateStudentInClass(studentId, { hits: newHits }, historyEntry);
 
+        logTeacherAction(
+            isMerit ? 'point_merit' : 'point_penalty',
+            isMerit ? 'Bônus por Mérito (+1)' : 'Penalidade por Regra (-1)',
+            `${isMerit ? '+1 Ponto concedido por mérito e participação' : '-1 Ponto aplicado por infração de regra'} para "${student.name}".`,
+            {
+                studentName: student.name,
+                studentId: student.id,
+                delta,
+                reason
+            }
+        );
+
         if (isMerit) {
             gameAudio.playSuccess();
         } else {
@@ -708,8 +849,22 @@ export const RouletteActivity = () => {
     };
 
     // Permite trocar a pergunta do aluno sorteado em tempo real no card
-    const handleChangeWinnerQuestion = (newQuestionObj) => {
+    const handleChangeWinnerQuestion = (newQuestionObj, swapMode = 'random') => {
         if (!newQuestionObj) return;
+        const prevQ = winner?.question || 'Pergunta';
+        logTeacherAction(
+            'swap_question',
+            'Troca de Pergunta',
+            `Pergunta de "${winner?.name || 'Sorteado'}" alterada para: "${newQuestionObj.question}" (${swapMode === 'specific' ? 'escolhida da lista' : 'nova pergunta sorteada'}).`,
+            {
+                studentName: winner?.name,
+                studentId: winner?.id,
+                previousQuestion: prevQ,
+                question: newQuestionObj.question,
+                difficulty: newQuestionObj.difficulty,
+                swapMode
+            }
+        );
         setWinner(prev => ({
             ...prev,
             question: newQuestionObj.question,
@@ -722,6 +877,16 @@ export const RouletteActivity = () => {
 
     // Ação: RODE NOVAMENTE (Não penaliza e NÃO remove o aluno da lista)
     const handleSpinAgain = () => {
+        logTeacherAction(
+            'spin_again',
+            'Rode Outra Vez (Girar Novamente)',
+            `Professor acionou "Rode Outra Vez" para "${winner?.name || 'aluno sorteado'}". Sorteio desconsiderado sem penalidade; aluno permanece na roleta.`,
+            {
+                studentName: winner?.name,
+                studentId: winner?.id,
+                question: winner?.question
+            }
+        );
         setShowCard(false);
         setWinner(null);
     };
@@ -740,15 +905,45 @@ export const RouletteActivity = () => {
         };
 
         if (resultType === 'correct') {
+            logTeacherAction(
+                'eval_correct',
+                'Resposta Correta (+1 Ponto)',
+                `"${winner.name}" acertou a pergunta individual (+1 acerto).`,
+                {
+                    studentName: winner.name,
+                    studentId: winner.id,
+                    question: winner.question
+                }
+            );
             // Remove o aluno APENAS desta atividade atual
             handleToggleStudentActivityStatus(winner.id, 'remove');
             updateStudentInClass(winner.id, { hits: (winner.hits || 0) + 1 }, historyEntry);
             setUsedQuestions(prev => new Set([...prev, winner.question]));
         } else if (resultType === 'incorrect') {
+            logTeacherAction(
+                'eval_incorrect',
+                'Resposta Incorreta',
+                `"${winner.name}" errou a pergunta individual.`,
+                {
+                    studentName: winner.name,
+                    studentId: winner.id,
+                    question: winner.question
+                }
+            );
             updateStudentInClass(winner.id, { misses: (winner.misses || 0) + 1 }, historyEntry);
             setUsedQuestions(prev => new Set([...prev, winner.question]));
             // Mantém ativo na roleta
         } else if (resultType === 'absent') {
+            logTeacherAction(
+                'absent',
+                'Aluno Marcado como Ausente',
+                `"${winner.name}" foi marcado(a) como ausente pelo professor na rodada.`,
+                {
+                    studentName: winner.name,
+                    studentId: winner.id,
+                    question: winner.question
+                }
+            );
             updateStudentInClass(winner.id, { status: 'absent' }, historyEntry);
         }
 
@@ -784,6 +979,16 @@ export const RouletteActivity = () => {
             });
             return { ...prev, students: newStudents };
         });
+
+        logTeacherAction(
+            'eval_batch',
+            'Desafio Coletivo (Todos Respondem)',
+            `Avaliação coletiva registrada para ${studentIds.length} aluno(s) simultaneamente. Pergunta: "${questionText.slice(0, 50)}..."`,
+            {
+                studentCount: studentIds.length,
+                question: questionText
+            }
+        );
 
         setUsedQuestions(prev => new Set([...prev, questionText]));
         setShowCard(false);
@@ -858,6 +1063,20 @@ export const RouletteActivity = () => {
             return { ...prev, students: newStudents };
         });
 
+        logTeacherAction(
+            'eval_help',
+            isCorrect ? 'Ajuda com Sucesso (+1 Ponto)' : 'Ajuda Incorreta',
+            `"${winner.name}" usou recurso de ajuda (${helpDescription}) e o resultado foi ${isCorrect ? 'Acerto (+1 ponto)' : 'Erro'}.`,
+            {
+                studentName: winner.name,
+                studentId: winner.id,
+                helperName: helperName || null,
+                helpType,
+                isCorrect,
+                question: questionText
+            }
+        );
+
         if (isCorrect) {
             // Remove o aluno APENAS desta atividade atual
             handleToggleStudentActivityStatus(winner.id, 'remove');
@@ -884,6 +1103,17 @@ export const RouletteActivity = () => {
         }
 
         const rawQuestion = questionObj ? questionObj.question : 'Nenhuma pergunta gerada para esta sessão.';
+
+        logTeacherAction(
+            'manual_select_group',
+            'Seleção Manual de Equipe',
+            `Professor escolheu diretamente a equipe "${group.name}" para responder.`,
+            {
+                groupName: group.name,
+                groupId: group.id,
+                question: rawQuestion
+            }
+        );
 
         setWinner({
             ...group,
@@ -969,6 +1199,18 @@ export const RouletteActivity = () => {
             };
         });
 
+        logTeacherAction(
+            isMerit ? 'group_point_merit' : 'group_point_penalty',
+            isMerit ? `Bônus Equipe (+${delta})` : `Penalidade Equipe (-${Math.abs(delta)})`,
+            `Equipe "${group.name}" recebeu ${isMerit ? `+${delta} ponto(s) por mérito` : `-${Math.abs(delta)} ponto(s) por infração`}.`,
+            {
+                groupName: group.name,
+                groupId: group.id,
+                delta,
+                reason
+            }
+        );
+
         if (isMerit) {
             gameAudio.playSuccess();
         } else {
@@ -1046,6 +1288,19 @@ export const RouletteActivity = () => {
             };
         });
 
+        logTeacherAction(
+            isCorrect ? 'group_correct' : 'group_incorrect',
+            isCorrect ? 'Equipe Acertou (+1 Ponto)' : 'Equipe Errou',
+            `Equipe "${groupName}" ${isCorrect ? 'acertou (+1 ponto)' : 'errou'} a pergunta${representativeStudent?.name ? ` (porta-voz: ${representativeStudent.name})` : ''}.`,
+            {
+                groupName,
+                groupId: targetGroupId,
+                representative: representativeStudent?.name || null,
+                isCorrect,
+                question: questionText
+            }
+        );
+
         setUsedQuestions(prev => new Set([...prev, questionText]));
         if (isCorrect) {
             gameAudio.playSuccess();
@@ -1055,6 +1310,45 @@ export const RouletteActivity = () => {
 
         setShowCard(false);
         setWinner(null);
+    };
+
+    // Ações adicionais na tela: Cronômetro Bomba e Revelar Resposta/Dica
+    const handleTimerExplode = () => {
+        logTeacherAction(
+            'bomb_exploded',
+            'Tempo Esgotado (Bomba Explodiu!)',
+            `O tempo limite do cronômetro bomba esgotou enquanto "${winner?.name || 'aluno'}" respondia à pergunta.`,
+            {
+                studentName: winner?.name,
+                studentId: winner?.id,
+                question: winner?.question
+            }
+        );
+    };
+
+    const handleRevealAnswer = () => {
+        logTeacherAction(
+            'reveal_answer',
+            'Resposta Revelada',
+            `Professor revelou o gabarito da resposta para a turma: "${winner?.answer || 'Resposta'}" (Pergunta: "${winner?.question?.slice(0, 50)}...")`,
+            {
+                studentName: winner?.name,
+                question: winner?.question,
+                answer: winner?.answer
+            }
+        );
+    };
+
+    const handleRevealHint = () => {
+        logTeacherAction(
+            'reveal_hint',
+            'Pista/Dica Revelada',
+            `Professor exibiu a dica/pista da resposta para "${winner?.name || 'aluno'}".`,
+            {
+                studentName: winner?.name,
+                question: winner?.question
+            }
+        );
     };
 
     const handleReactivate = (id) => {
@@ -1309,6 +1603,9 @@ export const RouletteActivity = () => {
                             <button
                                 type="button"
                                 onClick={() => {
+                                    if (gameMode !== 'individual') {
+                                        logTeacherAction('mode_change', 'Modo Alterado: Individual', 'Professor mudou a dinâmica da roleta para Modo Individual.');
+                                    }
                                     setGameMode('individual');
                                     setPlacarTab('students');
                                     if (activeActivity && updateActivityData) updateActivityData(activeActivity.id, { gameMode: 'individual' });
@@ -1326,6 +1623,9 @@ export const RouletteActivity = () => {
                             <button
                                 type="button"
                                 onClick={() => {
+                                    if (gameMode !== 'groups') {
+                                        logTeacherAction('mode_change', 'Modo Alterado: Equipes', `Professor mudou a dinâmica da roleta para Modo em Equipes (${currentGroups.length} equipes).`);
+                                    }
                                     setGameMode('groups');
                                     setPlacarTab('groups');
                                     if (activeActivity && updateActivityData) updateActivityData(activeActivity.id, { gameMode: 'groups' });
@@ -1577,6 +1877,9 @@ export const RouletteActivity = () => {
                     onGroupResult={handleGroupResult}
                     showDifficulty={showDifficulty}
                     onToggleDifficulty={handleToggleDifficulty}
+                    onTimerExplode={handleTimerExplode}
+                    onRevealAnswer={handleRevealAnswer}
+                    onRevealHint={handleRevealHint}
                 />
             )}
 
@@ -1584,6 +1887,10 @@ export const RouletteActivity = () => {
                 isOpen={!!historyStudent} 
                 onClose={() => setHistoryStudent(null)} 
                 student={historyStudent} 
+                geminiService={geminiService}
+                selectedModel={selectedModel}
+                topic={activeActivity?.topic || activeActivity?.title}
+                currentClass={currentClass}
             />
 
             <ClassSessionReportModal 
@@ -1597,6 +1904,7 @@ export const RouletteActivity = () => {
                 sessionStartTime={sessionStartTime}
                 geminiService={geminiService}
                 selectedModel={selectedModel}
+                interactionLogs={interactionLogs}
             />
 
             <RouletteQuestionsEditorModal 
