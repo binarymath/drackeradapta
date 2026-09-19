@@ -24,8 +24,8 @@ export const ClassSessionReportModal = ({
     interactionLogs = [],
     onToggleStudentAbsent = null
 }) => {
-    // Escopo temporal do relatório: 'session' (aula atual) | 'today' (hoje) | 'all' (todo o histórico)
-    const [periodFilter, setPeriodFilter] = useState('session');
+    // Escopo temporal do relatório: 'all' (todo o histórico) — filtros 'session' e 'today' removidos pois o foco é o entendimento dos alunos nas atividades
+    const [periodFilter, setPeriodFilter] = useState('all');
     // Aba ativa: 'overview' | 'actions' | 'questions' | 'students' | 'groups'
     const [activeTab, setActiveTab] = useState('overview');
 
@@ -1575,7 +1575,7 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
             <div className="space-y-5 select-none animate-in fade-in duration-200">
                 
                 {/* ============================================================ */}
-                {/* 1. TOPO: Metadados da Aula e Filtro de Escopo Temporal */}
+                {/* 1. TOPO: Metadados da Turma e Botões de Ação */}
                 {/* ============================================================ */}
                 <div className="bg-gradient-to-r from-indigo-50/90 via-purple-50/50 to-amber-50/50 border border-indigo-100 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
                     <div>
@@ -1584,7 +1584,7 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                 {currentClass?.name || 'Turma Selecionada'}
                             </span>
                             <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-white border border-indigo-200 text-indigo-700 shadow-2xs">
-                                📚 {activeActivity?.topic || activeActivity?.title || 'Conteúdo da Roleta'}
+                                📊 Análise do Histórico de Atividades
                             </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-500 font-medium mt-1 flex-wrap">
@@ -1597,51 +1597,16 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                 <Layers className="w-3.5 h-3.5 text-indigo-500" />
                                 Formato: <strong>{metrics.dynamicsLabel}</strong>
                             </span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1 text-indigo-600 font-bold">
+                                <BookOpen className="w-3.5 h-3.5" />
+                                {availableActivities.length} atividade{availableActivities.length !== 1 ? 's' : ''} disponíve{availableActivities.length !== 1 ? 'is' : 'l'}
+                            </span>
                         </div>
                     </div>
 
-                    {/* Filtro de Período + Botões de Ação */}
+                    {/* Botões de Ação */}
                     <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
-                        {/* Seletor do Escopo */}
-                        <div className="inline-flex items-center gap-1 bg-white border border-slate-200 p-1 rounded-xl shadow-2xs">
-                            <button
-                                type="button"
-                                onClick={() => setPeriodFilter('session')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    periodFilter === 'session'
-                                        ? 'bg-indigo-600 text-white shadow-xs'
-                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                }`}
-                                title="Filtrar apenas as rodadas desta aula atual"
-                            >
-                                Aula Atual
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPeriodFilter('today')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    periodFilter === 'today'
-                                        ? 'bg-indigo-600 text-white shadow-xs'
-                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                }`}
-                                title="Filtrar todas as rodadas realizadas hoje"
-                            >
-                                Hoje (24h)
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setPeriodFilter('all')}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                    periodFilter === 'all'
-                                        ? 'bg-indigo-600 text-white shadow-xs'
-                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                }`}
-                                title="Visualizar todo o histórico acumulado da turma"
-                            >
-                                Acumulado
-                            </button>
-                        </div>
-
                         {/* Botão de Impressão PDF */}
                         <button
                             type="button"
@@ -1667,10 +1632,7 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                 </div>
 
                 {/* ============================================================ */}
-                {/* 1.1 SELETOR DE ATIVIDADES CONJUNTAS (Análise Multiatividade) */}
-                {/* ============================================================ */}
-                {/* ============================================================ */}
-                {/* 1.1 SELETOR DE ATIVIDADES CONJUNTAS (Análise Multiatividade) */}
+                {/* 1.1 SELETOR DE ATIVIDADES — Temas para análise da IA */}
                 {/* ============================================================ */}
                 {availableActivities.length > 0 && (
                     <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-2xs space-y-2.5 transition-all">
@@ -1825,135 +1787,186 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                     </div>
                                 )}
 
-                                {/* MODO 1: VISÃO LISTA ESTRUTURADA (Títulos legíveis, numeração, badges de tipo) */}
-                                {activityViewMode === 'list' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
-                                        {availableActivities
-                                            .filter(act => {
-                                                if (!activitySearchTerm.trim()) return true;
-                                                const query = activitySearchTerm.toLowerCase();
-                                                return (act.title || '').toLowerCase().includes(query) || (act.topic || '').toLowerCase().includes(query);
-                                            })
-                                            .map((act, idx) => {
-                                                const isSelected = effectiveSelectedActivityIds.includes(act.id);
-                                                return (
-                                                    <div
-                                                        key={act.id}
-                                                        onClick={() => toggleActivitySelection(act.id)}
-                                                        className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs select-none ${
-                                                            isSelected 
-                                                                ? 'bg-purple-50/70 border-purple-300 text-slate-900 shadow-xs ring-1 ring-purple-400/30' 
-                                                                : 'bg-slate-50/60 border-slate-200 hover:border-slate-300 text-slate-600 opacity-75 hover:opacity-100'
-                                                        }`}
-                                                    >
-                                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                                            {/* Checkbox Indicador */}
-                                                            <div className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 transition-all ${
-                                                                isSelected 
-                                                                    ? 'bg-purple-600 text-white shadow-2xs' 
-                                                                    : 'bg-white border border-slate-300 text-transparent'
-                                                            }`}>
-                                                                <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                                            </div>
+                                {/* MODO 1: VISÃO LISTA ESTRUTURADA com agrupamento por origem */}
+                                {activityViewMode === 'list' && (() => {
+                                    const filtered = availableActivities.filter(act => {
+                                        if (!activitySearchTerm.trim()) return true;
+                                        const query = activitySearchTerm.toLowerCase();
+                                        return (act.title || '').toLowerCase().includes(query) || (act.topic || '').toLowerCase().includes(query);
+                                    });
+                                    const tabActivities = filtered.filter(a => !a.isFromHistory);
+                                    const historyActivities = filtered.filter(a => a.isFromHistory);
 
-                                                            {/* Título & Numeração */}
-                                                            <div className="min-w-0 flex-1">
-                                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                                    <span className={`text-[10px] font-mono font-black px-1.5 py-0.2 rounded-md ${
-                                                                        isSelected ? 'bg-purple-200/80 text-purple-900' : 'bg-slate-200 text-slate-600'
-                                                                    }`}>
-                                                                        #{idx + 1}
-                                                                    </span>
-                                                                    <span className={`text-xs font-bold leading-snug line-clamp-2 ${
-                                                                        isSelected ? 'text-slate-900' : 'text-slate-700'
-                                                                    }`} title={act.title || act.topic}>
-                                                                        {act.title || act.topic}
-                                                                    </span>
-                                                                </div>
-                                                                {act.topic && act.title !== act.topic && (
-                                                                    <span className="text-[10px] text-slate-400 truncate block mt-0.5">
-                                                                        {act.topic}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Badges de Origem / Questões */}
-                                                        <div className="flex items-center gap-1.5 shrink-0">
-                                                            {act.isCurrent && (
-                                                                <span className="text-[10px] bg-purple-100 text-purple-800 border border-purple-200 px-2 py-0.5 rounded-full font-bold shadow-2xs">
-                                                                    🎯 Atual
-                                                                </span>
-                                                            )}
-                                                            {act.isFromHistory && (
-                                                                <span className="text-[10px] bg-slate-200/80 text-slate-700 border border-slate-300 px-2 py-0.5 rounded-full font-medium shadow-2xs">
-                                                                    📂 Histórico
-                                                                </span>
-                                                            )}
-                                                            {!act.isCurrent && !act.isFromHistory && (
-                                                                <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full font-medium shadow-2xs">
-                                                                    📑 Aba
-                                                                </span>
-                                                            )}
-                                                            {act.questionCount > 0 && (
-                                                                <span className="text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded-md font-mono font-semibold shadow-2xs" title={`${act.questionCount} questões nesta atividade`}>
-                                                                    {act.questionCount}q
-                                                                </span>
-                                                            )}
-                                                        </div>
+                                    const renderActivityCard = (act, idx, globalIdx) => {
+                                        const isSelected = effectiveSelectedActivityIds.includes(act.id);
+                                        return (
+                                            <div
+                                                key={act.id}
+                                                onClick={() => toggleActivitySelection(act.id)}
+                                                className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs select-none ${
+                                                    isSelected 
+                                                        ? 'bg-purple-50/70 border-purple-300 text-slate-900 shadow-xs ring-1 ring-purple-400/30' 
+                                                        : 'bg-slate-50/60 border-slate-200 hover:border-slate-300 text-slate-600 opacity-75 hover:opacity-100'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                                    {/* Checkbox Indicador */}
+                                                    <div className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                                                        isSelected 
+                                                            ? 'bg-purple-600 text-white shadow-2xs' 
+                                                            : 'bg-white border border-slate-300 text-transparent'
+                                                    }`}>
+                                                        <Check className="w-3.5 h-3.5 stroke-[3]" />
                                                     </div>
-                                                );
-                                            })}
-                                    </div>
-                                )}
 
-                                {/* MODO 2: VISÃO PÍLULAS COMPACTAS (Refatorada e sem corte feio) */}
-                                {activityViewMode === 'tags' && (
-                                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar flex-wrap">
-                                        {availableActivities
-                                            .filter(act => {
-                                                if (!activitySearchTerm.trim()) return true;
-                                                const query = activitySearchTerm.toLowerCase();
-                                                return (act.title || '').toLowerCase().includes(query) || (act.topic || '').toLowerCase().includes(query);
-                                            })
-                                            .map((act, idx) => {
-                                                const isSelected = effectiveSelectedActivityIds.includes(act.id);
-                                                return (
-                                                    <button
-                                                        key={act.id}
-                                                        type="button"
-                                                        onClick={() => toggleActivitySelection(act.id)}
-                                                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border shadow-2xs ${
-                                                            isSelected 
-                                                                ? 'bg-purple-100 text-purple-900 border-purple-300 shadow-xs' 
-                                                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                                                        }`}
-                                                        title={act.title || act.topic}
-                                                    >
-                                                        <span className={`w-4 h-4 rounded-md flex items-center justify-center text-[10px] font-bold ${
-                                                            isSelected ? 'bg-purple-600 text-white' : 'bg-slate-200 text-slate-600'
-                                                        }`}>
-                                                            {isSelected ? '✓' : '+'}
-                                                        </span>
-                                                        <span className="text-3xs font-mono font-semibold text-slate-400">#{idx + 1}</span>
-                                                        <span className="truncate max-w-[200px]">
-                                                            {act.title || act.topic}
-                                                        </span>
-                                                        {act.isCurrent && (
-                                                            <span className="text-[10px] bg-purple-200 text-purple-800 px-1.5 py-0.2 rounded-full font-bold">
-                                                                Atual
+                                                    {/* Título & Numeração */}
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <span className={`text-[10px] font-mono font-black px-1.5 py-0.2 rounded-md ${
+                                                                isSelected ? 'bg-purple-200/80 text-purple-900' : 'bg-slate-200 text-slate-600'
+                                                            }`}>
+                                                                #{globalIdx + 1}
+                                                            </span>
+                                                            <span className={`text-xs font-bold leading-snug line-clamp-2 ${
+                                                                isSelected ? 'text-slate-900' : 'text-slate-700'
+                                                            }`} title={act.title || act.topic}>
+                                                                {act.title || act.topic}
+                                                            </span>
+                                                        </div>
+                                                        {act.topic && act.title !== act.topic && (
+                                                            <span className="text-[10px] text-slate-400 truncate block mt-0.5">
+                                                                {act.topic}
                                                             </span>
                                                         )}
-                                                        {act.isFromHistory && (
-                                                            <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full font-medium">
-                                                                Histórico
-                                                            </span>
-                                                        )}
-                                                    </button>
-                                                );
-                                            })}
-                                    </div>
-                                )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Badges de Questões */}
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    {act.questionCount > 0 && (
+                                                        <span className="text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded-md font-mono font-semibold shadow-2xs" title={`${act.questionCount} questões nesta atividade`}>
+                                                            {act.questionCount}q
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    };
+
+                                    let globalCounter = 0;
+                                    return (
+                                        <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
+                                            {/* Grupo: Abas Abertas */}
+                                            {tabActivities.length > 0 && (
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 flex items-center gap-1">
+                                                            <FileText className="w-3 h-3" />
+                                                            Abas Abertas
+                                                        </span>
+                                                        <div className="flex-1 h-px bg-indigo-100" />
+                                                        <span className="text-[10px] text-indigo-500 font-semibold">{tabActivities.length}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                                                        {tabActivities.map((act, idx) => renderActivityCard(act, idx, globalCounter++))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Grupo: Histórico de Atividades */}
+                                            {historyActivities.length > 0 && (
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1.5">
+                                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                                                            <BookOpen className="w-3 h-3" />
+                                                            Histórico de Atividades
+                                                        </span>
+                                                        <div className="flex-1 h-px bg-slate-200" />
+                                                        <span className="text-[10px] text-slate-400 font-semibold">{historyActivities.length}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                                                        {historyActivities.map((act, idx) => renderActivityCard(act, idx, globalCounter++))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {filtered.length === 0 && (
+                                                <div className="text-center py-4 text-xs text-slate-400">
+                                                    Nenhuma atividade encontrada para "{activitySearchTerm}"
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* MODO 2: VISÃO PÍLULAS COMPACTAS com grupos por origem */}
+                                {activityViewMode === 'tags' && (() => {
+                                    const filtered = availableActivities.filter(act => {
+                                        if (!activitySearchTerm.trim()) return true;
+                                        const query = activitySearchTerm.toLowerCase();
+                                        return (act.title || '').toLowerCase().includes(query) || (act.topic || '').toLowerCase().includes(query);
+                                    });
+                                    const tabActivities = filtered.filter(a => !a.isFromHistory);
+                                    const historyActivities = filtered.filter(a => a.isFromHistory);
+
+                                    const renderPill = (act, idx) => {
+                                        const isSelected = effectiveSelectedActivityIds.includes(act.id);
+                                        return (
+                                            <button
+                                                key={act.id}
+                                                type="button"
+                                                onClick={() => toggleActivitySelection(act.id)}
+                                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border shadow-2xs ${
+                                                    isSelected 
+                                                        ? 'bg-purple-100 text-purple-900 border-purple-300 shadow-xs' 
+                                                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                                }`}
+                                                title={act.title || act.topic}
+                                            >
+                                                <span className={`w-4 h-4 rounded-md flex items-center justify-center text-[10px] font-bold ${
+                                                    isSelected ? 'bg-purple-600 text-white' : 'bg-slate-200 text-slate-600'
+                                                }`}>
+                                                    {isSelected ? '✓' : '+'}
+                                                </span>
+                                                <span className="text-3xs font-mono font-semibold text-slate-400">#{idx + 1}</span>
+                                                <span className="truncate max-w-[200px]">
+                                                    {act.title || act.topic}
+                                                </span>
+                                            </button>
+                                        );
+                                    };
+
+                                    return (
+                                        <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                                            {tabActivities.length > 0 && (
+                                                <div>
+                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-500 flex items-center gap-1">
+                                                            <FileText className="w-3 h-3" /> Abas
+                                                        </span>
+                                                        <div className="flex-1 h-px bg-indigo-100" />
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {tabActivities.map((act, idx) => renderPill(act, idx))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {historyActivities.length > 0 && (
+                                                <div>
+                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                                                            <BookOpen className="w-3 h-3" /> Histórico
+                                                        </span>
+                                                        <div className="flex-1 h-px bg-slate-200" />
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {historyActivities.map((act, idx) => renderPill(act, tabActivities.length + idx))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </>
                         )}
                     </div>
