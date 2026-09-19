@@ -4,7 +4,7 @@ import {
     BarChart3, HelpCircle, Sparkles, AlertTriangle, Printer, Download, 
     Copy, Check, Filter, Calendar, Clock, Trophy, Target, ArrowRight, 
     BookOpen, Star, FileText, Bot, Layers, Info,
-    Shuffle, RotateCcw, RotateCw, Search, Flame, Eye, EyeOff, UserMinus, UserCheck
+    Shuffle, RotateCcw, RotateCw, Search, Flame, Eye, EyeOff, UserMinus, UserCheck, UserX
 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
@@ -14,17 +14,145 @@ export const ClassSessionReportModal = ({
     currentClass,
     currentGroups = [],
     activeActivity = null,
+    tabs = [],
     questions = [],
     currentSessionId = null,
     sessionStartTime = null,
     geminiService = null,
     selectedModel = 'gemini-2.5-flash',
-    interactionLogs = []
+    interactionLogs = [],
+    onToggleStudentAbsent = null
 }) => {
     // Escopo temporal do relatório: 'session' (aula atual) | 'today' (hoje) | 'all' (todo o histórico)
     const [periodFilter, setPeriodFilter] = useState('session');
     // Aba ativa: 'overview' | 'actions' | 'questions' | 'students' | 'groups'
     const [activeTab, setActiveTab] = useState('overview');
+
+    // Data de referência para controle de ausências e frequência (formato YYYY-MM-DD)
+    const todayIsoDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
+    const [selectedDate, setSelectedDate] = useState(() => {
+        if (sessionStartTime) {
+            try {
+                return new Date(sessionStartTime).toISOString().slice(0, 10);
+            } catch (e) {}
+        }
+        return new Date().toISOString().slice(0, 10);
+    });
+
+    // Descoberta dinâmica de todas as atividades disponíveis para análise
+    const availableActivities = useMemo(() => {
+        const map = new Map();
+
+        // 1. Atividade ativa atual
+        if (activeActivity) {
+            const id = String(activeActivity.id || 'current_activity');
+            const actTitle = activeActivity.title || activeActivity.topic || 'Atividade Atual';
+            map.set(id, {
+                id,
+                title: actTitle,
+                topic: activeActivity.topic || activeActivity.title || '',
+                type: activeActivity.type || 'roulette',
+                isCurrent: true
+            });
+        }
+
+        // 2. Abas do ambiente de trabalho (tabs)
+        (tabs || []).forEach(tab => {
+            if (!tab || tab.id === 'about_system' || tab.id === 'dashboard' || tab.id === 'merge_pdf') return;
+            const id = String(tab.id);
+            if (!map.has(id)) {
+                map.set(id, {
+                    id,
+                    title: tab.title || tab.topic || `Atividade #${id}`,
+                    topic: tab.topic || tab.title || '',
+                    type: tab.type || 'roulette',
+                    isCurrent: activeActivity && String(activeActivity.id) === id
+                });
+            }
+        });
+
+        // 3. Tópicos históricos registrados nos alunos da turma
+        (currentClass?.students || []).forEach(s => {
+            (s.history || []).forEach(h => {
+                if (h.topic && h.topic !== 'Sem tema') {
+                    const cleanTopic = h.topic.trim();
+                    const existing = Array.from(map.values()).find(
+                        a => (a.topic && a.topic.toLowerCase() === cleanTopic.toLowerCase()) || 
+                             (a.title && a.title.toLowerCase() === cleanTopic.toLowerCase())
+                    );
+                    if (!existing) {
+                        const topicId = `topic_${cleanTopic.toLowerCase().replace(/[^a-z0-9]/gi, '_')}`;
+                        if (!map.has(topicId)) {
+                            map.set(topicId, {
+                                id: topicId,
+                                title: cleanTopic,
+                                topic: cleanTopic,
+                                type: 'history',
+                                isFromHistory: true
+                            });
+                        }
+                    }
+                }
+            });
+        });
+
+        return Array.from(map.values());
+    }, [activeActivity, tabs, currentClass]);
+
+    // IDs de atividades selecionadas para análise conjunta ([] vazio = todas selecionadas)
+    const [selectedActivityIds, setSelectedActivityIds] = useState([]);
+
+    const effectiveSelectedActivityIds = useMemo(() => {
+        if (selectedActivityIds.length === 0) {
+            return availableActivities.map(a => a.id);
+        }
+        return selectedActivityIds;
+    }, [selectedActivityIds, availableActivities]);
+
+    const toggleActivitySelection = (id) => {
+        setSelectedActivityIds(prev => {
+            const allIds = availableActivities.map(a => a.id);
+            const currentSelection = prev.length === 0 ? allIds : prev;
+            if (currentSelection.includes(id)) {
+                const next = currentSelection.filter(item => item !== id);
+                return next.length === 0 ? [id] : next;
+            } else {
+                const next = [...currentSelection, id];
+                return next.length === allIds.length ? [] : next;
+            }
+        });
+    };
+
+    const selectAllActivities = () => {
+        setSelectedActivityIds([]);
+    };
+
+    const selectCurrentActivityOnly = () => {
+        if (activeActivity) {
+            setSelectedActivityIds([String(activeActivity.id || 'current_activity')]);
+        }
+    };
+
+    // Agregar questões de todas as atividades selecionadas
+    const aggregatedQuestions = useMemo(() => {
+        const list = [...(questions || [])];
+        const seen = new Set(list.map(q => (q.question || q.text || '').trim().toLowerCase()));
+
+        (tabs || []).forEach(tab => {
+            const tabId = String(tab.id);
+            if (!effectiveSelectedActivityIds.includes(tabId)) return;
+            const tabQuestions = tab.questions || tab.data?.questions || [];
+            tabQuestions.forEach(q => {
+                const txt = (q.question || q.text || '').trim();
+                if (txt && !seen.has(txt.toLowerCase())) {
+                    seen.add(txt.toLowerCase());
+                    list.push(q);
+                }
+            });
+        });
+
+        return list;
+    }, [questions, tabs, effectiveSelectedActivityIds]);
 
     // Filtros da aba de ações e toques
     const [actionCategoryFilter, setActionCategoryFilter] = useState('all');
@@ -35,13 +163,50 @@ export const ClassSessionReportModal = ({
     const [isGeneratingCollectiveAi, setIsGeneratingCollectiveAi] = useState(false);
     const [copiedCollectiveAi, setCopiedCollectiveAi] = useState(false);
 
-    // Estado do Diagnóstico Individual Consolidado com IA
-    const [aiIndividualSummary, setAiIndividualSummary] = useState('');
-    const [isGeneratingIndividualAi, setIsGeneratingIndividualAi] = useState(false);
-    const [copiedIndividualAi, setCopiedIndividualAi] = useState(false);
-
     // Modo da IA ativo no card da Visão Geral: 'collective' | 'individual'
     const [aiActiveMode, setAiActiveMode] = useState('collective');
+
+    // Filtros e busca no Diretório Visual de Alunos em "Individual (Perfis)"
+    const [studentProfileFilter, setStudentProfileFilter] = useState('all'); // 'all' | 'high' | 'helpers' | 'support' | 'not_drawn' | 'absent'
+    const [studentSearchQuery, setStudentSearchQuery] = useState('');
+
+    // Sobrescrita local imediata para alternância de presença por data (0ms de latência visual)
+    const [localAbsentOverrides, setLocalAbsentOverrides] = useState({});
+
+    // Verifica se um aluno está ausente em uma data específica (YYYY-MM-DD)
+    const isStudentAbsentOnDate = (s, dateStr) => {
+        const overrideKey = `${s.id}_${dateStr}`;
+        if (localAbsentOverrides[overrideKey] !== undefined) {
+            return localAbsentOverrides[overrideKey];
+        }
+        const hasAbsentRecord = (s.history || []).some(h => {
+            if (h.result !== 'absent') return false;
+            if (h.dateStr && h.dateStr === dateStr) return true;
+            if (h.date) {
+                try {
+                    return new Date(h.date).toISOString().slice(0, 10) === dateStr;
+                } catch (e) {
+                    return false;
+                }
+            }
+            return false;
+        });
+        if (hasAbsentRecord) return true;
+        if (dateStr === todayIsoDate && s.status === 'absent') return true;
+        return false;
+    };
+
+    // Alternar ausência de aluno para a DATA SELECIONADA localmente e propagar para a Turma Global
+    const handleToggleStudentAbsentStatus = (studentId, makeAbsent) => {
+        const key = `${studentId}_${selectedDate}`;
+        setLocalAbsentOverrides(prev => ({
+            ...prev,
+            [key]: makeAbsent
+        }));
+        if (onToggleStudentAbsent) {
+            onToggleStudentAbsent(studentId, makeAbsent, selectedDate);
+        }
+    };
 
     // Estado de Pareceres Individuais por Aluno (dicionário { [studentId]: string })
     const [studentAiInsights, setStudentAiInsights] = useState({});
@@ -53,7 +218,7 @@ export const ClassSessionReportModal = ({
     const [aiError, setAiError] = useState(null);
 
     // -------------------------------------------------------------------------
-    // 1. FILTRAGEM DOS DADOS PELO PERÍODO ESCOLHIDO
+    // 1. FILTRAGEM DOS DADOS PELO PERÍODO ESCOLHIDO E ATIVIDADES SELECIONADAS
     // -------------------------------------------------------------------------
     const filteredData = useMemo(() => {
         if (!currentClass || !Array.isArray(currentClass.students)) {
@@ -86,10 +251,51 @@ export const ClassSessionReportModal = ({
             return true; // 'all'
         };
 
+        // Função de validação por atividades selecionadas
+        const matchesActivity = (entry) => {
+            if (!entry) return false;
+            if (effectiveSelectedActivityIds.length === 0 || effectiveSelectedActivityIds.length === availableActivities.length) {
+                return true;
+            }
+            if (entry.activityId && effectiveSelectedActivityIds.includes(String(entry.activityId))) {
+                return true;
+            }
+            const selectedList = availableActivities.filter(a => effectiveSelectedActivityIds.includes(a.id));
+            const entryTopic = (entry.topic || '').trim().toLowerCase();
+            if (entryTopic && entryTopic !== 'sem tema') {
+                const match = selectedList.some(a => {
+                    const at = (a.topic || '').trim().toLowerCase();
+                    const title = (a.title || '').trim().toLowerCase();
+                    return (at && at === entryTopic) || (title && title === entryTopic);
+                });
+                if (match) return true;
+            }
+            if ((!entryTopic || entryTopic === 'sem tema') && !entry.activityId) {
+                return selectedList.some(a => a.isCurrent);
+            }
+            return false;
+        };
+
         // Coletar todos os eventos de histórico de todos os alunos
         const allEvents = [];
-        const studentStats = currentClass.students.map(s => {
-            const hist = (s.history || []).filter(matchesPeriod);
+        const studentStats = (currentClass.students || []).map(s => {
+            // Avalia ausência específica para a DATA SELECIONADA
+            const isAbsent = isStudentAbsentOnDate(s, selectedDate);
+
+            // Se o aluno estava ausente em determinada data, desconsidera respostas de desafio coletivo ('all_correct') daquela data
+            const hist = (s.history || [])
+                .filter(matchesPeriod)
+                .filter(matchesActivity)
+                .filter(h => {
+                    if (h.date) {
+                        const entryDateStr = h.dateStr || new Date(h.date).toISOString().slice(0, 10);
+                        const wasAbsentOnEntryDate = isStudentAbsentOnDate(s, entryDateStr);
+                        if (wasAbsentOnEntryDate && (h.result === 'all_correct' || (h.question && h.question.includes('[Desafio da Turma]')))) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
             
             const hits = hist.filter(h => h.result === 'correct' || h.result === 'help_correct' || h.result === 'all_correct' || h.result === 'group_activity').length;
             const misses = hist.filter(h => h.result === 'incorrect' || h.result === 'group_incorrect').length;
@@ -104,23 +310,34 @@ export const ClassSessionReportModal = ({
             const helpedOthers = hist.filter(h => h.helpedStudent || h.isHelperRole);
             const groupParticipations = hist.filter(h => h.isGroupActivity || h.result === 'group_activity');
 
-            // Adiciona ao pool global de eventos
+            // Adiciona ao pool global de eventos apenas eventos válidos
             hist.forEach(h => {
-                allEvents.push({
-                    ...h,
-                    studentId: s.id,
-                    studentName: s.name,
-                    studentGroup: s.groupName || null
-                });
+                if (h.result !== 'absent') {
+                    allEvents.push({
+                        ...h,
+                        studentId: s.id,
+                        studentName: s.name,
+                        studentGroup: s.groupName || null
+                    });
+                }
             });
+
+            const nonAbsentHist = hist.filter(h => h.result !== 'absent');
+            const participated = !isAbsent && nonAbsentHist.length > 0;
+
+            // Perfis individuais formativos da turma
+            const isHighPerformer = !isAbsent && participated && hits > 0 && misses === 0;
+            const isHelper = !isAbsent && helpedOthers.length > 0;
+            const needsSupport = !isAbsent && (misses > 0 || helpReceived.length > 0);
+            const isNotDrawn = !isAbsent && !participated && helpedOthers.length === 0;
 
             return {
                 id: s.id,
                 name: s.name,
-                status: s.status || 'active',
+                status: isAbsent ? 'absent' : (s.status === 'absent' ? 'active' : (s.status || 'active')),
                 groupName: s.groupName || null,
-                totalAnswers: hist.length,
-                participated: hist.length > 0,
+                totalAnswers: nonAbsentHist.length,
+                participated,
                 hits,
                 misses,
                 merits,
@@ -128,7 +345,12 @@ export const ClassSessionReportModal = ({
                 helpReceived,
                 helpedOthers,
                 groupParticipations,
-                history: hist
+                history: hist,
+                isHighPerformer,
+                isHelper,
+                needsSupport,
+                isNotDrawn,
+                isAbsent
             };
         });
 
@@ -177,8 +399,8 @@ export const ClassSessionReportModal = ({
                 .trim();
 
             if (!questionStatsMap.has(cleanQuestionText)) {
-                // Tenta achar metadados no banco de perguntas da atividade
-                const meta = (questions || []).find(q => q.question === cleanQuestionText) || {};
+                // Tenta achar metadados no banco de perguntas agregado das atividades selecionadas
+                const meta = (aggregatedQuestions || []).find(q => (q.question || q.text) === cleanQuestionText) || {};
                 questionStatsMap.set(cleanQuestionText, {
                     question: cleanQuestionText,
                     difficulty: meta.difficulty || 'Média',
@@ -226,34 +448,33 @@ export const ClassSessionReportModal = ({
             return {
                 id: group.id,
                 name: group.name,
-                color: group.color || '#6366f1',
-                memberCount: memberStudents.length,
-                memberNames: memberStudents.map(s => s.name),
-                roundsCount: groupRounds.length,
+                color: group.color || 'bg-indigo-600',
+                totalMembers: memberStudents.length,
+                totalRounds: groupRounds.length,
                 hits: groupHits,
-                misses: groupMisses
+                misses: groupMisses,
+                hitRate: groupRounds.length > 0 ? Math.round((groupHits / groupRounds.length) * 100) : 0,
+                rounds: groupRounds
             };
-        });
+        }).filter(g => g.totalRounds > 0 || (currentGroups || []).length > 0);
 
         // Métricas Globais da Aula / Sessão
         const totalRounds = uniqueRounds.length;
         const individualRounds = uniqueRounds.filter(r => !r.isGroup).length;
         const groupRounds = uniqueRounds.filter(r => r.isGroup).length;
 
-        const totalHits = uniqueRounds.filter(r => 
-            r.result === 'correct' || r.result === 'help_correct' || r.result === 'all_correct' || r.result === 'group_activity'
-        ).length;
+        const totalHits = uniqueRounds.filter(r => r.result === 'correct' || r.result === 'help_correct' || r.result === 'all_correct' || r.result === 'group_activity').length;
         const totalMisses = uniqueRounds.filter(r => r.result === 'incorrect' || r.result === 'group_incorrect').length;
+        const hitRate = totalRounds > 0 ? Math.round((totalHits / totalRounds) * 100) : 0;
 
-        const evaluatedRounds = totalHits + totalMisses;
-        const hitRate = evaluatedRounds > 0 ? Math.round((totalHits / evaluatedRounds) * 100) : 0;
-
-        const participatingStudents = studentStats.filter(s => s.participated).length;
         const totalStudents = studentStats.length;
-        const participationRate = totalStudents > 0 ? Math.round((participatingStudents / totalStudents) * 100) : 0;
+        const absentStudents = studentStats.filter(s => s.isAbsent).length;
+        const presentStudents = totalStudents - absentStudents;
+        const participatingStudents = studentStats.filter(s => s.participated).length;
+        const participationRate = presentStudents > 0 ? Math.round((participatingStudents / presentStudents) * 100) : 0;
 
         const helpRounds = uniqueRounds.filter(r => r.hadHelp).length;
-        const helpSuccessRounds = uniqueRounds.filter(r => r.hadHelp && (r.result === 'help_correct' || r.result === 'correct')).length;
+        const helpSuccessRounds = uniqueRounds.filter(r => r.hadHelp && (r.result === 'correct' || r.result === 'help_correct' || r.result === 'group_activity')).length;
         const helpConversionRate = helpRounds > 0 ? Math.round((helpSuccessRounds / helpRounds) * 100) : 0;
 
         // Determinação da Dinâmica
@@ -286,6 +507,7 @@ export const ClassSessionReportModal = ({
             if (periodFilter === 'today') {
                 return new Date(log.timestamp).toDateString() === todayStr;
             }
+            if (!matchesActivity(log)) return false;
             return true; // 'all'
         });
 
@@ -326,6 +548,8 @@ export const ClassSessionReportModal = ({
                 totalMisses,
                 hitRate,
                 totalStudents,
+                absentStudents,
+                presentStudents,
                 participatingStudents,
                 participationRate,
                 helpRounds,
@@ -348,7 +572,48 @@ export const ClassSessionReportModal = ({
                 revealHintCount
             }
         };
-    }, [currentClass, currentGroups, questions, periodFilter, currentSessionId, sessionStartTime, interactionLogs]);
+    }, [currentClass, currentGroups, aggregatedQuestions, periodFilter, currentSessionId, sessionStartTime, interactionLogs, localAbsentOverrides, selectedDate, effectiveSelectedActivityIds, availableActivities, todayIsoDate]);
+
+    // Coortes pedagógicas categorizadas para o Diagnóstico Individual e IA
+    const categorizedCohorts = useMemo(() => {
+        const { studentStats = [] } = filteredData;
+        const high = studentStats.filter(s => s.isHighPerformer);
+        const helpers = studentStats.filter(s => s.isHelper);
+        const support = studentStats.filter(s => s.needsSupport);
+        const notDrawn = studentStats.filter(s => s.isNotDrawn);
+        const absent = studentStats.filter(s => s.isAbsent);
+
+        return {
+            high,
+            helpers,
+            support,
+            notDrawn,
+            absent
+        };
+    }, [filteredData]);
+
+    // Lista filtrada para o Diretório Visual da Turma na aba Individual (Perfis)
+    const filteredStudentsList = useMemo(() => {
+        const { studentStats = [] } = filteredData;
+        return studentStats.filter(s => {
+            // Filtro por perfil pedagógico
+            if (studentProfileFilter === 'high' && !s.isHighPerformer) return false;
+            if (studentProfileFilter === 'helpers' && !s.isHelper) return false;
+            if (studentProfileFilter === 'support' && !s.needsSupport) return false;
+            if (studentProfileFilter === 'not_drawn' && !s.isNotDrawn) return false;
+            if (studentProfileFilter === 'absent' && !s.isAbsent) return false;
+
+            // Filtro por busca textual
+            if (studentSearchQuery.trim()) {
+                const query = studentSearchQuery.toLowerCase().trim();
+                const matchName = s.name.toLowerCase().includes(query);
+                const matchGroup = s.groupName ? s.groupName.toLowerCase().includes(query) : false;
+                if (!matchName && !matchGroup) return false;
+            }
+
+            return true;
+        });
+    }, [filteredData, studentProfileFilter, studentSearchQuery]);
 
     // -------------------------------------------------------------------------
     // 2. INSIGHTS ALGORÍTMICOS AUTOMÁTICOS
@@ -548,63 +813,7 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou en
         }
     };
 
-    // 3.2 Diagnóstico Individual Consolidado dos Alunos
-    const handleGenerateIndividualAi = async () => {
-        if (!geminiService || !geminiService.apiKey) {
-            setAiError('Chave da API Gemini não configurada. Por favor, adicione sua chave nas configurações.');
-            return;
-        }
-
-        setIsGeneratingIndividualAi(true);
-        setAiError(null);
-
-        const { studentStats, metrics } = filteredData;
-
-        // Montar resumo pedagógico de cada aluno
-        const studentSummaries = studentStats.map(s => {
-            const wrongQuestions = s.history.filter(h => h.result === 'incorrect' || h.result === 'group_incorrect').map(h => `"${h.question}"`);
-            return `- ${s.name}${s.groupName ? ` (Equipe: ${s.groupName})` : ''}: Status: ${s.participated ? `Participou (${s.totalAnswers}x)` : 'Não Sorteado'}. Acertos: ${s.hits}, Erros: ${s.misses}, Teve Ajuda: ${s.helpReceived.length}x, Ajudou Colegas: ${s.helpedOthers.length}x, Méritos: +${s.merits}, Infrações: -${s.violations}.${wrongQuestions.length > 0 ? ` Dificuldades em: ${wrongQuestions.slice(0, 2).join('; ')}.` : ''}`;
-        }).join('\n');
-
-        const prompt = `
-Você é um especialista em avaliação formativa e acompanhamento individual de aprendizagem escolar.
-Analise os dados individuais de cada estudante da turma abaixo e gere um Diagnóstico Individual Consolidado da Turma, organizado em 4 seções humanizadas, construtivas e sem rótulos estigmatizantes:
-
-DADOS DA TURMA:
-- Turma: "${currentClass?.name || 'Turma'}"
-- Conteúdo Trabalhado: "${activeActivity?.topic || activeActivity?.title || 'Conteúdo Curricular'}"
-- Total de Alunos: ${metrics.totalStudents} (Participaram: ${metrics.participatingStudents}, Não Sorteados/Ausentes: ${metrics.totalStudents - metrics.participatingStudents})
-
-DESEMPENHO INDIVIDUAL DETALHADO DOS ESTUDANTES:
-${studentSummaries}
-
-ESTRUTURA DO DIAGNÓSTICO (organize claramente com títulos e tópicos destacados):
-1. 🌟 Alunos com Alto Domínio & Autonomia Cognitiva:
-   Cite nominalmente os alunos que acertaram com precisão e demonstraram segurança no conteúdo.
-2. 🤝 Monitores Solidários & Cooperação entre Pares:
-   Destaque nominalmente os alunos que se dispuseram a ajudar colegas, fortalecendo a rede de cooperação da sala.
-3. 🎯 Apoio Pedagógico Prioritário & Dificuldades Pontuais:
-   Indique os alunos que erraram ou dependeram frequentemente de ajuda, especificando quais tipos de conceitos ou perguntas demandam reforço ou acolhimento individualizado.
-4. 🔍 Inclusão & Próximos Sorteios:
-   Mencione os alunos que não foram sorteados nesta sessão e recomende estratégias para priorizá-los e engajá-los no próximo encontro.
-Tom acolhedor, profissional e focado no crescimento de cada estudante.
-`;
-
-        try {
-            const text = await geminiService.generateText(prompt, {
-                model: selectedModel || 'gemini-2.5-flash',
-                temperature: 0.7
-            });
-            setAiIndividualSummary(text.trim());
-        } catch (err) {
-            console.error('Erro ao gerar diagnóstico individual consolidado com IA:', err);
-            setAiError('Não foi possível gerar o diagnóstico individual no momento. Tente novamente.');
-        } finally {
-            setIsGeneratingIndividualAi(false);
-        }
-    };
-
-    // 3.3 Parecer Individual por Aluno Específico
+    // 3.2 Parecer Individual por Aluno Específico (Tratado diretamente no card de cada aluno)
     const handleGenerateStudentAi = async (student) => {
         if (!geminiService || !geminiService.apiKey) {
             setAiError('Chave da API Gemini não configurada. Por favor, adicione sua chave nas configurações.');
@@ -809,7 +1018,7 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                 <td style="padding: 6px 8px; font-weight: bold;">${s.name}</td>
                 <td style="padding: 6px 8px;">${s.groupName || '-'}</td>
                 <td style="padding: 6px 8px; text-align: center;">
-                    ${s.participated ? '<span style="color: #16a34a; font-weight: bold;">Participou</span>' : '<span style="color: #64748b;">Não sorteado</span>'}
+                    ${s.isAbsent ? '<span style="color: #dc2626; font-weight: bold;">🚫 Ausente</span>' : s.participated ? '<span style="color: #16a34a; font-weight: bold;">Participou</span>' : '<span style="color: #64748b;">Não sorteado</span>'}
                 </td>
                 <td style="padding: 6px 8px; text-align: center; font-weight: bold; color: #16a34a;">${s.hits}</td>
                 <td style="padding: 6px 8px; text-align: center; font-weight: bold; color: #dc2626;">${s.misses}</td>
@@ -865,13 +1074,6 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
             </div>
         ` : '';
 
-        const individualAiHtml = aiIndividualSummary ? `
-            <div style="margin-top: 14px; background-color: #f8fafc; border-left: 4px solid #a855f7; padding: 12px 16px; border-radius: 6px;">
-                <h4 style="margin: 0 0 6px 0; font-size: 13px; color: #7e22ce;">👥 Diagnóstico Individual Consolidado dos Alunos (IA):</h4>
-                <div style="font-size: 11px; line-height: 1.5; color: #334155; white-space: pre-wrap;">${aiIndividualSummary}</div>
-            </div>
-        ` : '';
-
         printWindow.document.write(`
             <!DOCTYPE html>
             <html lang="pt-BR">
@@ -916,7 +1118,7 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-val">${metrics.participationRate}%</div>
-                        <div class="kpi-label">Engajamento Alunos</div>
+                        <div class="kpi-label">Engajamento (${metrics.participatingStudents}/${metrics.presentStudents || metrics.totalStudents})${metrics.absentStudents > 0 ? ` • ${metrics.absentStudents} aus.` : ''}</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-val">${metrics.helpRounds}</div>
@@ -933,7 +1135,6 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                 </div>
 
                 ${collectiveAiHtml}
-                ${individualAiHtml}
 
                 <div style="margin-top: 18px;">
                     <h3 style="font-size: 13px; font-weight: bold; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 8px;">
@@ -1029,6 +1230,7 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
         csv += `Data:,"${new Date().toLocaleDateString('pt-BR')}"\n`;
         csv += `Formato:,"${metrics.dynamicsLabel}"\n`;
         csv += `Taxa de Acertos:,"${metrics.hitRate}%"\n`;
+        csv += `Total de Alunos:,"${metrics.totalStudents} (${metrics.presentStudents || metrics.totalStudents} presentes / ${metrics.absentStudents || 0} ausentes)"\n`;
         csv += `Engajamento:,"${metrics.participationRate}%"\n\n`;
 
         csv += `--- ALUNOS DA TURMA ---\n`;
@@ -1038,8 +1240,9 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
             const helpRecStr = s.helpReceived.map(h => h.helperName ? `com ${h.helperName}` : (h.helpDescription || 'Apoio')).join('; ');
             const helpedStr = s.helpedOthers.map(h => `Ajudou ${h.helpedStudent || 'colega'}`).join('; ');
             const studentAi = (studentAiInsights[s.id] || '').replace(/"/g, '""');
+            const statusStr = s.isAbsent ? 'Ausente' : s.participated ? 'Participou' : 'Não Sorteado';
 
-            csv += `"${s.name}","${s.groupName || 'Sem Equipe'}","${s.participated ? 'Participou' : 'Não Sorteado'}",${s.hits},${s.misses},${s.helpReceived.length},"${helpRecStr.replace(/"/g, '""')}",${s.helpedOthers.length},"${helpedStr.replace(/"/g, '""')}",${s.merits},${s.violations},"${studentAi}"\n`;
+            csv += `"${s.name}","${s.groupName || 'Sem Equipe'}","${statusStr}",${s.hits},${s.misses},${s.helpReceived.length},"${helpRecStr.replace(/"/g, '""')}",${s.helpedOthers.length},"${helpedStr.replace(/"/g, '""')}",${s.merits},${s.violations},"${studentAi}"\n`;
         });
 
         csv += `\n--- QUESTOES TRABALHADAS NA AULA ---\n`;
@@ -1423,6 +1626,91 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                 </div>
 
                 {/* ============================================================ */}
+                {/* 1.1 SELETOR DE ATIVIDADES CONJUNTAS (Análise Multiatividade) */}
+                {/* ============================================================ */}
+                {availableActivities.length > 0 && (
+                    <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-2xs space-y-2">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                                    <Layers className="w-3.5 h-3.5" />
+                                </div>
+                                <span className="text-xs font-bold text-slate-800">
+                                    Atividades Analisadas Juntas:
+                                </span>
+                                <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                                    {effectiveSelectedActivityIds.length} de {availableActivities.length} selecionada(s)
+                                </span>
+                            </div>
+                            {availableActivities.length > 1 && (
+                                <div className="flex items-center gap-1.5 text-xs">
+                                    <button
+                                        type="button"
+                                        onClick={selectAllActivities}
+                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                                            selectedActivityIds.length === 0
+                                                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                        }`}
+                                        title="Analisar todas as atividades juntas"
+                                    >
+                                        Selecionar Todas
+                                    </button>
+                                    {activeActivity && (
+                                        <button
+                                            type="button"
+                                            onClick={selectCurrentActivityOnly}
+                                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                                                selectedActivityIds.length === 1 && selectedActivityIds[0] === String(activeActivity.id || 'current_activity')
+                                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                            }`}
+                                            title="Analisar apenas a atividade atualmente aberta"
+                                        >
+                                            Apenas Atual
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar flex-wrap">
+                            {availableActivities.map(act => {
+                                const isSelected = effectiveSelectedActivityIds.includes(act.id);
+                                return (
+                                    <button
+                                        key={act.id}
+                                        type="button"
+                                        onClick={() => toggleActivitySelection(act.id)}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border shadow-2xs ${
+                                            isSelected 
+                                                ? 'bg-purple-600 text-white border-purple-700 shadow-xs' 
+                                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                        }`}
+                                        title={act.title || act.topic}
+                                    >
+                                        <span>{isSelected ? '✓' : '+'}</span>
+                                        <span className="truncate max-w-[220px]">
+                                            {act.title || act.topic}
+                                        </span>
+                                        {act.isCurrent && (
+                                            <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.2 rounded-full font-medium">
+                                                Atual
+                                            </span>
+                                        )}
+                                        {act.isFromHistory && (
+                                            <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full font-medium">
+                                                Histórico
+                                            </span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* ============================================================ */}
                 {/* 2. CARDS DE KPIS / MÉTRICAS CHAVE DA AULA */}
                 {/* ============================================================ */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -1444,8 +1732,13 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                         </div>
                         <span className="text-2xl font-black text-slate-900">{metrics.participationRate}%</span>
                         <span className="text-2xs font-bold text-slate-500 uppercase tracking-wider">
-                            Engajamento ({metrics.participatingStudents}/{metrics.totalStudents})
+                            Engajamento ({metrics.participatingStudents}/{metrics.presentStudents || metrics.totalStudents})
                         </span>
+                        {metrics.absentStudents > 0 && (
+                            <span className="text-[10px] text-rose-600 font-bold mt-0.5">
+                                {metrics.absentStudents} ausente{metrics.absentStudents > 1 ? 's' : ''}
+                            </span>
+                        )}
                     </div>
 
                     {/* Colaboração & Ajuda Mútua */}
@@ -1679,11 +1972,9 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                                 : 'text-slate-300 hover:text-white hover:bg-white/10'
                                         }`}
                                     >
-                                        <Users className="w-3.5 h-3.5 text-amber-300" />
+                                        <Users className="w-3.5 h-3.5 text-indigo-300" />
                                         <span>🌐 Coletivo (Turma)</span>
-                                        {aiCollectiveSummary && <Check className="w-3 h-3 text-emerald-400" />}
                                     </button>
-
                                     <button
                                         type="button"
                                         onClick={() => setAiActiveMode('individual')}
@@ -1694,8 +1985,12 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                         }`}
                                     >
                                         <User className="w-3.5 h-3.5 text-purple-300" />
-                                        <span>👥 Individual (Perfis)</span>
-                                        {aiIndividualSummary && <Check className="w-3 h-3 text-emerald-400" />}
+                                        <span>👥 Individual (Alunos)</span>
+                                        {Object.keys(studentAiInsights).length > 0 && (
+                                            <span className="text-[10px] bg-emerald-400/20 text-emerald-300 px-1.5 py-0.2 rounded-full font-mono">
+                                                {Object.keys(studentAiInsights).length}
+                                            </span>
+                                        )}
                                     </button>
                                 </div>
                             </div>
@@ -1758,54 +2053,311 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                 </div>
                             )}
 
-                            {/* VISÃO 2: DIAGNÓSTICO INDIVIDUAL CONSOLIDADO */}
+                            {/* VISÃO 2: DIRETÓRIO FORMATIVO COM CARDS CLARAS E FREQUÊNCIA POR DATA (Sem Diagnóstico Consolidado) */}
                             {aiActiveMode === 'individual' && (
-                                <div className="space-y-3 animate-in fade-in duration-150">
-                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4 animate-in fade-in duration-150">
+                                    {/* Cabeçalho da Visão Individual com Seletor de Data e Busca */}
+                                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-200">
                                         <div>
-                                            <h5 className="font-bold text-xs text-purple-200 flex items-center gap-1">
-                                                <User className="w-3.5 h-3.5 text-purple-400" />
-                                                <span>Diagnóstico Individual Consolidado dos Alunos</span>
+                                            <h5 className="font-black text-sm text-slate-900 flex items-center gap-2">
+                                                <Users className="w-4 h-4 text-purple-600" />
+                                                <span>Mapeamento dos Estudantes da Turma</span>
+                                                <span className="text-2xs bg-purple-100 text-purple-800 font-bold px-2 py-0.5 rounded-full border border-purple-200">
+                                                    {studentStats.length} alunos
+                                                </span>
                                             </h5>
-                                            <p className="text-[11px] text-slate-400">
-                                                Agrupamento da turma em perfis pedagógicos: destaques, monitores solidários, apoio prioritário e inclusão
+                                            <p className="text-xs text-slate-500 mt-0.5">
+                                                Cards individuais para acompanhamento formativo, controle de ausência por data e parecer individual com IA.
                                             </p>
                                         </div>
 
-                                        <div className="flex items-center gap-2">
-                                            {aiIndividualSummary && (
-                                                <button
-                                                    type="button"
-                                                    onClick={handleCopyIndividualAi}
-                                                    className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border border-white/20"
-                                                    title="Copiar diagnóstico individual consolidado"
-                                                >
-                                                    {copiedIndividualAi ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                                                    <span>{copiedIndividualAi ? 'Copiado!' : 'Copiar Diagnóstico'}</span>
-                                                </button>
-                                            )}
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {/* Seletor de Data para Ausências */}
+                                            <div className="inline-flex items-center gap-1.5 bg-white border border-slate-300/80 px-2.5 py-1.5 rounded-xl shadow-2xs">
+                                                <Calendar className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                                                <span className="text-2xs font-bold text-slate-600 uppercase tracking-wider">Data:</span>
+                                                <input 
+                                                    type="date"
+                                                    value={selectedDate}
+                                                    onChange={e => setSelectedDate(e.target.value)}
+                                                    className="text-xs font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer"
+                                                    title="Escolha a data da aula para gerenciar a frequência e desconsiderar pontos do Desafio da Turma"
+                                                />
+                                                {selectedDate !== todayIsoDate && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedDate(todayIsoDate)}
+                                                        className="text-3xs font-black px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 hover:bg-purple-200 transition-all cursor-pointer"
+                                                        title="Voltar para a data de hoje"
+                                                    >
+                                                        Hoje
+                                                    </button>
+                                                )}
+                                            </div>
 
-                                            <button
-                                                type="button"
-                                                disabled={isGeneratingIndividualAi}
-                                                onClick={handleGenerateIndividualAi}
-                                                className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white text-xs font-black transition-all cursor-pointer flex items-center gap-2 shadow-sm disabled:opacity-50 active:scale-95"
-                                            >
-                                                <Sparkles className={`w-4 h-4 text-amber-300 ${isGeneratingIndividualAi ? 'animate-spin' : ''}`} />
-                                                <span>{isGeneratingIndividualAi ? 'Mapeando Alunos...' : aiIndividualSummary ? 'Regerar Diagnóstico' : '✨ Gerar Diagnóstico Individual'}</span>
-                                            </button>
+                                            {/* Busca Rápida por Aluno */}
+                                            <div className="relative w-full sm:w-56">
+                                                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                <input 
+                                                    type="text"
+                                                    value={studentSearchQuery}
+                                                    onChange={e => setStudentSearchQuery(e.target.value)}
+                                                    placeholder="Buscar aluno por nome..."
+                                                    className="w-full pl-7 pr-7 py-1.5 rounded-xl bg-white border border-slate-300/80 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-400/40 focus:border-purple-400 transition-all shadow-2xs"
+                                                />
+                                                {studentSearchQuery && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setStudentSearchQuery('')}
+                                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs cursor-pointer"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {aiIndividualSummary ? (
-                                        <div className="bg-white/5 border border-white/10 p-4 rounded-2xl text-xs text-slate-200 leading-relaxed font-sans whitespace-pre-wrap animate-in fade-in">
-                                            {aiIndividualSummary}
+                                    {/* Banner Informativo com a Data Selecionada e Regra Pedagógica */}
+                                    <div className="bg-purple-50/70 border border-purple-100 rounded-xl px-3 py-2 flex items-center justify-between gap-2 text-2xs text-purple-900 flex-wrap">
+                                        <div className="flex items-center gap-1.5">
+                                            <Info className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                                            <span>
+                                                Frequência em <strong>{selectedDate ? selectedDate.split('-').reverse().join('/') : ''}</strong>: Marcar ausência nesta data desconsidera os pontos coletivos do Desafio da Turma para não distorcer a pontuação individual.
+                                            </span>
                                         </div>
-                                    ) : (
-                                        <div className="bg-white/5 border border-dashed border-white/10 p-4 rounded-2xl text-xs text-slate-400 text-center">
-                                            Clique em <strong>"✨ Gerar Diagnóstico Individual"</strong> para que a IA analise aluno por aluno e aponte quem teve alto domínio, quem atuou como monitor solidário e quem demanda reforço imediato.
-                                        </div>
-                                    )}
+                                        <span className="font-bold text-purple-700">
+                                            {categorizedCohorts.absent.length} ausente(s) nesta data
+                                        </span>
+                                    </div>
+
+                                    {/* Filtros em Pílulas Claras com Contadores */}
+                                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+                                        <button
+                                            type="button"
+                                            onClick={() => setStudentProfileFilter('all')}
+                                            className={`px-3 py-1 rounded-xl text-2xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 border ${
+                                                studentProfileFilter === 'all'
+                                                    ? 'bg-purple-600 text-white border-purple-700 shadow-xs'
+                                                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                                            }`}
+                                        >
+                                            <span>Todos</span>
+                                            <span className="text-3xs bg-black/10 px-1 py-0.2 rounded-full font-mono">{studentStats.length}</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setStudentProfileFilter('high')}
+                                            className={`px-3 py-1 rounded-xl text-2xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 border ${
+                                                studentProfileFilter === 'high'
+                                                    ? 'bg-amber-500 text-slate-950 font-black border-amber-600 shadow-xs'
+                                                    : 'bg-white text-amber-900 border-amber-200 hover:bg-amber-50'
+                                            }`}
+                                        >
+                                            <span>🌟 Destaques</span>
+                                            <span className="text-3xs bg-black/10 px-1 py-0.2 rounded-full font-mono">{categorizedCohorts.high.length}</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setStudentProfileFilter('helpers')}
+                                            className={`px-3 py-1 rounded-xl text-2xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 border ${
+                                                studentProfileFilter === 'helpers'
+                                                    ? 'bg-emerald-600 text-white font-bold border-emerald-700 shadow-xs'
+                                                    : 'bg-white text-emerald-900 border-emerald-200 hover:bg-emerald-50'
+                                            }`}
+                                        >
+                                            <span>🤝 Monitores</span>
+                                            <span className="text-3xs bg-black/10 px-1 py-0.2 rounded-full font-mono">{categorizedCohorts.helpers.length}</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setStudentProfileFilter('support')}
+                                            className={`px-3 py-1 rounded-xl text-2xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 border ${
+                                                studentProfileFilter === 'support'
+                                                    ? 'bg-rose-600 text-white font-bold border-rose-700 shadow-xs'
+                                                    : 'bg-white text-rose-900 border-rose-200 hover:bg-rose-50'
+                                            }`}
+                                        >
+                                            <span>🎯 Apoio Prioritário</span>
+                                            <span className="text-3xs bg-black/10 px-1 py-0.2 rounded-full font-mono">{categorizedCohorts.support.length}</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setStudentProfileFilter('not_drawn')}
+                                            className={`px-3 py-1 rounded-xl text-2xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 border ${
+                                                studentProfileFilter === 'not_drawn'
+                                                    ? 'bg-indigo-600 text-white font-bold border-indigo-700 shadow-xs'
+                                                    : 'bg-white text-indigo-900 border-indigo-200 hover:bg-indigo-50'
+                                            }`}
+                                        >
+                                            <span>🔍 Não Sorteados</span>
+                                            <span className="text-3xs bg-black/10 px-1 py-0.2 rounded-full font-mono">{categorizedCohorts.notDrawn.length}</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setStudentProfileFilter('absent')}
+                                            className={`px-3 py-1 rounded-xl text-2xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 border ${
+                                                studentProfileFilter === 'absent'
+                                                    ? 'bg-red-700 text-white font-bold border-red-800 shadow-xs'
+                                                    : 'bg-white text-red-900 border-red-200 hover:bg-red-50'
+                                            }`}
+                                        >
+                                            <span>🚫 Ausentes</span>
+                                            <span className="text-3xs bg-black/10 px-1 py-0.2 rounded-full font-mono">{categorizedCohorts.absent.length}</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Grade de Cards Claras dos Alunos */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[480px] overflow-y-auto pr-1.5 custom-scrollbar">
+                                        {filteredStudentsList.length === 0 ? (
+                                            <div className="col-span-full bg-white border border-dashed border-slate-300 p-8 rounded-2xl text-center text-slate-500 text-xs">
+                                                Nenhum estudante encontrado com o filtro ou busca selecionada.
+                                            </div>
+                                        ) : (
+                                            filteredStudentsList.map(student => (
+                                                <div 
+                                                    key={student.id} 
+                                                    className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between gap-3 shadow-xs hover:shadow-md ${
+                                                        student.isAbsent 
+                                                            ? 'bg-rose-50/80 border-2 border-rose-300 text-slate-800' 
+                                                            : 'bg-white border-slate-200/90 hover:border-purple-300 text-slate-800'
+                                                    }`}
+                                                >
+                                                    {/* Cabeçalho do Card */}
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <div className="flex items-center gap-2.5 min-w-0">
+                                                            <div className={`w-9 h-9 rounded-xl font-black text-xs flex items-center justify-center shrink-0 shadow-2xs ${
+                                                                student.isAbsent 
+                                                                    ? 'bg-rose-100 text-rose-700 border border-rose-300' 
+                                                                    : student.isHighPerformer
+                                                                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                                                    : student.isHelper
+                                                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                                                    : student.needsSupport
+                                                                    ? 'bg-rose-100 text-rose-700 border border-rose-300'
+                                                                    : 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                                                            }`}>
+                                                                {student.name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <span className="font-bold text-xs text-slate-900 block truncate" title={student.name}>
+                                                                    {student.name}
+                                                                </span>
+                                                                {student.groupName ? (
+                                                                    <span className="text-[10px] text-indigo-600 font-semibold truncate block">
+                                                                        👥 {student.groupName}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-[10px] text-slate-400 block font-medium">Individual</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Badge Principal */}
+                                                        <div className="shrink-0">
+                                                            {student.isAbsent ? (
+                                                                <span className="text-[10px] bg-rose-100 text-rose-800 font-black px-2 py-0.5 rounded-full border border-rose-300 shadow-2xs flex items-center gap-1">
+                                                                    🚫 Ausente
+                                                                </span>
+                                                            ) : student.isHighPerformer ? (
+                                                                <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 shadow-2xs flex items-center gap-1">
+                                                                    <Star className="w-2.5 h-2.5 text-amber-600" /> Destaque
+                                                                </span>
+                                                            ) : student.isHelper ? (
+                                                                <span className="text-[10px] bg-emerald-100 text-emerald-900 font-bold px-2 py-0.5 rounded-full border border-emerald-300 shadow-2xs flex items-center gap-1">
+                                                                    <HeartHandshake className="w-2.5 h-2.5 text-emerald-600" /> Monitor
+                                                                </span>
+                                                            ) : student.needsSupport ? (
+                                                                <span className="text-[10px] bg-rose-100 text-rose-900 font-bold px-2 py-0.5 rounded-full border border-rose-300 shadow-2xs flex items-center gap-1">
+                                                                    <Target className="w-2.5 h-2.5 text-rose-600" /> Apoio
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full border border-slate-200 font-medium">
+                                                                    ✓ Presente
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Métricas do Estudante */}
+                                                    <div className="text-2xs flex flex-wrap items-center gap-1.5">
+                                                        {student.isAbsent ? (
+                                                            <span className="text-rose-700 font-semibold italic bg-rose-100/70 border border-rose-200 px-2 py-0.5 rounded-md">
+                                                                Ausente em {selectedDate ? selectedDate.split('-').reverse().join('/') : ''} • Pontos coletivos desconsiderados
+                                                            </span>
+                                                        ) : (
+                                                            <>
+                                                                <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-lg font-bold shadow-2xs">
+                                                                    {student.hits} acerto{student.hits !== 1 ? 's' : ''}
+                                                                </span>
+                                                                {student.misses > 0 && (
+                                                                    <span className="bg-rose-50 text-rose-800 border border-rose-200 px-2 py-0.5 rounded-lg font-bold shadow-2xs">
+                                                                        {student.misses} erro{student.misses !== 1 ? 's' : ''}
+                                                                    </span>
+                                                                )}
+                                                                {student.helpedOthers.length > 0 && (
+                                                                    <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-lg font-bold shadow-2xs">
+                                                                        🤝 Ajudou {student.helpedOthers.length}x
+                                                                    </span>
+                                                                )}
+                                                                {student.helpReceived.length > 0 && (
+                                                                    <span className="bg-purple-50 text-purple-800 border border-purple-200 px-2 py-0.5 rounded-lg font-bold shadow-2xs">
+                                                                        🆘 Teve ajuda {student.helpReceived.length}x
+                                                                    </span>
+                                                                )}
+                                                                {!student.participated && student.helpedOthers.length === 0 && (
+                                                                    <span className="text-slate-500 italic bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg font-medium">
+                                                                        Aguardando sorteio
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Ações Rápidas: Alternar Ausente e Parecer IA */}
+                                                    <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleToggleStudentAbsentStatus(student.id, !student.isAbsent)}
+                                                            className={`px-2.5 py-1.5 rounded-xl text-2xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+                                                                student.isAbsent
+                                                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                                                                    : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
+                                                            }`}
+                                                            title={student.isAbsent ? `Tornar aluno presente em ${selectedDate}` : `Marcar aluno ausente em ${selectedDate} (desconsidera pontos do Desafio da Turma)`}
+                                                        >
+                                                            {student.isAbsent ? (
+                                                                <>
+                                                                    <UserCheck className="w-3.5 h-3.5 text-white" />
+                                                                    <span>Tornar Presente</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <UserX className="w-3.5 h-3.5 text-rose-600" />
+                                                                    <span>Marcar Ausente</span>
+                                                                </>
+                                                            )}
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedStudentForAi(student)}
+                                                            className="px-2.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-2xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95"
+                                                            title="Abrir parecer pedagógico individual com IA para este aluno"
+                                                        >
+                                                            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                                                            <span>{studentAiInsights[student.id] ? 'Ver Parecer' : '✨ Parecer IA'}</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -2119,14 +2671,42 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                                     )}
                                                 </td>
                                                 <td className="p-3 text-center">
-                                                    {s.participated ? (
-                                                        <span className="px-2 py-0.5 rounded-full text-2xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                                            Respondeu ({s.totalAnswers}x)
-                                                        </span>
+                                                    {s.isAbsent ? (
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            <span className="px-2 py-0.5 rounded-full text-2xs font-black bg-rose-100 text-rose-800 border border-rose-200">
+                                                                🚫 Ausente
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleToggleStudentAbsentStatus(s.id, false)}
+                                                                className="text-3xs text-emerald-700 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
+                                                                title="Restaurar presença deste aluno"
+                                                            >
+                                                                <UserCheck className="w-2.5 h-2.5" />
+                                                                <span>Tornar Presente</span>
+                                                            </button>
+                                                        </div>
                                                     ) : (
-                                                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-slate-100 text-slate-500">
-                                                            Não Sorteado
-                                                        </span>
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            {s.participated ? (
+                                                                <span className="px-2 py-0.5 rounded-full text-2xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                                    Respondeu ({s.totalAnswers}x)
+                                                                </span>
+                                                            ) : (
+                                                                <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-slate-100 text-slate-500">
+                                                                    Não Sorteado
+                                                                </span>
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleToggleStudentAbsentStatus(s.id, true)}
+                                                                className="text-3xs text-rose-600 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
+                                                                title="Marcar aluno ausente retroativamente (desconsidera pontos do Desafio da Turma)"
+                                                            >
+                                                                <UserX className="w-2.5 h-2.5" />
+                                                                <span>Marcar Ausente</span>
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </td>
                                                 <td className="p-3 text-center font-black text-emerald-600">{s.hits}</td>
