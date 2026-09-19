@@ -18,7 +18,8 @@ import {
     ChevronLeft, 
     ChevronRight,
     Filter,
-    Sparkles
+    Sparkles,
+    BarChart3
 } from 'lucide-react';
 
 export const RouletteSidebar = ({
@@ -40,6 +41,7 @@ export const RouletteSidebar = ({
     onActivateAll,
     onDeactivateAll,
     onOpenHistory,
+    onOpenClassReport,
     onOpenGroupsModal,
     onOpenClassesModal
 }) => {
@@ -188,6 +190,19 @@ export const RouletteSidebar = ({
                             </button>
                         )}
                     </div>
+
+                    {/* Botão de Atalho para o Relatório da Aula & Insights */}
+                    {onOpenClassReport && (
+                        <button
+                            type="button"
+                            onClick={onOpenClassReport}
+                            className="w-full mt-2.5 py-1.5 px-3 bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 hover:from-indigo-100 hover:to-purple-100 border border-indigo-200 text-indigo-900 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer active:scale-95"
+                            title="Ver relatório detalhado da aula atual com insights pedagógicos"
+                        >
+                            <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Relatório da Aula & Insights</span>
+                        </button>
+                    )}
 
                     {/* Campo de Busca Rápida */}
                     <div className="relative mt-3">
