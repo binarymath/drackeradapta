@@ -61,7 +61,7 @@ const STAGE_THEMES = {
 };
 
 export const RouletteActivity = () => {
-    const { activeActivity, classes, setClasses, updateActivityData, addActivityTab } = useActivity();
+    const { activeActivity, classes, setClasses, updateActivityData, addActivityTab, tabs } = useActivity();
     const { geminiService, selectedModel } = useGemini();
     const [showTransitionModal, setShowTransitionModal] = useState(false);
     const [showClassesModal, setShowClassesModal] = useState(false);
@@ -645,6 +645,8 @@ export const RouletteActivity = () => {
             timeFormatted,
             elapsedFormatted,
             sessionId: currentSessionId,
+            activityId: activeActivity?.id || null,
+            topic: activeActivity?.topic || activeActivity?.title || 'Sem tema',
             gameMode,
             type,
             category,
@@ -960,12 +962,17 @@ export const RouletteActivity = () => {
 
         saveClassUpdates(prev => {
             const newStudents = (prev.students || []).map(s => {
+                // Alunos ausentes não devem receber pontuação coletiva do desafio da turma
+                if (s.status === 'absent') return s;
+
                 if (idSet.has(String(s.id))) {
                     const historyEntry = {
                         date: now,
+                        dateStr: new Date(now).toISOString().slice(0, 10),
                         sessionId: currentSessionId,
+                        activityId: activeActivity?.id || null,
                         gameMode,
-                        topic: activeActivity?.topic || 'Sem tema',
+                        topic: activeActivity?.topic || activeActivity?.title || 'Sem tema',
                         question: `[Desafio da Turma] ${questionText}`,
                         result: 'all_correct'
                     };
@@ -995,6 +1002,101 @@ export const RouletteActivity = () => {
         setWinner(null);
     };
 
+    // Alternar presença/ausência de aluno retroativamente por data da aula
+    // Desconsiderando pontos de desafios coletivos para não distorcer a pontuação da turma
+    const handleToggleStudentAbsent = (studentId, isAbsent, targetDate = null) => {
+        const targetDateStr = targetDate || new Date().toISOString().slice(0, 10);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const targetDateTimestamp = targetDate ? new Date(`${targetDate}T12:00:00`).getTime() : Date.now();
+
+        saveClassUpdates(prev => {
+            const newStudents = (prev.students || []).map(s => {
+                if (String(s.id) === String(studentId)) {
+                    let updatedHistory = [...(s.history || [])];
+                    let hitsDelta = 0;
+
+                    const isMatchingDate = (h) => {
+                        if (h.dateStr && h.dateStr === targetDateStr) return true;
+                        if (h.date) {
+                            const dStr = new Date(h.date).toISOString().slice(0, 10);
+                            if (dStr === targetDateStr) return true;
+                        }
+                        if (!targetDate && ((h.sessionId && h.sessionId === currentSessionId) || (sessionStartTime && h.date >= sessionStartTime))) {
+                            return true;
+                        }
+                        return false;
+                    };
+
+                    if (isAbsent) {
+                        // Quando marcado ausente:
+                        // 1. Remover entradas de desafio coletivo ("all_correct") ou pontuações em lote desta data/sessão
+                        const collectiveEntries = updatedHistory.filter(h => 
+                            isMatchingDate(h) && (h.result === 'all_correct' || (h.question && h.question.includes('[Desafio da Turma]')))
+                        );
+                        hitsDelta = collectiveEntries.length;
+
+                        updatedHistory = updatedHistory.filter(h => 
+                            !(isMatchingDate(h) && (h.result === 'all_correct' || (h.question && h.question.includes('[Desafio da Turma]'))))
+                        );
+
+                        // Adiciona registro formal de ausência na sessão/data se ainda não houver
+                        const hasAbsentEntry = updatedHistory.some(h => 
+                            isMatchingDate(h) && h.result === 'absent'
+                        );
+                        if (!hasAbsentEntry) {
+                            updatedHistory.push({
+                                date: targetDateTimestamp,
+                                dateStr: targetDateStr,
+                                sessionId: currentSessionId,
+                                gameMode,
+                                topic: activeActivity?.topic || 'Sem tema',
+                                question: 'Frequência da Aula',
+                                result: 'absent'
+                            });
+                        }
+
+                        return {
+                            ...s,
+                            status: targetDateStr === todayStr ? 'absent' : s.status,
+                            hits: Math.max(0, (s.hits || 0) - hitsDelta),
+                            history: updatedHistory
+                        };
+                    } else {
+                        // Quando desmarcado de ausente (reativado para presente):
+                        updatedHistory = updatedHistory.filter(h => 
+                            !(isMatchingDate(h) && h.result === 'absent')
+                        );
+                        return {
+                            ...s,
+                            status: targetDateStr === todayStr ? 'active' : s.status,
+                            history: updatedHistory
+                        };
+                    }
+                }
+                return s;
+            });
+            return { ...prev, students: newStudents };
+        });
+
+        // Registrar na timeline de ações e toques do professor
+        const studentObj = (currentClass?.students || []).find(s => String(s.id) === String(studentId));
+        const studentName = studentObj?.name || 'Estudante';
+        const formattedDate = new Date(`${targetDateStr}T12:00:00`).toLocaleDateString('pt-BR');
+        logTeacherAction(
+            'absent',
+            isAbsent ? `Ausência em ${formattedDate}` : `Presença em ${formattedDate}`,
+            isAbsent 
+                ? `"${studentName}" foi marcado(a) como ausente na data ${formattedDate}. Pontuações coletivas do Desafio da Turma foram desconsideradas.`
+                : `"${studentName}" foi marcado(a) novamente como presente na data ${formattedDate}.`,
+            {
+                studentId,
+                studentName,
+                isAbsent,
+                date: targetDateStr
+            }
+        );
+    };
+
     // Ação: DINÂMICA "PRECISO DE AJUDA" (Pontuação em dupla com colega ajudante)
     const handleHelpResult = ({ helperStudentId, isCorrect, questionText, helpType = 'colleague' }) => {
         if (!winner) return;
@@ -1020,9 +1122,11 @@ export const RouletteActivity = () => {
                 if (String(s.id) === String(winner.id)) {
                     const historyEntry = {
                         date: now,
+                        dateStr: new Date(now).toISOString().slice(0, 10),
                         sessionId: currentSessionId,
+                        activityId: activeActivity?.id || null,
                         gameMode,
-                        topic: activeActivity?.topic || 'Sem tema',
+                        topic: activeActivity?.topic || activeActivity?.title || 'Sem tema',
                         question: `${questionText} [Ajuda: ${helpDescription}]`,
                         result: isCorrect ? 'help_correct' : 'incorrect',
                         helperName: helperName || undefined,
@@ -1043,9 +1147,11 @@ export const RouletteActivity = () => {
                 if (helperStudentId && String(s.id) === String(helperStudentId)) {
                     const helperHistoryEntry = {
                         date: now,
+                        dateStr: new Date(now).toISOString().slice(0, 10),
                         sessionId: currentSessionId,
+                        activityId: activeActivity?.id || null,
                         gameMode,
-                        topic: activeActivity?.topic || 'Sem tema',
+                        topic: activeActivity?.topic || activeActivity?.title || 'Sem tema',
                         question: `Ajudou ${winner.name} em: ${questionText}`,
                         result: isCorrect ? 'help_correct' : 'incorrect',
                         helpedStudent: winner.name,
@@ -1231,7 +1337,9 @@ export const RouletteActivity = () => {
 
         const groupHistoryEntry = {
             date: now,
+            dateStr: new Date(now).toISOString().slice(0, 10),
             sessionId: currentSessionId,
+            activityId: activeActivity?.id || null,
             gameMode: 'groups',
             topic: topic,
             question: questionText,
@@ -1243,7 +1351,9 @@ export const RouletteActivity = () => {
 
         const studentHistoryEntry = {
             date: now,
+            dateStr: new Date(now).toISOString().slice(0, 10),
             sessionId: currentSessionId,
+            activityId: activeActivity?.id || null,
             gameMode: 'groups',
             topic: topic,
             question: `[Equipe ${groupName}] ${questionText}`,
@@ -1905,6 +2015,8 @@ export const RouletteActivity = () => {
                 geminiService={geminiService}
                 selectedModel={selectedModel}
                 interactionLogs={interactionLogs}
+                onToggleStudentAbsent={handleToggleStudentAbsent}
+                tabs={tabs}
             />
 
             <RouletteQuestionsEditorModal 
