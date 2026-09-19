@@ -4,7 +4,8 @@ import {
     BarChart3, HelpCircle, Sparkles, AlertTriangle, Printer, Download, 
     Copy, Check, Filter, Calendar, Clock, Trophy, Target, ArrowRight, 
     BookOpen, Star, FileText, Bot, Layers, Info,
-    Shuffle, RotateCcw, RotateCw, Search, Flame, Eye, EyeOff, UserMinus, UserCheck, UserX
+    Shuffle, RotateCcw, RotateCw, Search, Flame, Eye, EyeOff, UserMinus, UserCheck, UserX,
+    ChevronDown, ChevronUp, List, Tag
 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
@@ -43,16 +44,30 @@ export const ClassSessionReportModal = ({
     const availableActivities = useMemo(() => {
         const map = new Map();
 
-        // 1. Atividade ativa atual
+        // 1. Atividade ativa atual ou atividade padrão da sessão
         if (activeActivity) {
             const id = String(activeActivity.id || 'current_activity');
             const actTitle = activeActivity.title || activeActivity.topic || 'Atividade Atual';
+            const qCount = (activeActivity.questions || []).length || (questions || []).length;
             map.set(id, {
                 id,
                 title: actTitle,
                 topic: activeActivity.topic || activeActivity.title || '',
                 type: activeActivity.type || 'roulette',
-                isCurrent: true
+                isCurrent: true,
+                questionCount: qCount,
+                source: 'Atividade Atual'
+            });
+        } else if (questions && questions.length > 0) {
+            const id = 'current_activity';
+            map.set(id, {
+                id,
+                title: 'Atividade da Roleta',
+                topic: 'Conteúdo da Roleta',
+                type: 'roulette',
+                isCurrent: true,
+                questionCount: questions.length,
+                source: 'Atividade Atual'
             });
         }
 
@@ -61,12 +76,15 @@ export const ClassSessionReportModal = ({
             if (!tab || tab.id === 'about_system' || tab.id === 'dashboard' || tab.id === 'merge_pdf') return;
             const id = String(tab.id);
             if (!map.has(id)) {
+                const qCount = (tab.questions || tab.data?.questions || []).length;
                 map.set(id, {
                     id,
                     title: tab.title || tab.topic || `Atividade #${id}`,
                     topic: tab.topic || tab.title || '',
                     type: tab.type || 'roulette',
-                    isCurrent: activeActivity && String(activeActivity.id) === id
+                    isCurrent: activeActivity && String(activeActivity.id) === id,
+                    questionCount: qCount,
+                    source: 'Aba Aberta'
                 });
             }
         });
@@ -88,7 +106,9 @@ export const ClassSessionReportModal = ({
                                 title: cleanTopic,
                                 topic: cleanTopic,
                                 type: 'history',
-                                isFromHistory: true
+                                isFromHistory: true,
+                                questionCount: 0,
+                                source: 'Histórico'
                             });
                         }
                     }
@@ -96,11 +116,32 @@ export const ClassSessionReportModal = ({
             });
         });
 
+        // 4. Fallback: Se nenhuma atividade for mapeada, cria a atividade ativa padrão da sessão
+        if (map.size === 0) {
+            const id = 'current_activity';
+            map.set(id, {
+                id,
+                title: activeActivity?.title || activeActivity?.topic || 'Atividade da Roleta',
+                topic: activeActivity?.topic || 'Conteúdo da Roleta',
+                type: 'roulette',
+                isCurrent: true,
+                questionCount: (questions || []).length,
+                source: 'Atividade Atual'
+            });
+        }
+
         return Array.from(map.values());
-    }, [activeActivity, tabs, currentClass]);
+    }, [activeActivity, tabs, currentClass, questions]);
 
     // IDs de atividades selecionadas para análise conjunta ([] vazio = todas selecionadas)
     const [selectedActivityIds, setSelectedActivityIds] = useState([]);
+
+    // Modo de visualização de atividades analisadas: 'list' (estruturada) | 'tags' (pílulas compactas)
+    const [activityViewMode, setActivityViewMode] = useState('list');
+    // Estado de recolhimento para liberar espaço para KPIs
+    const [isActivitySelectorCollapsed, setIsActivitySelectorCollapsed] = useState(false);
+    // Busca de atividades quando houver muitas opções
+    const [activitySearchTerm, setActivitySearchTerm] = useState('');
 
     const effectiveSelectedActivityIds = useMemo(() => {
         if (selectedActivityIds.length === 0) {
@@ -1628,85 +1669,293 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                 {/* ============================================================ */}
                 {/* 1.1 SELETOR DE ATIVIDADES CONJUNTAS (Análise Multiatividade) */}
                 {/* ============================================================ */}
+                {/* ============================================================ */}
+                {/* 1.1 SELETOR DE ATIVIDADES CONJUNTAS (Análise Multiatividade) */}
+                {/* ============================================================ */}
                 {availableActivities.length > 0 && (
-                    <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-2xs space-y-2">
+                    <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-2xs space-y-2.5 transition-all">
+                        {/* Barra Superior do Seletor */}
                         <div className="flex items-center justify-between gap-2 flex-wrap">
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <div className="w-6 h-6 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shadow-2xs">
                                     <Layers className="w-3.5 h-3.5" />
                                 </div>
-                                <span className="text-xs font-bold text-slate-800">
+                                <span className="text-xs font-black text-slate-800">
                                     Atividades Analisadas Juntas:
                                 </span>
-                                <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                                <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200 shadow-2xs">
                                     {effectiveSelectedActivityIds.length} de {availableActivities.length} selecionada(s)
                                 </span>
                             </div>
-                            {availableActivities.length > 1 && (
-                                <div className="flex items-center gap-1.5 text-xs">
-                                    <button
-                                        type="button"
-                                        onClick={selectAllActivities}
-                                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
-                                            selectedActivityIds.length === 0
-                                                ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                                        }`}
-                                        title="Analisar todas as atividades juntas"
-                                    >
-                                        Selecionar Todas
-                                    </button>
-                                    {activeActivity && (
+
+                            {/* Controles de Seleção e Alternador de Visão */}
+                            <div className="flex items-center gap-1.5 text-xs flex-wrap">
+                                {availableActivities.length > 1 && (
+                                    <>
                                         <button
                                             type="button"
-                                            onClick={selectCurrentActivityOnly}
-                                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
-                                                selectedActivityIds.length === 1 && selectedActivityIds[0] === String(activeActivity.id || 'current_activity')
-                                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                            onClick={selectAllActivities}
+                                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border shadow-2xs ${
+                                                selectedActivityIds.length === 0
+                                                    ? 'bg-purple-100 text-purple-800 border-purple-300'
                                                     : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                                             }`}
-                                            title="Analisar apenas a atividade atualmente aberta"
+                                            title="Analisar todas as atividades juntas"
                                         >
-                                            Apenas Atual
+                                            Selecionar Todas
                                         </button>
-                                    )}
-                                </div>
-                            )}
+
+                                        {selectedActivityIds.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedActivityIds([availableActivities[0]?.id])}
+                                                className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 shadow-2xs"
+                                                title="Manter apenas a primeira atividade selecionada"
+                                            >
+                                                Limpar
+                                            </button>
+                                        )}
+
+                                        {activeActivity && (
+                                            <button
+                                                type="button"
+                                                onClick={selectCurrentActivityOnly}
+                                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer border shadow-2xs ${
+                                                    selectedActivityIds.length === 1 && selectedActivityIds[0] === String(activeActivity.id || 'current_activity')
+                                                        ? 'bg-purple-100 text-purple-800 border-purple-300'
+                                                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                                }`}
+                                                title="Analisar apenas a atividade atualmente aberta"
+                                            >
+                                                Apenas Atual
+                                            </button>
+                                        )}
+
+                                        {/* Alternador de Visão: Lista Estruturada vs Tags */}
+                                        <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-200 shadow-2xs ml-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => setActivityViewMode('list')}
+                                                className={`px-2 py-0.8 rounded-lg text-2xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                                    activityViewMode === 'list'
+                                                        ? 'bg-white text-purple-700 shadow-xs border border-purple-200'
+                                                        : 'text-slate-500 hover:text-slate-800'
+                                                }`}
+                                                title="Visão em Lista Estruturada com títulos completos e numeração"
+                                            >
+                                                <List className="w-3 h-3" />
+                                                <span>Lista</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setActivityViewMode('tags')}
+                                                className={`px-2 py-0.8 rounded-lg text-2xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                                                    activityViewMode === 'tags'
+                                                        ? 'bg-white text-purple-700 shadow-xs border border-purple-200'
+                                                        : 'text-slate-500 hover:text-slate-800'
+                                                }`}
+                                                title="Visão em Pílulas Compactas"
+                                            >
+                                                <Tag className="w-3 h-3" />
+                                                <span>Tags</span>
+                                            </button>
+                                        </div>
+
+                                        {/* Botão de Recolher / Expandir Seletor */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsActivitySelectorCollapsed(prev => !prev)}
+                                            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer border border-transparent hover:border-slate-200 ml-0.5"
+                                            title={isActivitySelectorCollapsed ? "Expandir seletor de atividades" : "Recolher seletor de atividades para poupar espaço"}
+                                        >
+                                            {isActivitySelectorCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar flex-wrap">
-                            {availableActivities.map(act => {
-                                const isSelected = effectiveSelectedActivityIds.includes(act.id);
-                                return (
-                                    <button
-                                        key={act.id}
-                                        type="button"
-                                        onClick={() => toggleActivitySelection(act.id)}
-                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border shadow-2xs ${
-                                            isSelected 
-                                                ? 'bg-purple-600 text-white border-purple-700 shadow-xs' 
-                                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                                        }`}
-                                        title={act.title || act.topic}
-                                    >
-                                        <span>{isSelected ? '✓' : '+'}</span>
-                                        <span className="truncate max-w-[220px]">
-                                            {act.title || act.topic}
-                                        </span>
-                                        {act.isCurrent && (
-                                            <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.2 rounded-full font-medium">
-                                                Atual
-                                            </span>
+                        {/* Visão Resumida quando recolhido */}
+                        {isActivitySelectorCollapsed && (
+                            <div className="text-2xs text-slate-500 flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                                <div className="flex items-center gap-1.5 overflow-hidden text-ellipsis whitespace-nowrap">
+                                    <span className="font-semibold text-slate-700">Atividades incluídas:</span>
+                                    <span className="text-purple-700 font-medium truncate">
+                                        {effectiveSelectedActivityIds.length === availableActivities.length
+                                            ? `Todas as ${availableActivities.length} atividades estão incluídas na análise conjunta.`
+                                            : availableActivities
+                                                .filter(a => effectiveSelectedActivityIds.includes(a.id))
+                                                .map(a => a.title || a.topic)
+                                                .join(' • ')}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsActivitySelectorCollapsed(false)}
+                                    className="text-purple-600 hover:text-purple-800 font-bold shrink-0 text-3xs underline cursor-pointer"
+                                >
+                                    Gerenciar
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Conteúdo Expandido */}
+                        {!isActivitySelectorCollapsed && (
+                            <>
+                                {/* Campo de busca rápida se houver mais de 3 atividades */}
+                                {availableActivities.length > 3 && (
+                                    <div className="relative">
+                                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            value={activitySearchTerm}
+                                            onChange={e => setActivitySearchTerm(e.target.value)}
+                                            placeholder="Buscar atividade por título ou tema..."
+                                            className="w-full pl-7 pr-7 py-1 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-400 shadow-2xs"
+                                        />
+                                        {activitySearchTerm && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setActivitySearchTerm('')}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs cursor-pointer"
+                                            >
+                                                ✕
+                                            </button>
                                         )}
-                                        {act.isFromHistory && (
-                                            <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full font-medium">
-                                                Histórico
-                                            </span>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
+                                    </div>
+                                )}
+
+                                {/* MODO 1: VISÃO LISTA ESTRUTURADA (Títulos legíveis, numeração, badges de tipo) */}
+                                {activityViewMode === 'list' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                                        {availableActivities
+                                            .filter(act => {
+                                                if (!activitySearchTerm.trim()) return true;
+                                                const query = activitySearchTerm.toLowerCase();
+                                                return (act.title || '').toLowerCase().includes(query) || (act.topic || '').toLowerCase().includes(query);
+                                            })
+                                            .map((act, idx) => {
+                                                const isSelected = effectiveSelectedActivityIds.includes(act.id);
+                                                return (
+                                                    <div
+                                                        key={act.id}
+                                                        onClick={() => toggleActivitySelection(act.id)}
+                                                        className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs select-none ${
+                                                            isSelected 
+                                                                ? 'bg-purple-50/70 border-purple-300 text-slate-900 shadow-xs ring-1 ring-purple-400/30' 
+                                                                : 'bg-slate-50/60 border-slate-200 hover:border-slate-300 text-slate-600 opacity-75 hover:opacity-100'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                                            {/* Checkbox Indicador */}
+                                                            <div className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                                                                isSelected 
+                                                                    ? 'bg-purple-600 text-white shadow-2xs' 
+                                                                    : 'bg-white border border-slate-300 text-transparent'
+                                                            }`}>
+                                                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                                            </div>
+
+                                                            {/* Título & Numeração */}
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                                    <span className={`text-[10px] font-mono font-black px-1.5 py-0.2 rounded-md ${
+                                                                        isSelected ? 'bg-purple-200/80 text-purple-900' : 'bg-slate-200 text-slate-600'
+                                                                    }`}>
+                                                                        #{idx + 1}
+                                                                    </span>
+                                                                    <span className={`text-xs font-bold leading-snug line-clamp-2 ${
+                                                                        isSelected ? 'text-slate-900' : 'text-slate-700'
+                                                                    }`} title={act.title || act.topic}>
+                                                                        {act.title || act.topic}
+                                                                    </span>
+                                                                </div>
+                                                                {act.topic && act.title !== act.topic && (
+                                                                    <span className="text-[10px] text-slate-400 truncate block mt-0.5">
+                                                                        {act.topic}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Badges de Origem / Questões */}
+                                                        <div className="flex items-center gap-1.5 shrink-0">
+                                                            {act.isCurrent && (
+                                                                <span className="text-[10px] bg-purple-100 text-purple-800 border border-purple-200 px-2 py-0.5 rounded-full font-bold shadow-2xs">
+                                                                    🎯 Atual
+                                                                </span>
+                                                            )}
+                                                            {act.isFromHistory && (
+                                                                <span className="text-[10px] bg-slate-200/80 text-slate-700 border border-slate-300 px-2 py-0.5 rounded-full font-medium shadow-2xs">
+                                                                    📂 Histórico
+                                                                </span>
+                                                            )}
+                                                            {!act.isCurrent && !act.isFromHistory && (
+                                                                <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full font-medium shadow-2xs">
+                                                                    📑 Aba
+                                                                </span>
+                                                            )}
+                                                            {act.questionCount > 0 && (
+                                                                <span className="text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded-md font-mono font-semibold shadow-2xs" title={`${act.questionCount} questões nesta atividade`}>
+                                                                    {act.questionCount}q
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                    </div>
+                                )}
+
+                                {/* MODO 2: VISÃO PÍLULAS COMPACTAS (Refatorada e sem corte feio) */}
+                                {activityViewMode === 'tags' && (
+                                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar flex-wrap">
+                                        {availableActivities
+                                            .filter(act => {
+                                                if (!activitySearchTerm.trim()) return true;
+                                                const query = activitySearchTerm.toLowerCase();
+                                                return (act.title || '').toLowerCase().includes(query) || (act.topic || '').toLowerCase().includes(query);
+                                            })
+                                            .map((act, idx) => {
+                                                const isSelected = effectiveSelectedActivityIds.includes(act.id);
+                                                return (
+                                                    <button
+                                                        key={act.id}
+                                                        type="button"
+                                                        onClick={() => toggleActivitySelection(act.id)}
+                                                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border shadow-2xs ${
+                                                            isSelected 
+                                                                ? 'bg-purple-100 text-purple-900 border-purple-300 shadow-xs' 
+                                                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                                        }`}
+                                                        title={act.title || act.topic}
+                                                    >
+                                                        <span className={`w-4 h-4 rounded-md flex items-center justify-center text-[10px] font-bold ${
+                                                            isSelected ? 'bg-purple-600 text-white' : 'bg-slate-200 text-slate-600'
+                                                        }`}>
+                                                            {isSelected ? '✓' : '+'}
+                                                        </span>
+                                                        <span className="text-3xs font-mono font-semibold text-slate-400">#{idx + 1}</span>
+                                                        <span className="truncate max-w-[200px]">
+                                                            {act.title || act.topic}
+                                                        </span>
+                                                        {act.isCurrent && (
+                                                            <span className="text-[10px] bg-purple-200 text-purple-800 px-1.5 py-0.2 rounded-full font-bold">
+                                                                Atual
+                                                            </span>
+                                                        )}
+                                                        {act.isFromHistory && (
+                                                            <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full font-medium">
+                                                                Histórico
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </div>
                 )}
 
@@ -2213,7 +2462,7 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                     </div>
 
                                     {/* Grade de Cards Claras dos Alunos */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[480px] overflow-y-auto pr-1.5 custom-scrollbar">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto pr-1.5 custom-scrollbar">
                                         {filteredStudentsList.length === 0 ? (
                                             <div className="col-span-full bg-white border border-dashed border-slate-300 p-8 rounded-2xl text-center text-slate-500 text-xs">
                                                 Nenhum estudante encontrado com o filtro ou busca selecionada.
@@ -2222,7 +2471,7 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                             filteredStudentsList.map(student => (
                                                 <div 
                                                     key={student.id} 
-                                                    className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between gap-3 shadow-xs hover:shadow-md ${
+                                                    className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between gap-2.5 shadow-xs hover:shadow-md h-full min-h-[148px] ${
                                                         student.isAbsent 
                                                             ? 'bg-rose-50/80 border-2 border-rose-300 text-slate-800' 
                                                             : 'bg-white border-slate-200/90 hover:border-purple-300 text-slate-800'
@@ -2249,97 +2498,136 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                                                     {student.name}
                                                                 </span>
                                                                 {student.groupName ? (
-                                                                    <span className="text-[10px] text-indigo-600 font-semibold truncate block">
-                                                                        👥 {student.groupName}
+                                                                    <span className="text-[10px] text-indigo-600 font-semibold truncate flex items-center gap-1">
+                                                                        <Users className="w-2.5 h-2.5 shrink-0" />
+                                                                        <span className="truncate">{student.groupName}</span>
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="text-[10px] text-slate-400 block font-medium">Individual</span>
+                                                                    <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                                                                        <User className="w-2.5 h-2.5 shrink-0" />
+                                                                        <span>Individual</span>
+                                                                    </span>
                                                                 )}
                                                             </div>
                                                         </div>
 
-                                                        {/* Badge Principal */}
+                                                        {/* Badge Principal com Símbolos Priorizados */}
                                                         <div className="shrink-0">
                                                             {student.isAbsent ? (
-                                                                <span className="text-[10px] bg-rose-100 text-rose-800 font-black px-2 py-0.5 rounded-full border border-rose-300 shadow-2xs flex items-center gap-1">
-                                                                    🚫 Ausente
+                                                                <span className="text-[10px] bg-rose-100 text-rose-800 font-black px-2 py-0.5 rounded-full border border-rose-300 shadow-2xs flex items-center gap-1" title="Ausente nesta data">
+                                                                    <UserX className="w-3 h-3 text-rose-600" />
+                                                                    <span>Ausente</span>
                                                                 </span>
                                                             ) : student.isHighPerformer ? (
-                                                                <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 shadow-2xs flex items-center gap-1">
-                                                                    <Star className="w-2.5 h-2.5 text-amber-600" /> Destaque
+                                                                <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300 shadow-2xs flex items-center gap-1" title="Aluno Destaque">
+                                                                    <Star className="w-3 h-3 text-amber-600 fill-amber-500" />
+                                                                    <span>Destaque</span>
                                                                 </span>
                                                             ) : student.isHelper ? (
-                                                                <span className="text-[10px] bg-emerald-100 text-emerald-900 font-bold px-2 py-0.5 rounded-full border border-emerald-300 shadow-2xs flex items-center gap-1">
-                                                                    <HeartHandshake className="w-2.5 h-2.5 text-emerald-600" /> Monitor
+                                                                <span className="text-[10px] bg-emerald-100 text-emerald-900 font-bold px-2 py-0.5 rounded-full border border-emerald-300 shadow-2xs flex items-center gap-1" title="Monitor / Solidariedade">
+                                                                    <HeartHandshake className="w-3 h-3 text-emerald-600" />
+                                                                    <span>Monitor</span>
                                                                 </span>
                                                             ) : student.needsSupport ? (
-                                                                <span className="text-[10px] bg-rose-100 text-rose-900 font-bold px-2 py-0.5 rounded-full border border-rose-300 shadow-2xs flex items-center gap-1">
-                                                                    <Target className="w-2.5 h-2.5 text-rose-600" /> Apoio
+                                                                <span className="text-[10px] bg-rose-100 text-rose-900 font-bold px-2 py-0.5 rounded-full border border-rose-300 shadow-2xs flex items-center gap-1" title="Apoio Pedagógico Prioritário">
+                                                                    <Target className="w-3 h-3 text-rose-600" />
+                                                                    <span>Apoio</span>
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full border border-slate-200 font-medium">
-                                                                    ✓ Presente
+                                                                <span className="text-[10px] bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200 font-semibold shadow-2xs flex items-center gap-1" title="Presente na aula">
+                                                                    <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
+                                                                    <span>Presente</span>
                                                                 </span>
                                                             )}
                                                         </div>
                                                     </div>
 
-                                                    {/* Métricas do Estudante */}
-                                                    <div className="text-2xs flex flex-wrap items-center gap-1.5">
+                                                    {/* Métricas do Estudante - Priorizando Símbolos a Textos */}
+                                                    <div className="flex flex-wrap items-center gap-1.5 py-0.5">
                                                         {student.isAbsent ? (
-                                                            <span className="text-rose-700 font-semibold italic bg-rose-100/70 border border-rose-200 px-2 py-0.5 rounded-md">
-                                                                Ausente em {selectedDate ? selectedDate.split('-').reverse().join('/') : ''} • Pontos coletivos desconsiderados
-                                                            </span>
+                                                            <div className="text-2xs text-rose-700 font-semibold italic bg-rose-100/60 border border-rose-200 px-2 py-1 rounded-lg flex items-center gap-1.5 w-full">
+                                                                <UserX className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                                                <span className="truncate">Ausente em {selectedDate ? selectedDate.split('-').reverse().join('/') : ''}</span>
+                                                            </div>
                                                         ) : (
                                                             <>
-                                                                <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-lg font-bold shadow-2xs">
-                                                                    {student.hits} acerto{student.hits !== 1 ? 's' : ''}
+                                                                {/* Acertos (Símbolo em Destaque) */}
+                                                                <span 
+                                                                    title={`${student.hits} acerto(s)`} 
+                                                                    className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-200/90 px-2 py-0.5 rounded-lg text-xs font-black shadow-2xs"
+                                                                >
+                                                                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                                                    <span>{student.hits}</span>
                                                                 </span>
+
+                                                                {/* Erros (Símbolo em Destaque se houver) */}
                                                                 {student.misses > 0 && (
-                                                                    <span className="bg-rose-50 text-rose-800 border border-rose-200 px-2 py-0.5 rounded-lg font-bold shadow-2xs">
-                                                                        {student.misses} erro{student.misses !== 1 ? 's' : ''}
+                                                                    <span 
+                                                                        title={`${student.misses} erro(s)`} 
+                                                                        className="inline-flex items-center gap-1 bg-rose-50 text-rose-800 border border-rose-200/90 px-2 py-0.5 rounded-lg text-xs font-black shadow-2xs"
+                                                                    >
+                                                                        <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                                                        <span>{student.misses}</span>
                                                                     </span>
                                                                 )}
+
+                                                                {/* Ajudou Outros Colegas */}
                                                                 {student.helpedOthers.length > 0 && (
-                                                                    <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-lg font-bold shadow-2xs">
-                                                                        🤝 Ajudou {student.helpedOthers.length}x
+                                                                    <span 
+                                                                        title={`Ajudou outros alunos ${student.helpedOthers.length}x`} 
+                                                                        className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 border border-blue-200/90 px-2 py-0.5 rounded-lg text-xs font-black shadow-2xs"
+                                                                    >
+                                                                        <HeartHandshake className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                                                        <span>{student.helpedOthers.length}</span>
                                                                     </span>
                                                                 )}
+
+                                                                {/* Teve Ajuda */}
                                                                 {student.helpReceived.length > 0 && (
-                                                                    <span className="bg-purple-50 text-purple-800 border border-purple-200 px-2 py-0.5 rounded-lg font-bold shadow-2xs">
-                                                                        🆘 Teve ajuda {student.helpReceived.length}x
+                                                                    <span 
+                                                                        title={`Recebeu ajuda ${student.helpReceived.length}x`} 
+                                                                        className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 border border-purple-200/90 px-2 py-0.5 rounded-lg text-xs font-black shadow-2xs"
+                                                                    >
+                                                                        <HelpCircle className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                                                                        <span>{student.helpReceived.length}</span>
                                                                     </span>
                                                                 )}
+
+                                                                {/* Aguardando Sorteio na Roleta */}
                                                                 {!student.participated && student.helpedOthers.length === 0 && (
-                                                                    <span className="text-slate-500 italic bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg font-medium">
-                                                                        Aguardando sorteio
+                                                                    <span 
+                                                                        title="Aguardando sorteio na roleta" 
+                                                                        className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 border border-slate-200/90 px-2 py-0.5 rounded-lg text-xs font-medium shadow-2xs"
+                                                                    >
+                                                                        <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                                        <span className="text-2xs text-slate-500 font-medium">Aguardando</span>
                                                                     </span>
                                                                 )}
                                                             </>
                                                         )}
                                                     </div>
 
-                                                    {/* Ações Rápidas: Alternar Ausente e Parecer IA */}
-                                                    <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+                                                    {/* Ações Rápidas: Alternar Ausente e Parecer IA (Layout Anti-Quebra com Símbolos Priorizados) */}
+                                                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
                                                         <button
                                                             type="button"
                                                             onClick={() => handleToggleStudentAbsentStatus(student.id, !student.isAbsent)}
-                                                            className={`px-2.5 py-1.5 rounded-xl text-2xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+                                                            className={`flex-1 py-1.5 px-2 rounded-xl text-2xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 whitespace-nowrap ${
                                                                 student.isAbsent
-                                                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                                                                    : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
+                                                                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs border border-emerald-700'
+                                                                    : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 hover:border-rose-300'
                                                             }`}
-                                                            title={student.isAbsent ? `Tornar aluno presente em ${selectedDate}` : `Marcar aluno ausente em ${selectedDate} (desconsidera pontos do Desafio da Turma)`}
+                                                            title={student.isAbsent ? `Tornar ${student.name} presente em ${selectedDate}` : `Marcar ${student.name} como ausente em ${selectedDate} (desconsidera pontos do Desafio da Turma)`}
                                                         >
                                                             {student.isAbsent ? (
                                                                 <>
-                                                                    <UserCheck className="w-3.5 h-3.5 text-white" />
-                                                                    <span>Tornar Presente</span>
+                                                                    <UserCheck className="w-3.5 h-3.5 text-white shrink-0" />
+                                                                    <span>Presente</span>
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <UserX className="w-3.5 h-3.5 text-rose-600" />
-                                                                    <span>Marcar Ausente</span>
+                                                                    <UserX className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                                                    <span>Ausente</span>
                                                                 </>
                                                             )}
                                                         </button>
@@ -2347,11 +2635,15 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                                         <button
                                                             type="button"
                                                             onClick={() => setSelectedStudentForAi(student)}
-                                                            className="px-2.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-2xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95"
+                                                            className={`flex-1 py-1.5 px-2 rounded-xl text-2xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-95 whitespace-nowrap border ${
+                                                                studentAiInsights[student.id] 
+                                                                    ? 'bg-purple-100 hover:bg-purple-200 text-purple-900 border-purple-300' 
+                                                                    : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 hover:border-purple-300'
+                                                            }`}
                                                             title="Abrir parecer pedagógico individual com IA para este aluno"
                                                         >
-                                                            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                                                            <span>{studentAiInsights[student.id] ? 'Ver Parecer' : '✨ Parecer IA'}</span>
+                                                            <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                                                            <span>{studentAiInsights[student.id] ? 'Ver Parecer' : 'Parecer IA'}</span>
                                                         </button>
                                                     </div>
                                                 </div>
