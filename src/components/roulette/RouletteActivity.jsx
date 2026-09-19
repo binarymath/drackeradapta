@@ -10,7 +10,8 @@ import { TransitionQuestionsModal } from '../modals/TransitionQuestionsModal';
 import { ClassesManagerModal } from './ClassesManagerModal';
 import { GroupsManagerModal } from './GroupsManagerModal';
 import { RouletteSidebar } from './RouletteSidebar';
-import { CheckCircle, XCircle, RotateCcw, List, Download, UserX, Edit3, RotateCw, RefreshCw, Eye, EyeOff, HeartHandshake, Award, Maximize2, Minimize2, Users, Plus, Minus, Target, UserMinus, Sparkles, AlertTriangle, User, Trophy, ChevronRight, ChevronLeft } from 'lucide-react';
+import { ClassSessionReportModal } from './ClassSessionReportModal';
+import { CheckCircle, XCircle, RotateCcw, List, Download, UserX, Edit3, RotateCw, RefreshCw, Eye, EyeOff, HeartHandshake, Award, Maximize2, Minimize2, Users, Plus, Minus, Target, UserMinus, Sparkles, AlertTriangle, User, Trophy, ChevronRight, ChevronLeft, BarChart3 } from 'lucide-react';
 import { gameAudio } from '../../utils/gameAudio';
 
 // Temas visuais imersivos para o palco de fundo da roleta
@@ -65,6 +66,9 @@ export const RouletteActivity = () => {
     const [showTransitionModal, setShowTransitionModal] = useState(false);
     const [showClassesModal, setShowClassesModal] = useState(false);
     const [showGroupsModal, setShowGroupsModal] = useState(false);
+    const [showClassReportModal, setShowClassReportModal] = useState(false);
+    const [currentSessionId] = useState(() => 'sess_' + Date.now());
+    const [sessionStartTime] = useState(() => Date.now());
     
     // Modo de jogo da Roleta: 'individual' (alunos) | 'groups' (equipes)
     const [gameMode, setGameMode] = useState(() => {
@@ -681,6 +685,8 @@ export const RouletteActivity = () => {
         const isMerit = reason === 'merit' || delta > 0;
         const historyEntry = {
             date: Date.now(),
+            sessionId: currentSessionId,
+            gameMode,
             topic: activeActivity?.topic || 'Sem tema',
             question: isMerit 
                 ? 'Bônus por Mérito (+1 Ponto)' 
@@ -726,6 +732,8 @@ export const RouletteActivity = () => {
         
         const historyEntry = {
             date: Date.now(),
+            sessionId: currentSessionId,
+            gameMode,
             topic: activeActivity?.topic || 'Sem tema',
             question: winner.question,
             result: resultType // 'correct', 'incorrect', 'absent'
@@ -760,6 +768,8 @@ export const RouletteActivity = () => {
                 if (idSet.has(String(s.id))) {
                     const historyEntry = {
                         date: now,
+                        sessionId: currentSessionId,
+                        gameMode,
                         topic: activeActivity?.topic || 'Sem tema',
                         question: `[Desafio da Turma] ${questionText}`,
                         result: 'all_correct'
@@ -805,6 +815,8 @@ export const RouletteActivity = () => {
                 if (String(s.id) === String(winner.id)) {
                     const historyEntry = {
                         date: now,
+                        sessionId: currentSessionId,
+                        gameMode,
                         topic: activeActivity?.topic || 'Sem tema',
                         question: `${questionText} [Ajuda: ${helpDescription}]`,
                         result: isCorrect ? 'help_correct' : 'incorrect',
@@ -826,6 +838,8 @@ export const RouletteActivity = () => {
                 if (helperStudentId && String(s.id) === String(helperStudentId)) {
                     const helperHistoryEntry = {
                         date: now,
+                        sessionId: currentSessionId,
+                        gameMode,
                         topic: activeActivity?.topic || 'Sem tema',
                         question: `Ajudou ${winner.name} em: ${questionText}`,
                         result: isCorrect ? 'help_correct' : 'incorrect',
@@ -898,6 +912,8 @@ export const RouletteActivity = () => {
 
         const groupHistoryEntry = {
             date: now,
+            sessionId: currentSessionId,
+            gameMode: 'groups',
             topic,
             question: label,
             result: isMerit ? 'merit' : 'rule_violation',
@@ -907,6 +923,8 @@ export const RouletteActivity = () => {
 
         const studentHistoryEntry = {
             date: now,
+            sessionId: currentSessionId,
+            gameMode: 'groups',
             topic,
             question: label,
             result: isMerit ? 'group_activity' : 'rule_violation',
@@ -971,6 +989,8 @@ export const RouletteActivity = () => {
 
         const groupHistoryEntry = {
             date: now,
+            sessionId: currentSessionId,
+            gameMode: 'groups',
             topic: topic,
             question: questionText,
             result: isCorrect ? 'correct' : 'incorrect',
@@ -981,6 +1001,8 @@ export const RouletteActivity = () => {
 
         const studentHistoryEntry = {
             date: now,
+            sessionId: currentSessionId,
+            gameMode: 'groups',
             topic: topic,
             question: `[Equipe ${groupName}] ${questionText}`,
             result: isCorrect ? 'group_activity' : 'incorrect',
@@ -1227,10 +1249,12 @@ export const RouletteActivity = () => {
                     </button>
 
                     <button 
-                        onClick={handleDownloadCSV}
-                        className="flex items-center gap-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-colors shadow-2xs"
+                        onClick={() => setShowClassReportModal(true)}
+                        className="flex items-center gap-2 bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 hover:from-indigo-100 hover:to-purple-100 text-indigo-900 border border-indigo-200/90 px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all shadow-2xs active:scale-95 cursor-pointer"
+                        title="Abrir Relatório de Aula com resumo da turma, questões trabalhadas, participação e parecer pedagógico"
                     >
-                        <Download className="w-4 h-4" /> Baixar Relatório
+                        <BarChart3 className="w-4 h-4 text-indigo-600" />
+                        <span>Relatório da Aula & Insights</span>
                     </button>
 
                     {/* Botão de Destaque na Barra Superior para Abrir a Lateral de Alunos & Placar */}
@@ -1528,6 +1552,7 @@ export const RouletteActivity = () => {
                 onActivateAll={handleActivateAll}
                 onDeactivateAll={handleDeactivateAll}
                 onOpenHistory={(student) => setHistoryStudent(student)}
+                onOpenClassReport={() => setShowClassReportModal(true)}
                 onOpenGroupsModal={() => setShowGroupsModal(true)}
                 onOpenClassesModal={() => setShowClassesModal(true)}
             />
@@ -1559,6 +1584,19 @@ export const RouletteActivity = () => {
                 isOpen={!!historyStudent} 
                 onClose={() => setHistoryStudent(null)} 
                 student={historyStudent} 
+            />
+
+            <ClassSessionReportModal 
+                isOpen={showClassReportModal}
+                onClose={() => setShowClassReportModal(false)}
+                currentClass={currentClass}
+                currentGroups={currentGroups}
+                activeActivity={activeActivity}
+                questions={uniqueQuestions}
+                currentSessionId={currentSessionId}
+                sessionStartTime={sessionStartTime}
+                geminiService={geminiService}
+                selectedModel={selectedModel}
             />
 
             <RouletteQuestionsEditorModal 
