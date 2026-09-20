@@ -231,8 +231,15 @@ export const RouletteActivity = () => {
     
     // Sorteio
     const [spinning, setSpinning] = useState(false);
-    const [winner, setWinner] = useState(null); // O item sorteado
+    const [winner, setWinner] = useState(null); // O item sorteado (modo individual)
     const [showCard, setShowCard] = useState(false); // Mostra o card de resultado
+
+    // Modo Rodada Simultânea de Equipes
+    // null = sem rodada ativa | Array<{ group, question, answer, difficulty, imageUrl, result: null|'correct'|'incorrect' }>
+    const [groupRoundSlots, setGroupRoundSlots] = useState(null);
+    const [activeGroupTab, setActiveGroupTab] = useState(0);
+    // true = mostra o diálogo de confirmação ao tentar girar com rodada pendente
+    const [showGroupRoundConfirm, setShowGroupRoundConfirm] = useState(false);
     
     // Preferência de Estilo de Roleta (persiste em localStorage e na atividade)
     const [rouletteStyle, setRouletteStyle] = useState(() => {
@@ -508,8 +515,66 @@ export const RouletteActivity = () => {
         });
     };
 
+    // Inicia nova rodada no modo equipes: sorteia uma pergunta diferente por grupo simultaneamente
+    const startGroupRound = () => {
+        if (activeGroupItems.length === 0) return;
+        const assignedQs = new Set();
+        const slots = activeGroupItems.map(group => {
+            const unused = uniqueQuestions.filter(
+                q => !usedQuestions.has(q.question) && !assignedQs.has(q.question)
+            );
+            const pool = unused.length > 0 ? unused : uniqueQuestions.filter(q => !assignedQs.has(q.question));
+            const q = pool.length > 0
+                ? pool[Math.floor(Math.random() * pool.length)]
+                : (uniqueQuestions.length > 0 ? uniqueQuestions[Math.floor(Math.random() * uniqueQuestions.length)] : null);
+            if (q) assignedQs.add(q.question);
+            return {
+                group,
+                question: q?.question || 'Nenhuma pergunta disponível.',
+                answer: q?.answer || '',
+                difficulty: q?.difficulty || 'Média',
+                imageUrl: q?.imageUrl || null,
+                result: null // null = pendente
+            };
+        });
+        // Marca todas as perguntas desta rodada como usadas
+        setUsedQuestions(prev => {
+            const next = new Set(prev);
+            slots.forEach(s => { if (s.question) next.add(s.question); });
+            return next;
+        });
+        setGroupRoundSlots(slots);
+        setActiveGroupTab(0);
+        logTeacherAction(
+            'spin',
+            'Giro da Roleta (Rodada Simultânea)',
+            `Rodada simultânea iniciada para ${slots.length} equipe(s). Cada equipe recebeu uma pergunta diferente.`,
+            { groupCount: slots.length }
+        );
+    };
+
     const handleSpin = () => {
-        const pool = gameMode === 'groups' ? activeGroupItems : activeItems;
+        if (gameMode === 'groups') {
+            if (activeGroupItems.length === 0) return;
+            // Se há rodada ativa com pendentes, pede confirmação
+            const hasPending = groupRoundSlots && groupRoundSlots.some(s => s.result === null);
+            if (hasPending) {
+                setShowGroupRoundConfirm(true);
+                return;
+            }
+            setSpinning(true);
+            setShowCard(false);
+            setWinner(null);
+            setGroupRoundSlots(null);
+            setTimeout(() => {
+                setSpinning(false);
+                startGroupRound();
+            }, 1200);
+            gameAudio.playTick();
+            return;
+        }
+        // Modo individual — comportamento original
+        const pool = activeItems;
         if (spinning || pool.length === 0) return;
         setSpinning(true);
         setShowCard(false);
@@ -535,7 +600,7 @@ export const RouletteActivity = () => {
         logTeacherAction(
             'spin',
             'Giro da Roleta',
-            `Roleta girada no modo ${gameMode === 'groups' ? 'Equipes' : 'Individual'}. Sorteado(a): "${selectedWinner.name}"`,
+            `Roleta girada no modo Individual. Sorteado(a): "${selectedWinner.name}"`,
             {
                 studentName: selectedWinner.name,
                 studentId: selectedWinner.id,
@@ -1422,6 +1487,105 @@ export const RouletteActivity = () => {
         setWinner(null);
     };
 
+    // Registra o resultado de um slot da rodada simultânea de equipes
+    const handleGroupSlotResult = (slotIndex, isCorrect) => {
+        const slot = groupRoundSlots?.[slotIndex];
+        if (!slot || slot.result !== null) return;
+
+        // Registra no histórico via handleGroupResult
+        const fakeWinner = {
+            id: slot.group.id,
+            name: slot.group.name,
+            studentIds: slot.group.studentIds || [],
+            question: slot.question
+        };
+        // Salva direto (sem passar por setWinner) chamando a lógica interna
+        const targetGroupId = slot.group.id;
+        const groupName = slot.group.name;
+        const memberIdSet = new Set((slot.group.studentIds || []).map(String));
+        const now = Date.now();
+        const topic = activeActivity?.topic || 'Sem tema';
+
+        const groupHistoryEntry = {
+            date: now,
+            dateStr: new Date(now).toISOString().slice(0, 10),
+            sessionId: currentSessionId,
+            activityId: activeActivity?.id || null,
+            gameMode: 'groups',
+            topic,
+            question: slot.question,
+            result: isCorrect ? 'correct' : 'incorrect',
+            isGroupActivity: true,
+            pointsDelta: isCorrect ? 1 : 0
+        };
+        const studentHistoryEntry = {
+            date: now,
+            dateStr: new Date(now).toISOString().slice(0, 10),
+            sessionId: currentSessionId,
+            activityId: activeActivity?.id || null,
+            gameMode: 'groups',
+            topic,
+            question: `[Equipe ${groupName}] ${slot.question}`,
+            result: isCorrect ? 'group_activity' : 'incorrect',
+            isGroupActivity: true,
+            groupId: targetGroupId,
+            groupName,
+            pointsDelta: isCorrect ? 1 : 0
+        };
+
+        saveClassUpdates(prev => {
+            const updatedGroups = (prev.groups || []).map(g => {
+                if (String(g.id) === String(targetGroupId)) {
+                    return {
+                        ...g,
+                        hits: isCorrect ? (g.hits || 0) + 1 : (g.hits || 0),
+                        misses: !isCorrect ? (g.misses || 0) + 1 : (g.misses || 0),
+                        history: [...(g.history || []), groupHistoryEntry]
+                    };
+                }
+                return g;
+            });
+            const updatedStudents = (prev.students || []).map(s => {
+                if (memberIdSet.has(String(s.id))) {
+                    return {
+                        ...s,
+                        hits: isCorrect ? (s.hits || 0) + 1 : (s.hits || 0),
+                        misses: !isCorrect ? (s.misses || 0) + 1 : (s.misses || 0),
+                        history: [...(s.history || []), studentHistoryEntry]
+                    };
+                }
+                return s;
+            });
+            return { ...prev, groups: updatedGroups, students: updatedStudents };
+        });
+
+        logTeacherAction(
+            isCorrect ? 'group_correct' : 'group_incorrect',
+            isCorrect ? `Equipe Acertou (+1)` : 'Equipe Errou',
+            `[Rodada Simultânea] Equipe "${groupName}" ${isCorrect ? 'acertou' : 'errou'}: "${slot.question.slice(0, 50)}"`,
+            { groupName, groupId: targetGroupId, isCorrect, question: slot.question }
+        );
+
+        if (isCorrect) gameAudio.playSuccess(); else gameAudio.playTick();
+
+        // Atualiza o slot com o resultado
+        setGroupRoundSlots(prev => prev.map((s, i) => i === slotIndex ? { ...s, result: isCorrect ? 'correct' : 'incorrect' } : s));
+    };
+
+    // Troca a pergunta de um slot específico da rodada simultânea
+    const handleChangeGroupSlotQuestion = (slotIndex, newQ) => {
+        if (!newQ || !groupRoundSlots?.[slotIndex]) return;
+        setGroupRoundSlots(prev => prev.map((s, i) =>
+            i === slotIndex ? { ...s, question: newQ.question, answer: newQ.answer || '', difficulty: newQ.difficulty || 'Média', imageUrl: newQ.imageUrl || null } : s
+        ));
+    };
+
+    // Encerra a rodada simultânea e limpa os slots
+    const handleClearGroupRound = () => {
+        setGroupRoundSlots(null);
+        setActiveGroupTab(0);
+    };
+
     // Ações adicionais na tela: Cronômetro Bomba e Revelar Resposta/Dica
     const handleTimerExplode = () => {
         logTeacherAction(
@@ -1828,11 +1992,169 @@ export const RouletteActivity = () => {
                             style={rouletteStyle}
                             items={gameMode === 'groups' ? activeGroupItems : activeItems} 
                             spinning={spinning} 
-                            winner={winner} 
+                            winner={gameMode === 'groups' ? null : winner} 
                             onSpinComplete={handleSpinComplete} 
                             isMaximized={isMaximized}
                         />
                     </div>
+
+                    {/* TabCard de Rodada Simultânea de Equipes */}
+                    {gameMode === 'groups' && groupRoundSlots && !spinning && (
+                        <div className="z-10 relative w-full max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            {/* Cabeçalho + abas */}
+                            <div className="bg-gradient-to-r from-purple-900/90 to-pink-900/90 border border-purple-500/40 backdrop-blur-md rounded-t-2xl px-4 pt-3 pb-0 shadow-2xl">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-black text-purple-200 uppercase tracking-widest flex items-center gap-1.5">
+                                        <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                                        Rodada Simultânea — {groupRoundSlots.filter(s => s.result !== null).length}/{groupRoundSlots.length} respondidas
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        {groupRoundSlots.every(s => s.result !== null) && (
+                                            <button
+                                                type="button"
+                                                onClick={handleClearGroupRound}
+                                                className="text-xs font-black px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95"
+                                            >
+                                                <RotateCcw className="w-3.5 h-3.5" /> Encerrar Rodada
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                {/* Abas das equipes */}
+                                <div className="flex gap-1 overflow-x-auto pb-0">
+                                    {groupRoundSlots.map((slot, idx) => (
+                                        <button
+                                            key={slot.group.id}
+                                            type="button"
+                                            onClick={() => setActiveGroupTab(idx)}
+                                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-t-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer border-b-2 ${
+                                                activeGroupTab === idx
+                                                    ? 'bg-white/15 text-white border-white'
+                                                    : 'bg-transparent text-purple-300 border-transparent hover:bg-white/10 hover:text-white'
+                                            }`}
+                                        >
+                                            <span
+                                                className="w-2 h-2 rounded-full shrink-0"
+                                                style={{ backgroundColor: slot.group.color || '#a855f7' }}
+                                            />
+                                            {slot.group.name}
+                                            {slot.result === 'correct' && <span className="text-emerald-400">✅</span>}
+                                            {slot.result === 'incorrect' && <span className="text-rose-400">❌</span>}
+                                            {slot.result === null && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Conteúdo da aba ativa */}
+                            {(() => {
+                                const slot = groupRoundSlots[activeGroupTab];
+                                if (!slot) return null;
+                                const isDone = slot.result !== null;
+                                return (
+                                    <div className="bg-slate-900/95 border border-purple-500/30 border-t-0 rounded-b-2xl p-4 shadow-2xl backdrop-blur-md space-y-3">
+                                        {/* Nome da equipe + membros */}
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span
+                                                        className="w-3 h-3 rounded-full shrink-0"
+                                                        style={{ backgroundColor: slot.group.color || '#a855f7' }}
+                                                    />
+                                                    <span className="font-black text-white text-base">{slot.group.name}</span>
+                                                </div>
+                                                <div className="text-2xs text-purple-300 mt-0.5 ml-5">
+                                                    {(slot.group.members || []).map(m => m.name).join(' • ') || 'Sem membros'}
+                                                </div>
+                                            </div>
+                                            {isDone ? (
+                                                <span className={`text-xs font-black px-3 py-1 rounded-full border ${
+                                                    slot.result === 'correct'
+                                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                                        : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                                                }`}>
+                                                    {slot.result === 'correct' ? '✅ Acertou' : '❌ Errou'}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs font-bold text-amber-300 bg-amber-500/20 px-2.5 py-1 rounded-full border border-amber-500/30 animate-pulse">⏳ Pendente</span>
+                                            )}
+                                        </div>
+
+                                        {/* Pergunta */}
+                                        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                                            <div className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-1">Pergunta</div>
+                                            <p className="text-white font-bold text-sm leading-snug">{slot.question}</p>
+                                            {slot.answer && (
+                                                <p className="text-emerald-300 text-xs mt-1.5">↳ Resposta: <em>{slot.answer}</em></p>
+                                            )}
+                                            {slot.difficulty && (
+                                                <span className="inline-block mt-1.5 text-[10px] font-bold text-slate-400 bg-white/5 px-2 py-0.2 rounded border border-white/10">{slot.difficulty}</span>
+                                            )}
+                                        </div>
+
+                                        {/* Botões de resultado */}
+                                        {!isDone ? (
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleGroupSlotResult(activeGroupTab, true)}
+                                                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-all cursor-pointer shadow-md active:scale-95"
+                                                >
+                                                    <CheckCircle className="w-4 h-4" /> Acertou
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleGroupSlotResult(activeGroupTab, false)}
+                                                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-black text-sm transition-all cursor-pointer shadow-md active:scale-95"
+                                                >
+                                                    <XCircle className="w-4 h-4" /> Errou
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const available = uniqueQuestions.filter(
+                                                            q => !groupRoundSlots.some(s => s.question === q.question)
+                                                        );
+                                                        const newQ = available.length > 0
+                                                            ? available[Math.floor(Math.random() * available.length)]
+                                                            : uniqueQuestions[Math.floor(Math.random() * uniqueQuestions.length)];
+                                                        if (newQ) handleChangeGroupSlotQuestion(activeGroupTab, newQ);
+                                                    }}
+                                                    className="px-3 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs transition-all cursor-pointer shadow-md active:scale-95 flex items-center gap-1.5"
+                                                    title="Trocar pergunta desta equipe"
+                                                >
+                                                    <RotateCw className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center text-xs text-slate-400 py-1">
+                                                Resultado registrado. Navegue pelas abas para ver as outras equipes.
+                                            </div>
+                                        )}
+
+                                        {/* Rodapé: status resumido das outras equipes */}
+                                        <div className="flex gap-1.5 flex-wrap pt-1 border-t border-white/10">
+                                            {groupRoundSlots.map((s, i) => (
+                                                <button
+                                                    key={s.group.id}
+                                                    type="button"
+                                                    onClick={() => setActiveGroupTab(i)}
+                                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all cursor-pointer ${
+                                                        i === activeGroupTab ? 'bg-white/20 text-white border-white/40' :
+                                                        s.result === 'correct' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                                                        s.result === 'incorrect' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' :
+                                                        'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                                                    }`}
+                                                >
+                                                    {s.group.name}: {s.result === 'correct' ? '✅' : s.result === 'incorrect' ? '❌' : '⏳'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
 
                     {/* Botão de Giro Temático e Seletor Manual */}
                     <div className={`z-10 relative flex flex-col items-center shrink-0 ${isMaximized ? 'gap-1.5 sm:gap-2 mb-1 sm:mb-1.5' : 'gap-3 mt-6 sm:mt-8'}`}>
@@ -1866,11 +2188,59 @@ export const RouletteActivity = () => {
                             {spinning 
                                 ? currentTheme.spinningLabel 
                                 : (gameMode === 'groups' 
-                                    ? (activeGroupItems.length === 0 ? 'NENHUMA EQUIPE ATIVA' : 'GIRAR EQUIPES! 🏆') 
+                                    ? (activeGroupItems.length === 0 ? 'NENHUMA EQUIPE ATIVA' : (
+                                        groupRoundSlots && groupRoundSlots.some(s => s.result === null)
+                                            ? '⚡ NOVA RODADA (pendentes!)'
+                                            : 'GIRAR EQUIPES! 🏆'
+                                    ))
                                     : (activeItems.length === 0 ? 'NENHUM ALUNO NA ROLETA ⚠️' : currentTheme.label)
                                   )
                             }
                         </button>
+
+                        {/* Diálogo de confirmação: rodada com pendentes */}
+                        {showGroupRoundConfirm && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in">
+                                <div className="bg-slate-900 border border-amber-500/60 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4 mx-4">
+                                    <div className="flex items-center gap-3">
+                                        <AlertTriangle className="w-6 h-6 text-amber-400 shrink-0" />
+                                        <h3 className="font-black text-white text-sm">Rodada com equipes pendentes</h3>
+                                    </div>
+                                    <p className="text-slate-300 text-xs leading-relaxed">
+                                        Ainda há <strong className="text-amber-300">{groupRoundSlots?.filter(s => s.result === null).length} equipe(s)</strong> sem resultado registrado nesta rodada.
+                                        Deseja iniciar uma nova rodada mesmo assim e descartar os pendentes?
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowGroupRoundConfirm(false)}
+                                            className="flex-1 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs cursor-pointer transition-all"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowGroupRoundConfirm(false);
+                                                setGroupRoundSlots(null);
+                                                setActiveGroupTab(0);
+                                                setSpinning(true);
+                                                setShowCard(false);
+                                                setWinner(null);
+                                                setTimeout(() => {
+                                                    setSpinning(false);
+                                                    startGroupRound();
+                                                }, 1200);
+                                                gameAudio.playTick();
+                                            }}
+                                            className="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs cursor-pointer transition-all"
+                                        >
+                                            Sim, nova rodada
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Seletor Manual Rápido no Palco */}
                         <div className="flex items-center gap-2">
