@@ -32,7 +32,7 @@ class GameAudioManager {
             osc.frequency.setValueAtTime(800, ctx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.04);
 
-            gain.gain.setValueAtTime(0.08, ctx.currentTime);
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
 
             osc.connect(gain);
@@ -61,7 +61,7 @@ class GameAudioManager {
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(freq, startTime + (idx * 0.08));
 
-                gain.gain.setValueAtTime(0.12, startTime + (idx * 0.08));
+                gain.gain.setValueAtTime(0.3, startTime + (idx * 0.08));
                 gain.gain.exponentialRampToValueAtTime(0.001, startTime + (idx * 0.08) + 0.35);
 
                 osc.connect(gain);
@@ -89,7 +89,7 @@ class GameAudioManager {
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(freq, startTime + (idx * 0.09));
 
-                gain.gain.setValueAtTime(0.1, startTime + (idx * 0.09));
+                gain.gain.setValueAtTime(0.25, startTime + (idx * 0.09));
                 gain.gain.exponentialRampToValueAtTime(0.001, startTime + (idx * 0.09) + 0.3);
 
                 osc.connect(gain);
@@ -114,7 +114,7 @@ class GameAudioManager {
             osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
             osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.6);
 
-            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.setValueAtTime(0.4, ctx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
 
             osc.connect(gain);
@@ -257,7 +257,7 @@ class GameAudioManager {
             osc.frequency.setValueAtTime(isUrgent ? 1400 : 950, now);
             osc.frequency.exponentialRampToValueAtTime(200, now + 0.04);
 
-            gain.gain.setValueAtTime(isUrgent ? 0.18 : 0.09, now);
+            gain.gain.setValueAtTime(isUrgent ? 0.4 : 0.2, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
 
             osc.connect(gain);
