@@ -9,6 +9,82 @@ import {
 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
+// ---------------------------------------------------------------------------
+// MarkdownText — renderizador leve de markdown para respostas da IA
+// Suporta: ## títulos, **negrito**, *itálico*, `code`, listas (- / 1.) e parágrafos
+// ---------------------------------------------------------------------------
+const MarkdownText = ({ text, className = '' }) => {
+    if (!text) return null;
+
+    const renderInline = (line) => {
+        // Divide pelo padrão **bold**, *italic*, `code`
+        const parts = [];
+        const regex = /(\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g;
+        let last = 0;
+        let m;
+        while ((m = regex.exec(line)) !== null) {
+            if (m.index > last) parts.push(<span key={last}>{line.slice(last, m.index)}</span>);
+            if (m[2]) parts.push(<strong key={m.index} className="font-bold text-white">{m[2]}</strong>);
+            else if (m[3]) parts.push(<em key={m.index} className="italic text-indigo-200">{m[3]}</em>);
+            else if (m[4]) parts.push(<code key={m.index} className="bg-white/10 px-1 py-0.5 rounded text-purple-200 font-mono text-[11px]">{m[4]}</code>);
+            last = m.index + m[0].length;
+        }
+        if (last < line.length) parts.push(<span key={last}>{line.slice(last)}</span>);
+        return parts.length > 0 ? parts : line;
+    };
+
+    const lines = text.split('\n');
+    const elements = [];
+    let i = 0;
+    while (i < lines.length) {
+        const line = lines[i];
+        // Títulos ## ou ###
+        if (/^#{1,3}\s/.test(line)) {
+            const level = line.match(/^(#{1,3})/)[1].length;
+            const content = line.replace(/^#{1,3}\s+/, '');
+            const sizeClass = level === 1 ? 'text-sm font-black text-indigo-100 mt-3 mb-1' :
+                              level === 2 ? 'text-xs font-black text-indigo-200 mt-2.5 mb-1 uppercase tracking-wide' :
+                                           'text-xs font-bold text-purple-200 mt-2 mb-0.5';
+            elements.push(<p key={i} className={sizeClass}>{renderInline(content)}</p>);
+        }
+        // Listas com hífen ou asterisco
+        else if (/^[-*]\s/.test(line)) {
+            const content = line.replace(/^[-*]\s+/, '');
+            elements.push(
+                <div key={i} className="flex gap-2 items-start mt-1">
+                    <span className="text-purple-400 mt-0.5 shrink-0">•</span>
+                    <span>{renderInline(content)}</span>
+                </div>
+            );
+        }
+        // Listas numeradas 1. 2. etc
+        else if (/^\d+\.\s/.test(line)) {
+            const num = line.match(/^(\d+)\.\s/)[1];
+            const content = line.replace(/^\d+\.\s+/, '');
+            elements.push(
+                <div key={i} className="flex gap-2 items-start mt-1">
+                    <span className="text-indigo-400 font-bold shrink-0 min-w-[16px]">{num}.</span>
+                    <span>{renderInline(content)}</span>
+                </div>
+            );
+        }
+        // Linha separadora ---
+        else if (/^---+$/.test(line.trim())) {
+            elements.push(<hr key={i} className="border-white/10 my-2" />);
+        }
+        // Linha vazia → espaçamento
+        else if (line.trim() === '') {
+            elements.push(<div key={i} className="h-2" />);
+        }
+        // Parágrafo normal
+        else {
+            elements.push(<p key={i} className="leading-relaxed">{renderInline(line)}</p>);
+        }
+        i++;
+    }
+    return <div className={`text-xs text-slate-200 space-y-0.5 ${className}`}>{elements}</div>;
+};
+
 export const ClassSessionReportModal = ({
     isOpen,
     onClose,
@@ -811,13 +887,23 @@ export const ClassSessionReportModal = ({
 
         const { metrics, questionStats, studentStats } = filteredData;
 
+        // Monta a lista de atividades/temas selecionados para o prompt coletivo
+        const selectedActivitiesForPrompt = availableActivities
+            .filter(a => effectiveSelectedActivityIds.includes(a.id))
+            .map((a, idx) => `  ${idx + 1}. "${a.title || a.topic || 'Atividade'}"${a.topic && a.topic !== a.title ? ` (tema: ${a.topic})` : ''}`)
+            .join('\n') || `  1. "${activeActivity?.topic || activeActivity?.title || 'Conteúdo Curricular'}"`;
+        const activitiesCountLabel = effectiveSelectedActivityIds.length === availableActivities.length
+            ? `todas as ${availableActivities.length}`
+            : `${effectiveSelectedActivityIds.length} de ${availableActivities.length}`;
+
         const prompt = `
 Você é um consultor pedagógico e professor especialista em metodologias ativas e gamificação na educação básica.
-Escreva a Síntese Pedagógica Coletiva da Aula em formato profissional, reflexivo e conciso (máximo 3 parágrafos bem estruturados), com base no diagnóstico abaixo:
+Escreva a Síntese Pedagógica Coletiva da Aula em formato profissional, usando **Markdown** (## para títulos de seção, **negrito** para destaques, listas com - para tópicos). Máximo 3 seções bem estruturadas.
 
 DADOS GERAIS DA TURMA E DA AULA:
 - Turma: "${currentClass?.name || 'Turma'}"
-- Conteúdo/Tema Curricular: "${activeActivity?.topic || activeActivity?.title || 'Conteúdo Curricular'}"
+- Atividades/Temas Trabalhados (${activitiesCountLabel} selecionada(s) para análise):
+${selectedActivitiesForPrompt}
 - Dinâmica Predominante: ${metrics.dynamicsLabel} (${metrics.individualRounds} rodadas individuais e ${metrics.groupRounds} rodadas em equipe)
 - Total de Rodadas Concluídas: ${metrics.totalRounds}
 - Taxa Geral de Acertos: ${metrics.hitRate}% (${metrics.totalHits} acertos e ${metrics.totalMisses} erros)
@@ -833,10 +919,13 @@ DADOS GERAIS DA TURMA E DA AULA:
   * ${metrics.absentCount || 0} alunos marcados como ausente nos sorteios
   * ${metrics.meritsCount || 0} méritos concedidos e ${metrics.penaltiesCount || 0} infrações a regras
 
-ESTRUTURA DA SÍNTESE COLETIVA:
-1. Primeiro parágrafo (Aproveitamento & Clima Geral): Resuma o nível geral de absorção do conteúdo pela turma, se a dinâmica foi mais individual ou em grupo, e o ritmo de engajamento dos estudantes.
-2. Segundo parágrafo (Cooperação & Mediação Docente): Avalie a solidariedade entre os alunos (como a rede de ajuda funcionou) e destaque o papel mediador do professor (equilibrando dificuldade com trocas de pergunta e flexibilizando com 'Rode Outra Vez').
-3. Terceiro parágrafo (Diretrizes Pedagógicas para a Próxima Aula): Forneça recomendações práticas e acionáveis para o próximo plano de aula (quais conceitos específicos retomar ou como reorganizar as equipes).
+ESTRUTURA DA SÍNTESE COLETIVA (use ## para cada seção):
+## Aproveitamento & Clima Geral
+Resuma o nível geral de absorção dos conteúdos/temas trabalhados pela turma, se a dinâmica foi mais individual ou em grupo, e o ritmo de engajamento dos estudantes. Mencione os temas/atividades trabalhados.
+## Cooperação & Mediação Docente
+Avalie a solidariedade entre os alunos (como a rede de ajuda funcionou) e destaque o papel mediador do professor.
+## Diretrizes para a Próxima Aula
+Forneça recomendações práticas e acionáveis (liste com - ) para o próximo plano de aula, indicando quais conceitos retomar por atividade.
 Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou enviar à Coordenação Pedagógica.
 `;
 
@@ -865,27 +954,41 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou en
         setAiError(null);
 
         const studentData = filteredData.studentStats.find(s => s.id === student.id) || student;
+
+        // Monta lista de todas as atividades/temas selecionados para o contexto do parecer
+        const selectedActivitiesForStudentPrompt = availableActivities
+            .filter(a => effectiveSelectedActivityIds.includes(a.id))
+            .map((a, idx) => `  ${idx + 1}. "${a.title || a.topic || 'Atividade'}"${a.topic && a.topic !== a.title ? ` (tema: ${a.topic})` : ''}`)
+            .join('\n') || `  1. "${activeActivity?.topic || activeActivity?.title || 'Conteúdo Curricular'}"`;
+        const activitiesCountLabelStudent = effectiveSelectedActivityIds.length === availableActivities.length
+            ? `todas as ${availableActivities.length} atividades`
+            : `${effectiveSelectedActivityIds.length} atividade(s) selecionada(s)`;
+
         const prompt = `
 Você é um consultor pedagógico e especialista em avaliação formativa para o Ensino Fundamental e Médio.
-Escreva um Parecer Pedagógico Individual Descritivo (3 parágrafos concisos e objetivos) para o diário de classe / prontuário escolar do estudante abaixo:
+Escreva um Parecer Pedagógico Individual Descritivo usando **Markdown** (## para títulos de seção, **negrito** para destaques, listas com - para recomendações). 3 seções objetivas.
 
 DADOS DO ESTUDANTE:
 - Aluno(a): "${studentData.name}"
 - Turma: "${currentClass?.name || 'Turma'}"
-- Conteúdo/Tema Trabalhado: "${activeActivity?.topic || activeActivity?.title || 'Conteúdo Curricular'}"
+- Atividades/Temas Trabalhados (${activitiesCountLabelStudent}):
+${selectedActivitiesForStudentPrompt}
 - Status na Aula: ${studentData.participated ? `Participou (${studentData.totalAnswers} rodadas)` : 'Não sorteado no período'}
 - Acertos na Roleta: ${studentData.hits || 0}
 - Erros na Roleta: ${studentData.misses || 0}
 - Vezes em que Teve Ajuda: ${studentData.helpReceived ? studentData.helpReceived.length : 0}
 - Vezes em que Ajudou Colegas: ${studentData.helpedOthers ? studentData.helpedOthers.length : 0}
 - Méritos Concedidos: +${studentData.merits || 0}
-- Perguntas Respondidas:
+- Perguntas Respondidas por atividade:
 ${(studentData.history || []).map((h, i) => `  ${i + 1}. Pergunta: "${h.question}" | Resultado: ${h.result} | Teve Ajuda: ${h.hadHelp || h.helperName ? `Sim (${h.helperName || 'colega'})` : 'Não'}`).join('\n') || '  (Sem perguntas registradas neste período)'}
 
-ESTRUTURA DO PARECER:
-1. Primeiro Parágrafo (Domínio Conceitual & Participação): Avalie como o estudante lidou com o tema, seu engajamento nas rodadas da roleta e segurança nas respostas.
-2. Segundo Parágrafo (Dimensão Socioemocional & Cooperação): Analise sua postura frente aos desafios (se teve autonomia ou precisou de apoio) e destaque se atuou com empatia e espírito coletivo ajudando colegas.
-3. Terceiro Parágrafo (Recomendação Pedagógica Personalizada): Indique um direcionamento prático para a continuidade dos estudos.
+ESTRUTURA DO PARECER (use ## para cada seção):
+## Domínio Conceitual & Participação
+Avalie como o estudante lidou com os temas/atividades trabalhados, seu engajamento nas rodadas da roleta e segurança nas respostas. Mencione especificamente os temas das atividades selecionadas.
+## Dimensão Socioemocional & Cooperação
+Analise sua postura frente aos desafios (se teve autonomia ou precisou de apoio) e destaque se atuou com empatia e espírito coletivo.
+## Recomendação Pedagógica Personalizada
+Indique direcionamentos práticos (liste com - ) para a continuidade dos estudos, por atividade/tema se relevante.
 Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou prontuário.
 `;
 
@@ -1598,9 +1701,17 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                 Formato: <strong>{metrics.dynamicsLabel}</strong>
                             </span>
                             <span>•</span>
-                            <span className="flex items-center gap-1 text-indigo-600 font-bold">
-                                <BookOpen className="w-3.5 h-3.5" />
-                                {availableActivities.length} atividade{availableActivities.length !== 1 ? 's' : ''} disponíve{availableActivities.length !== 1 ? 'is' : 'l'}
+                            <span
+                                className="flex items-center gap-1 font-bold cursor-default"
+                                title={availableActivities.filter(a => effectiveSelectedActivityIds.includes(a.id)).map(a => a.title || a.topic).join(' • ')}
+                            >
+                                <BookOpen className={`w-3.5 h-3.5 ${selectedActivityIds.length === 0 ? 'text-indigo-500' : 'text-purple-600'}`} />
+                                <span className={selectedActivityIds.length === 0 ? 'text-indigo-600' : 'text-purple-700'}>
+                                    {effectiveSelectedActivityIds.length === availableActivities.length
+                                        ? `Todas (${availableActivities.length}) atividades selecionadas`
+                                        : `${effectiveSelectedActivityIds.length} de ${availableActivities.length} atividades selecionadas`
+                                    }
+                                </span>
                             </span>
                         </div>
                     </div>
@@ -2304,8 +2415,8 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                     </div>
 
                                     {aiCollectiveSummary ? (
-                                        <div className="bg-white/5 border border-white/10 p-4 rounded-2xl text-xs text-slate-200 leading-relaxed font-sans whitespace-pre-wrap animate-in fade-in">
-                                            {aiCollectiveSummary}
+                                        <div className="bg-white/5 border border-white/10 p-4 rounded-2xl animate-in fade-in">
+                                            <MarkdownText text={aiCollectiveSummary} />
                                         </div>
                                     ) : (
                                         <div className="bg-white/5 border border-dashed border-white/10 p-4 rounded-2xl text-xs text-slate-400 text-center">
@@ -3227,8 +3338,8 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                         </div>
 
                         {studentAiInsights[selectedStudentForAi.id] ? (
-                            <div className="bg-white/5 border border-white/10 p-3.5 rounded-xl text-xs text-slate-200 leading-relaxed font-sans whitespace-pre-wrap animate-in fade-in">
-                                {studentAiInsights[selectedStudentForAi.id]}
+                            <div className="bg-white/5 border border-white/10 p-3.5 rounded-xl animate-in fade-in">
+                                <MarkdownText text={studentAiInsights[selectedStudentForAi.id]} />
                             </div>
                         ) : (
                             <div className="bg-white/5 border border-dashed border-white/10 p-4 rounded-xl text-xs text-slate-400 text-center">
