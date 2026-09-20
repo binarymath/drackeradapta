@@ -2011,7 +2011,13 @@ export const RouletteActivity = () => {
                                 activeTab={activeGroupTab}
                                 onTabChange={setActiveGroupTab}
                                 onSlotResult={handleGroupSlotResult}
-                                onChangeQuestion={(idx) => {
+                                allQuestions={uniqueQuestions}
+                                usedQuestions={usedQuestions}
+                                onChangeQuestion={(idx, specificQ = null) => {
+                                    if (specificQ) {
+                                        handleChangeGroupSlotQuestion(idx, specificQ);
+                                        return;
+                                    }
                                     const available = uniqueQuestions.filter(
                                         q => !groupRoundSlots.some(s => s.question === q.question)
                                     );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, XCircle, RotateCcw, RotateCw, Eye, EyeOff, Maximize2, Minimize2, Trophy, Type } from 'lucide-react';
+import { CheckCircle, XCircle, RotateCcw, RotateCw, Eye, EyeOff, Maximize2, Minimize2, Trophy, Type, List } from 'lucide-react';
 import { RouletteTimerBomb } from './RouletteTimerBomb';
 import { gameAudio } from '../../utils/gameAudio';
 
@@ -11,7 +11,7 @@ const FONT_LEVELS = [
     { id: 4, label: 'Gigante (Projetor)','percent': '180%',questionClass: 'text-4xl sm:text-5xl md:text-6xl', nameClass: 'text-5xl sm:text-6xl' },
 ];
 
-export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, onChangeQuestion, onClear }) => {
+export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, onChangeQuestion, onClear, allQuestions = [], usedQuestions = new Set() }) => {
     const [fontLevel, setFontLevel] = useState(() => {
         try { const s = localStorage.getItem('preferred_roulette_card_font_level'); if (s !== null) { const p = parseInt(s, 10); if (!isNaN(p) && p >= 0 && p < FONT_LEVELS.length) return p; } } catch (e) {}
         return 1;
@@ -19,6 +19,7 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
     const [isExpanded, setIsExpanded] = useState(false);
     const [showAnswer, setShowAnswer] = useState(false);
     const [showDifficulty, setShowDifficulty] = useState(false);
+    const [showQuestionSelector, setShowQuestionSelector] = useState(false);
     const [timerViewMode, setTimerViewMode] = useState(() => { try { return localStorage.getItem('preferred_roulette_timer_mode') || 'normal'; } catch (e) { return 'normal'; } });
 
     const currentFont = FONT_LEVELS[fontLevel] || FONT_LEVELS[1];
@@ -27,7 +28,7 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
     const handleDecreaseFont = () => setFontLevel(prev => { const next = Math.max(0, prev - 1); try { localStorage.setItem('preferred_roulette_card_font_level', String(next)); } catch (e) {} gameAudio.playTick(); return next; });
     const handleResetFont = () => { setFontLevel(1); try { localStorage.setItem('preferred_roulette_card_font_level', '1'); } catch (e) {} gameAudio.playTick(); };
 
-    const handleTabChange = (idx) => { setShowAnswer(false); onTabChange(idx); };
+    const handleTabChange = (idx) => { setShowAnswer(false); setShowQuestionSelector(false); onTabChange(idx); };
 
     const slot = slots[activeTab];
     if (!slot) return null;
@@ -168,8 +169,76 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
                             </div>
                         </div>
 
+                        {/* Dropdown Seletor de Pergunta */}
+                        {showQuestionSelector && (
+                            <div className="bg-indigo-50/95 border-2 border-indigo-500 p-4 max-h-56 overflow-y-auto space-y-2 animate-in slide-in-from-bottom-3 duration-200 rounded-xl shadow-2xl shrink-0 mt-2">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider">
+                                        Escolha uma pergunta para {slot.group.name}:
+                                    </h4>
+                                    <button 
+                                        onClick={() => setShowQuestionSelector(false)}
+                                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                                    >
+                                        Fechar ✕
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 gap-1.5">
+                                    {allQuestions.map((q, idx) => {
+                                        const isCurrent = q.question === slot.question;
+                                        const isUsed = usedQuestions.has(q.question);
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={() => {
+                                                    onChangeQuestion(activeTab, q);
+                                                    setShowAnswer(false);
+                                                    setShowQuestionSelector(false);
+                                                    gameAudio.playTick();
+                                                }}
+                                                className={`text-left p-2.5 rounded-xl text-xs font-medium transition-all flex items-start justify-between gap-3 border cursor-pointer ${
+                                                    isCurrent 
+                                                    ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs' 
+                                                    : isUsed 
+                                                    ? 'bg-white/70 text-slate-500 border-slate-200 hover:bg-white' 
+                                                    : 'bg-white text-slate-800 border-indigo-100 hover:border-indigo-300 shadow-2xs hover:bg-indigo-50/50'
+                                                }`}
+                                            >
+                                                <div className="flex items-start gap-2">
+                                                    <span className={`font-black shrink-0 ${isCurrent ? 'text-indigo-200' : 'text-indigo-600'}`}>
+                                                        #{idx + 1}
+                                                    </span>
+                                                    <span className="line-clamp-2">{q.question}</span>
+                                                </div>
+                                                <div className="shrink-0 flex items-center gap-1.5">
+                                                    {(() => {
+                                                        const badge = getDifficultyBadge(q.difficulty);
+                                                        return (
+                                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${badge.color}`}>
+                                                                {badge.label}
+                                                            </span>
+                                                        );
+                                                    })()}
+                                                    {isUsed && !isCurrent && (
+                                                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">
+                                                            Usada
+                                                        </span>
+                                                    )}
+                                                    {isCurrent && (
+                                                        <span className="text-[10px] bg-indigo-500 text-white px-1.5 py-0.5 rounded font-black">
+                                                            Atual
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Botoes de resultado */}
-                        <div className="shrink-0">
+                        <div className="shrink-0 mt-2">
                             {!isDone ? (
                                 <div className="flex gap-2">
                                     <button type="button" onClick={() => onSlotResult(activeTab, true)}
@@ -180,8 +249,12 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
                                         className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-black text-sm transition-all cursor-pointer shadow-md active:scale-95">
                                         <XCircle className="w-5 h-5" /> Errou
                                     </button>
-                                    <button type="button" onClick={() => { setShowAnswer(false); onChangeQuestion(activeTab); }}
-                                        className="px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs transition-all cursor-pointer shadow-md active:scale-95 flex items-center gap-1.5" title="Trocar pergunta desta equipe">
+                                    <button type="button" onClick={() => setShowQuestionSelector(!showQuestionSelector)}
+                                        className="px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-all cursor-pointer shadow-md active:scale-95 flex items-center gap-1.5" title="Escolher uma pergunta específica">
+                                        <List className="w-4 h-4" /><span className="hidden sm:inline">Escolher</span>
+                                    </button>
+                                    <button type="button" onClick={() => { setShowAnswer(false); setShowQuestionSelector(false); onChangeQuestion(activeTab); }}
+                                        className="px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-xs transition-all cursor-pointer shadow-md active:scale-95 flex items-center gap-1.5" title="Trocar pergunta aleatoriamente">
                                         <RotateCw className="w-4 h-4" /><span className="hidden sm:inline">Trocar</span>
                                     </button>
                                 </div>
