@@ -954,6 +954,22 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou en
         setAiError(null);
 
         const studentData = filteredData.studentStats.find(s => s.id === student.id) || student;
+        const hist = studentData.history || [];
+
+        // Separa respostas individuais de participações via Desafio da Turma (all_correct)
+        const individualAnswers = hist.filter(h =>
+            h.result === 'correct' || h.result === 'incorrect' ||
+            h.result === 'help_correct' || h.result === 'merit' || h.result === 'rule_violation'
+        );
+        const classChallengeCredits = hist.filter(h =>
+            h.result === 'all_correct' ||
+            (h.question && h.question.includes('[Desafio da Turma]'))
+        );
+        const groupActivityCredits = hist.filter(h =>
+            h.result === 'group_activity' || h.result === 'group_incorrect' ||
+            h.isGroupActivity
+        );
+        const hasNoIndividualAnswers = individualAnswers.length === 0;
 
         // Monta lista de todas as atividades/temas selecionados para o contexto do parecer
         const selectedActivitiesForStudentPrompt = availableActivities
@@ -964,31 +980,55 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou en
             ? `todas as ${availableActivities.length} atividades`
             : `${effectiveSelectedActivityIds.length} atividade(s) selecionada(s)`;
 
+        const formatResult = (result) => {
+            const map = { correct: 'Acerto Individual ✅', incorrect: 'Erro Individual ❌',
+                help_correct: 'Acerto com Ajuda 🤝', merit: 'Mérito concedido ⭐',
+                rule_violation: 'Infração de regra ⚠️', all_correct: 'Crédito Desafio da Turma 🏆 (acerto coletivo — NÃO individual)',
+                group_activity: 'Atividade em Grupo 👥', group_incorrect: 'Erro em Grupo 👥❌' };
+            return map[result] || result;
+        };
+
         const prompt = `
 Você é um consultor pedagógico e especialista em avaliação formativa para o Ensino Fundamental e Médio.
 Escreva um Parecer Pedagógico Individual Descritivo usando **Markdown** (## para títulos de seção, **negrito** para destaques, listas com - para recomendações). 3 seções objetivas.
+
+⚠️ ATENÇÃO IMPORTANTE — DISTINÇÃO ENTRE PARTICIPAÇÃO INDIVIDUAL E DESAFIO DA TURMA:
+- "Acerto Individual" = o aluno foi sorteado/chamado e respondeu corretamente por conta própria.
+- "Crédito Desafio da Turma (all_correct)" = a turma inteira ganhou ponto porque a MAIORIA acertou um desafio coletivo. Isso NÃO significa que este aluno específico respondeu individualmente — ele apenas foi beneficiado pelo acerto coletivo. NÃO confunda com participação individual.
+- Se o aluno NÃO tem nenhuma resposta individual, destaque explicitamente que ele não foi sorteado individualmente e que seus pontos vieram apenas de desafios coletivos.
 
 DADOS DO ESTUDANTE:
 - Aluno(a): "${studentData.name}"
 - Turma: "${currentClass?.name || 'Turma'}"
 - Atividades/Temas Trabalhados (${activitiesCountLabelStudent}):
 ${selectedActivitiesForStudentPrompt}
-- Status na Aula: ${studentData.participated ? `Participou (${studentData.totalAnswers} rodadas)` : 'Não sorteado no período'}
-- Acertos na Roleta: ${studentData.hits || 0}
-- Erros na Roleta: ${studentData.misses || 0}
-- Vezes em que Teve Ajuda: ${studentData.helpReceived ? studentData.helpReceived.length : 0}
+- Status na Aula: ${studentData.participated ? `Participou (${studentData.totalAnswers} registros)` : 'Não sorteado no período'}
+- ⚠️ RESPONDEU INDIVIDUALMENTE: ${hasNoIndividualAnswers ? 'NÃO — nenhuma resposta individual registrada' : `SIM — ${individualAnswers.length} resposta(s) individual(is)`}
+- Acertos Individuais: ${individualAnswers.filter(h => h.result === 'correct' || h.result === 'help_correct').length}
+- Erros Individuais: ${individualAnswers.filter(h => h.result === 'incorrect').length}
+- Créditos via Desafio da Turma (all_correct — coletivo, NÃO individual): ${classChallengeCredits.length}
+- Participações em Atividades de Grupo: ${groupActivityCredits.length}
+- Vezes em que Teve Ajuda (individual): ${studentData.helpReceived ? studentData.helpReceived.length : 0}
 - Vezes em que Ajudou Colegas: ${studentData.helpedOthers ? studentData.helpedOthers.length : 0}
 - Méritos Concedidos: +${studentData.merits || 0}
-- Perguntas Respondidas por atividade:
-${(studentData.history || []).map((h, i) => `  ${i + 1}. Pergunta: "${h.question}" | Resultado: ${h.result} | Teve Ajuda: ${h.hadHelp || h.helperName ? `Sim (${h.helperName || 'colega'})` : 'Não'}`).join('\n') || '  (Sem perguntas registradas neste período)'}
+
+DETALHAMENTO DAS RESPOSTAS INDIVIDUAIS (sorteios diretos):
+${individualAnswers.length > 0
+    ? individualAnswers.map((h, i) => `  ${i + 1}. "${h.question}" | ${formatResult(h.result)} | Ajuda: ${h.hadHelp || h.helperName ? `Sim (${h.helperName || 'colega'})` : 'Não'}`).join('\n')
+    : '  ⚠️ NENHUMA — este aluno não foi sorteado individualmente neste período.'}
+
+CRÉDITOS VIA DESAFIO DA TURMA (all_correct — ponto coletivo, NÃO individual):
+${classChallengeCredits.length > 0
+    ? classChallengeCredits.map((h, i) => `  ${i + 1}. "${h.question}" — Turma acertou o desafio coletivo (aluno ganhou ponto junto com a turma)`).join('\n')
+    : '  Nenhum crédito de desafio coletivo.'}
 
 ESTRUTURA DO PARECER (use ## para cada seção):
 ## Domínio Conceitual & Participação
-Avalie como o estudante lidou com os temas/atividades trabalhados, seu engajamento nas rodadas da roleta e segurança nas respostas. Mencione especificamente os temas das atividades selecionadas.
+Avalie como o estudante lidou com os temas/atividades trabalhados. **Se ele não respondeu individualmente, destaque isso claramente e explique que seus pontos vieram de desafios coletivos, não de participação individual.** Se respondeu individualmente, avalie segurança e engajamento.
 ## Dimensão Socioemocional & Cooperação
-Analise sua postura frente aos desafios (se teve autonomia ou precisou de apoio) e destaque se atuou com empatia e espírito coletivo.
+Analise sua postura frente aos desafios, autonomia, e espírito coletivo. Se o aluno teve créditos apenas via Desafio da Turma, comente sobre a importância de buscar também a participação individual.
 ## Recomendação Pedagógica Personalizada
-Indique direcionamentos práticos (liste com - ) para a continuidade dos estudos, por atividade/tema se relevante.
+Indique direcionamentos práticos (liste com - ). Se o aluno não foi sorteado individualmente, **recomende estratégias específicas para garantir sua participação individual nas próximas aulas** (ex: priorizar nos próximos sorteios, propor atividade voluntária, etc.).
 Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou prontuário.
 `;
 
