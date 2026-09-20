@@ -1080,8 +1080,8 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
             <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
                 <td style="padding: 6px 8px;">#${i + 1}</td>
                 <td style="padding: 6px 8px; font-weight: bold;">${h.question}</td>
-                <td style="padding: 6px 8px; text-align: center; color: ${h.result === 'correct' || h.result === 'help_correct' ? '#16a34a' : '#dc2626'}; font-weight: bold;">
-                    ${h.result === 'correct' || h.result === 'help_correct' ? 'Acertou' : h.result === 'merit' ? '+1 Mérito' : 'Errou'}
+                <td style="padding: 6px 8px; text-align: center; color: ${h.result === 'correct' || h.result === 'help_correct' || h.result === 'all_correct' || h.result === 'group_activity' ? '#16a34a' : h.result === 'merit' ? '#d97706' : '#dc2626'}; font-weight: bold;">
+                    ${h.result === 'correct' || h.result === 'help_correct' ? 'Acertou ✅' : h.result === 'all_correct' ? '🏆 Desafio da Turma' : h.result === 'group_activity' ? '👥 Grupo' : h.result === 'merit' ? '+1 Mérito ⭐' : 'Errou ❌'}
                 </td>
                 <td style="padding: 6px 8px; text-align: center;">
                     ${h.hadHelp || h.helperName ? `🤝 Sim (${h.helperName || 'Apoio'})` : '-'}
@@ -3055,11 +3055,24 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                                         )}
                                                         {/* Quem respondeu */}
                                                         <div className="flex flex-wrap gap-1 mt-1">
-                                                            {q.rounds.map((r, ri) => (
-                                                                <span key={ri} className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded border border-slate-200 font-medium">
-                                                                    {r.participants.join(', ')} ({r.result === 'correct' || r.result === 'help_correct' ? '✅' : '❌'})
-                                                                </span>
-                                                            ))}
+                                                            {q.rounds.map((r, ri) => {
+                                                                const isClassChallenge = r.result === 'all_correct' || (r.question && r.question.includes('[Desafio da Turma]'));
+                                                                const isGroupActivity = r.result === 'group_activity';
+                                                                const isCorrect = r.result === 'correct' || r.result === 'help_correct' || r.result === 'all_correct' || r.result === 'group_activity';
+                                                                const isIncorrect = r.result === 'incorrect' || r.result === 'group_incorrect';
+                                                                const icon = isClassChallenge ? '🏆' : isGroupActivity ? '👥✅' : isCorrect ? '✅' : isIncorrect ? '❌' : '—';
+                                                                const label = isClassChallenge ? 'Desafio da Turma' : isGroupActivity ? 'Grupo' : null;
+                                                                return (
+                                                                    <span key={ri} className={`text-[10px] px-1.5 py-0.2 rounded border font-medium flex items-center gap-0.5 ${
+                                                                        isClassChallenge ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                                                                        isCorrect ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                                                                        isIncorrect ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                                                        'bg-slate-100 text-slate-700 border-slate-200'
+                                                                    }`}>
+                                                                        {r.participants.join(', ')} {icon}{label ? ` (${label})` : ''}
+                                                                    </span>
+                                                                );
+                                                            })}
                                                         </div>
                                                     </td>
                                                     <td className="p-3 text-center">
@@ -3408,13 +3421,15 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                                             </div>
                                         </div>
                                         <span className={`text-2xs font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                                            h.result === 'correct' || h.result === 'help_correct' || h.result === 'group_activity'
-                                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                                : h.result === 'merit'
-                                                    ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                                                    : 'bg-rose-100 text-rose-800 border border-rose-200'
+                                            h.result === 'all_correct'
+                                                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                                : h.result === 'correct' || h.result === 'help_correct' || h.result === 'group_activity'
+                                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                                    : h.result === 'merit'
+                                                        ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                                        : 'bg-rose-100 text-rose-800 border border-rose-200'
                                         }`}>
-                                            {h.result === 'correct' || h.result === 'help_correct' ? '✅ Acertou' : h.result === 'merit' ? '⭐ Mérito' : '❌ Errou'}
+                                            {h.result === 'all_correct' ? '🏆 Desafio da Turma' : h.result === 'correct' || h.result === 'help_correct' ? '✅ Acertou' : h.result === 'group_activity' ? '👥 Grupo' : h.result === 'merit' ? '⭐ Mérito' : '❌ Errou'}
                                         </span>
                                     </div>
                                 ))}
