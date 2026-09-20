@@ -146,17 +146,25 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
                             </div>
                             <p className={`text-white font-bold leading-snug transition-all ${currentFont.questionClass}`}>{slot.question}</p>
                             <div className="mt-3 pt-3 border-t border-white/10">
-                                {showAnswer && slot.answer ? (
-                                    <p className="text-emerald-300 font-bold text-sm leading-snug animate-in fade-in">
-                                        &#8627; <em>{slot.answer}</em>
-                                    </p>
-                                ) : (
-                                    <button type="button" onClick={() => setShowAnswer(true)} disabled={!slot.answer}
-                                        className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-emerald-300 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
-                                        <Eye className="w-3.5 h-3.5" />
-                                        {slot.answer ? 'Revelar Resposta' : 'Sem resposta cadastrada'}
-                                    </button>
-                                )}
+                                <div className="flex items-start justify-between gap-2">
+                                    {showAnswer && slot.answer ? (
+                                        <p className={`text-emerald-300 font-bold leading-snug animate-in fade-in transition-all ${currentFont.questionClass}`}>
+                                            &#8627; {slot.answer}
+                                        </p>
+                                    ) : (
+                                        <button type="button" onClick={() => setShowAnswer(true)} disabled={!slot.answer}
+                                            className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-emerald-300 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
+                                            <Eye className="w-3.5 h-3.5" />
+                                            {slot.answer ? 'Revelar Resposta' : 'Sem resposta cadastrada'}
+                                        </button>
+                                    )}
+                                    {showAnswer && slot.answer && (
+                                        <button type="button" onClick={() => setShowAnswer(false)}
+                                            className="shrink-0 flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-300 transition-colors cursor-pointer" title="Ocultar resposta">
+                                            <EyeOff className="w-3.5 h-3.5" /> Ocultar
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
