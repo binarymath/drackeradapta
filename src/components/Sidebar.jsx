@@ -48,7 +48,8 @@ export const Sidebar = ({
     questionCount,
     setQuestionCount,
     difficultyDist,
-    setDifficultyDist
+    setDifficultyDist,
+    onOpenSheetsModal,
 }) => {
     const { tabs, setActiveTabId } = useActivity();
     const [isClassesModalOpen, setIsClassesModalOpen] = useState(false);
@@ -206,6 +207,18 @@ export const Sidebar = ({
                                 </Button>
                             </div>
                         </div>
+                    )}
+
+                    {/* Botão rápido: criar nova roleta via Google Sheets */}
+                    {activityType === 'roulette' && onOpenSheetsModal && (
+                        <button
+                            type="button"
+                            onClick={onOpenSheetsModal}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-emerald-300 rounded-xl text-emerald-700 font-bold text-sm hover:bg-emerald-50 hover:border-emerald-400 transition-all cursor-pointer"
+                        >
+                            <span>📊</span>
+                            <span>Nova Roleta via Planilha</span>
+                        </button>
                     )}
 
                     <div>

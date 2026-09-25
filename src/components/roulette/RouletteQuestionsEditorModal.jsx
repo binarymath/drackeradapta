@@ -116,9 +116,10 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
         onClose();
     };
 
-    if (!isOpen) return null;
-
+    // Render: sem GoogleSheetsImportModal aqui (ele está na toolbar do RouletteActivity)
     return (
+        <>
+        {isOpen && (
         <Modal isOpen={isOpen} onClose={onClose} title="Editar Perguntas da Roleta" maxWidth="max-w-4xl" icon={Save}>
             <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
                 
@@ -132,6 +133,7 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
                         </div>
                     </div>
 
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                     {/* Botão de Importar de um Quiz */}
                     {quizTabs.length > 0 && (
                         <div className="relative shrink-0 w-full sm:w-auto">
@@ -170,6 +172,7 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
                             )}
                         </div>
                     )}
+                    </div>
                 </div>
 
                 {/* Notificação de Sucesso de Importação */}
@@ -289,5 +292,7 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
                 </button>
             </div>
         </Modal>
+        )}
+        </>
     );
 };
