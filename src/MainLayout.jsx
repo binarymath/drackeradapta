@@ -18,6 +18,7 @@ import { AppModals } from './components/AppModals';
 import { Footer } from './components/Footer';
 import { CookieBanner } from './components/CookieBanner';
 import { BackupVersionCenterModal } from './components/BackupVersionCenterModal';
+import { GoogleSheetsImportModal } from './components/roulette/GoogleSheetsImportModal';
 
 export const MainLayout = () => {
     // --- CONTEXTS ---
@@ -96,6 +97,17 @@ export const MainLayout = () => {
 
     // --- FULL WIDTH STATE ---
     const [isFullWidth, setIsFullWidth] = useState(false);
+
+    // --- GOOGLE SHEETS: criar nova roleta sem IA ---
+    const [showSheetsCreateModal, setShowSheetsCreateModal] = useState(false);
+    const handleCreateRouletteFromSheets = (importedQuestions, sheetLabel) => {
+        addActivityTab({
+            title: sheetLabel ? `Roleta: ${sheetLabel}` : 'Roleta (Planilha)',
+            type: 'roulette',
+            content: `Roleta criada a partir do Google Sheets`,
+            questions: importedQuestions,
+        });
+    };
 
     // --- ACTIVITY SYNC EFFECTS ---
     useEffect(() => {
@@ -328,6 +340,7 @@ export const MainLayout = () => {
                             setQuestionCount={actions.setQuestionCount}
                             difficultyDist={actions.difficultyDist}
                             setDifficultyDist={actions.setDifficultyDist}
+                            onOpenSheetsModal={() => setShowSheetsCreateModal(true)}
                         />
                     </div>
                 )}
@@ -466,6 +479,13 @@ export const MainLayout = () => {
                     geminiService={geminiService}
                 />
             </main>
+
+            <GoogleSheetsImportModal
+                isOpen={showSheetsCreateModal}
+                onClose={() => setShowSheetsCreateModal(false)}
+                mode="create"
+                onCreateNew={handleCreateRouletteFromSheets}
+            />
 
             {!isFullWidth && <Footer />}
             <CookieBanner />

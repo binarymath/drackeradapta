@@ -168,6 +168,10 @@ code {
   background-color: #a1887f;
 }
 
+/* Scrollbar invisível (scroll funcional, barra oculta) */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Escala de fonte independente para LaTeX / KaTeX e Texto */
 .latex-renderer .katex {
   font-size: var(--katex-font-size, 1em) !important;

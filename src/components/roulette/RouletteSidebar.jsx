@@ -498,26 +498,29 @@ export const RouletteSidebar = ({
                                                         {student.name.charAt(0).toUpperCase()}
                                                     </div>
 
-                                                    <span 
-                                                        className={`font-bold text-sm truncate ${student.status === 'active' ? 'text-slate-900' : 'text-slate-500 line-through'}`} 
-                                                        title={student.name}
-                                                    >
-                                                        {student.name}
-                                                    </span>
-
-                                                    {student.groupName && (
-                                                        <span
-                                                            style={{
-                                                                backgroundColor: `${student.groupColor || '#6366f1'}18`,
-                                                                color: student.groupColor || '#6366f1',
-                                                                borderColor: `${student.groupColor || '#6366f1'}40`
-                                                            }}
-                                                            className="text-[10px] font-extrabold px-1.5 py-0.2 rounded border shrink-0 max-w-[85px] truncate"
-                                                            title={`Equipe: ${student.groupName}`}
+                                                    {/* Nome + badge de grupo em coluna para não comprimir o nome */}
+                                                    <div className="min-w-0 flex flex-col gap-0.5 flex-1">
+                                                        <span 
+                                                            className={`font-bold text-sm truncate leading-tight ${student.status === 'active' ? 'text-slate-900' : 'text-slate-500 line-through'}`} 
+                                                            title={student.name}
                                                         >
-                                                            {student.groupName}
+                                                            {student.name}
                                                         </span>
-                                                    )}
+
+                                                        {student.groupName && (
+                                                            <span
+                                                                style={{
+                                                                    backgroundColor: `${student.groupColor || '#6366f1'}18`,
+                                                                    color: student.groupColor || '#6366f1',
+                                                                    borderColor: `${student.groupColor || '#6366f1'}40`
+                                                                }}
+                                                                className="text-[10px] font-extrabold px-1.5 py-0.5 rounded border self-start max-w-full truncate leading-tight"
+                                                                title={`Equipe: ${student.groupName}`}
+                                                            >
+                                                                {student.groupName}
+                                                            </span>
+                                                        )}
+                                                    </div>
 
                                                     {student.status === 'active' ? (
                                                         <button
