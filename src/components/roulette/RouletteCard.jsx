@@ -7,6 +7,10 @@ import {
 import confetti from 'canvas-confetti';
 import { gameAudio } from '../../utils/gameAudio';
 import { RouletteTimerBomb } from './RouletteTimerBomb';
+import { StudentSelectorModal } from './card-modals/StudentSelectorModal';
+import { QuestionSelectorModal } from './card-modals/QuestionSelectorModal';
+import { RouletteModeTodosRespondem } from './card-modals/RouletteModeTodosRespondem';
+import { RouletteModeAjuda } from './card-modals/RouletteModeAjuda';
 
 // Configuração de Escala de Fonte para Projeção e Acessibilidade Visual
 const FONT_LEVELS = [
@@ -601,47 +605,14 @@ export const RouletteCard = ({
                             </h1>
 
                             {/* Seletor Retrátil de Alunos */}
-                            {showStudentSelector && (
-                                <div className="mt-3 p-3 bg-white/95 text-slate-800 rounded-2xl shadow-xl border-2 border-amber-300 max-h-52 overflow-y-auto relative z-30 text-left custom-scrollbar animate-in slide-in-from-top-2">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs font-black text-amber-950 uppercase tracking-wider">
-                                            Selecione quem responderá a esta pergunta:
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowStudentSelector(false)}
-                                            className="text-xs font-black text-amber-800 hover:text-amber-950 p-1"
-                                        >
-                                            ✕
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                                        {(allStudents.length > 0 ? allStudents : activeStudents)
-                                            .filter(s => s.status !== 'absent')
-                                            .map(s => {
-                                                const isCurrent = s.id === winner.id;
-                                                return (
-                                                    <button
-                                                        key={s.id}
-                                                        type="button"
-                                                        onClick={() => handleSelectSpecificStudent(s)}
-                                                        className={`p-2 rounded-xl text-xs font-bold flex items-center justify-between border transition-all text-left cursor-pointer ${
-                                                            isCurrent
-                                                                ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                                                                : 'bg-slate-50 hover:bg-amber-50 border-slate-200 text-slate-800 hover:border-amber-300'
-                                                        }`}
-                                                    >
-                                                        <span className="truncate">{s.name}</span>
-                                                        {s.status === 'removed' && (
-                                                            <span className="text-[10px] font-normal opacity-70 ml-1 shrink-0">(Fora da roleta)</span>
-                                                        )}
-                                                    </button>
-                                                );
-                                            })
-                                        }
-                                    </div>
-                                </div>
-                            )}
+                            <StudentSelectorModal 
+                                show={showStudentSelector}
+                                onClose={() => setShowStudentSelector(false)}
+                                allStudents={allStudents}
+                                activeStudents={activeStudents}
+                                winnerId={winner?.id}
+                                onSelect={handleSelectSpecificStudent}
+                            />
 
                             {/* AVISOS EXPLÍCITOS: TEVE AJUDA E AJUDOU */}
                             {(hadHelp || helpedCount > 0) && (
@@ -807,67 +778,15 @@ export const RouletteCard = ({
                 {/* ============================================================ */}
                 {/* MODAL INTERNO: SELETOR DE PERGUNTAS */}
                 {/* ============================================================ */}
-                {showQuestionSelector && (
-                    <div className="bg-indigo-50/95 border-b-2 border-indigo-200 p-4 max-h-56 overflow-y-auto space-y-2 animate-in slide-in-from-top-3 duration-200 shrink-0">
-                        <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider">
-                                Escolha uma pergunta para {winner.name}:
-                            </h4>
-                            <button 
-                                onClick={() => setShowQuestionSelector(false)}
-                                className="text-xs font-bold text-indigo-600 hover:text-indigo-800"
-                            >
-                                Fechar ✕
-                            </button>
-                        </div>
-                        <div className="grid grid-cols-1 gap-1.5">
-                            {allQuestions.map((q, idx) => {
-                                const isCurrent = q.question === winner.question;
-                                const isUsed = usedQuestions.has(q.question);
-                                return (
-                                    <button
-                                        key={idx}
-                                        onClick={() => handleSelectSpecificQuestion(q)}
-                                        className={`text-left p-2.5 rounded-xl text-xs font-medium transition-all flex items-start justify-between gap-3 border ${
-                                            isCurrent 
-                                            ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs' 
-                                            : isUsed 
-                                            ? 'bg-white/70 text-slate-500 border-slate-200 hover:bg-white' 
-                                            : 'bg-white text-slate-800 border-indigo-100 hover:border-indigo-300 shadow-2xs hover:bg-indigo-50/50'
-                                        }`}
-                                    >
-                                        <div className="flex items-start gap-2">
-                                            <span className={`font-black shrink-0 ${isCurrent ? 'text-indigo-200' : 'text-indigo-600'}`}>
-                                                #{idx + 1}
-                                            </span>
-                                            <span className="line-clamp-2">{q.question}</span>
-                                        </div>
-                                        <div className="shrink-0 flex items-center gap-1.5">
-                                            {(() => {
-                                                const badge = getDifficultyBadge(q.difficulty);
-                                                return (
-                                                    <span className={`text-2xs font-bold px-1.5 py-0.5 rounded border ${badge.color}`}>
-                                                        {badge.label}
-                                                    </span>
-                                                );
-                                            })()}
-                                            {isUsed && !isCurrent && (
-                                                <span className="text-2xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold">
-                                                    Usada
-                                                </span>
-                                            )}
-                                            {isCurrent && (
-                                                <span className="text-2xs bg-indigo-500 text-white px-1.5 py-0.5 rounded font-black">
-                                                    Atual
-                                                </span>
-                                            )}
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
+                <QuestionSelectorModal
+                    show={showQuestionSelector}
+                    onClose={() => setShowQuestionSelector(false)}
+                    allQuestions={allQuestions}
+                    winnerQuestion={winner?.question}
+                    usedQuestions={usedQuestions}
+                    onSelect={handleSelectSpecificQuestion}
+                    getDifficultyBadge={getDifficultyBadge}
+                />
 
                 {/* ============================================================ */}
                 {/* CORPO CENTRAL DO CARD (SCROLLÁVEL SE NECESSÁRIO) */}
@@ -1009,365 +928,40 @@ export const RouletteCard = ({
                                 </div>
                             )}
                         </div>
-
-                    {/* ======================================================== */}
+                            {/* ======================================================== */}
                     {/* CONTEÚDO ESPECÍFICO: MODO "TODOS RESPONDEM" */}
                     {/* ======================================================== */}
                     {cardMode === 'todos_respondem' && (
-                        <div className="bg-indigo-50/90 border-2 border-indigo-200 p-5 rounded-2xl space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            {/* Ações de Pontuação Coletiva */}
-                            <div className="space-y-3">
-                                <div className="text-xs font-black text-indigo-900 uppercase tracking-wider text-center">
-                                    Como deseja pontuar a turma?
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <button
-                                        onClick={() => {
-                                            gameAudio.playSuccess();
-                                            confetti({ particleCount: 50, spread: 80, origin: { y: 0.6 } });
-                                            if (onBatchResult) {
-                                                onBatchResult({
-                                                    studentIds: activeStudents.map(s => s.id),
-                                                    questionText: winner.question
-                                                });
-                                            }
-                                        }}
-                                        className="p-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-1"
-                                    >
-                                        <span className="flex items-center gap-1.5 text-base">
-                                            🏆 Toda a Turma Acertou!
-                                        </span>
-                                        <span className="text-2xs text-emerald-100 font-normal">
-                                            +1 ponto para todos os {activeStudents.length} alunos ativos
-                                        </span>
-                                    </button>
-
-                                    <button
-                                        onClick={() => setShowSelectionGrid(!showSelectionGrid)}
-                                        className="p-3.5 bg-white border-2 border-indigo-300 text-indigo-800 hover:bg-indigo-50 rounded-xl font-bold text-sm shadow-xs transition-all active:scale-95 flex flex-col items-center justify-center gap-1"
-                                    >
-                                        <span className="flex items-center gap-1.5 text-base">
-                                            🎯 Marcar Quem Acertou
-                                        </span>
-                                        <span className="text-2xs text-indigo-600 font-normal">
-                                            {showSelectionGrid ? 'Ocultar lista seletiva' : 'Escolher alunos que acertaram'}
-                                        </span>
-                                    </button>
-                                </div>
-
-                                {/* Grade Seletiva de Alunos */}
-                                {showSelectionGrid && (
-                                    <div className="bg-white p-4 rounded-xl border border-indigo-200 shadow-sm space-y-3 animate-in fade-in duration-200">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-black text-slate-700">
-                                                Selecione os alunos que acertaram: ({selectedStudentIds.size}/{activeStudents.length})
-                                            </span>
-                                            <div className="flex gap-2">
-                                                <button 
-                                                    onClick={() => setSelectedStudentIds(new Set(activeStudents.map(s => s.id)))}
-                                                    className="text-2xs font-bold text-indigo-600 hover:underline"
-                                                >
-                                                    Marcar Todos
-                                                </button>
-                                                <span className="text-slate-300">|</span>
-                                                <button 
-                                                    onClick={() => setSelectedStudentIds(new Set())}
-                                                    className="text-2xs font-bold text-slate-500 hover:underline"
-                                                >
-                                                    Limpar
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-1 custom-scrollbar">
-                                            {activeStudents.map(student => {
-                                                const isSelected = selectedStudentIds.has(student.id);
-                                                return (
-                                                    <button
-                                                        key={student.id}
-                                                        onClick={() => {
-                                                            const next = new Set(selectedStudentIds);
-                                                            if (next.has(student.id)) next.delete(student.id);
-                                                            else next.add(student.id);
-                                                            setSelectedStudentIds(next);
-                                                            gameAudio.playTick();
-                                                        }}
-                                                        className={`p-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition-all text-left ${
-                                                            isSelected 
-                                                            ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold' 
-                                                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                                                        }`}
-                                                    >
-                                                        <span className="truncate">{student.name}</span>
-                                                        {isSelected ? (
-                                                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 ml-1" />
-                                                        ) : (
-                                                            <div className="w-3.5 h-3.5 rounded-full border border-slate-300 shrink-0 ml-1"></div>
-                                                        )}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        <button
-                                            disabled={selectedStudentIds.size === 0}
-                                            onClick={() => {
-                                                if (selectedStudentIds.size === 0) return;
-                                                gameAudio.playSuccess();
-                                                confetti({ particleCount: 40, spread: 70 });
-                                                if (onBatchResult) {
-                                                    onBatchResult({
-                                                        studentIds: Array.from(selectedStudentIds),
-                                                        questionText: winner.question
-                                                    });
-                                                }
-                                            }}
-                                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:text-slate-500 text-white font-black rounded-xl text-sm transition-all shadow-sm flex items-center justify-center gap-2"
-                                        >
-                                            <Check className="w-4 h-4" />
-                                            Confirmar Pontos para {selectedStudentIds.size} Aluno(s)
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ======================================================== */}
+                        <RouletteModeTodosRespondem
+                            activeStudents={activeStudents}
+                            winner={winner}
+                            onBatchResult={onBatchResult}
+                            showSelectionGrid={showSelectionGrid}
+                            setShowSelectionGrid={setShowSelectionGrid}
+                            selectedStudentIds={selectedStudentIds}
+                            setSelectedStudentIds={setSelectedStudentIds}
+                        />
+                    )}                      {/* ======================================================== */}
                     {/* CONTEÚDO ESPECÍFICO: MODO "PRECISO DE AJUDA" */}
                     {/* ======================================================== */}
                     {cardMode === 'preciso_de_ajuda' && (
-                        <div className="bg-sky-50/90 border-2 border-sky-200 p-5 rounded-2xl space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            
-                            {/* Abas de Ajuda */}
-                            <div className="flex bg-white p-1 rounded-xl border border-sky-200 shadow-2xs gap-1">
-                                <button
-                                    onClick={() => { setHelpTab('colleague'); gameAudio.playTick(); }}
-                                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                                        helpTab === 'colleague' 
-                                        ? 'bg-sky-600 text-white shadow-xs' 
-                                        : 'text-slate-600 hover:bg-sky-50'
-                                    }`}
-                                >
-                                    <Users className="w-3.5 h-3.5" />
-                                    <span>Colega Ajudante</span>
-                                </button>
-                                <button
-                                    onClick={() => { setHelpTab('hint'); gameAudio.playTick(); }}
-                                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                                        helpTab === 'hint' 
-                                        ? 'bg-sky-600 text-white shadow-xs' 
-                                        : 'text-slate-600 hover:bg-sky-50'
-                                    }`}
-                                >
-                                    <Lightbulb className="w-3.5 h-3.5" />
-                                    <span>Ver Pista</span>
-                                </button>
-                                <button
-                                    onClick={() => { setHelpTab('class'); gameAudio.playTick(); }}
-                                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                                        helpTab === 'class' 
-                                        ? 'bg-sky-600 text-white shadow-xs' 
-                                        : 'text-slate-600 hover:bg-sky-50'
-                                    }`}
-                                >
-                                    <ThumbsUp className="w-3.5 h-3.5" />
-                                    <span>Opinião da Sala</span>
-                                </button>
-                            </div>
-
-                            {/* ABA 1: COLEGA AJUDANTE */}
-                            {helpTab === 'colleague' && (
-                                <div className="space-y-3">
-                                    <div className="bg-white p-4 rounded-xl border border-sky-100 text-center shadow-2xs">
-                                        {isDrawingHelper ? (
-                                            <div className="py-4 space-y-2">
-                                                <div className="text-xs font-bold text-sky-600 uppercase tracking-widest">Sorteando Ajudante...</div>
-                                                <div className="text-3xl font-black text-indigo-700 animate-pulse font-mono">
-                                                    {drawingNameDisplay || '...'}
-                                                </div>
-                                            </div>
-                                        ) : helperStudent ? (
-                                            <div className="py-2 space-y-1">
-                                                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 uppercase tracking-wider">
-                                                    ✨ Colega Escolhido(a)
-                                                </span>
-                                                <h3 className="text-2xl font-black text-slate-800 flex items-center justify-center gap-2">
-                                                    <User className="w-6 h-6 text-sky-500" />
-                                                    {helperStudent.name}
-                                                </h3>
-                                                <p className="text-xs text-slate-500">
-                                                    {helperStudent.name} agora está em dupla com {winner.name}!
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <div className="py-3 text-slate-600 text-xs">
-                                                Nenhum colega selecionado ainda. Clique abaixo para sortear ou escolha na lista.
-                                            </div>
-                                        )}
-
-                                        <div className="flex flex-wrap items-center justify-center gap-2 mt-3 pt-3 border-t border-slate-100">
-                                            <button
-                                                disabled={isDrawingHelper}
-                                                onClick={handleDrawHelper}
-                                                className="px-4 py-2 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl text-xs font-black shadow-xs hover:from-sky-600 hover:to-blue-700 active:scale-95 transition-all flex items-center gap-1.5"
-                                            >
-                                                <Shuffle className="w-3.5 h-3.5" />
-                                                {helperStudent ? 'Sortear Outro Colega 🎲' : 'Sortear Colega Ajudante 🎲'}
-                                            </button>
-
-                                            {/* Seletor Manual */}
-                                            <select
-                                                value={helperStudent?.id || ''}
-                                                onChange={(e) => {
-                                                    const helpersPool = availableHelpers.length > 0 ? availableHelpers : activeStudents;
-                                                    const selected = helpersPool.find(s => s.id === e.target.value);
-                                                    setHelperStudent(selected || null);
-                                                    if (selected) gameAudio.playTick();
-                                                }}
-                                                className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 outline-none cursor-pointer"
-                                            >
-                                                <option value="">Escolher manualmente...</option>
-                                                {(availableHelpers.length > 0 ? availableHelpers : activeStudents)
-                                                    .filter(s => s.id !== winner.id && s.status !== 'absent')
-                                                    .map(s => (
-                                                        <option key={s.id} value={s.id}>
-                                                            {s.name} {s.status === 'removed' ? '(Fora da Roleta)' : ''}
-                                                        </option>
-                                                    ))
-                                                }
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    {/* Ações de Desfecho da Dupla */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                                        <button
-                                            onClick={() => {
-                                                gameAudio.playSuccess();
-                                                confetti({ particleCount: 45, spread: 75 });
-                                                if (onHelpResult) {
-                                                    onHelpResult({
-                                                        helperStudentId: helperStudent?.id || null,
-                                                        isCorrect: true,
-                                                        questionText: winner.question,
-                                                        helpType: 'colleague'
-                                                    });
-                                                }
-                                            }}
-                                            className="p-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-1.5"
-                                        >
-                                            <CheckCircle className="w-4 h-4" />
-                                            {helperStudent ? `Acertaram em Dupla! (+1 para ambos)` : 'Acertou com Ajuda! (+1 ponto)'}
-                                        </button>
-
-                                        <button
-                                            onClick={() => {
-                                                if (onHelpResult) {
-                                                    onHelpResult({
-                                                        helperStudentId: helperStudent?.id || null,
-                                                        isCorrect: false,
-                                                        questionText: winner.question,
-                                                        helpType: 'colleague'
-                                                    });
-                                                }
-                                            }}
-                                            className="p-3 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-xl font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-1.5"
-                                        >
-                                            <XCircle className="w-4 h-4" />
-                                            Errou (Tentativa com Ajuda)
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* ABA 2: PISTA / DICA */}
-                            {helpTab === 'hint' && (
-                                <div className="bg-white p-4 rounded-xl border border-sky-100 space-y-3">
-                                    <div className="text-xs font-black text-sky-900 uppercase tracking-wider flex items-center gap-1.5">
-                                        <Lightbulb className="w-4 h-4 text-amber-500" />
-                                        Pista Pedagógica:
-                                    </div>
-                                    
-                                    {!showHintRevealed ? (
-                                        <div className="text-center py-4 space-y-2">
-                                            <p className="text-xs text-slate-500">
-                                                A pista revela as letras da resposta ou o professor pode dar uma dica oral!
-                                            </p>
-                                            <button
-                                                onClick={() => { 
-                                                    setShowHintRevealed(true); 
-                                                    if (onRevealHint) onRevealHint();
-                                                    gameAudio.playTick(); 
-                                                }}
-                                                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-xs shadow-xs transition-all"
-                                            >
-                                                Revelar Letras da Resposta 🔍
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
-                                            <div className="text-2xs font-bold text-amber-800 uppercase">Letras da resposta:</div>
-                                            <div className="font-mono text-base font-black text-slate-800 tracking-wider">
-                                                {getMaskedHint(winner.answer)}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="pt-2 flex justify-center gap-2">
-                                        <button
-                                            onClick={() => {
-                                                gameAudio.playSuccess();
-                                                if (onHelpResult) {
-                                                    onHelpResult({ 
-                                                        helperStudentId: null, 
-                                                        isCorrect: true, 
-                                                        questionText: winner.question, 
-                                                        helpType: 'hint' 
-                                                    });
-                                                }
-                                            }}
-                                            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black transition-all"
-                                        >
-                                            Acertou com a Dica! ✅
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* ABA 3: OPINIÃO DA SALA */}
-                            {helpTab === 'class' && (
-                                <div className="bg-white p-4 rounded-xl border border-sky-100 text-center space-y-3">
-                                    <ThumbsUp className="w-8 h-8 text-sky-500 mx-auto" />
-                                    <h4 className="text-sm font-black text-slate-800">
-                                        Consulta à Sala de Aula
-                                    </h4>
-                                    <p className="text-xs text-slate-600 max-w-md mx-auto">
-                                        Peça para a turma levantar a mão para quem acha que sabe a resposta, ou permita que um colega fale uma palavra-chave para auxiliar!
-                                    </p>
-
-                                    <div className="pt-2 flex justify-center gap-2">
-                                        <button
-                                            onClick={() => {
-                                                gameAudio.playSuccess();
-                                                if (onHelpResult) {
-                                                    onHelpResult({ 
-                                                        helperStudentId: null, 
-                                                        isCorrect: true, 
-                                                        questionText: winner.question, 
-                                                        helpType: 'class_opinion' 
-                                                    });
-                                                }
-                                            }}
-                                            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black transition-all"
-                                        >
-                                            Acertou com a Turma! ✅
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        <RouletteModeAjuda
+                            winner={winner}
+                            activeStudents={activeStudents}
+                            helpTab={helpTab}
+                            setHelpTab={setHelpTab}
+                            isDrawingHelper={isDrawingHelper}
+                            helperStudent={helperStudent}
+                            setHelperStudent={setHelperStudent}
+                            drawingNameDisplay={drawingNameDisplay}
+                            handleDrawHelper={handleDrawHelper}
+                            availableHelpers={availableHelpers}
+                            onHelpResult={onHelpResult}
+                            showHintRevealed={showHintRevealed}
+                            setShowHintRevealed={setShowHintRevealed}
+                            getMaskedHint={getMaskedHint}
+                            onRevealHint={onRevealHint}
+                        />
                     )}
                 </div>
 

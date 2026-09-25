@@ -499,9 +499,9 @@ export const RouletteSidebar = ({
                                                     </div>
 
                                                     {/* Nome + badge de grupo em coluna para não comprimir o nome */}
-                                                    <div className="min-w-0 flex flex-col gap-0.5 flex-1">
+                                                    <div className="min-w-0 flex flex-col gap-0.5 flex-1 py-0.5">
                                                         <span 
-                                                            className={`font-bold text-sm truncate leading-tight ${student.status === 'active' ? 'text-slate-900' : 'text-slate-500 line-through'}`} 
+                                                            className={`font-bold text-sm break-words leading-tight ${student.status === 'active' ? 'text-slate-900' : 'text-slate-500 line-through'}`} 
                                                             title={student.name}
                                                         >
                                                             {student.name}
