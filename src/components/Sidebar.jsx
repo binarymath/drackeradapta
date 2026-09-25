@@ -209,8 +209,8 @@ export const Sidebar = ({
                         </div>
                     )}
 
-                    {/* Botão rápido: criar nova roleta via Google Sheets */}
-                    {activityType === 'roulette' && onOpenSheetsModal && (
+                    {/* Botão rápido: criar nova roleta via Google Sheets (disponível na Roleta e no Dashboard) */}
+                    {(activityType === 'roulette' || activityType === 'about_system' || activityType === 'dashboard') && onOpenSheetsModal && (
                         <button
                             type="button"
                             onClick={onOpenSheetsModal}
