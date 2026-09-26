@@ -5,6 +5,7 @@ export const RouletteEmptyState = ({
     showSheetsModal,
     setShowSheetsModal,
     handleSheetsImport,
+    handleCreateRouletteFromSheets,
     classes
 }) => {
     return (
@@ -14,6 +15,7 @@ export const RouletteEmptyState = ({
                 onClose={() => setShowSheetsModal(false)}
                 mode="import"
                 onImport={handleSheetsImport}
+                onCreateNew={handleCreateRouletteFromSheets}
             />
             <div className="flex flex-col items-center justify-center w-full min-h-[600px] text-center p-8 animate-in fade-in duration-500">
                 <div className="bg-indigo-50 border-2 border-indigo-200 rounded-3xl p-12 max-w-2xl shadow-sm space-y-6">

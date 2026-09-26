@@ -187,21 +187,20 @@ export const GoogleSheetsImportModal = ({
         });
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = (actionType = mode) => {
         const selected = questions.filter(q => selectedIds.has(q.id));
         if (selected.length === 0) return;
 
-        if (mode === 'create' && onCreateNew) {
+        if (actionType === 'create' && onCreateNew) {
             onCreateNew(selected, sheetLabel);
-        } else if (onImport) {
+        } else if (actionType === 'import' && onImport) {
             onImport(selected);
         }
         handleClose();
     };
 
-    const confirmLabel = mode === 'create'
-        ? `Criar Roleta com ${selectedIds.size} questão(ões) ✓`
-        : `Importar ${selectedIds.size} questão(ões) ✓`;
+    const confirmCreateLabel = `Nova Atividade (${selectedIds.size}) ✓`;
+    const confirmImportLabel = `Inserir na Atual (${selectedIds.size}) ✓`;
 
     if (!isOpen) return null;
 
@@ -478,15 +477,29 @@ export const GoogleSheetsImportModal = ({
                         Cancelar
                     </button>
                     {step === 'preview' && (
-                        <button
-                            type="button"
-                            onClick={handleConfirm}
-                            disabled={selectedIds.size === 0}
-                            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-bold rounded-xl flex items-center gap-2 transition-all shadow-sm cursor-pointer"
-                        >
-                            <CheckCircle className="w-4 h-4" />
-                            {confirmLabel}
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {onImport && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleConfirm('import')}
+                                    disabled={selectedIds.size === 0}
+                                    className="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 disabled:opacity-40 font-bold rounded-xl flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+                                >
+                                    {confirmImportLabel}
+                                </button>
+                            )}
+                            {onCreateNew && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleConfirm('create')}
+                                    disabled={selectedIds.size === 0}
+                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-bold rounded-xl flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+                                >
+                                    <CheckCircle className="w-4 h-4" />
+                                    {confirmCreateLabel}
+                                </button>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>

@@ -1644,12 +1644,22 @@ export const RouletteActivity = () => {
         gameAudio?.playSuccess?.();
     }, [activeActivity, updateActivityData]);
 
+    const handleCreateRouletteFromSheets = useCallback((importedQuestions, sheetLabel) => {
+        addActivityTab({
+            title: sheetLabel ? `Roleta: ${sheetLabel}` : 'Roleta (Planilha)',
+            type: 'roulette',
+            content: `Roleta criada a partir do Google Sheets`,
+            questions: importedQuestions,
+        });
+    }, [addActivityTab]);
+
     if (!hasRouletteData && (!classes || classes.length === 0)) {
         return (
             <RouletteEmptyState
                 showSheetsModal={showSheetsModal}
                 setShowSheetsModal={setShowSheetsModal}
                 handleSheetsImport={handleSheetsImport}
+                handleCreateRouletteFromSheets={handleCreateRouletteFromSheets}
                 classes={classes}
             />
         );
@@ -2244,6 +2254,7 @@ export const RouletteActivity = () => {
                 onClose={() => setShowSheetsModal(false)}
                 mode="import"
                 onImport={handleSheetsImport}
+                onCreateNew={handleCreateRouletteFromSheets}
             />
 
             <TransitionQuestionsModal
