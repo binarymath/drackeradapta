@@ -12,6 +12,9 @@ import { GroupsManagerModal } from './GroupsManagerModal';
 import { GroupRoundCard } from './GroupRoundCard';
 import { RouletteSidebar } from './RouletteSidebar';
 import { ClassSessionReportModal } from './ClassSessionReportModal';
+import { GoogleSheetsImportModal } from './GoogleSheetsImportModal';
+import { RouletteEmptyState } from './RouletteEmptyState';
+import { useCurrentClass } from './hooks/useCurrentClass';
 import { CheckCircle, XCircle, RotateCcw, List, Download, UserX, Edit3, RotateCw, RefreshCw, Eye, EyeOff, HeartHandshake, Award, Maximize2, Minimize2, Users, Plus, Minus, Target, UserMinus, Sparkles, AlertTriangle, User, Trophy, ChevronRight, ChevronLeft, BarChart3 } from 'lucide-react';
 import { gameAudio } from '../../utils/gameAudio';
 
@@ -68,6 +71,7 @@ export const RouletteActivity = () => {
     const [showClassesModal, setShowClassesModal] = useState(false);
     const [showGroupsModal, setShowGroupsModal] = useState(false);
     const [showClassReportModal, setShowClassReportModal] = useState(false);
+    const [showSheetsModal, setShowSheetsModal] = useState(false);
     const [currentSessionId] = useState(() => 'sess_' + Date.now());
     const [sessionStartTime] = useState(() => Date.now());
 
@@ -99,81 +103,7 @@ export const RouletteActivity = () => {
     const classId = activeActivity?.classId;
     
     // Procura a turma vinculada, ou usa os dados próprios da aba (classData), ou primeira turma disponível, ou gera turma automática
-    const currentClass = useMemo(() => {
-        // 1. Se existir turma vinculada na lista global de turmas do professor
-        if (classes && classes.length > 0) {
-            const found = classes.find(c => c.id === classId);
-            if (found) {
-                return { ...found, groups: Array.isArray(found.groups) ? found.groups : [] };
-            }
-
-            // 2. Se a aba ativa tiver classData próprio salvo nela, prioriza ela antes de dar fallback para classes[0]
-            if (activeActivity?.classData && (activeActivity.classData.id === classId || !classId)) {
-                return {
-                    ...activeActivity.classData,
-                    groups: Array.isArray(activeActivity.classData.groups) ? activeActivity.classData.groups : []
-                };
-            }
-            if (activeActivity?.classData && activeActivity.classData.students?.length > 0) {
-                return {
-                    ...activeActivity.classData,
-                    groups: Array.isArray(activeActivity.classData.groups) ? activeActivity.classData.groups : []
-                };
-            }
-
-            // 3. Fallback para a primeira turma cadastrada caso classId não seja encontrado
-            const first = classes[0];
-            return { ...first, groups: Array.isArray(first.groups) ? first.groups : [] };
-        }
-
-        // Se não houver turmas no navegador mas a atividade possui classData anexada
-        if (activeActivity?.classData && (activeActivity.classData.students?.length > 0 || activeActivity.classData.name)) {
-            return {
-                ...activeActivity.classData,
-                groups: Array.isArray(activeActivity.classData.groups) ? activeActivity.classData.groups : []
-            };
-        }
-
-        // Se não houver turmas cadastradas no navegador (ex: Vercel ou cache limpo),
-        // constrói uma turma automática para que a roleta possa ser visualizada e jogada imediatamente
-        const questionsList = activeActivity?.questions || [];
-        let studentsList = [];
-        if (activeActivity?.items && activeActivity.items.length > 0) {
-            studentsList = activeActivity.items.map((item, idx) => ({
-                id: item.id || `std_auto_${idx}_${Date.now()}`,
-                name: item.name || `Aluno ${idx + 1}`,
-                status: item.active !== false ? 'active' : 'removed',
-                hits: item.hits || 0,
-                misses: item.misses || 0,
-                history: []
-            }));
-        } else if (questionsList.length > 0) {
-            studentsList = questionsList.map((q, idx) => ({
-                id: `std_auto_${idx}_${Date.now()}`,
-                name: q.name || `Aluno ${idx + 1}`,
-                status: 'active',
-                hits: 0,
-                misses: 0,
-                history: []
-            }));
-        } else {
-            studentsList = ['Ana', 'Bruno', 'Carlos', 'Daniela', 'Eduardo', 'Fernanda'].map((name, idx) => ({
-                id: `std_auto_${idx}_${Date.now()}`,
-                name,
-                status: 'active',
-                hits: 0,
-                misses: 0,
-                history: []
-            }));
-        }
-
-        return {
-            id: classId || 'class_auto_' + (activeActivity?.id || Date.now()),
-            name: activeActivity?.topic ? `Turma: ${activeActivity.topic}` : (activeActivity?.title || 'Turma da Roleta'),
-            students: studentsList,
-            groups: []
-        };
-    }, [classes, classId, activeActivity]);
+    const currentClass = useCurrentClass(classes, classId, activeActivity);
 
     // Sincroniza e registra a turma no estado global de turmas do professor
     useEffect(() => {
@@ -1704,21 +1634,34 @@ export const RouletteActivity = () => {
                             (activeActivity?.items && activeActivity.items.length > 0) ||
                             (currentClass && currentClass.students && currentClass.students.length > 0);
 
+    // Handler para importar questões da planilha para a atividade atual
+    const handleSheetsImport = useCallback((importedQuestions) => {
+        if (!activeActivity?.id) return;
+        const existing = activeActivity.questions || [];
+        updateActivityData(activeActivity.id, {
+            questions: [...existing, ...importedQuestions]
+        });
+        gameAudio?.playSuccess?.();
+    }, [activeActivity, updateActivityData]);
+
+    const handleCreateRouletteFromSheets = useCallback((importedQuestions, sheetLabel) => {
+        addActivityTab({
+            title: sheetLabel ? `Roleta: ${sheetLabel}` : 'Roleta (Planilha)',
+            type: 'roulette',
+            content: `Roleta criada a partir do Google Sheets`,
+            questions: importedQuestions,
+        });
+    }, [addActivityTab]);
+
     if (!hasRouletteData && (!classes || classes.length === 0)) {
         return (
-            <div className="flex flex-col items-center justify-center w-full min-h-[600px] text-center p-8 animate-in fade-in duration-500">
-                <div className="bg-indigo-50 border-2 border-indigo-200 rounded-3xl p-12 max-w-2xl shadow-sm">
-                    <h2 className="text-3xl font-black text-indigo-900 mb-4">Pronto para girar?</h2>
-                    <p className="text-lg text-indigo-700 font-medium">
-                        Para criar a sua roleta, siga estes passos na <strong className="font-black text-indigo-800">Barra Lateral à esquerda</strong>:
-                    </p>
-                    <ul className="text-left mt-6 space-y-3 text-indigo-800 font-medium bg-white/60 p-6 rounded-2xl">
-                        <li><strong>1.</strong> Selecione a <strong>Turma</strong> (crie uma se não tiver).</li>
-                        <li><strong>2.</strong> Digite o <strong>Tema</strong> da aula.</li>
-                        <li><strong>3.</strong> Clique no botão vermelho <strong>Gerar Atividade</strong>.</li>
-                    </ul>
-                </div>
-            </div>
+            <RouletteEmptyState
+                showSheetsModal={showSheetsModal}
+                setShowSheetsModal={setShowSheetsModal}
+                handleSheetsImport={handleSheetsImport}
+                handleCreateRouletteFromSheets={handleCreateRouletteFromSheets}
+                classes={classes}
+            />
         );
     }
 
@@ -1770,72 +1713,107 @@ export const RouletteActivity = () => {
                     </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                    {/* Indicador de Perguntas Utilizadas */}
-                    {uniqueQuestions.length > 0 && (
-                        <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded-xl text-xs font-bold">
-                            <span>Perguntas: {usedQuestions.size}/{uniqueQuestions.length}</span>
-                            {usedQuestions.size > 0 && (
-                                <button
-                                    onClick={handleResetUsedQuestions}
-                                    className="text-amber-600 hover:text-amber-800 ml-1 p-0.5"
-                                    title="Resetar perguntas usadas para permitir repeti-las"
-                                >
-                                    <RefreshCw className="w-3.5 h-3.5" />
-                                </button>
-                            )}
+                {/* ── BARRA DE AÇÕES ─────────────────────────────────────── */}
+                <div className="flex flex-col gap-2 shrink-0">
+
+                    {/* Linha 1: badges de status (não-interativos / semi-interativos) */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {/* Contador de perguntas */}
+                        {uniqueQuestions.length > 0 && (
+                            <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-1 rounded-lg text-xs font-bold">
+                                <span>❓ {usedQuestions.size}/{uniqueQuestions.length} perguntas</span>
+                                {usedQuestions.size > 0 && (
+                                    <button
+                                        onClick={handleResetUsedQuestions}
+                                        className="text-amber-600 hover:text-amber-900 transition-colors ml-0.5"
+                                        title="Resetar perguntas usadas"
+                                    >
+                                        <RefreshCw className="w-3 h-3" />
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Toggle dificuldade */}
+                        <button
+                            onClick={handleToggleDifficulty}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold text-xs transition-all border ${
+                                showDifficulty
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
+                            }`}
+                            title={showDifficulty ? 'Ocultar dificuldade' : 'Mostrar dificuldade'}
+                        >
+                            {showDifficulty ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                            <span>{showDifficulty ? 'Dificuldade visível' : 'Dificuldade oculta'}</span>
+                        </button>
+                    </div>
+
+                    {/* Linha 2: ações principais — scroll horizontal em telas pequenas */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+
+                        {/* Grupo: Questões */}
+                        <div className="flex items-center gap-px bg-slate-100 border border-slate-200 rounded-xl overflow-hidden shrink-0 shadow-2xs">
+                            <button
+                                onClick={() => setShowQuestionsEditor(true)}
+                                className="flex items-center gap-1.5 px-3 py-2 text-slate-700 hover:bg-white text-xs font-bold transition-colors whitespace-nowrap"
+                                title="Editar perguntas e gabaritos"
+                            >
+                                <Edit3 className="w-3.5 h-3.5 text-slate-500" />
+                                Editar
+                            </button>
+                            <div className="w-px h-5 bg-slate-300" />
+                            <button
+                                type="button"
+                                onClick={() => setShowSheetsModal(true)}
+                                className="flex items-center gap-1.5 px-3 py-2 text-emerald-700 hover:bg-emerald-50 text-xs font-bold transition-colors whitespace-nowrap"
+                                title="Importar questões do Google Sheets"
+                            >
+                                <span className="text-sm leading-none">📊</span>
+                                Planilha
+                            </button>
                         </div>
-                    )}
 
-                    {/* Botão para escolher se exibe ou oculta a dificuldade */}
-                    <button 
-                        onClick={handleToggleDifficulty}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all border shadow-2xs ${
-                            showDifficulty 
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100' 
-                            : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
-                        }`}
-                        title={showDifficulty ? 'Nível de dificuldade visível para os alunos (clique para ocultar)' : 'Nível de dificuldade oculto para os alunos (clique para exibir)'}
-                    >
-                        {showDifficulty ? <Eye className="w-4 h-4 text-emerald-600" /> : <EyeOff className="w-4 h-4 text-slate-400" />}
-                        <span>{showDifficulty ? 'Dificuldade: Visível' : 'Dificuldade: Oculta'}</span>
-                    </button>
+                        {/* Separador visual */}
+                        <div className="w-px h-6 bg-slate-200 shrink-0" />
 
-                    <button 
-                        onClick={() => setShowQuestionsEditor(true)}
-                        className="flex items-center gap-2 bg-slate-50 text-slate-700 hover:bg-slate-100 px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-colors border border-slate-200 shadow-2xs"
-                        title="Editar perguntas e adicionar imagens"
-                    >
-                        <Edit3 className="w-4 h-4" /> Editar Perguntas
-                    </button>
+                        {/* Grupo: Transformar */}
+                        <button
+                            onClick={() => setShowTransitionModal(true)}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 text-white rounded-xl font-bold text-xs transition-all shadow-sm shrink-0 whitespace-nowrap active:scale-95"
+                            title="Transformar em Quiz"
+                        >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Quiz
+                        </button>
 
-                    <button 
-                        onClick={() => setShowTransitionModal(true)}
-                        className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-2xs"
-                        title="Transformar perguntas da Roleta em um Quiz com questões impressas ou interativas"
-                    >
-                        <CheckCircle className="w-4 h-4" /> Transformar em Quiz
-                    </button>
+                        {/* Separador visual */}
+                        <div className="w-px h-6 bg-slate-200 shrink-0" />
 
-                    <button 
-                        onClick={() => setShowClassReportModal(true)}
-                        className="flex items-center gap-2 bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 hover:from-indigo-100 hover:to-purple-100 text-indigo-900 border border-indigo-200/90 px-3.5 py-2 rounded-xl font-black text-xs sm:text-sm transition-all shadow-2xs active:scale-95 cursor-pointer"
-                        title="Abrir Relatório de Aula com resumo da turma, questões trabalhadas, participação e parecer pedagógico"
-                    >
-                        <BarChart3 className="w-4 h-4 text-indigo-600" />
-                        <span>Relatório da Aula & Insights</span>
-                    </button>
+                        {/* Grupo: Relatório + Placar */}
+                        <div className="flex items-center gap-px bg-indigo-50 border border-indigo-200 rounded-xl overflow-hidden shrink-0 shadow-2xs">
+                            <button
+                                onClick={() => setShowClassReportModal(true)}
+                                className="flex items-center gap-1.5 px-3 py-2 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition-colors whitespace-nowrap"
+                                title="Relatório da Aula & Insights"
+                            >
+                                <BarChart3 className="w-3.5 h-3.5" />
+                                Relatório
+                            </button>
+                            <div className="w-px h-5 bg-indigo-200" />
+                            <button
+                                onClick={() => setIsSidebarOpen(true)}
+                                className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:brightness-110 text-white text-xs font-bold transition-all whitespace-nowrap active:scale-95"
+                                title="Placar & Alunos"
+                            >
+                                <Users className="w-3.5 h-3.5" />
+                                Placar ({combinedItems.length})
+                            </button>
+                        </div>
 
-                    {/* Botão de Destaque na Barra Superior para Abrir a Lateral de Alunos & Placar */}
-                    <button 
-                        onClick={() => setIsSidebarOpen(true)}
-                        className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md active:scale-95 cursor-pointer"
-                        title="Abrir Painel Lateral de Alunos e Placar"
-                    >
-                        <Users className="w-4 h-4" />
-                        <span>Placar & Alunos ({combinedItems.length})</span>
-                    </button>
+                    </div>
                 </div>
+
             </div>
 
             {/* Palco central com arena temática da roleta */}
@@ -2269,6 +2247,14 @@ export const RouletteActivity = () => {
                 onClose={() => setShowQuestionsEditor(false)}
                 activeActivity={activeActivity}
                 updateActivityData={updateActivityData}
+            />
+
+            <GoogleSheetsImportModal
+                isOpen={showSheetsModal}
+                onClose={() => setShowSheetsModal(false)}
+                mode="import"
+                onImport={handleSheetsImport}
+                onCreateNew={handleCreateRouletteFromSheets}
             />
 
             <TransitionQuestionsModal
