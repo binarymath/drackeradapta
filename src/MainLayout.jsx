@@ -109,6 +109,14 @@ export const MainLayout = () => {
         });
     };
 
+    const handleImportToCurrentActivity = (importedQuestions) => {
+        if (!activeActivity || activeActivity.type !== 'roulette') return;
+        const currentQuestions = activeActivity.questions || [];
+        updateActivityData(activeTabId, {
+            questions: [...currentQuestions, ...importedQuestions]
+        });
+    };
+
     // --- ACTIVITY SYNC EFFECTS ---
     useEffect(() => {
         if (activeActivity) {
@@ -485,6 +493,7 @@ export const MainLayout = () => {
                 onClose={() => setShowSheetsCreateModal(false)}
                 mode="create"
                 onCreateNew={handleCreateRouletteFromSheets}
+                onImport={activeActivity?.type === 'roulette' ? handleImportToCurrentActivity : undefined}
             />
 
             {!isFullWidth && <Footer />}
