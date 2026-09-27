@@ -163,13 +163,13 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                     cardContent.push(
                         <div key="word-list-content" className="mt-8 pt-6 print:mt-3 print:pt-3 border-t-2 border-dashed border-brown-200">
                             <h4 className="text-center text-lg font-black text-brown-700 uppercase tracking-widest mb-6 print:mb-3">📝 Resolva as Operações</h4>
-                            <div className="grid grid-cols-2 gap-0 border-2 border-brown-300 rounded-xl overflow-hidden bg-white shadow-sm mx-auto">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border-2 border-brown-300 rounded-xl overflow-hidden bg-white shadow-sm mx-auto p-2">
                                 {wordListBuffer.map((part, pIdx) => (
-                                    <div key={pIdx} className="flex items-center justify-start border border-brown-100 p-3 print:p-1.5 hover:bg-brown-50">
-                                        <span className="font-bold text-brown-400 mr-2 w-6 text-right print:text-sm">{pIdx + 1})</span>
-                                        <span className="font-mono text-lg print:text-base font-bold text-brown-900 whitespace-nowrap">
+                                    <div key={pIdx} className="flex items-start justify-start border border-brown-100 p-3 print:p-2 rounded-lg hover:bg-brown-50 min-w-0 gap-2">
+                                        <span className="font-bold text-brown-400 shrink-0 min-w-[1.75rem] text-right print:text-sm">{pIdx + 1})</span>
+                                        <div className="min-w-0 flex-1 leading-snug break-words text-base print:text-sm font-medium text-brown-900">
                                             <LatexRenderer content={part.trim().replace('?', '')} mathFontSize={mathFontSize} textFontSize={textFontSize} />
-                                        </span>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

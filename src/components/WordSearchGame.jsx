@@ -494,7 +494,7 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
                         <h3 className="text-center font-bold text-brown-400 uppercase text-xs tracking-widest mb-4">
                             {cluesList && cluesList.length > 0 ? "📝 Resolva as operações e encontre os resultados" : "Palavras para Encontrar"}
                         </h3>
-                        <div className={cluesList && cluesList.length > 0 ? "grid grid-cols-2 gap-0 border-2 border-brown-300 rounded-xl overflow-hidden shadow-sm" : "flex flex-wrap justify-center gap-3"}>
+                        <div className={cluesList && cluesList.length > 0 ? "grid grid-cols-1 md:grid-cols-2 gap-2 border-2 border-brown-300 rounded-xl overflow-hidden shadow-sm p-2 bg-white" : "flex flex-wrap justify-center gap-3"}>
                             {wordsToFind.map((word, idx) => {
                                 const isFound = foundWords.includes(word);
                                 const isMath = cluesList && cluesList[idx];
@@ -502,18 +502,18 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
                                     <div
                                         key={idx}
                                         className={`
-                                            transition-all duration-500
-                                            ${isMath ? 'border border-brown-100 p-3 flex items-center justify-start' : 'px-3 py-2 border rounded-full font-bold text-sm'}
+                                            transition-all duration-300 min-w-0
+                                            ${isMath ? 'border border-brown-100 p-2.5 rounded-lg flex items-start justify-start gap-2' : 'px-3 py-2 border rounded-full font-bold text-sm'}
                                             ${isFound
                                                 ? 'bg-green-100 text-green-800 opacity-80'
                                                 : 'bg-white text-brown-800 hover:bg-brown-50'}
                                         `}
                                     >
-                                        {isMath && <span className={`font-bold mr-2 w-6 text-right ${isFound ? 'text-green-600' : 'text-brown-400'}`}>{idx + 1})</span>}
-                                        <span className={`whitespace-nowrap ${isMath ? 'font-mono text-base font-bold' : ''} ${isFound ? "line-through text-green-700" : ""}`}>
+                                        {isMath && <span className={`font-bold shrink-0 min-w-[1.75rem] text-right ${isFound ? 'text-green-600' : 'text-brown-400'}`}>{idx + 1})</span>}
+                                        <div className={`min-w-0 flex-1 leading-snug break-words ${isMath ? 'font-medium text-sm sm:text-base' : ''} ${isFound ? "line-through text-green-700" : ""}`}>
                                             {isMath ? <LatexRenderer content={cluesList[idx].replace('?', '')} /> : word}
-                                        </span>
-                                        {isFound && <Check className="ml-auto inline-block w-4 h-4 text-green-600 flex-shrink-0" />}
+                                        </div>
+                                        {isFound && <Check className="ml-auto inline-block w-4 h-4 text-green-600 flex-shrink-0 self-center" />}
                                     </div>
                                 )
                             })}
