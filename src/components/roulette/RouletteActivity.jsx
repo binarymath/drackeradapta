@@ -446,6 +446,17 @@ export const RouletteActivity = () => {
         });
     };
 
+    // Atualiza um objeto completo de estudante (incluindo edições e exclusões no histórico)
+    const handleUpdateStudentFull = (updatedStudent) => {
+        saveClassUpdates(prev => {
+            const newStudents = (prev.students || []).map(s => 
+                String(s.id) === String(updatedStudent.id) ? updatedStudent : s
+            );
+            return { ...prev, students: newStudents };
+        });
+        setHistoryStudent(updatedStudent);
+    };
+
     // Inicia nova rodada no modo equipes: sorteia uma pergunta diferente por grupo simultaneamente
     const startGroupRound = () => {
         if (activeGroupItems.length === 0) return;
@@ -2228,6 +2239,7 @@ export const RouletteActivity = () => {
                 selectedModel={selectedModel}
                 topic={activeActivity?.topic || activeActivity?.title}
                 currentClass={currentClass}
+                onUpdateStudent={handleUpdateStudentFull}
             />
 
             <ClassSessionReportModal 
