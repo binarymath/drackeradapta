@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     CheckCircle, XCircle, HeartHandshake, Zap, 
     Printer, Filter, User, HelpCircle, Calendar, Sparkles, Award, AlertTriangle, Users,
-    Copy, Check, Bot, ChevronDown, ChevronUp
+    Copy, Check, Bot, ChevronDown, ChevronUp, Pencil, Trash2, Save, X, Edit3
 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
@@ -13,11 +13,13 @@ export const StudentHistoryModal = ({
     geminiService = null,
     selectedModel = 'gemini-2.5-flash',
     topic = '',
-    currentClass = null
+    currentClass = null,
+    onUpdateStudent = null
 }) => {
     if (!student) return null;
 
-    const [filterMode, setFilterMode] = useState('all'); // 'all' | 'teve_ajuda' | 'ajudou' | 'em_grupo'
+    const [currentStudent, setCurrentStudent] = useState(student);
+    const [filterMode, setFilterMode] = useState('all'); // 'all' | 'teve_ajuda' | 'ajudou' | 'em_grupo' | 'desafio_turma'
     
     // Estado do Parecer Pedagógico com IA
     const [aiReport, setAiReport] = useState('');
@@ -25,6 +27,102 @@ export const StudentHistoryModal = ({
     const [aiError, setAiError] = useState(null);
     const [copiedAi, setCopiedAi] = useState(false);
     const [isAiCardExpanded, setIsAiCardExpanded] = useState(true);
+
+    // Estado para Edição e Exclusão de Ocorrências
+    const [editingEntryKey, setEditingEntryKey] = useState(null);
+    const [editForm, setEditForm] = useState(null);
+    const [deletingEntryKey, setDeletingEntryKey] = useState(null);
+
+    useEffect(() => {
+        setCurrentStudent(student);
+        setEditingEntryKey(null);
+        setEditForm(null);
+        setDeletingEntryKey(null);
+    }, [student]);
+
+    const getEntryKey = (h, idx) => h.id || (h.date ? String(h.date) : `entry_${idx}`);
+
+    const handleDeleteEntry = (entryToDelete, idx) => {
+        const targetKey = getEntryKey(entryToDelete, idx);
+        const originalHistory = currentStudent?.history || [];
+        const updatedHistory = originalHistory.filter((h, i) => getEntryKey(h, i) !== targetKey);
+
+        const newHits = updatedHistory.filter(h => 
+            h.result === 'correct' || h.result === 'help_correct' || h.result === 'group_activity' || h.result === 'group_correct' || h.result === 'all_correct' || h.result === 'merit'
+        ).length;
+
+        const newMisses = updatedHistory.filter(h => 
+            h.result === 'incorrect' || h.result === 'group_incorrect' || h.result === 'rule_violation'
+        ).length;
+
+        const updatedStudent = {
+            ...currentStudent,
+            hits: newHits,
+            misses: newMisses,
+            history: updatedHistory
+        };
+
+        setCurrentStudent(updatedStudent);
+        setDeletingEntryKey(null);
+        if (onUpdateStudent) {
+            onUpdateStudent(updatedStudent);
+        }
+    };
+
+    const handleStartEdit = (entry, key) => {
+        setEditingEntryKey(key);
+        setEditForm({
+            question: entry.question || entry.reason || '',
+            result: entry.result || 'correct',
+            hadHelp: entry.hadHelp || entry.result === 'help_correct' || false,
+            helperName: entry.helperName || '',
+            helpedStudent: entry.helpedStudent || '',
+            groupName: entry.groupName || ''
+        });
+    };
+
+    const handleSaveEdit = (entryToEdit, key) => {
+        if (!editForm) return;
+
+        const originalHistory = currentStudent?.history || [];
+        const updatedHistory = originalHistory.map((h, idx) => {
+            if (getEntryKey(h, idx) === key) {
+                return {
+                    ...h,
+                    question: editForm.question,
+                    reason: editForm.question,
+                    result: editForm.result,
+                    hadHelp: editForm.hadHelp || !!editForm.helperName,
+                    helperName: editForm.helperName,
+                    helpedStudent: editForm.helpedStudent,
+                    groupName: editForm.groupName
+                };
+            }
+            return h;
+        });
+
+        const newHits = updatedHistory.filter(h => 
+            h.result === 'correct' || h.result === 'help_correct' || h.result === 'group_activity' || h.result === 'group_correct' || h.result === 'all_correct' || h.result === 'merit'
+        ).length;
+
+        const newMisses = updatedHistory.filter(h => 
+            h.result === 'incorrect' || h.result === 'group_incorrect' || h.result === 'rule_violation'
+        ).length;
+
+        const updatedStudent = {
+            ...currentStudent,
+            hits: newHits,
+            misses: newMisses,
+            history: updatedHistory
+        };
+
+        setCurrentStudent(updatedStudent);
+        setEditingEntryKey(null);
+        setEditForm(null);
+        if (onUpdateStudent) {
+            onUpdateStudent(updatedStudent);
+        }
+    };
 
     const getResultBadge = (item) => {
         if (item.isGroupActivity || item.groupName || item.result === 'group_correct' || item.result === 'group_activity') {
@@ -125,8 +223,8 @@ export const StudentHistoryModal = ({
         return { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' };
     };
 
-    // Extrair histórico de ajudas e atividades em grupo
-    const historyList = student.history || [];
+    // Extrair histórico de ajudas, atividades em grupo e desafio da turma
+    const historyList = currentStudent?.history || [];
     const helpReceivedEntries = historyList.filter(h => 
         h.result === 'help_correct' || 
         h.hadHelp || 
@@ -142,10 +240,16 @@ export const StudentHistoryModal = ({
         h.result === 'group_incorrect' ||
         (h.question && (h.question.includes('[Grupo:') || h.question.includes('[Atividade em Grupo') || h.question.includes('[Equipe ')))
     );
+    const classChallengeEntries = historyList.filter(h => 
+        h.result === 'all_correct' || 
+        h.isClassChallenge || 
+        (h.question && (h.question.includes('[Desafio da Turma]') || h.question.includes('Desafio da Turma')))
+    );
 
-    const helpCount = Math.max(helpReceivedEntries.length, student.helpCount || 0);
-    const helpedCount = Math.max(helpedOthersEntries.length, student.helpedCount || 0);
+    const helpCount = Math.max(helpReceivedEntries.length, currentStudent?.helpCount || 0);
+    const helpedCount = Math.max(helpedOthersEntries.length, currentStudent?.helpedCount || 0);
     const groupCount = groupEntries.length;
+    const classChallengeCount = Math.max(classChallengeEntries.length, currentStudent?.classChallengeCount || 0);
 
     // Total de pontos somados ao aluno por atividades em equipe
     const groupPoints = groupEntries.reduce((acc, h) => {
@@ -159,10 +263,12 @@ export const StudentHistoryModal = ({
         const hadHelp = h.result === 'help_correct' || h.hadHelp || h.helperName || (h.question && (h.question.includes('[Ajuda:') || h.question.includes('(com ajuda')));
         const helped = h.helpedStudent || h.isHelperRole;
         const isGroup = h.isGroupActivity || h.groupName || h.result === 'group_correct' || h.result === 'group_activity' || h.result === 'group_incorrect' || (h.question && (h.question.includes('[Grupo:') || h.question.includes('[Atividade em Grupo') || h.question.includes('[Equipe ')));
+        const isClassChallenge = h.result === 'all_correct' || h.isClassChallenge || (h.question && (h.question.includes('[Desafio da Turma]') || h.question.includes('Desafio da Turma')));
 
         if (filterMode === 'teve_ajuda') return hadHelp;
         if (filterMode === 'ajudou') return helped;
         if (filterMode === 'em_grupo') return isGroup;
+        if (filterMode === 'desafio_turma') return isClassChallenge;
         return true;
     });
 
@@ -181,11 +287,11 @@ Você é um consultor pedagógico e especialista em avaliação formativa para o
 Escreva um Parecer Pedagógico Individual Descritivo (máximo 3 parágrafos concisos, fluidos e humanizados) sobre o desempenho deste estudante para inclusão no diário de classe ou envio à coordenação/família:
 
 DADOS DO ESTUDANTE:
-- Aluno(a): "${student.name}"
+- Aluno(a): "${currentStudent.name}"
 - Turma: "${currentClass?.name || 'Turma Selecionada'}"
 - Conteúdo/Tema Trabalhado: "${topic || 'Conteúdo Curricular'}"
-- Total de Acertos na Roleta: ${student.hits || 0}
-- Total de Erros: ${student.misses || 0}
+- Total de Acertos na Roleta: ${currentStudent.hits || 0}
+- Total de Erros: ${currentStudent.misses || 0}
 - Rodadas em que Solicitou e Recebeu Ajuda: ${helpCount}
 - Ocorrências em que Ajudou Colegas (Solidariedade/Mentoria): ${helpedCount}
 - Participações em Rodadas em Equipe/Grupo: ${groupCount}
@@ -283,7 +389,7 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>Relatório Pedagógico: ${student.name}</title>
+                    <title>Relatório Pedagógico: ${currentStudent.name}</title>
                     <style>
                         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #1e293b; }
                         h1 { color: #1e1b4b; margin-bottom: 4px; }
@@ -301,16 +407,16 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
                 </head>
                 <body>
                     <h1>Relatório de Desempenho e Interações Pedagógicas</h1>
-                    <div class="subtitle">Aluno(a): <strong>${student.name}</strong> • Turma: <strong>${currentClass?.name || '-'}</strong> • Data de Emissão: ${new Date().toLocaleDateString()}</div>
+                    <div class="subtitle">Aluno(a): <strong>${currentStudent.name}</strong> • Turma: <strong>${currentClass?.name || '-'}</strong> • Data de Emissão: ${new Date().toLocaleDateString()}</div>
                     
                     <div class="metrics">
                         <div class="metric-card">
                             <div style="font-weight: bold; color: #64748b;">Acertos</div>
-                            <div class="metric-val" style="color: #16a34a;">${student.hits || 0}</div>
+                            <div class="metric-val" style="color: #16a34a;">${currentStudent.hits || 0}</div>
                         </div>
                         <div class="metric-card">
                             <div style="font-weight: bold; color: #64748b;">Erros</div>
-                            <div class="metric-val" style="color: #dc2626;">${student.misses || 0}</div>
+                            <div class="metric-val" style="color: #dc2626;">${currentStudent.misses || 0}</div>
                         </div>
                         <div class="metric-card" style="border-color: #38bdf8; background: #f0f9ff;">
                             <div style="color: #0369a1; font-weight: bold;">TEVE AJUDA</div>
@@ -387,15 +493,15 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Relatório do Aluno: ${student.name}`} maxWidth="max-w-2xl">
+        <Modal isOpen={isOpen} onClose={onClose} title={`Relatório do Aluno: ${currentStudent.name}`} size="xl">
             <div className="space-y-4">
                 
-                {/* Métricas Principais com "Teve Ajuda", "Ajudou" e "Em Grupo" explícitos */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                {/* Métricas Principais com "Teve Ajuda", "Ajudou", "Em Grupo" e "Desafio Turma" */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
                     <div className="text-center bg-slate-50 p-3 rounded-2xl border border-slate-200">
                         <div className="text-2xs font-black text-slate-500 uppercase tracking-wider mb-0.5">Pontos Totais</div>
                         <div className="text-2xl font-black text-emerald-600 flex items-center justify-center gap-1">
-                            <CheckCircle className="w-5 h-5" /> {student.hits || 0}
+                            <CheckCircle className="w-5 h-5" /> {currentStudent.hits || 0}
                         </div>
                         <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Individuais + Equipe</div>
                     </div>
@@ -403,7 +509,7 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
                     <div className="text-center bg-slate-50 p-3 rounded-2xl border border-slate-200">
                         <div className="text-2xs font-black text-slate-500 uppercase tracking-wider mb-0.5">Erros</div>
                         <div className="text-2xl font-black text-red-500 flex items-center justify-center gap-1">
-                            <XCircle className="w-5 h-5" /> {student.misses || 0}
+                            <XCircle className="w-5 h-5" /> {currentStudent.misses || 0}
                         </div>
                         <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Registrados</div>
                     </div>
@@ -430,8 +536,16 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
                             <Users className="w-5 h-5 text-indigo-600" /> {groupCount}
                         </div>
                         <div className="text-[10px] text-indigo-700 font-bold mt-0.5">
-                            {groupPoints > 0 ? `+${groupPoints} pts no total` : 'participações'}
+                            {groupPoints > 0 ? `+${groupPoints} pts total` : 'participações'}
                         </div>
+                    </div>
+
+                    <div className="text-center bg-purple-50/80 p-3 rounded-2xl border-2 border-purple-300">
+                        <div className="text-2xs font-black text-purple-900 uppercase tracking-wider mb-0.5">Desafio Turma</div>
+                        <div className="text-2xl font-black text-purple-600 flex items-center justify-center gap-1">
+                            <Zap className="w-5 h-5 text-purple-600" /> {classChallengeCount}
+                        </div>
+                        <div className="text-[10px] text-purple-700 font-bold mt-0.5">Concluiu c/ turma</div>
                     </div>
                 </div>
 
@@ -505,7 +619,7 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
                                 </div>
                             ) : (
                                 <div className="bg-white/5 border border-dashed border-white/10 p-3 rounded-xl text-xs text-slate-400 text-center">
-                                    Clique em <strong>"✨ Gerar Parecer IA"</strong> para obter uma avaliação individualizada sobre a compreensão, cooperação e desenvolvimento de <strong>{student.name}</strong>.
+                                    Clique em <strong>"✨ Gerar Parecer IA"</strong> para obter uma avaliação individualizada sobre a compreensão, cooperação e desenvolvimento de <strong>{currentStudent.name}</strong>.
                                 </div>
                             )}
                         </div>
@@ -559,6 +673,17 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
                             <Award className="w-3.5 h-3.5" />
                             <span>Ajudou ({helpedCount})</span>
                         </button>
+                        <button
+                            onClick={() => setFilterMode('desafio_turma')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                                filterMode === 'desafio_turma' 
+                                ? 'bg-purple-600 text-white shadow-2xs font-black' 
+                                : 'text-slate-600 hover:bg-white/60'
+                            }`}
+                        >
+                            <Zap className="w-3.5 h-3.5" />
+                            <span>Desafio Turma ({classChallengeCount})</span>
+                        </button>
                     </div>
 
                     {/* Botão de Impressão */}
@@ -582,10 +707,16 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
                                     ? 'Nenhuma ocorrência onde o aluno ajudou um colega.' 
                                     : filterMode === 'em_grupo'
                                         ? 'Nenhuma atividade em grupo registrada para este aluno.'
-                                        : 'Nenhuma pergunta respondida ainda.'}
+                                        : filterMode === 'desafio_turma'
+                                            ? 'Nenhum Desafio da Turma registrado para este aluno.'
+                                            : 'Nenhuma pergunta respondida ainda.'}
                         </p>
                     ) : (
                         displayedHistory.map((item, idx) => {
+                            const itemKey = getEntryKey(item, idx);
+                            const isEditing = editingEntryKey === itemKey;
+                            const isDeleting = deletingEntryKey === itemKey;
+
                             const hadItemHelp = item.result === 'help_correct' || 
                                 item.hadHelp || 
                                 item.helperName || 
@@ -595,17 +726,161 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
                             const repName = item.representative || item.representativeName;
                             const isGroupWin = (item.pointsDelta !== undefined ? item.pointsDelta > 0 : (item.result === 'group_correct' || item.result === 'group_activity' || item.result === 'correct'));
 
+                            if (isDeleting) {
+                                return (
+                                    <div key={itemKey} className="bg-rose-50 border-2 border-rose-300 p-3.5 rounded-xl flex items-center justify-between gap-3 animate-in fade-in shadow-2xs">
+                                        <div className="flex items-center gap-2 text-rose-900 text-xs font-bold">
+                                            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                                            <span>Tem certeza que deseja excluir este registro do histórico de <strong>{currentStudent.name}</strong>?</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteEntry(item, idx)}
+                                                className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                                            >
+                                                Sim, Excluir
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setDeletingEntryKey(null)}
+                                                className="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            }
+
+                            if (isEditing) {
+                                return (
+                                    <div key={itemKey} className="bg-white border-2 border-indigo-400 p-4 rounded-xl flex flex-col gap-3 shadow-md animate-in fade-in text-xs">
+                                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                            <span className="font-black text-indigo-900 flex items-center gap-1.5 text-sm">
+                                                <Edit3 className="w-4 h-4 text-indigo-600" /> Editar Ocorrência do Histórico
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setEditingEntryKey(null); setEditForm(null); }}
+                                                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        {/* Pergunta / Descrição */}
+                                        <div className="flex flex-col gap-1">
+                                            <label className="font-bold text-slate-600 text-[11px] uppercase tracking-wider">Pergunta / Motivo da Ocorrência</label>
+                                            <input 
+                                                type="text"
+                                                value={editForm.question}
+                                                onChange={(e) => setEditForm(prev => ({ ...prev, question: e.target.value }))}
+                                                className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                placeholder="Texto da questão ou motivo da alteração..."
+                                            />
+                                        </div>
+
+                                        {/* Resultado da Rodada e Teve Ajuda */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            <div className="flex flex-col gap-1">
+                                                <label className="font-bold text-slate-600 text-[11px] uppercase tracking-wider">Resultado da Rodada</label>
+                                                <select
+                                                    value={editForm.result}
+                                                    onChange={(e) => setEditForm(prev => ({ ...prev, result: e.target.value }))}
+                                                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                >
+                                                    <option value="correct">Acertou (Individual)</option>
+                                                    <option value="help_correct">Acertou com Ajuda</option>
+                                                    <option value="merit">+1 Mérito (Bônus)</option>
+                                                    <option value="incorrect">Errou (Individual)</option>
+                                                    <option value="rule_violation">-1 Infringiu Regra (Penalidade)</option>
+                                                    <option value="group_activity">Atividade em Grupo (Pontuou)</option>
+                                                    <option value="group_incorrect">Atividade em Grupo (Sem pontuação)</option>
+                                                    <option value="all_correct">Desafio da Turma</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="flex flex-col gap-1">
+                                                <label className="font-bold text-slate-600 text-[11px] uppercase tracking-wider">Teve Ajuda de quem?</label>
+                                                <input 
+                                                    type="text"
+                                                    value={editForm.helperName}
+                                                    onChange={(e) => setEditForm(prev => ({ ...prev, helperName: e.target.value, hadHelp: !!e.target.value }))}
+                                                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                    placeholder="Nome do colega que ajudou (opcional)"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Ajudou outro colega */}
+                                        <div className="flex flex-col gap-1">
+                                            <label className="font-bold text-slate-600 text-[11px] uppercase tracking-wider">Ajudou qual colega?</label>
+                                            <input 
+                                                type="text"
+                                                value={editForm.helpedStudent}
+                                                onChange={(e) => setEditForm(prev => ({ ...prev, helpedStudent: e.target.value }))}
+                                                className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                placeholder="Nome do colega que este aluno ajudou (opcional)"
+                                            />
+                                        </div>
+
+                                        {/* Botões Salvar / Cancelar */}
+                                        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setEditingEntryKey(null); setEditForm(null); }}
+                                                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSaveEdit(item, itemKey)}
+                                                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                                            >
+                                                <Save className="w-3.5 h-3.5" />
+                                                <span>Salvar Alterações</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            }
+
                             return (
                                 <div 
-                                    key={idx} 
-                                    className="p-4 rounded-xl border flex flex-col gap-2.5 transition-all shadow-2xs"
+                                    key={itemKey} 
+                                    className="p-4 rounded-xl border flex flex-col gap-2.5 transition-all shadow-2xs group/card"
                                     style={getItemStyles(item.result, isHelperRole, isGroupItem)}
                                 >
                                     <div className="flex justify-between items-center">
                                         {getResultBadge(item)}
-                                        <span className="text-2xs text-slate-400 font-medium">
-                                            {new Date(item.date).toLocaleDateString()} {new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-2xs text-slate-400 font-medium">
+                                                {new Date(item.date).toLocaleDateString()} {new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+
+                                            {/* Botões de Ação da Ocorrência (Editar e Deletar) */}
+                                            <div className="flex items-center gap-1 bg-white/90 border border-slate-200/90 rounded-lg p-0.5 shadow-2xs">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleStartEdit(item, itemKey)}
+                                                    className="p-1 rounded-md text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 transition-all cursor-pointer"
+                                                    title="Editar esta ocorrência"
+                                                >
+                                                    <Pencil className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDeletingEntryKey(itemKey)}
+                                                    className="p-1 rounded-md text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition-all cursor-pointer"
+                                                    title="Excluir esta ocorrência"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {item.topic && (
