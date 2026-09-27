@@ -809,15 +809,17 @@ export const RouletteActivity = () => {
         const student = combinedItems.find(s => s.id === studentId);
         if (!student) return;
 
-        const isMerit = reason === 'merit' || delta > 0;
+        const isMerit = delta > 0;
+        const motiveText = (typeof reason === 'string' && reason !== 'merit' && reason !== 'rule_violation' && reason.trim())
+            ? reason
+            : (isMerit ? 'Bônus por Mérito (+1 Ponto)' : 'Penalidade: Infringiu regra (-1 Ponto)');
+
         const historyEntry = {
             date: Date.now(),
             sessionId: currentSessionId,
             gameMode,
             topic: activeActivity?.topic || 'Sem tema',
-            question: isMerit 
-                ? 'Bônus por Mérito (+1 Ponto)' 
-                : 'Penalidade: Infringiu regra do jogo (-1 Ponto)',
+            question: motiveText,
             result: isMerit ? 'merit' : 'rule_violation',
             pointsDelta: delta
         };
@@ -829,13 +831,13 @@ export const RouletteActivity = () => {
 
         logTeacherAction(
             isMerit ? 'point_merit' : 'point_penalty',
-            isMerit ? 'Bônus por Mérito (+1)' : 'Penalidade por Regra (-1)',
-            `${isMerit ? '+1 Ponto concedido por mérito e participação' : '-1 Ponto aplicado por infração de regra'} para "${student.name}".`,
+            isMerit ? `+${delta} Ponto (${motiveText})` : `${delta} Ponto (${motiveText})`,
+            `${delta > 0 ? '+' : ''}${delta} Ponto para "${student.name}". Motivo: ${motiveText}`,
             {
                 studentName: student.name,
                 studentId: student.id,
                 delta,
-                reason
+                reason: motiveText
             }
         );
 
@@ -1235,12 +1237,14 @@ export const RouletteActivity = () => {
         const group = currentGroups.find(g => String(g.id) === String(groupId));
         if (!group) return;
 
-        const isMerit = reason === 'merit' || delta > 0;
+        const isMerit = delta > 0;
         const now = Date.now();
         const topic = activeActivity?.topic || 'Sem tema';
-        const label = isMerit 
-            ? `[Equipe ${group.name}] Bônus por Mérito (+${delta} Ponto${Math.abs(delta) > 1 ? 's' : ''})`
-            : `[Equipe ${group.name}] Penalidade: Infringiu regra (-${Math.abs(delta)} Ponto${Math.abs(delta) > 1 ? 's' : ''})`;
+        const motiveText = (typeof reason === 'string' && reason !== 'merit' && reason !== 'rule_violation' && reason.trim())
+            ? reason
+            : (isMerit ? 'Bônus por Mérito' : 'Penalidade: Infringiu regra');
+
+        const label = `[Equipe ${group.name}] ${motiveText} (${delta > 0 ? '+' : ''}${delta} Pts)`;
 
         const groupHistoryEntry = {
             date: now,
