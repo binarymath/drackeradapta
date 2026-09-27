@@ -46,17 +46,20 @@ export function renderLatexToString(content, defaultDisplayMode = false) {
 
     if (!hasDelimiters) {
         // Tenta renderizar primeiro como fórmula matemática inteira (se for apenas matemática pura, ex: \frac{3}{4} + \sqrt{16})
-        try {
-            const hasPortugueseWords = /[áéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ]/.test(str) && !/\\text\{/.test(str);
-            if (!hasPortugueseWords) {
+        const hasMultipleWords = /\b[a-zA-ZÀ-Úà-ú]{2,}\b\s+\b[a-zA-ZÀ-Úà-ú]{2,}\b/.test(str);
+        const startsWithLatexCommand = /^\s*\\[a-zA-Z]+/.test(str);
+        const hasPortugueseWords = /[áéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ]/.test(str) && !/\\text\{/.test(str);
+
+        if (!hasPortugueseWords && (!hasMultipleWords || startsWithLatexCommand)) {
+            try {
                 return katex.renderToString(str, {
                     throwOnError: true,
                     displayMode: defaultDisplayMode || str.length <= 20,
                     output: 'html'
                 });
+            } catch (e) {
+                // Se falhou (porque tem texto misturado com comandos sem delimitadores $)
             }
-        } catch (e) {
-            // Se falhou (porque tem texto misturado com comandos sem delimitadores $)
         }
 
         // Auto-detecção de expressões LaTeX perdidas no texto sem $...$
