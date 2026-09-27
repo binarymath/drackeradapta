@@ -31,6 +31,10 @@ export const RouletteSidebar = ({
     currentClass,
     studentToGroupMap,
     spinning = false,
+    studentDrawCounts = {},
+    studentProbabilityStats = {},
+    studentCycleInfo = { cycle: 1, drawnInCycle: 0, total: 0 },
+    onResetDrawCycle,
     onAdjustPoints,
     onAdjustGroupPoints,
     onSelectStudentManually,
@@ -473,11 +477,28 @@ export const RouletteSidebar = ({
                     ) : (
                         /* Aba de Alunos - Layout Clean e Organizado */
                         <>
-                            {/* Cabeçalho da Lista de Alunos */}
-                            <div className="flex items-center justify-between px-1 text-xs font-bold text-slate-500 pb-0.5">
-                                <span className="uppercase text-[11px] tracking-wider text-slate-400 font-extrabold">
-                                    Alunos ({filteredStudents.length})
-                                </span>
+                            {/* Cabeçalho da Lista de Alunos com Ciclo de Probabilidade */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 text-xs font-bold text-slate-500 pb-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="uppercase text-[11px] tracking-wider text-slate-400 font-extrabold">
+                                        Alunos ({filteredStudents.length})
+                                    </span>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                                        Ciclo {studentCycleInfo.cycle} ({studentCycleInfo.drawnInCycle}/{studentCycleInfo.total} sorteados)
+                                    </span>
+                                </div>
+                                {onResetDrawCycle && (
+                                    <button
+                                        type="button"
+                                        onClick={onResetDrawCycle}
+                                        disabled={spinning}
+                                        className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded-xl transition-all cursor-pointer inline-flex items-center gap-1 self-start sm:self-auto"
+                                        title="Restaurar a probabilidade base igual para todos os alunos e perguntas"
+                                    >
+                                        <RotateCcw className="w-3 h-3 text-indigo-600" />
+                                        <span>Resetar Pesos</span>
+                                    </button>
+                                )}
                             </div>
 
                             {filteredStudents.length === 0 ? (
@@ -533,6 +554,9 @@ export const RouletteSidebar = ({
                                         // Pontuação Geral (Inclui Pontos de Questões + Ajustes Manuais + Equipe)
                                         const totalPoints = (student.hits || 0) + (studentGroup ? (studentGroup.hits || 0) : 0);
 
+                                        // Estatísticas de Probabilidade de Sorteio (Modo 2: Probabilidade Decrescente)
+                                        const probStat = studentProbabilityStats[String(student.id)] || { drawCount: studentDrawCounts[String(student.id)] || 0, probabilityPercent: '0.0' };
+
                                         return (
                                             <div 
                                                 key={student.id} 
@@ -579,20 +603,34 @@ export const RouletteSidebar = ({
                                                                 </span>
                                                             </div>
 
-                                                            {/* Linha 2: Tag do Grupo (Abaixo) */}
-                                                            {student.groupName && (
-                                                                <span
-                                                                    style={{
-                                                                        backgroundColor: `${student.groupColor || '#6366f1'}15`,
-                                                                        color: student.groupColor || '#6366f1',
-                                                                        borderColor: `${student.groupColor || '#6366f1'}35`
-                                                                    }}
-                                                                    className="text-[10px] font-black px-2 py-0.5 rounded-md border self-start truncate max-w-[160px] leading-tight mt-0.5"
-                                                                    title={`Equipe: ${student.groupName}`}
-                                                                >
-                                                                    {student.groupName}
-                                                                </span>
-                                                            )}
+                                                            {/* Linha 2: Tag do Grupo & Badge de Probabilidade de Sorteio (Abaixo) */}
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                {student.groupName && (
+                                                                    <span
+                                                                        style={{
+                                                                            backgroundColor: `${student.groupColor || '#6366f1'}15`,
+                                                                            color: student.groupColor || '#6366f1',
+                                                                            borderColor: `${student.groupColor || '#6366f1'}35`
+                                                                        }}
+                                                                        className="text-[10px] font-black px-2 py-0.5 rounded-md border self-start truncate max-w-[160px] leading-tight"
+                                                                        title={`Equipe: ${student.groupName}`}
+                                                                    >
+                                                                        {student.groupName}
+                                                                    </span>
+                                                                )}
+
+                                                                {student.status === 'active' && (
+                                                                    probStat.drawCount === 0 ? (
+                                                                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/80 shrink-0" title="Ainda não foi sorteado no ciclo atual (100% peso base)">
+                                                                            ✨ 0x sorteado ({probStat.probabilityPercent}% chance)
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200/80 shrink-0" title={`Já foi sorteado ${probStat.drawCount}x no ciclo atual (peso reduzido)`}>
+                                                                            🎲 {probStat.drawCount}x ({probStat.probabilityPercent}% chance)
+                                                                        </span>
+                                                                    )
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
 

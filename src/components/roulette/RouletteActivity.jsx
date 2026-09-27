@@ -96,6 +96,51 @@ export const RouletteActivity = () => {
         return activeActivity?.gameMode === 'groups' ? 'groups' : 'students';
     });
 
+    // Registra todos os toques nos botões da roleta, trocas de aluno, trocas de pergunta, ausências e decisões
+    const logTeacherAction = useCallback((type, title, description, details = {}) => {
+        const now = Date.now();
+        const dateObj = new Date(now);
+        const timeFormatted = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        
+        // Calcula tempo decorrido desde o início da sessão da aula (+05:23)
+        const elapsedMs = Math.max(0, now - (sessionStartTime || now));
+        const elapsedMinutes = Math.floor(elapsedMs / 60000);
+        const elapsedSeconds = Math.floor((elapsedMs % 60000) / 1000);
+        const elapsedFormatted = `+${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`;
+
+        // Categoria para filtros na interface
+        let category = 'system';
+        if (type.startsWith('swap')) category = 'swap';
+        else if (type.includes('spin')) category = 'spin';
+        else if (type.includes('student') || type.includes('absent') || type.includes('roster') || type.includes('activate')) category = 'roster';
+        else if (type.includes('correct') || type.includes('incorrect') || type.includes('help') || type.includes('batch') || type.includes('group')) category = 'eval';
+        else if (type.includes('point') || type.includes('merit') || type.includes('penalty')) category = 'point';
+
+        const newLogEntry = {
+            id: `act_${now}_${Math.random().toString(36).slice(2, 7)}`,
+            timestamp: now,
+            timeFormatted,
+            elapsedFormatted,
+            sessionId: currentSessionId,
+            activityId: activeActivity?.id || null,
+            topic: activeActivity?.topic || activeActivity?.title || 'Sem tema',
+            gameMode,
+            type,
+            category,
+            title,
+            description,
+            ...details
+        };
+
+        setInteractionLogs(prev => {
+            const updated = [newLogEntry, ...(Array.isArray(prev) ? prev : [])].slice(0, 500);
+            if (activeActivity?.id && updateActivityData) {
+                updateActivityData(activeActivity.id, { interactionLogs: updated });
+            }
+            return updated;
+        });
+    }, [currentSessionId, sessionStartTime, gameMode, activeActivity?.id, updateActivityData]);
+
     // Estado de visibilidade do Sidebar retrátil de alunos e placar (abre para a direita a partir da esquerda)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -198,6 +243,68 @@ export const RouletteActivity = () => {
     
     // Rastreamento de perguntas usadas nesta sessão para evitar repetição
     const [usedQuestions, setUsedQuestions] = useState(() => new Set());
+
+    // Rastreamento de quantidade de sorteios de cada aluno e de cada pergunta (Modo 2: Probabilidade Decrescente / Decaimento Suave)
+    const [studentDrawCounts, setStudentDrawCounts] = useState(() => {
+        return activeActivity?.studentDrawCounts || {};
+    });
+
+    const [questionDrawCounts, setQuestionDrawCounts] = useState(() => {
+        return activeActivity?.questionDrawCounts || {};
+    });
+
+    // Função para calcular o peso de um item com base na quantidade de sorteios no ciclo (Modo 2: W = 100 / (1 + 4 * d))
+    const getItemWeight = useCallback((drawCount = 0) => {
+        const k = 4; // Fator de decaimento suave
+        return 100 / (1 + k * drawCount);
+    }, []);
+
+    // Sorteia um aluno ponderado do pool de alunos ativos
+    const pickWeightedStudent = useCallback((candidates, drawCountsMap) => {
+        if (!candidates || candidates.length === 0) return null;
+        if (candidates.length === 1) return candidates[0];
+
+        const weights = candidates.map(c => getItemWeight(drawCountsMap[String(c.id)] || 0));
+        const totalWeight = weights.reduce((acc, w) => acc + w, 0);
+
+        if (totalWeight <= 0) {
+            return candidates[Math.floor(Math.random() * candidates.length)];
+        }
+
+        let randomVal = Math.random() * totalWeight;
+        for (let i = 0; i < candidates.length; i++) {
+            randomVal -= weights[i];
+            if (randomVal <= 0) {
+                return candidates[i];
+            }
+        }
+        return candidates[candidates.length - 1];
+    }, [getItemWeight]);
+
+    // Sorteia uma pergunta ponderada do banco de perguntas
+    const pickWeightedQuestion = useCallback((questionsList, drawCountsMap) => {
+        if (!questionsList || questionsList.length === 0) return null;
+        if (questionsList.length === 1) return questionsList[0];
+
+        const weights = questionsList.map(q => {
+            const key = q.id || q.question;
+            return getItemWeight(drawCountsMap[key] || 0);
+        });
+        const totalWeight = weights.reduce((acc, w) => acc + w, 0);
+
+        if (totalWeight <= 0) {
+            return questionsList[Math.floor(Math.random() * questionsList.length)];
+        }
+
+        let randomVal = Math.random() * totalWeight;
+        for (let i = 0; i < questionsList.length; i++) {
+            randomVal -= weights[i];
+            if (randomVal <= 0) {
+                return questionsList[i];
+            }
+        }
+        return questionsList[questionsList.length - 1];
+    }, [getItemWeight]);
 
     // Configuração do professor: exibir ou ocultar a dificuldade das perguntas
     const [showDifficulty, setShowDifficulty] = useState(() => {
@@ -457,19 +564,77 @@ export const RouletteActivity = () => {
         setHistoryStudent(updatedStudent);
     };
 
-    // Inicia nova rodada no modo equipes: sorteia uma pergunta diferente por grupo simultaneamente
+    // Estatísticas calculadas das probabilidades dos alunos ativos (Modo 2: Probabilidade Decrescente)
+    const studentProbabilityStats = useMemo(() => {
+        if (!activeItems || activeItems.length === 0) return {};
+        const items = activeItems.map(s => {
+            const idStr = String(s.id);
+            const count = studentDrawCounts[idStr] || 0;
+            const weight = getItemWeight(count);
+            return { id: idStr, count, weight };
+        });
+        const totalW = items.reduce((acc, i) => acc + i.weight, 0);
+
+        const stats = {};
+        items.forEach(i => {
+            const prob = totalW > 0 ? (i.weight / totalW) * 100 : (100 / activeItems.length);
+            stats[i.id] = {
+                drawCount: i.count,
+                weight: i.weight,
+                probabilityPercent: prob.toFixed(1)
+            };
+        });
+        return stats;
+    }, [activeItems, studentDrawCounts, getItemWeight]);
+
+    // Informações de ciclo dos alunos ("antes de todos saírem")
+    const studentCycleInfo = useMemo(() => {
+        if (!activeItems || activeItems.length === 0) return { cycle: 1, drawnInCycle: 0, total: 0 };
+        const counts = activeItems.map(s => studentDrawCounts[String(s.id)] || 0);
+        const minCount = Math.min(...counts);
+        const drawnInCycle = counts.filter(c => c > minCount).length;
+        return {
+            cycle: minCount + 1,
+            drawnInCycle,
+            total: activeItems.length
+        };
+    }, [activeItems, studentDrawCounts]);
+
+    // Reinicia o ciclo de probabilidades (reseta a contagem de sorteios)
+    const handleResetDrawCycle = useCallback(() => {
+        setStudentDrawCounts({});
+        setQuestionDrawCounts({});
+        setUsedQuestions(new Set());
+        if (activeActivity?.id && updateActivityData) {
+            updateActivityData(activeActivity.id, {
+                studentDrawCounts: {},
+                questionDrawCounts: {}
+            });
+        }
+        logTeacherAction(
+            'reset_draw_cycle',
+            'Ciclo de Sorteios Reiniciado',
+            'O professor reiniciou a contagem de sorteios e restaurou as probabilidades iguais para todos os alunos e questões.',
+            {}
+        );
+        gameAudio.playSuccess();
+    }, [activeActivity?.id, updateActivityData, logTeacherAction]);
+
+    // Inicia nova rodada no modo equipes: sorteia perguntas por peso para cada grupo
     const startGroupRound = () => {
         if (activeGroupItems.length === 0) return;
         const assignedQs = new Set();
+        const updatedQCounts = { ...questionDrawCounts };
+
         const slots = activeGroupItems.map(group => {
-            const unused = uniqueQuestions.filter(
-                q => !usedQuestions.has(q.question) && !assignedQs.has(q.question)
-            );
-            const pool = unused.length > 0 ? unused : uniqueQuestions.filter(q => !assignedQs.has(q.question));
-            const q = pool.length > 0
-                ? pool[Math.floor(Math.random() * pool.length)]
-                : (uniqueQuestions.length > 0 ? uniqueQuestions[Math.floor(Math.random() * uniqueQuestions.length)] : null);
-            if (q) assignedQs.add(q.question);
+            const availableQs = uniqueQuestions.filter(q => !assignedQs.has(q.question));
+            const q = pickWeightedQuestion(availableQs.length > 0 ? availableQs : uniqueQuestions, updatedQCounts);
+
+            if (q) {
+                assignedQs.add(q.question);
+                const qKey = q.id || q.question;
+                updatedQCounts[qKey] = (updatedQCounts[qKey] || 0) + 1;
+            }
             return {
                 group,
                 question: q?.question || 'Nenhuma pergunta disponível.',
@@ -479,6 +644,12 @@ export const RouletteActivity = () => {
                 result: null // null = pendente
             };
         });
+
+        setQuestionDrawCounts(updatedQCounts);
+        if (activeActivity?.id && updateActivityData) {
+            updateActivityData(activeActivity.id, { questionDrawCounts: updatedQCounts });
+        }
+
         // Marca todas as perguntas desta rodada como usadas
         setUsedQuestions(prev => {
             const next = new Set(prev);
@@ -490,7 +661,7 @@ export const RouletteActivity = () => {
         logTeacherAction(
             'spin',
             'Giro da Roleta (Rodada Simultânea)',
-            `Rodada simultânea iniciada para ${slots.length} equipe(s). Cada equipe recebeu uma pergunta diferente.`,
+            `Rodada simultânea iniciada para ${slots.length} equipe(s). Cada equipe recebeu uma pergunta sorteada por peso.`,
             { groupCount: slots.length }
         );
     };
@@ -515,34 +686,48 @@ export const RouletteActivity = () => {
             gameAudio.playTick();
             return;
         }
-        // Modo individual — comportamento original
+        // Modo individual — Sorteio Ponderado por Decaimento Suave (Modo 2)
         const pool = activeItems;
         if (spinning || pool.length === 0) return;
         setSpinning(true);
         setShowCard(false);
         setWinner(null);
         
-        const randomIdx = Math.floor(Math.random() * pool.length);
-        const selectedWinner = pool[randomIdx];
-
-        // Tentar selecionar uma pergunta que ainda NÃO foi usada nesta sessão para evitar repetição
-        let questionObj = null;
-        if (uniqueQuestions.length > 0) {
-            const unused = uniqueQuestions.filter(q => !usedQuestions.has(q.question));
-            if (unused.length > 0) {
-                questionObj = unused[Math.floor(Math.random() * unused.length)];
-            } else {
-                // Se todas já foram usadas, sorteia da lista completa
-                questionObj = uniqueQuestions[randomIdx % uniqueQuestions.length];
-            }
+        const selectedWinner = pickWeightedStudent(pool, studentDrawCounts);
+        if (!selectedWinner) {
+            setSpinning(false);
+            return;
         }
 
+        let questionObj = pickWeightedQuestion(uniqueQuestions, questionDrawCounts);
         const rawQuestion = questionObj ? questionObj.question : 'Nenhuma pergunta gerada para esta sessão.';
+
+        // Incrementa a contagem de sorteios no estado da atividade
+        const sIdKey = String(selectedWinner.id);
+        const qKey = questionObj ? (questionObj.id || questionObj.question) : null;
+
+        setStudentDrawCounts(prev => {
+            const next = { ...prev, [sIdKey]: (prev[sIdKey] || 0) + 1 };
+            if (activeActivity?.id && updateActivityData) {
+                updateActivityData(activeActivity.id, { studentDrawCounts: next });
+            }
+            return next;
+        });
+
+        if (qKey) {
+            setQuestionDrawCounts(prev => {
+                const next = { ...prev, [qKey]: (prev[qKey] || 0) + 1 };
+                if (activeActivity?.id && updateActivityData) {
+                    updateActivityData(activeActivity.id, { questionDrawCounts: next });
+                }
+                return next;
+            });
+        }
 
         logTeacherAction(
             'spin',
-            'Giro da Roleta',
-            `Roleta girada no modo Individual. Sorteado(a): "${selectedWinner.name}"`,
+            'Giro da Roleta (Probabilidade Ponderada)',
+            `Roleta girada no modo Individual. Sorteado(a): "${selectedWinner.name}" (Probabilidade do próximo sorteio reduzida).`,
             {
                 studentName: selectedWinner.name,
                 studentId: selectedWinner.id,
@@ -626,50 +811,7 @@ export const RouletteActivity = () => {
         };
     }, [isMaximized, spinning, showCard, activeItems.length]);
 
-    // Registra todos os toques nos botões da roleta, trocas de aluno, trocas de pergunta, ausências e decisões
-    const logTeacherAction = useCallback((type, title, description, details = {}) => {
-        const now = Date.now();
-        const dateObj = new Date(now);
-        const timeFormatted = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        
-        // Calcula tempo decorrido desde o início da sessão da aula (+05:23)
-        const elapsedMs = Math.max(0, now - (sessionStartTime || now));
-        const elapsedMinutes = Math.floor(elapsedMs / 60000);
-        const elapsedSeconds = Math.floor((elapsedMs % 60000) / 1000);
-        const elapsedFormatted = `+${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`;
 
-        // Categoria para filtros na interface
-        let category = 'system';
-        if (type.startsWith('swap')) category = 'swap';
-        else if (type.includes('spin')) category = 'spin';
-        else if (type.includes('student') || type.includes('absent') || type.includes('roster') || type.includes('activate')) category = 'roster';
-        else if (type.includes('correct') || type.includes('incorrect') || type.includes('help') || type.includes('batch') || type.includes('group')) category = 'eval';
-        else if (type.includes('point') || type.includes('merit') || type.includes('penalty')) category = 'point';
-
-        const newLogEntry = {
-            id: `act_${now}_${Math.random().toString(36).slice(2, 7)}`,
-            timestamp: now,
-            timeFormatted,
-            elapsedFormatted,
-            sessionId: currentSessionId,
-            activityId: activeActivity?.id || null,
-            topic: activeActivity?.topic || activeActivity?.title || 'Sem tema',
-            gameMode,
-            type,
-            category,
-            title,
-            description,
-            ...details
-        };
-
-        setInteractionLogs(prev => {
-            const updated = [newLogEntry, ...(Array.isArray(prev) ? prev : [])].slice(0, 500);
-            if (activeActivity?.id && updateActivityData) {
-                updateActivityData(activeActivity.id, { interactionLogs: updated });
-            }
-            return updated;
-        });
-    }, [currentSessionId, sessionStartTime, gameMode, activeActivity?.id, updateActivityData]);
 
     // Permite trocar o aluno sorteado em tempo real diretamente no card (mantendo a pergunta)
     const handleChangeWinnerStudent = (newStudentObj, swapMode = 'random') => {
@@ -704,19 +846,31 @@ export const RouletteActivity = () => {
         const student = combinedItems.find(s => s.id === studentId);
         if (!student) return;
 
-        // Tentar selecionar uma pergunta que ainda NÃO foi usada nesta sessão
-        let questionObj = null;
-        if (uniqueQuestions.length > 0) {
-            const unused = uniqueQuestions.filter(q => !usedQuestions.has(q.question));
-            if (unused.length > 0) {
-                questionObj = unused[Math.floor(Math.random() * unused.length)];
-            } else {
-                const sIdx = combinedItems.findIndex(s => s.id === studentId);
-                questionObj = uniqueQuestions[(sIdx >= 0 ? sIdx : 0) % uniqueQuestions.length];
-            }
-        }
-
+        // Tentar selecionar uma pergunta por peso
+        let questionObj = pickWeightedQuestion(uniqueQuestions, questionDrawCounts);
         const rawQuestion = questionObj ? questionObj.question : 'Nenhuma pergunta gerada para esta sessão.';
+
+        // Incrementa a contagem de sorteios
+        const sIdKey = String(student.id);
+        const qKey = questionObj ? (questionObj.id || questionObj.question) : null;
+
+        setStudentDrawCounts(prev => {
+            const next = { ...prev, [sIdKey]: (prev[sIdKey] || 0) + 1 };
+            if (activeActivity?.id && updateActivityData) {
+                updateActivityData(activeActivity.id, { studentDrawCounts: next });
+            }
+            return next;
+        });
+
+        if (qKey) {
+            setQuestionDrawCounts(prev => {
+                const next = { ...prev, [qKey]: (prev[qKey] || 0) + 1 };
+                if (activeActivity?.id && updateActivityData) {
+                    updateActivityData(activeActivity.id, { questionDrawCounts: next });
+                }
+                return next;
+            });
+        }
 
         logTeacherAction(
             'manual_select_student',
@@ -888,10 +1042,39 @@ export const RouletteActivity = () => {
 
     // Ação: RODE NOVAMENTE (Não penaliza e NÃO remove o aluno da lista)
     const handleSpinAgain = () => {
+        if (winner) {
+            const sIdKey = String(winner.id);
+            const qKey = winner.questionId || winner.question;
+
+            setStudentDrawCounts(prev => {
+                const updated = { ...prev };
+                if (updated[sIdKey] && updated[sIdKey] > 0) {
+                    updated[sIdKey] -= 1;
+                }
+                if (activeActivity?.id && updateActivityData) {
+                    updateActivityData(activeActivity.id, { studentDrawCounts: updated });
+                }
+                return updated;
+            });
+
+            if (qKey) {
+                setQuestionDrawCounts(prev => {
+                    const updated = { ...prev };
+                    if (updated[qKey] && updated[qKey] > 0) {
+                        updated[qKey] -= 1;
+                    }
+                    if (activeActivity?.id && updateActivityData) {
+                        updateActivityData(activeActivity.id, { questionDrawCounts: updated });
+                    }
+                    return updated;
+                });
+            }
+        }
+
         logTeacherAction(
             'spin_again',
             'Rode Outra Vez (Girar Novamente)',
-            `Professor acionou "Rode Outra Vez" para "${winner?.name || 'aluno sorteado'}". Sorteio desconsiderado sem penalidade; aluno permanece na roleta.`,
+            `Professor acionou "Rode Outra Vez" para "${winner?.name || 'aluno sorteado'}". Sorteio desconsiderado sem penalidade; probabilidades restauradas.`,
             {
                 studentName: winner?.name,
                 studentId: winner?.id,
@@ -926,8 +1109,6 @@ export const RouletteActivity = () => {
                     question: winner.question
                 }
             );
-            // Remove o aluno APENAS desta atividade atual
-            handleToggleStudentActivityStatus(winner.id, 'remove');
             updateStudentInClass(winner.id, { hits: (winner.hits || 0) + 1 }, historyEntry);
             setUsedQuestions(prev => new Set([...prev, winner.question]));
         } else if (resultType === 'incorrect') {
@@ -1193,8 +1374,6 @@ export const RouletteActivity = () => {
         );
 
         if (isCorrect) {
-            // Remove o aluno APENAS desta atividade atual
-            handleToggleStudentActivityStatus(winner.id, 'remove');
             setUsedQuestions(prev => new Set([...prev, questionText]));
         }
         setShowCard(false);
@@ -2191,6 +2370,10 @@ export const RouletteActivity = () => {
                 currentClass={currentClass}
                 studentToGroupMap={studentToGroupMap}
                 spinning={spinning}
+                studentDrawCounts={studentDrawCounts}
+                studentProbabilityStats={studentProbabilityStats}
+                studentCycleInfo={studentCycleInfo}
+                onResetDrawCycle={handleResetDrawCycle}
                 onAdjustPoints={handleAdjustPoints}
                 onAdjustGroupPoints={handleAdjustGroupPoints}
                 onSelectStudentManually={handleSelectStudentManually}
