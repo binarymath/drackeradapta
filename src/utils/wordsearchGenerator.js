@@ -91,10 +91,13 @@ export const generateWordSearch = (
 
   // Coloca palavras maiores primeiro para melhor encaixe
   const words = [...selectedWords]
-    .map(w => alphabetType === 'numeric' 
-        ? w.replace(/[^0-9]/g, '').slice(0, Math.max(rows, cols)) 
-        : w.toUpperCase().replace(/[^A-ZÁÉÍÓÚÂÊÔÃÕÇ]/g, '').slice(0, Math.max(rows, cols)))
-    .filter(w => w.length >= (alphabetType === 'numeric' ? 1 : 3))
+    .map(item => {
+      const raw = typeof item === 'object' ? (item.word || item.answer || '') : item;
+      return alphabetType === 'numeric' 
+          ? String(raw).replace(/[^0-9]/g, '').slice(0, Math.max(rows, cols)) 
+          : String(raw).toUpperCase().replace(/[^A-ZÁÉÍÓÚÂÊÔÃÕÇ]/g, '').slice(0, Math.max(rows, cols));
+    })
+    .filter(w => w.length >= (alphabetType === 'numeric' ? 1 : 2))
     .sort((a, b) => b.length - a.length);
 
   const inBounds = (r, c) => r >= 0 && r < rows && c >= 0 && c < cols;
