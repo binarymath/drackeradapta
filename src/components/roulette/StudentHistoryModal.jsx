@@ -52,7 +52,7 @@ export const StudentHistoryModal = ({
         ).length;
 
         const newMisses = updatedHistory.filter(h => 
-            h.result === 'incorrect' || h.result === 'group_incorrect' || h.result === 'rule_violation'
+            h.result === 'incorrect' || h.result === 'group_incorrect' || h.result === 'rule_violation' || h.result === 'not_executed'
         ).length;
 
         const updatedStudent = {
@@ -106,7 +106,7 @@ export const StudentHistoryModal = ({
         ).length;
 
         const newMisses = updatedHistory.filter(h => 
-            h.result === 'incorrect' || h.result === 'group_incorrect' || h.result === 'rule_violation'
+            h.result === 'incorrect' || h.result === 'group_incorrect' || h.result === 'rule_violation' || h.result === 'not_executed'
         ).length;
 
         const updatedStudent = {
@@ -181,6 +181,13 @@ export const StudentHistoryModal = ({
                 </span>
             );
         }
+        if (item.result === 'not_executed') {
+            return (
+                <span className="font-bold text-xs text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="w-3.5 h-3.5 flex items-center justify-center font-black">X</span> -1 Não Executou
+                </span>
+            );
+        }
         if (item.result === 'incorrect') {
             return (
                 <span className="font-bold text-xs text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
@@ -214,7 +221,7 @@ export const StudentHistoryModal = ({
         if (result === 'merit') {
             return { backgroundColor: '#f0fdf4', borderColor: '#86efac' };
         }
-        if (result === 'rule_violation') {
+        if (result === 'rule_violation' || result === 'not_executed') {
             return { backgroundColor: '#fff1f2', borderColor: '#fecdd3' };
         }
         if (result === 'incorrect' || result === 'group_incorrect') {
@@ -296,7 +303,7 @@ DADOS DO ESTUDANTE:
 - Ocorrências em que Ajudou Colegas (Solidariedade/Mentoria): ${helpedCount}
 - Participações em Rodadas em Equipe/Grupo: ${groupCount}
 - Perguntas Respondidas pelo Estudante:
-${historyList.map((h, i) => `  ${i + 1}. Questão: "${h.question}" | Resultado: ${h.result === 'correct' || h.result === 'help_correct' ? 'Acertou' : h.result === 'merit' ? '+1 Mérito' : h.result === 'rule_violation' ? '-1 Infração' : 'Errou'} | Teve Ajuda: ${h.hadHelp || h.helperName ? `Sim (${h.helperName || 'colega'})` : 'Não'}`).join('\n') || '  (Sem perguntas registradas ainda)'}
+${historyList.map((h, i) => `  ${i + 1}. Questão: "${h.question}" | Resultado: ${h.result === 'correct' || h.result === 'help_correct' ? 'Acertou' : h.result === 'merit' ? '+1 Mérito' : h.result === 'rule_violation' ? '-1 Infração' : h.result === 'not_executed' ? '-1 Não Executou' : 'Errou'} | Teve Ajuda: ${h.hadHelp || h.helperName ? `Sim (${h.helperName || 'colega'})` : 'Não'}`).join('\n') || '  (Sem perguntas registradas ainda)'}
 
 DIRETRIZES DO PARECER:
 1. Primeiro Parágrafo (Domínio Conceitual & Participação): Avalie como o estudante lidou com o tema, seu engajamento nas rodadas da roleta e grau de segurança cognitiva ao responder.
@@ -375,8 +382,8 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                     <td style="padding: 8px;">${i + 1}</td>
                     <td style="padding: 8px;">${h.question}</td>
-                    <td style="padding: 8px; font-weight: bold; color: ${h.result === 'correct' || h.result === 'group_correct' ? '#15803d' : h.result === 'merit' ? '#16a34a' : h.result === 'help_correct' ? '#0369a1' : h.result === 'rule_violation' ? '#e11d48' : '#b91c1c'};">
-                        ${h.result === 'correct' || h.result === 'group_correct' ? 'Acertou' : h.result === 'merit' ? '+1 Ponto por Mérito' : h.result === 'rule_violation' ? '-1 Infringiu Regra' : h.result === 'help_correct' ? 'Acertou com Ajuda' : h.result === 'all_correct' ? 'Desafio da Turma' : 'Errou'}
+                    <td style="padding: 8px; font-weight: bold; color: ${h.result === 'correct' || h.result === 'group_correct' ? '#15803d' : h.result === 'merit' ? '#16a34a' : h.result === 'help_correct' ? '#0369a1' : h.result === 'rule_violation' || h.result === 'not_executed' ? '#e11d48' : '#b91c1c'};">
+                        ${h.result === 'correct' || h.result === 'group_correct' ? 'Acertou' : h.result === 'merit' ? '+1 Ponto por Mérito' : h.result === 'rule_violation' ? '-1 Infringiu Regra' : h.result === 'not_executed' ? '-1 Não Executou' : h.result === 'help_correct' ? 'Acertou com Ajuda' : h.result === 'all_correct' ? 'Desafio da Turma' : 'Errou'}
                     </td>
                     <td style="padding: 8px;">${statusAjuda}</td>
                     <td style="padding: 8px; font-size: 11px; color: #64748b;">

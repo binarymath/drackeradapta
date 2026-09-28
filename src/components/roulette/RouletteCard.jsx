@@ -192,11 +192,25 @@ export const RouletteCard = ({
     // ESTADOS: TODOS RESPONDEM
     // ==========================================
     const [showSelectionGrid, setShowSelectionGrid] = useState(false);
-    const [selectedStudentIds, setSelectedStudentIds] = useState(() => new Set(activeStudents.map(s => s.id)));
+    const [studentStatuses, setStudentStatuses] = useState(() => {
+        const initial = {};
+        activeStudents.forEach(s => initial[s.id] = 'correct');
+        return initial;
+    });
 
     // Atualiza a seleção padrão quando a lista de alunos mudar
     useEffect(() => {
-        setSelectedStudentIds(new Set(activeStudents.map(s => s.id)));
+        setStudentStatuses(prev => {
+            const next = { ...prev };
+            let changed = false;
+            activeStudents.forEach(s => {
+                if (!next[s.id]) {
+                    next[s.id] = 'correct';
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
     }, [activeStudents]);
 
     // ==========================================
@@ -938,8 +952,8 @@ export const RouletteCard = ({
                             onBatchResult={onBatchResult}
                             showSelectionGrid={showSelectionGrid}
                             setShowSelectionGrid={setShowSelectionGrid}
-                            selectedStudentIds={selectedStudentIds}
-                            setSelectedStudentIds={setSelectedStudentIds}
+                            studentStatuses={studentStatuses}
+                            setStudentStatuses={setStudentStatuses}
                         />
                     )}                      {/* ======================================================== */}
                     {/* CONTEÚDO ESPECÍFICO: MODO "PRECISO DE AJUDA" */}

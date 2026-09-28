@@ -84,7 +84,7 @@ export const useReportMetrics = ({
             const hits = hist.filter(h => h.result === 'correct' || h.result === 'help_correct' || h.result === 'all_correct' || h.result === 'group_activity').length;
             const misses = hist.filter(h => h.result === 'incorrect' || h.result === 'group_incorrect').length;
             const merits = hist.filter(h => h.result === 'merit').length;
-            const violations = hist.filter(h => h.result === 'rule_violation').length;
+            const violations = hist.filter(h => h.result === 'rule_violation' || h.result === 'not_executed').length;
 
             const helpReceived = hist.filter(h => 
                 h.result === 'help_correct' || h.hadHelp || h.helperName || 
