@@ -522,7 +522,7 @@ export const RouletteSidebar = ({
 
                                         // Ajustes Manuais (Méritos / Penalidades)
                                         const indMerits = (student.history || []).filter(h => h.result === 'merit' || h.result === 'point_merit').length;
-                                        const indPenalties = (student.history || []).filter(h => h.result === 'rule_violation' || h.result === 'point_penalty').length;
+                                        const indPenalties = (student.history || []).filter(h => h.result === 'rule_violation' || h.result === 'point_penalty' || h.result === 'not_executed').length;
 
                                         // Acertos e Erros de Questões (Individuais)
                                         const studentQuestionHitsEntries = (student.history || []).filter(h => !h.isGroupActivity && (h.result === 'correct' || h.result === 'help_correct'));
