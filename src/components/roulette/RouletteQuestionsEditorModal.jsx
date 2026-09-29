@@ -4,6 +4,7 @@ import { Modal } from '../ui/Modal';
 import { useActivity } from '../../contexts/ActivityContext';
 import { convertQuizQuestionsToRoulette } from '../../services/questionTransitionService';
 import { gameAudio } from '../../utils/gameAudio';
+import { getDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 
 export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, updateActivityData }) => {
     // Trabalharemos com uma cópia local durante a edição
@@ -251,7 +252,7 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
                                 />
                                 {q.imageUrl && (
                                     <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden shrink-0 bg-white flex items-center justify-center relative group">
-                                        <img src={q.imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'} />
+                                        <img src={getDirectImageUrl(q.imageUrl)} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleDriveImageError} />
                                         <button onClick={() => handleImageUrlChange(q.id, '')} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                             <X className="w-6 h-6" />
                                         </button>

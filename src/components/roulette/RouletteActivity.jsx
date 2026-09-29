@@ -115,6 +115,7 @@ export const RouletteActivity = () => {
         handleDeactivateAll,
         handleAdjustPoints,
         handleChangeWinnerQuestion,
+        handleEditQuestionContent,
         handleSpinAgain,
         handleResult,
         handleBatchResult,
@@ -687,6 +688,7 @@ export const RouletteActivity = () => {
                     allStudents={combinedItems}
                     availableHelpers={availableHelpers}
                     onChangeQuestion={handleChangeWinnerQuestion}
+                    onEditQuestionContent={handleEditQuestionContent}
                     onChangeStudent={handleChangeWinnerStudent}
                     onCorrect={() => handleResult('correct')} 
                     onIncorrect={() => handleResult('incorrect')} 
@@ -700,6 +702,7 @@ export const RouletteActivity = () => {
                     onTimerExplode={handleTimerExplode}
                     onRevealAnswer={handleRevealAnswer}
                     onRevealHint={handleRevealHint}
+                    onOpenSidebar={() => setIsSidebarOpen(true)}
                 />
             )}
 

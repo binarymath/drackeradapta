@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
     User, HelpCircle, Sparkles, CheckCircle, XCircle, RotateCcw, 
     Eye, EyeOff, Shuffle, ListOrdered, Users, HeartHandshake, Award,
-    RotateCw, Lightbulb, ThumbsUp, Check, X, AlertTriangle, Type, ZoomIn, ZoomOut
+    RotateCw, Lightbulb, ThumbsUp, Check, X, AlertTriangle, Type, ZoomIn, ZoomOut,
+    Minimize2, Maximize2, Edit3, AlignLeft, AlignCenter, AlignRight, AlignJustify
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { gameAudio } from '../../utils/gameAudio';
+import { getDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 import { RouletteTimerBomb } from './RouletteTimerBomb';
 import { StudentSelectorModal } from './card-modals/StudentSelectorModal';
 import { QuestionSelectorModal } from './card-modals/QuestionSelectorModal';
@@ -13,53 +15,7 @@ import { RouletteModeTodosRespondem } from './card-modals/RouletteModeTodosRespo
 import { RouletteModeAjuda } from './card-modals/RouletteModeAjuda';
 
 // Configuração de Escala de Fonte para Projeção e Acessibilidade Visual
-const FONT_LEVELS = [
-    {
-        id: 0,
-        label: 'Pequena',
-        percent: '85%',
-        questionClass: 'text-lg sm:text-xl',
-        optionsClass: 'text-xs sm:text-sm',
-        answerClass: 'text-sm sm:text-base',
-        nameClass: 'text-2xl sm:text-3xl'
-    },
-    {
-        id: 1,
-        label: 'Normal',
-        percent: '100%',
-        questionClass: 'text-xl sm:text-2xl',
-        optionsClass: 'text-xs sm:text-sm',
-        answerClass: 'text-base sm:text-lg',
-        nameClass: 'text-3xl sm:text-4xl'
-    },
-    {
-        id: 2,
-        label: 'Grande',
-        percent: '125%',
-        questionClass: 'text-2xl sm:text-3xl',
-        optionsClass: 'text-sm sm:text-base',
-        answerClass: 'text-lg sm:text-xl',
-        nameClass: 'text-4xl sm:text-5xl'
-    },
-    {
-        id: 3,
-        label: 'Muito Grande',
-        percent: '150%',
-        questionClass: 'text-3xl sm:text-4xl md:text-5xl',
-        optionsClass: 'text-base sm:text-lg',
-        answerClass: 'text-xl sm:text-2xl',
-        nameClass: 'text-4xl sm:text-5xl md:text-6xl'
-    },
-    {
-        id: 4,
-        label: 'Gigante (Projetor)',
-        percent: '180%',
-        questionClass: 'text-4xl sm:text-5xl md:text-6xl',
-        optionsClass: 'text-lg sm:text-xl',
-        answerClass: 'text-2xl sm:text-3xl',
-        nameClass: 'text-5xl sm:text-6xl'
-    }
-];
+// A escala de fonte agora é 100% por padrão e varia de 5% em 5%
 
 export const RouletteCard = ({ 
     winner, 
@@ -69,6 +25,7 @@ export const RouletteCard = ({
     allStudents = [],
     availableHelpers = [],
     onChangeQuestion, 
+    onEditQuestionContent,
     onChangeStudent,
     onCorrect, 
     onIncorrect, 
@@ -81,45 +38,58 @@ export const RouletteCard = ({
     onToggleDifficulty,
     onTimerExplode = null,
     onRevealAnswer = null,
-    onRevealHint = null
+    onRevealHint = null,
+    onOpenSidebar
 }) => {
     // Controle de Tamanho de Fonte para Acessibilidade / Lousa / Projetor
-    const [fontLevel, setFontLevel] = useState(() => {
+    const [fontScale, setFontScale] = useState(() => {
         if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('preferred_roulette_card_font_level');
+            const saved = localStorage.getItem('preferred_roulette_font_scale');
             if (saved !== null) {
                 const parsed = parseInt(saved, 10);
-                if (!isNaN(parsed) && parsed >= 0 && parsed < FONT_LEVELS.length) return parsed;
+                if (!isNaN(parsed) && parsed >= 50 && parsed <= 300) return parsed;
             }
         }
-        return 1; // 100% Normal por padrão
+        return 100;
     });
 
     const handleIncreaseFont = () => {
-        setFontLevel(prev => {
-            const next = Math.min(FONT_LEVELS.length - 1, prev + 1);
-            try { localStorage.setItem('preferred_roulette_card_font_level', String(next)); } catch (e) {}
+        setFontScale(prev => {
+            const next = Math.min(300, prev + 5);
+            try { localStorage.setItem('preferred_roulette_font_scale', String(next)); } catch (e) {}
             gameAudio.playTick();
             return next;
         });
     };
 
     const handleDecreaseFont = () => {
-        setFontLevel(prev => {
-            const next = Math.max(0, prev - 1);
-            try { localStorage.setItem('preferred_roulette_card_font_level', String(next)); } catch (e) {}
+        setFontScale(prev => {
+            const next = Math.max(50, prev - 5);
+            try { localStorage.setItem('preferred_roulette_font_scale', String(next)); } catch (e) {}
             gameAudio.playTick();
             return next;
         });
     };
 
     const handleResetFont = () => {
-        setFontLevel(1);
-        try { localStorage.setItem('preferred_roulette_card_font_level', '1'); } catch (e) {}
+        setFontScale(100);
+        try { localStorage.setItem('preferred_roulette_font_scale', '100'); } catch (e) {}
         gameAudio.playTick();
     };
 
-    const currentFont = FONT_LEVELS[fontLevel] || FONT_LEVELS[1];
+    const [textAlign, setTextAlign] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('preferred_roulette_question_align');
+            if (saved) return saved;
+        }
+        return 'text-left';
+    });
+
+    const handleSetAlign = (alignClass) => {
+        setTextAlign(alignClass);
+        try { localStorage.setItem('preferred_roulette_question_align', alignClass); } catch(e){}
+        gameAudio.playTick();
+    };
 
     // Modo de Exibição do Cronômetro Bomba: 'normal' (como está) | 'minimized' (separado no canto) | 'maximized' (destaque grande)
     const [timerViewMode, setTimerViewMode] = useState(() => {
@@ -160,6 +130,22 @@ export const RouletteCard = ({
     const [showAnswer, setShowAnswer] = useState(false);
     const [showAlternatives, setShowAlternatives] = useState(false);
     
+    // Edição inline da pergunta
+    const [isEditingQuestion, setIsEditingQuestion] = useState(false);
+    const [editQuestionText, setEditQuestionText] = useState("");
+
+    const handleStartEditing = () => {
+        setEditQuestionText(winner?.question || "");
+        setIsEditingQuestion(true);
+    };
+
+    const handleSaveEditing = () => {
+        if (onEditQuestionContent) {
+            onEditQuestionContent(editQuestionText);
+        }
+        setIsEditingQuestion(false);
+    };
+    
     // Modal interno para selecionar pergunta da lista
     const [showQuestionSelector, setShowQuestionSelector] = useState(false);
 
@@ -194,7 +180,8 @@ export const RouletteCard = ({
     const [showSelectionGrid, setShowSelectionGrid] = useState(false);
     const [studentStatuses, setStudentStatuses] = useState(() => {
         const initial = {};
-        activeStudents.forEach(s => initial[s.id] = 'correct');
+        const studentsList = (allStudents && allStudents.length > 0) ? allStudents.filter(s => s.status !== 'absent') : activeStudents;
+        studentsList.forEach(s => initial[s.id] = 'correct');
         return initial;
     });
 
@@ -203,7 +190,8 @@ export const RouletteCard = ({
         setStudentStatuses(prev => {
             const next = { ...prev };
             let changed = false;
-            activeStudents.forEach(s => {
+            const studentsList = (allStudents && allStudents.length > 0) ? allStudents.filter(s => s.status !== 'absent') : activeStudents;
+            studentsList.forEach(s => {
                 if (!next[s.id]) {
                     next[s.id] = 'correct';
                     changed = true;
@@ -211,7 +199,7 @@ export const RouletteCard = ({
             });
             return changed ? next : prev;
         });
-    }, [activeStudents]);
+    }, [activeStudents, allStudents]);
 
     // ==========================================
     // ESTADOS: PRECISO DE AJUDA
@@ -365,15 +353,129 @@ export const RouletteCard = ({
     const helpedEntries = (winner?.history || []).filter(h => h.helpedStudent || h.isHelperRole);
     const helpedCount = Math.max(helpedEntries.length, winner?.helpedCount || 0);
     const lastHelped = helpedEntries[helpedEntries.length - 1]?.helpedStudent;
+    const [isCardMinimized, setIsCardMinimized] = useState(false);
+    const renderQuestionControlBar = () => (
+        <div className="bg-black/15 border-t border-white/20 mt-4 -mx-4 -mb-3 sm:-mx-6 sm:-mb-4 px-4 py-2.5 sm:px-6 flex items-center justify-between gap-2 shrink-0 relative z-10 w-full text-white">
+            <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold text-white bg-black/20 border border-white/10 px-2.5 py-1 rounded-lg shadow-2xs">
+                    {allQuestions.length > 0 ? `Pergunta ${currentIndex >= 0 ? currentIndex + 1 : 1} de ${allQuestions.length}` : 'Pergunta'}
+                </span>
+
+                {showDifficulty && (() => {
+                    const badge = getDifficultyBadge(winner.difficulty);
+                    return (
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border border-white/20 flex items-center gap-1.5 shadow-2xs ${badge.color === 'bg-emerald-100 text-emerald-800 border-emerald-200' ? 'bg-emerald-500/20 text-emerald-100 border-emerald-500/30' : 'bg-black/20 text-white border-white/10'}`}>
+                            <span className={`w-2 h-2 rounded-full ${badge.dot}`}></span>
+                            <span>{badge.label}</span>
+                        </span>
+                    );
+                })()}
+
+                {onToggleDifficulty && (
+                    <button
+                        onClick={onToggleDifficulty}
+                        className="text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/20 transition-colors"
+                        title={showDifficulty ? 'Dificuldade visível (clique para ocultar)' : 'Dificuldade oculta (clique para exibir)'}
+                    >
+                        {showDifficulty ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                    </button>
+                )}
+
+                {isCurrentQuestionUsed && (
+                    <span className="text-2xs font-black bg-amber-500/20 text-amber-200 border border-amber-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3 text-amber-400" /> Já respondida
+                    </span>
+                )}
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+                {cardMode === 'normal' && !winner?.isGroup && onChangeStudent && (
+                    <>
+                        <button
+                            type="button"
+                            onClick={handleNextStudentRandom}
+                            className="flex items-center gap-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
+                            title="Sortear outro aluno para responder a esta pergunta"
+                        >
+                            <Shuffle className="w-3.5 h-3.5 text-white" />
+                            <span className="hidden sm:inline">Outro Aluno</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowStudentSelector(!showStudentSelector)}
+                            className="flex items-center gap-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
+                            title="Escolher outro aluno da turma para responder"
+                        >
+                            <Users className="w-3.5 h-3.5 text-white" />
+                            <span>{showStudentSelector ? 'Fechar Lista' : 'Trocar Aluno'}</span>
+                        </button>
+                    </>
+                )}
+
+                <button
+                    onClick={handleNextQuestion}
+                    className="flex items-center gap-1.5 text-xs font-bold text-white bg-white/20 hover:bg-white/30 border border-white/20 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
+                    title="Sortear outra pergunta diferente para este aluno"
+                >
+                    <Shuffle className="w-3.5 h-3.5 text-white" />
+                    <span>Outra Pergunta</span>
+                </button>
+
+                <button
+                    onClick={() => setShowQuestionSelector(!showQuestionSelector)}
+                    className="flex items-center gap-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
+                    title="Ver lista de todas as perguntas disponíveis"
+                >
+                    <ListOrdered className="w-3.5 h-3.5 text-white" />
+                    <span className="hidden sm:inline">Escolher da Lista</span>
+                </button>
+                
+                {onOpenSidebar && (
+                    <button
+                        onClick={onOpenSidebar}
+                        className="flex items-center gap-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
+                        title="Abrir placar e lista de alunos"
+                    >
+                        <Users className="w-3.5 h-3.5 text-white" />
+                        <span className="hidden sm:inline">Placar</span>
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-3 md:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-300">
+        <div className={`fixed z-50 transition-all duration-300 ease-in-out ${
+            isCardMinimized 
+                ? 'bottom-4 left-4 right-auto top-auto w-auto h-auto' 
+                : 'inset-0 flex items-center justify-center p-2 sm:p-3 md:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in'
+        }`}>
+            {/* WIDGET MINIMIZADO */}
+            {isCardMinimized && (
+                <div className="bg-white rounded-2xl shadow-2xl border-4 border-amber-400 p-3 w-[280px] sm:w-[320px] flex flex-col gap-2 animate-in slide-in-from-bottom-5">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-xl leading-none">🎯</span>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Respondendo:</span>
+                                <span className="text-sm font-black text-slate-800 truncate">{winner.name}</span>
+                            </div>
+                        </div>
+                        <button onClick={() => setIsCardMinimized(false)} className="shrink-0 p-1.5 bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-600 rounded-xl transition-colors cursor-pointer" title="Expandir card">
+                            <Maximize2 className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* CONTAINER FLEX: ACOPLA O CARD DO ALUNO E O CRONÔMETRO LADO A LADO COM A MESMA ALTURA */}
-            <div className={`h-[92vh] max-h-[92vh] mx-auto flex flex-col lg:flex-row items-stretch ${
-                timerViewMode === 'normal' 
-                    ? 'w-[96vw] max-w-[1560px] gap-2.5 sm:gap-3' 
-                    : 'w-[90vw] max-w-[1150px] gap-0'
-            } transition-all duration-300`}>
+            <div className={`mx-auto items-stretch transition-all duration-300 ${
+                isCardMinimized 
+                    ? 'hidden' 
+                    : `flex flex-col lg:flex-row h-[92vh] max-h-[92vh] ${timerViewMode === 'normal' ? 'w-[96vw] max-w-[1560px] gap-2.5 sm:gap-3' : 'w-[90vw] max-w-[1150px] gap-0'}`
+            }`}>
                 
                 {/* ============================================================ */}
                 {/* 1. CARD PRINCIPAL DO ALUNO SORTEADO */}
@@ -387,7 +489,7 @@ export const RouletteCard = ({
                     winner.isGroup ? (
                         /* CABEÇALHO DO MODO GRUPOS / EQUIPES */
                         <div 
-                            className="p-6 text-center relative overflow-hidden shrink-0 shadow-sm text-white"
+                            className="px-4 py-3 sm:px-6 sm:py-4 text-center relative overflow-hidden shrink-0 shadow-sm text-white"
                             style={{
                                 background: winner.color 
                                     ? `linear-gradient(135deg, ${winner.color} 0%, #1e1b4b 100%)` 
@@ -398,59 +500,44 @@ export const RouletteCard = ({
                             <Sparkles className="w-8 h-8 text-white/40 absolute top-3 left-4 animate-pulse" />
                             <Sparkles className="w-6 h-6 text-white/40 absolute bottom-3 right-4 animate-pulse" />
                             
-                            <div className="flex items-center justify-between relative z-10 mb-2 flex-wrap gap-2">
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/30 text-white text-xs font-black uppercase tracking-widest backdrop-blur-sm border border-white/20">
-                                    <Users className="w-3.5 h-3.5 text-amber-300" />
-                                    Equipe / Grupo Sorteado
-                                </div>
-
-                                {/* Controles para sortear porta-voz, zoom e responder juntos */}
-                                <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                                    {/* Chip para reacoplar cronômetro se minimizado */}
-                                    {timerViewMode === 'minimized' && (
+                            <div className="flex flex-col gap-2 relative z-10 mb-2 w-full">
+                                {/* Controles: Minimizar, Cronômetro (ACIMA) */}
+                                <div className="flex items-center justify-between gap-1.5 flex-wrap w-full">
+                                    <div className="flex items-center gap-1.5">
+                                        {/* Botão Minimizar Card Inteiro */}
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                setTimerViewMode('normal');
-                                                try { localStorage.setItem('preferred_roulette_timer_mode', 'normal'); } catch (e) {}
-                                            }}
-                                            className="flex items-center gap-1 text-xs font-black text-slate-950 bg-amber-400 hover:bg-amber-300 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer animate-in fade-in"
-                                            title="Acoplar cronômetro de volta ao lado direito do card"
+                                            onClick={() => setIsCardMinimized(true)}
+                                            className="flex items-center gap-1 bg-black/20 hover:bg-black/40 text-white border border-white/25 rounded-xl px-2.5 py-1 shadow-2xs backdrop-blur-xs text-xs font-bold transition-all cursor-pointer"
+                                            title="Minimizar card para ver a roleta"
                                         >
-                                            <span>💣</span>
-                                            <span className="hidden sm:inline">Acoplar Cronômetro</span>
+                                            <Minimize2 className="w-3.5 h-3.5 text-amber-200" />
+                                            <span className="hidden sm:inline">Minimizar</span>
                                         </button>
-                                    )}
-                                    {/* Controle de Fonte */}
-                                    <div className="flex items-center gap-1 bg-black/25 border border-white/20 rounded-xl px-2 py-1 shadow-2xs backdrop-blur-xs text-white text-xs" title={`Tamanho da fonte: ${currentFont.label} (${currentFont.percent})`}>
-                                        <Type className="w-3.5 h-3.5 text-white/80" />
-                                        <button
-                                            type="button"
-                                            onClick={handleDecreaseFont}
-                                            disabled={fontLevel <= 0}
-                                            className="w-5 h-5 flex items-center justify-center font-black rounded-lg hover:bg-white/20 active:scale-95 disabled:opacity-30 cursor-pointer transition-colors"
-                                            title="Diminuir fonte (A-)"
-                                        >
-                                            A-
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleResetFont}
-                                            className="px-1 py-0.5 rounded text-[11px] font-black bg-white/20 hover:bg-white/30 cursor-pointer transition-colors"
-                                            title="Tamanho padrão (100%)"
-                                        >
-                                            {currentFont.percent}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleIncreaseFont}
-                                            disabled={fontLevel >= FONT_LEVELS.length - 1}
-                                            className="w-5 h-5 flex items-center justify-center font-black rounded-lg hover:bg-white/20 active:scale-95 disabled:opacity-30 cursor-pointer transition-colors"
-                                            title="Aumentar fonte para projeção (A+)"
-                                        >
-                                            A+
-                                        </button>
+                                        
+                                        {/* LEGENDA DA EQUIPE */}
+                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/30 text-white text-xs font-black uppercase tracking-widest backdrop-blur-sm border border-white/20">
+                                            <Users className="w-3.5 h-3.5 text-amber-300" />
+                                            <span className="hidden sm:inline">Equipe / Grupo Sorteado</span>
+                                        </div>
                                     </div>
+
+                                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                        {/* Chip para reacoplar cronômetro se minimizado */}
+                                        {timerViewMode === 'minimized' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setTimerViewMode('normal');
+                                                    try { localStorage.setItem('preferred_roulette_timer_mode', 'normal'); } catch (e) {}
+                                                }}
+                                                className="flex items-center gap-1 text-xs font-black text-slate-950 bg-amber-400 hover:bg-amber-300 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer animate-in fade-in"
+                                                title="Acoplar cronômetro de volta ao lado direito do card"
+                                            >
+                                                <span>💣</span>
+                                                <span className="hidden sm:inline">Acoplar Cronômetro</span>
+                                            </button>
+                                        )}
 
                                     <button
                                         type="button"
@@ -475,9 +562,12 @@ export const RouletteCard = ({
                                         <span>{isDrawingSpokesperson ? 'Sorteando...' : 'Sortear Porta-Voz'}</span>
                                     </button>
                                 </div>
+                                </div>
+                                
+
                             </div>
 
-                            <h1 className={`${currentFont.nameClass} font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 transition-all text-center`}>
+                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 transition-all text-center mt-2">
                                 <Users className="w-8 h-8 sm:w-9 sm:h-9 text-amber-300 shrink-0" />
                                 <span>{winner.name}</span>
                             </h1>
@@ -516,96 +606,63 @@ export const RouletteCard = ({
                                     <strong>{selectedSpokesperson.name}</strong>
                                 </div>
                             )}
+                            
+                            {renderQuestionControlBar()}
                         </div>
                     ) : (
                         /* CABEÇALHO DO MODO INDIVIDUAL */
-                        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-6 text-center relative overflow-hidden shrink-0 shadow-sm">
+                        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 py-3 sm:px-6 sm:py-4 text-center relative overflow-hidden shrink-0 shadow-sm">
                             <div className="absolute top-0 left-0 w-full h-full opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
                             <Sparkles className="w-8 h-8 text-amber-200/60 absolute top-3 left-4 animate-pulse" />
                             <Sparkles className="w-6 h-6 text-amber-200/60 absolute bottom-3 right-4 animate-pulse" />
                             
-                            <div className="flex items-center justify-between relative z-10 mb-1.5 flex-wrap gap-2">
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/20 text-amber-100 text-xs font-black uppercase tracking-widest backdrop-blur-sm">
-                                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                                    Aluno Sorteado
-                                </div>
-
-                                <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                                    {/* Chip para reacoplar cronômetro se minimizado */}
-                                    {timerViewMode === 'minimized' && (
+                            <div className="flex flex-col gap-2 relative z-10 mb-1.5 w-full">
+                                {/* Controles (ACIMA) */}
+                                <div className="flex items-center justify-between gap-1.5 flex-wrap w-full">
+                                    <div className="flex items-center gap-1.5">
+                                        {/* Botão Minimizar Card Inteiro */}
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                setTimerViewMode('normal');
-                                                try { localStorage.setItem('preferred_roulette_timer_mode', 'normal'); } catch (e) {}
-                                            }}
-                                            className="flex items-center gap-1 text-xs font-black text-slate-950 bg-amber-300 hover:bg-amber-200 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer animate-in fade-in"
-                                            title="Acoplar cronômetro de volta ao lado direito do card"
+                                            onClick={() => setIsCardMinimized(true)}
+                                            className="flex items-center gap-1 bg-black/20 hover:bg-black/40 text-white border border-white/25 rounded-xl px-2.5 py-1 shadow-2xs backdrop-blur-xs text-xs font-bold transition-all cursor-pointer"
+                                            title="Minimizar card para ver a roleta"
                                         >
-                                            <span>💣</span>
-                                            <span className="hidden sm:inline">Acoplar Cronômetro</span>
+                                            <Minimize2 className="w-3.5 h-3.5 text-amber-200" />
+                                            <span className="hidden sm:inline">Minimizar</span>
                                         </button>
-                                    )}
-
-                                    {/* Controle de Tamanho da Fonte */}
-                                    <div className="flex items-center gap-1 bg-black/20 border border-white/25 rounded-xl px-2 py-1 shadow-2xs backdrop-blur-xs text-white text-xs" title={`Tamanho da fonte: ${currentFont.label} (${currentFont.percent})`}>
-                                        <Type className="w-3.5 h-3.5 text-amber-200" />
-                                        <button
-                                            type="button"
-                                            onClick={handleDecreaseFont}
-                                            disabled={fontLevel <= 0}
-                                            className="w-5 h-5 flex items-center justify-center font-black rounded-lg hover:bg-white/20 active:scale-95 disabled:opacity-30 cursor-pointer transition-colors"
-                                            title="Diminuir fonte (A-)"
-                                        >
-                                            A-
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleResetFont}
-                                            className="px-1 py-0.5 rounded text-[11px] font-black bg-white/20 hover:bg-white/30 cursor-pointer transition-colors"
-                                            title="Tamanho padrão (100%)"
-                                        >
-                                            {currentFont.percent}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleIncreaseFont}
-                                            disabled={fontLevel >= FONT_LEVELS.length - 1}
-                                            className="w-5 h-5 flex items-center justify-center font-black rounded-lg hover:bg-white/20 active:scale-95 disabled:opacity-30 cursor-pointer transition-colors"
-                                            title="Aumentar fonte para projeção (A+)"
-                                        >
-                                            A+
-                                        </button>
+                                        
+                                        {/* LEGENDA DO ALUNO */}
+                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/20 text-amber-100 text-xs font-black uppercase tracking-widest backdrop-blur-sm shadow-sm border border-black/10">
+                                            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                                            <span className="hidden sm:inline">Aluno Sorteado</span>
+                                        </div>
                                     </div>
 
-                                    {/* Controles para Trocar o Aluno Mantendo a Pergunta */}
-                                    {onChangeStudent && (
-                                        <>
+                                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                        {/* Chip para reacoplar cronômetro se minimizado */}
+                                        {timerViewMode === 'minimized' && (
                                             <button
                                                 type="button"
-                                                onClick={handleNextStudentRandom}
-                                                className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white hover:text-indigo-900 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
-                                                title="Sortear outro aluno para responder a esta pergunta"
+                                                onClick={() => {
+                                                    setTimerViewMode('normal');
+                                                    try { localStorage.setItem('preferred_roulette_timer_mode', 'normal'); } catch (e) {}
+                                                }}
+                                                className="flex items-center gap-1 text-xs font-black text-slate-950 bg-amber-300 hover:bg-amber-200 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer animate-in fade-in"
+                                                title="Acoplar cronômetro de volta ao lado direito do card"
                                             >
-                                                <Shuffle className="w-3.5 h-3.5 text-amber-600" />
-                                                <span className="hidden sm:inline">Outro Aluno</span>
+                                                <span>💣</span>
+                                                <span className="hidden sm:inline">Acoplar Cronômetro</span>
                                             </button>
+                                        )}
 
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowStudentSelector(!showStudentSelector)}
-                                                className="flex items-center gap-1 text-xs font-bold text-slate-800 bg-white/90 hover:bg-white hover:text-indigo-900 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer"
-                                                title="Escolher outro aluno da turma para responder"
-                                            >
-                                                <Users className="w-3.5 h-3.5 text-amber-600" />
-                                                <span>{showStudentSelector ? 'Fechar Lista' : 'Trocar Aluno'}</span>
-                                            </button>
-                                        </>
-                                    )}
+
+
                                 </div>
+                                </div>
+
                             </div>
 
-                            <h1 className={`${currentFont.nameClass} font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 flex-wrap transition-all text-center`}>
+                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 flex-wrap transition-all text-center mt-2">
                                 <User className="w-8 h-8 sm:w-9 sm:h-9 text-amber-200 shrink-0" />
                                 <span>{winner.name}</span>
                                 {winner.groupName && (
@@ -627,30 +684,8 @@ export const RouletteCard = ({
                                 winnerId={winner?.id}
                                 onSelect={handleSelectSpecificStudent}
                             />
-
-                            {/* AVISOS EXPLÍCITOS: TEVE AJUDA E AJUDOU */}
-                            {(hadHelp || helpedCount > 0) && (
-                                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                                    {hadHelp && (
-                                        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-sky-100 text-sky-950 border-2 border-sky-400 font-black rounded-full text-xs shadow-xs animate-in slide-in-from-top-1">
-                                            <HeartHandshake className="w-4 h-4 text-sky-700 shrink-0" />
-                                            <span>
-                                                TEVE AJUDA: {helpCount}x
-                                                {lastHelper ? ` (com ${lastHelper})` : ''}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {helpedCount > 0 && (
-                                        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-emerald-100 text-emerald-950 border-2 border-emerald-400 font-black rounded-full text-xs shadow-xs animate-in slide-in-from-top-1">
-                                            <Award className="w-4 h-4 text-emerald-700 shrink-0" />
-                                            <span>
-                                                AJUDOU: {helpedCount}x
-                                                {lastHelped ? ` (auxiliou ${lastHelped})` : ''}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                            
+                            {renderQuestionControlBar()}
                         </div>
                     )
                 )}
@@ -674,6 +709,8 @@ export const RouletteCard = ({
                         <p className="text-indigo-100 text-xs sm:text-sm font-medium mt-0.5">
                             Desafio aberto para a turma inteira responder no caderno ou lousinha!
                         </p>
+                        
+                        {renderQuestionControlBar()}
                     </div>
                 )}
 
@@ -697,97 +734,12 @@ export const RouletteCard = ({
                         <p className="text-sky-100 text-xs sm:text-sm font-medium mt-0.5">
                             {winner.name} pode chamar um colega, pedir uma dica ou consultar a turma!
                         </p>
+                        
+                        {renderQuestionControlBar()}
                     </div>
                 )}
 
-                {/* ============================================================ */}
-                {/* BARRA DE CONTROLE DA PERGUNTA (TROCAR / ESCOLHER / STATUS) */}
-                {/* ============================================================ */}
-                <div className="bg-slate-100/90 border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-2 shrink-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-2xs">
-                            {allQuestions.length > 0 ? `Pergunta ${currentIndex >= 0 ? currentIndex + 1 : 1} de ${allQuestions.length}` : 'Pergunta'}
-                        </span>
 
-                        {showDifficulty && (() => {
-                            const badge = getDifficultyBadge(winner.difficulty);
-                            return (
-                                <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border flex items-center gap-1.5 shadow-2xs ${badge.color}`}>
-                                    <span className={`w-2 h-2 rounded-full ${badge.dot}`}></span>
-                                    <span>{badge.label}</span>
-                                </span>
-                            );
-                        })()}
-
-                        {onToggleDifficulty && (
-                            <button
-                                onClick={onToggleDifficulty}
-                                className="text-slate-400 hover:text-indigo-600 p-1 rounded-lg hover:bg-slate-200 transition-colors"
-                                title={showDifficulty ? 'Dificuldade visível (clique para ocultar)' : 'Dificuldade oculta (clique para exibir)'}
-                            >
-                                {showDifficulty ? <Eye className="w-3.5 h-3.5 text-emerald-600" /> : <EyeOff className="w-3.5 h-3.5 text-slate-400" />}
-                            </button>
-                        )}
-
-                        {isCurrentQuestionUsed && (
-                            <span className="text-2xs font-black bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3 text-amber-600" /> Já respondida
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap justify-end">
-                        {/* Seletor de Tamanho da Fonte */}
-                        <div className="hidden sm:flex items-center bg-white border border-slate-200 rounded-xl px-2 py-1 shadow-2xs gap-1" title={`Tamanho da fonte: ${currentFont.label} (${currentFont.percent})`}>
-                            <Type className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="text-[11px] font-bold text-slate-500 hidden md:inline">Fonte:</span>
-                            <button
-                                type="button"
-                                onClick={handleDecreaseFont}
-                                disabled={fontLevel <= 0}
-                                className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black text-slate-700 hover:bg-slate-100 active:scale-95 disabled:opacity-30 cursor-pointer"
-                                title="Diminuir fonte (A-)"
-                            >
-                                A-
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleResetFont}
-                                className="px-1.5 py-0.5 rounded text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 cursor-pointer"
-                                title="Voltar ao tamanho normal (100%)"
-                            >
-                                {currentFont.percent}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleIncreaseFont}
-                                disabled={fontLevel >= FONT_LEVELS.length - 1}
-                                className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black text-slate-700 hover:bg-slate-100 active:scale-95 disabled:opacity-30 cursor-pointer"
-                                title="Aumentar fonte para projeção (A+)"
-                            >
-                                A+
-                            </button>
-                        </div>
-
-                        <button
-                            onClick={handleNextQuestion}
-                            className="flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
-                            title="Sortear outra pergunta diferente para este aluno"
-                        >
-                            <Shuffle className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>Outra Pergunta</span>
-                        </button>
-
-                        <button
-                            onClick={() => setShowQuestionSelector(!showQuestionSelector)}
-                            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
-                            title="Ver lista de todas as perguntas disponíveis"
-                        >
-                            <ListOrdered className="w-3.5 h-3.5 text-slate-500" />
-                            <span className="hidden sm:inline">Escolher da Lista</span>
-                        </button>
-                    </div>
-                </div>
 
                 {/* ============================================================ */}
                 {/* MODAL INTERNO: SELETOR DE PERGUNTAS */}
@@ -810,7 +762,7 @@ export const RouletteCard = ({
                     {/* ======================================================== */}
                     {/* CARD DA PERGUNTA DA RODADA (LARGURA TOTAL DO CARD DO ALUNO) */}
                     {/* ======================================================== */}
-                    <div className="w-full bg-white border-2 border-indigo-100 p-5 sm:p-6 rounded-2xl shadow-sm text-center relative flex flex-col justify-between transition-all duration-300">
+                    <div className="w-full bg-white border-2 border-indigo-100 p-5 sm:p-6 rounded-2xl shadow-sm text-center relative flex flex-col justify-between transition-all duration-300" style={{ fontSize: `${fontScale}%` }}>
                         <div>
                             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -843,7 +795,7 @@ export const RouletteCard = ({
                                         <button
                                             type="button"
                                             onClick={handleDecreaseFont}
-                                            disabled={fontLevel <= 0}
+                                            disabled={fontScale <= 50}
                                             className="w-5 h-5 rounded flex items-center justify-center text-xs font-black text-slate-700 hover:bg-white active:scale-90 disabled:opacity-30 cursor-pointer"
                                             title="Diminuir fonte (A-)"
                                         >
@@ -855,34 +807,102 @@ export const RouletteCard = ({
                                             className="px-1.5 text-[11px] font-bold text-indigo-700 hover:bg-white rounded cursor-pointer"
                                             title="Tamanho padrão (100%)"
                                         >
-                                            {currentFont.percent}
+                                            {fontScale}%
                                         </button>
                                         <button
                                             type="button"
                                             onClick={handleIncreaseFont}
-                                            disabled={fontLevel >= FONT_LEVELS.length - 1}
+                                            disabled={fontScale >= 300}
                                             className="w-5 h-5 rounded flex items-center justify-center text-xs font-black text-slate-700 hover:bg-white active:scale-90 disabled:opacity-30 cursor-pointer"
                                             title="Aumentar fonte para projeção (A+)"
                                         >
                                             A+
                                         </button>
                                     </div>
+                                    
+                                    {/* Ajuste de Alinhamento Rápido direto no card */}
+                                    <div className="inline-flex items-center gap-1 bg-slate-100/90 border border-slate-200 px-1 py-0.5 rounded-xl shadow-2xs">
+                                        <button type="button" onClick={() => handleSetAlign('text-left')} className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors ${textAlign === 'text-left' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`} title="Alinhar à Esquerda"><AlignLeft className="w-3.5 h-3.5" /></button>
+                                        <button type="button" onClick={() => handleSetAlign('text-center')} className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors ${textAlign === 'text-center' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`} title="Centralizar"><AlignCenter className="w-3.5 h-3.5" /></button>
+                                        <button type="button" onClick={() => handleSetAlign('text-right')} className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors ${textAlign === 'text-right' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`} title="Alinhar à Direita"><AlignRight className="w-3.5 h-3.5" /></button>
+                                        <button type="button" onClick={() => handleSetAlign('text-justify')} className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors ${textAlign === 'text-justify' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`} title="Justificar"><AlignJustify className="w-3.5 h-3.5" /></button>
+                                        <div className="w-px h-4 bg-slate-300 mx-0.5" />
+                                        <button type="button" onClick={handleStartEditing} className="w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800" title="Editar esta pergunta"><Edit3 className="w-3.5 h-3.5" /></button>
+                                    </div>
                                 </div>
 
                                 {winner.imageUrl && (
                                     <div className="mb-4 flex justify-center">
                                         <img 
-                                            src={winner.imageUrl} 
+                                            src={getDirectImageUrl(winner.imageUrl)} 
                                             alt="Imagem da pergunta" 
                                             className="max-h-48 rounded-xl border-2 border-slate-200 shadow-sm object-contain"
-                                            onError={(e) => e.target.style.display='none'}
+                                            referrerPolicy="no-referrer"
+                                            onError={handleDriveImageError}
                                         />
                                     </div>
                                 )}
 
-                                <p className={`${currentFont.questionClass} text-slate-800 font-bold leading-relaxed transition-all`}>
-                                    {winner.question}
-                                </p>
+                                {isEditingQuestion ? (
+                                    <div className="flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-200">
+                                            <textarea
+                                                value={editQuestionText}
+                                                onChange={(e) => setEditQuestionText(e.target.value)}
+                                                className={`text-[1.25em] sm:text-[1.5em] ${textAlign} text-slate-800 font-bold leading-relaxed w-full min-h-[150px] p-4 rounded-xl border-2 border-indigo-400 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 outline-none transition-all resize-y shadow-inner bg-indigo-50/30`}
+                                                autoFocus
+                                                placeholder="Digite a pergunta aqui..."
+                                            />
+                                            <p className="text-[11px] font-bold text-indigo-500/80 -mt-1 px-1">
+                                                Dica: Use <span className="text-indigo-600 bg-indigo-100 px-1 rounded">[C]</span> para centralizar uma linha específica, <span className="text-indigo-600 bg-indigo-100 px-1 rounded">[L]</span> para esquerda, <span className="text-indigo-600 bg-indigo-100 px-1 rounded">[R]</span> direita ou <span className="text-indigo-600 bg-indigo-100 px-1 rounded">[J]</span> justificar.
+                                            </p>
+                                        <div className="flex gap-2 justify-end">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditingQuestion(false)}
+                                                className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                                            >
+                                                Cancelar
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleSaveEditing}
+                                                className="px-5 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 flex items-center gap-2"
+                                            >
+                                                <Edit3 className="w-4 h-4" />
+                                                Salvar Alteração
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="relative">
+                                        <div className={`text-[1.25em] sm:text-[1.5em] text-slate-800 font-bold leading-relaxed transition-all whitespace-pre-wrap w-full`}>
+                                            {(winner.question || '').split('\n').map((line, idx) => {
+                                                let lineAlign = textAlign;
+                                                let content = line;
+
+                                                if (content.trim().startsWith('[C]')) {
+                                                    lineAlign = 'text-center';
+                                                    content = content.replace('[C]', '');
+                                                } else if (content.trim().startsWith('[R]')) {
+                                                    lineAlign = 'text-right';
+                                                    content = content.replace('[R]', '');
+                                                } else if (content.trim().startsWith('[L]')) {
+                                                    lineAlign = 'text-left';
+                                                    content = content.replace('[L]', '');
+                                                } else if (content.trim().startsWith('[J]')) {
+                                                    lineAlign = 'text-justify';
+                                                    content = content.replace('[J]', '');
+                                                }
+
+                                                return (
+                                                    <div key={idx} className={`${lineAlign} min-h-[1.5em] break-words`}>
+                                                        {content}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* ALTERNATIVAS DE MÚLTIPLA ESCOLHA (SE VINDAS DE UM QUIZ) */}
                                 {winner.options && Array.isArray(winner.options) && winner.options.length > 0 && (
@@ -901,7 +921,7 @@ export const RouletteCard = ({
                                                 {winner.options.map((opt, oi) => (
                                                     <div 
                                                         key={oi}
-                                                        className={`p-2.5 rounded-xl border border-indigo-100 bg-indigo-50/50 ${currentFont.optionsClass} font-medium text-slate-800 flex items-start gap-2 transition-all`}
+                                                        className={`p-2.5 rounded-xl border border-indigo-100 bg-indigo-50/50 text-[0.875em] sm:text-[1em] font-medium text-slate-800 flex items-start gap-2 transition-all`}
                                                     >
                                                         <span className="w-5 h-5 rounded-md bg-indigo-600 text-white font-black flex items-center justify-center text-[11px] shrink-0">
                                                             {String.fromCharCode(65 + oi)}
@@ -934,7 +954,7 @@ export const RouletteCard = ({
                                             <div className="text-2xs font-black uppercase tracking-wider text-emerald-700 mb-1">
                                                 Resposta Esperada:
                                             </div>
-                                            <p className={`text-emerald-900 font-semibold ${currentFont.answerClass} transition-all`}>
+                                            <p className={`text-emerald-900 font-semibold text-[1em] sm:text-[1.125em] transition-all whitespace-pre-wrap`}>
                                                 {winner.answer}
                                             </p>
                                         </div>
@@ -948,6 +968,7 @@ export const RouletteCard = ({
                     {cardMode === 'todos_respondem' && (
                         <RouletteModeTodosRespondem
                             activeStudents={activeStudents}
+                            allStudents={allStudents}
                             winner={winner}
                             onBatchResult={onBatchResult}
                             showSelectionGrid={showSelectionGrid}

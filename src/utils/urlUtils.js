@@ -40,8 +40,8 @@ export function toDirectImageUrl(url) {
     }
 
     if (fileId) {
-        // O endpoint drive.usercontent.google.com/download?id=ID&export=view funciona com CORS e sem bloqueio de Referer no navegador
-        return `https://drive.usercontent.google.com/download?id=${fileId}&export=view`;
+        // O endpoint lh3.googleusercontent.com funciona com CORS, sem bloqueios CORP e sem bloqueio de Referer no navegador
+        return `https://lh3.googleusercontent.com/d/${fileId}=w1000`;
     }
 
     return trimmed;
