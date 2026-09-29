@@ -31,6 +31,28 @@ export const useRouletteHandlers = (context) => {
         gameAudio.playTick();
     };
 
+    const handleEditQuestionContent = (newContent) => {
+        if (!winner) return;
+
+        // Atualiza a atividade global
+        if (activeActivity?.id && updateActivityData && winner.questionId) {
+            const updatedQuestions = (activeActivity.questions || []).map(q => 
+                String(q.id) === String(winner.questionId) ? { ...q, question: newContent } : q
+            );
+            updateActivityData(activeActivity.id, { questions: updatedQuestions });
+        }
+
+        // Atualiza o card atual
+        setWinner(prev => ({ ...prev, question: newContent }));
+
+        logTeacherAction(
+            'edit_question_inline',
+            'Edição Rápida de Pergunta',
+            `A pergunta atual foi editada manualmente no card.`,
+            { oldQuestion: winner.question, newQuestion: newContent, studentName: winner.name }
+        );
+    };
+
     const handleSelectStudentManually = (studentId) => {
         const student = combinedItems.find(s => s.id === studentId);
         if (!student) return;
@@ -1014,6 +1036,7 @@ export const useRouletteHandlers = (context) => {
 
     return {
         handleChangeWinnerStudent,
+        handleEditQuestionContent,
         handleSelectStudentManually,
         handleToggleStudentActivityStatus,
         handleActivateAll,

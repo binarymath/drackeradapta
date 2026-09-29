@@ -132,10 +132,9 @@ export const RouletteSidebar = ({
                 onConfirm={handleConfirmJustification}
             />
 
-            {/* Sidebar Drawer ancorada à direita com 80% de largura da página (80vw) e grid de 3 cards por linha */}
             <aside
                 aria-label="Painel Lateral de Alunos e Placar"
-                className={`fixed inset-y-0 right-0 z-50 w-full md:w-[80vw] max-w-[92vw] bg-white/95 backdrop-blur-xl border-l border-slate-200/80 shadow-[0_0_50px_rgba(0,0,0,0.15)] flex flex-col transform transition-transform duration-300 ease-out select-none ${
+                className={`fixed inset-y-0 right-0 z-[60] w-full md:w-[80vw] max-w-[92vw] bg-white/95 backdrop-blur-xl border-l border-slate-200/80 shadow-[0_0_50px_rgba(0,0,0,0.15)] flex flex-col transform transition-transform duration-300 ease-out select-none ${
                     isOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'
                 }`}
             >

@@ -5,6 +5,7 @@ import { gameAudio } from '../../../utils/gameAudio';
 
 export const RouletteModeTodosRespondem = ({
     activeStudents,
+    allStudents = [],
     winner,
     onBatchResult,
     showSelectionGrid,
@@ -12,6 +13,10 @@ export const RouletteModeTodosRespondem = ({
     studentStatuses = {},
     setStudentStatuses
 }) => {
+    const studentsToList = (allStudents && allStudents.length > 0) 
+        ? allStudents.filter(s => s.status !== 'absent') 
+        : activeStudents;
+
     return (
         <div className="bg-indigo-50/90 border-2 border-indigo-200 p-5 rounded-2xl space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
             {/* Ações de Pontuação Coletiva */}
@@ -27,7 +32,7 @@ export const RouletteModeTodosRespondem = ({
                             confetti({ particleCount: 50, spread: 80, origin: { y: 0.6 } });
                             if (onBatchResult) {
                                 onBatchResult({
-                                    studentIds: activeStudents.map(s => s.id),
+                                    studentIds: studentsToList.map(s => s.id),
                                     questionText: winner.question
                                 });
                             }
@@ -38,7 +43,7 @@ export const RouletteModeTodosRespondem = ({
                             🏆 Toda a Turma Acertou!
                         </span>
                         <span className="text-2xs text-emerald-100 font-normal">
-                            +1 ponto para todos os {activeStudents.length} alunos ativos
+                            +1 ponto para todos os {studentsToList.length} alunos
                         </span>
                     </button>
 
@@ -66,7 +71,7 @@ export const RouletteModeTodosRespondem = ({
                                 <button 
                                     onClick={() => {
                                     const next = {};
-                                    activeStudents.forEach(s => next[s.id] = 'correct');
+                                    studentsToList.forEach(s => next[s.id] = 'correct');
                                     setStudentStatuses(next);
                                 }}
                                     className="text-2xs font-bold text-indigo-600 hover:underline cursor-pointer"
@@ -77,7 +82,7 @@ export const RouletteModeTodosRespondem = ({
                                 <button 
                                     onClick={() => {
                                     const next = {};
-                                    activeStudents.forEach(s => next[s.id] = 'unselected');
+                                    studentsToList.forEach(s => next[s.id] = 'unselected');
                                     setStudentStatuses(next);
                                 }}
                                     className="text-2xs font-bold text-slate-500 hover:underline cursor-pointer"
@@ -88,7 +93,7 @@ export const RouletteModeTodosRespondem = ({
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-1 custom-scrollbar">
-                            {activeStudents.map(student => {
+                            {studentsToList.map(student => {
                                 const status = studentStatuses[student.id] || 'unselected';
                                 
                                 let btnClass = 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100';

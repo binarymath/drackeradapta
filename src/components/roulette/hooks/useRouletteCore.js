@@ -160,9 +160,52 @@ export const useRouletteCore = () => {
     const [winner, setWinner] = useState(null); // O item sorteado (modo individual)
     const [showCard, setShowCard] = useState(false); // Mostra o card de resultado
 
+    // Sincroniza o estado "winner" caso a pergunta correspondente seja editada no painel principal
+    useEffect(() => {
+        if (winner && winner.question && activeActivity?.questions) {
+            const updatedQ = activeActivity.questions.find(q => q.question === winner.question);
+            if (updatedQ) {
+                if (updatedQ.imageUrl !== winner.imageUrl || updatedQ.answer !== winner.answer || updatedQ.difficulty !== winner.difficulty) {
+                    setWinner(prev => ({
+                        ...prev,
+                        imageUrl: updatedQ.imageUrl || null,
+                        answer: updatedQ.answer || '',
+                        difficulty: updatedQ.difficulty || 'Média'
+                    }));
+                }
+            }
+        }
+    }, [activeActivity?.questions, winner?.question]);
+
     // Modo Rodada Simultânea de Equipes
     // null = sem rodada ativa | Array<{ group, question, answer, difficulty, imageUrl, result: null|'correct'|'incorrect' }>
     const [groupRoundSlots, setGroupRoundSlots] = useState(null);
+
+    // Sincroniza o estado das rodadas de equipe caso alguma pergunta seja editada
+    useEffect(() => {
+        if (groupRoundSlots && groupRoundSlots.length > 0 && activeActivity?.questions) {
+            let hasChanges = false;
+            const newSlots = groupRoundSlots.map(slot => {
+                const updatedQ = activeActivity.questions.find(q => q.question === slot.question);
+                if (updatedQ) {
+                    if (updatedQ.imageUrl !== slot.imageUrl || updatedQ.answer !== slot.answer || updatedQ.difficulty !== slot.difficulty) {
+                        hasChanges = true;
+                        return {
+                            ...slot,
+                            imageUrl: updatedQ.imageUrl || null,
+                            answer: updatedQ.answer || '',
+                            difficulty: updatedQ.difficulty || 'Média'
+                        };
+                    }
+                }
+                return slot;
+            });
+            if (hasChanges) {
+                setGroupRoundSlots(newSlots);
+            }
+        }
+    }, [activeActivity?.questions]);
+
     const [activeGroupTab, setActiveGroupTab] = useState(0);
     // true = mostra o diálogo de confirmação ao tentar girar com rodada pendente
     const [showGroupRoundConfirm, setShowGroupRoundConfirm] = useState(false);
