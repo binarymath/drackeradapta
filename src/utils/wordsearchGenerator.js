@@ -60,7 +60,7 @@ export const generateWordSearch = (
   
   let alphabet = '';
   if (alphabetType === 'numeric') {
-    alphabet = '0123456789';
+    alphabet = '0123456789'.repeat(3) + ',.-=+*xX÷/%';
   } else {
     // Alfabeto estendido para incluir acentos na "sopa" (proporcionalmente menos frequentes)
     const baseAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -94,7 +94,7 @@ export const generateWordSearch = (
     .map(item => {
       const raw = typeof item === 'object' ? (item.word || item.answer || '') : item;
       return alphabetType === 'numeric' 
-          ? String(raw).replace(/[^0-9]/g, '').slice(0, Math.max(rows, cols)) 
+          ? String(raw).replace(/[^0-9,\.\-=+*x÷/]/gi, '').slice(0, Math.max(rows, cols)) 
           : String(raw).toUpperCase().replace(/[^A-ZÁÉÍÓÚÂÊÔÃÕÇ]/g, '').slice(0, Math.max(rows, cols));
     })
     .filter(w => w.length >= (alphabetType === 'numeric' ? 1 : 2))

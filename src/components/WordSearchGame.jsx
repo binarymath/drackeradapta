@@ -19,6 +19,9 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
     const [lastRunTimeMs, setLastRunTimeMs] = useState(null);
     const [showRanking, setShowRanking] = useState(false);
 
+    // Deteção se é grade numérica ou não baseada no conteúdo
+    const isNumericGrid = grid.length > 0 && grid.every(row => row.every(l => !l || /^[0-9,\.\-=+*xX÷\/]$/.test(l)));
+
     // Audio Refs
     const successAudio = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3'));
     const winAudio = useRef(new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'));
@@ -61,13 +64,13 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
             if (trimmed.length < 3) return;
 
             // Logic from RichTextRenderer to detect grid rows
-            // 1. Spaced letters: "A B C D"
+            // 1. Spaced letters: "A B C D" or "1 , 5 = 3"
             const withSpaces = trimmed.split(/\s+/).filter(l => l.length > 0);
-            if (withSpaces.length >= 3 && withSpaces.every(l => /^[A-ZÀ-Ú]$/i.test(l))) {
+            if (withSpaces.length >= 3 && withSpaces.every(l => /^[A-ZÀ-Ú0-9,\.\-=+*xX÷\/%]$/i.test(l))) {
                 gridRows.push(withSpaces.map(l => l.toUpperCase()));
             }
             // 2. Compact letters: "ABCD..."
-            else if (/^[A-ZÀ-Ú]{3,}$/i.test(trimmed) && trimmed.length > 5) { // Ensure it's not a short word
+            else if (/^[A-ZÀ-Ú0-9,\.\-=+*xX÷\/%]{3,}$/i.test(trimmed) && trimmed.length > 5) { // Ensure it's not a short word
                 gridRows.push(trimmed.split('').map(l => l.toUpperCase()));
             }
         });
@@ -443,7 +446,7 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
             {!gameWon && (
                 <div className="w-full max-w-2xl space-y-4">
                     <div
-                        className="bg-brown-50 p-4 rounded-xl shadow-inner border border-brown-200 touch-none overflow-auto"
+                        className={`${isNumericGrid ? 'bg-slate-900 border-slate-700' : 'bg-brown-50 border-brown-200'} p-4 rounded-xl shadow-inner border touch-none overflow-auto transition-colors duration-500`}
                         onMouseLeave={() => setIsDragging(false)}
                     >
                         <div
@@ -459,8 +462,28 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
                                     const isSelected = selection.cells.some(sc => sc.r === r && sc.c === c);
 
                                     let bgClass = "bg-white";
-                                    if (isFound) bgClass = "bg-green-500 text-white shadow-sm";
-                                    if (isSelected) bgClass = "bg-yellow-400 text-brown-900 scale-110 shadow-md z-10 rounded";
+                                    let cellShape = isNumericGrid ? "rounded-md" : "rounded-full";
+                                    let hoverClass = "";
+
+                                    if (isNumericGrid) {
+                                        if (isFound) {
+                                            bgClass = `bg-emerald-900/40 text-emerald-400 border border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.3)] ${cellShape}`;
+                                        } else if (isSelected) {
+                                            bgClass = `bg-blue-600 text-white border border-blue-500 scale-110 shadow-[0_0_15px_rgba(37,99,235,0.6)] z-10 ${cellShape}`;
+                                        } else {
+                                            bgClass = `bg-slate-800 text-slate-300 border border-slate-700 ${cellShape}`;
+                                            hoverClass = "hover:bg-slate-700 hover:border-slate-500";
+                                        }
+                                    } else {
+                                        if (isFound) {
+                                            bgClass = `bg-amber-500 text-white border border-amber-600 shadow-md font-bold ${cellShape}`;
+                                        } else if (isSelected) {
+                                            bgClass = `bg-amber-400 text-brown-900 border border-amber-500 scale-110 shadow-lg z-10 ${cellShape}`;
+                                        } else {
+                                            bgClass = `bg-white text-brown-800 border border-brown-100/50 shadow-sm ${cellShape}`;
+                                            hoverClass = "hover:bg-brown-100";
+                                        }
+                                    }
 
                                     return (
                                         <div
@@ -470,10 +493,11 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
                                             className={`
                                                 aspect-square w-full h-full
                                                 flex items-center justify-center 
-                                                font-mono font-semibold text-sm sm:text-base md:text-lg 
-                                                rounded cursor-pointer transition-all duration-150 select-none
+                                                font-semibold text-sm sm:text-base md:text-lg 
+                                                cursor-pointer transition-all duration-150 select-none
+                                                ${isNumericGrid ? 'font-mono' : 'font-sans'}
                                                 ${bgClass}
-                                                ${!isFound && !isSelected ? 'hover:bg-brown-100 text-brown-800' : ''}
+                                                ${!isFound && !isSelected ? hoverClass : ''}
                                             `}
                                             onMouseDown={() => handleMouseDown(r, c)}
                                             onMouseEnter={() => handleMouseEnter(r, c)}
@@ -490,32 +514,57 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
                         </div>
                     </div>
 
-                    <Card className="w-full max-w-2xl bg-white/80">
-                        <h3 className="text-center font-bold text-brown-400 uppercase text-xs tracking-widest mb-4">
-                            {cluesList && cluesList.length > 0 ? "📝 Resolva as operações e encontre os resultados" : "Palavras para Encontrar"}
+                    <Card className={`w-full max-w-2xl transition-colors duration-500 bg-transparent shadow-none border-none`}>
+                        <h3 className={`text-center font-black uppercase text-xs tracking-[0.2em] mb-6 ${isNumericGrid ? 'text-slate-400' : 'text-brown-400'}`}>
+                            {cluesList && cluesList.length > 0 ? "📝 Desafios para Resolver" : "Palavras para Encontrar"}
                         </h3>
-                        <div className={cluesList && cluesList.length > 0 ? "grid grid-cols-1 md:grid-cols-2 gap-2 border-2 border-brown-300 rounded-xl overflow-hidden shadow-sm p-2 bg-white" : "flex flex-wrap justify-center gap-3"}>
+                        <div className={cluesList && cluesList.length > 0 ? "flex flex-col gap-1 w-full max-w-xl mx-auto" : "flex flex-wrap justify-center gap-3"}>
                             {wordsToFind.map((word, idx) => {
                                 const isFound = foundWords.includes(word);
                                 const isMath = cluesList && cluesList[idx];
-                                return (
-                                    <div
-                                        key={idx}
-                                        className={`
-                                            transition-all duration-300 min-w-0
-                                            ${isMath ? 'border border-brown-100 p-2.5 rounded-lg flex items-start justify-start gap-2' : 'px-3 py-2 border rounded-full font-bold text-sm'}
-                                            ${isFound
-                                                ? 'bg-green-100 text-green-800 opacity-80'
-                                                : 'bg-white text-brown-800 hover:bg-brown-50'}
-                                        `}
-                                    >
-                                        {isMath && <span className={`font-bold shrink-0 min-w-[1.75rem] text-right ${isFound ? 'text-green-600' : 'text-brown-400'}`}>{idx + 1})</span>}
-                                        <div className={`min-w-0 flex-1 leading-snug break-words ${isMath ? 'font-medium text-sm sm:text-base' : ''} ${isFound ? "line-through text-green-700" : ""}`}>
-                                            {isMath ? <LatexRenderer content={cluesList[idx].replace('?', '')} /> : word}
+                                
+                                if (isMath) {
+                                    // CLEAN CLUES/QUESTIONS LIST (No Background)
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className={`
+                                                flex items-start gap-4 py-3 px-2 border-b last:border-b-0
+                                                transition-all duration-500
+                                                ${isNumericGrid ? 'border-slate-700/50 text-slate-300' : 'border-brown-200/50 text-brown-800'}
+                                                ${isFound ? (isNumericGrid ? 'opacity-40' : 'opacity-40') : 'hover:pl-4'}
+                                            `}
+                                        >
+                                            <span className={`font-black text-sm shrink-0 mt-0.5 ${isFound ? (isNumericGrid ? 'text-emerald-500' : 'text-green-600') : (isNumericGrid ? 'text-blue-400' : 'text-amber-600')}`}>
+                                                {String(idx + 1).padStart(2, '0')}.
+                                            </span>
+                                            
+                                            <div className={`min-w-0 flex-1 leading-relaxed text-sm md:text-base font-medium ${isFound ? "line-through decoration-2" : ""}`}>
+                                                <LatexRenderer content={cluesList[idx].replace('?', '')} />
+                                            </div>
+
+                                            {isFound && (
+                                                <Check className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isNumericGrid ? 'text-emerald-400' : 'text-green-500'}`} strokeWidth={3} />
+                                            )}
                                         </div>
-                                        {isFound && <Check className="ml-auto inline-block w-4 h-4 text-green-600 flex-shrink-0 self-center" />}
-                                    </div>
-                                )
+                                    );
+                                } else {
+                                    // TRADITIONAL WORDS CLOUD (With borders but clean)
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className={`
+                                                transition-all duration-300 px-4 py-1.5 rounded-full font-bold text-sm border
+                                                ${isFound 
+                                                    ? (isNumericGrid ? 'border-emerald-800/50 text-emerald-500/50 line-through decoration-2' : 'border-green-300/50 text-green-600/50 line-through decoration-2')
+                                                    : (isNumericGrid ? 'border-slate-600 text-slate-300 bg-slate-800/50 shadow-sm' : 'border-brown-200 text-brown-700 bg-white shadow-sm hover:scale-105')
+                                                }
+                                            `}
+                                        >
+                                            {word}
+                                        </div>
+                                    )
+                                }
                             })}
                         </div>
                     </Card>

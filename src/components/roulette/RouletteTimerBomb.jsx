@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, Flame, Volume2, VolumeX, AlertTriangle, Sparkles, Clock, Maximize2, Minimize2, Minus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { gameAudio } from '../../utils/gameAudio';
+import { RouletteBackgroundMusic } from './RouletteBackgroundMusic';
 
 export const RouletteTimerBomb = ({ 
     theme = null,
@@ -19,6 +20,14 @@ export const RouletteTimerBomb = ({
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [customInput, setCustomInput] = useState('');
     const [showCustomInput, setShowCustomInput] = useState(false);
+    const [restartCounter, setRestartCounter] = useState(0);
+    const [tickEnabled, setTickEnabled] = useState(() => {
+        try { return localStorage.getItem('roulette_tick_enabled') !== 'false'; } catch(e) { return true; }
+    });
+
+    useEffect(() => {
+        try { localStorage.setItem('roulette_tick_enabled', tickEnabled.toString()); } catch(e) {}
+    }, [tickEnabled]);
 
     // Modo de Exibição: 'normal' (como está) | 'minimized' (separado no canto) | 'maximized' (destaque grande)
     const [internalViewMode, setInternalViewMode] = useState(() => {
@@ -54,9 +63,9 @@ export const RouletteTimerBomb = ({
                         return 0;
                     }
                     // Tic-tac urgente nos últimos 5 segundos
-                    if (prev <= 6 && soundEnabled) {
+                    if (prev <= 6 && soundEnabled && tickEnabled) {
                         gameAudio.playBombTick(true);
-                    } else if (soundEnabled) {
+                    } else if (soundEnabled && tickEnabled) {
                         gameAudio.playBombTick(false);
                     }
                     return prev - 1;
@@ -74,7 +83,12 @@ export const RouletteTimerBomb = ({
     // Iniciar ou Pausar manualmente
     const handleTogglePlay = () => {
         if (isExploded) {
-            handleReset();
+            // Se explodiu, reiniciar e já começar a rodar
+            setIsExploded(false);
+            setTimeLeft(duration);
+            setIsRunning(true);
+            setRestartCounter(c => c + 1);
+            if (soundEnabled) gameAudio.playTick();
             return;
         }
         if (timeLeft === 0) {
@@ -147,6 +161,34 @@ export const RouletteTimerBomb = ({
             handleSelectDuration(totalSec);
             setShowCustomInput(false);
             setCustomInput('');
+        }
+    };
+
+    // Sincronizar tempo da bomba com a duração da música
+    const handleSyncMusicDuration = (syncData) => {
+        if (!syncData) return;
+        
+        if (syncData.action === 'togglePlay') {
+            if (isExploded) {
+                setIsExploded(false);
+                setTimeLeft(duration);
+                setIsRunning(true);
+                setRestartCounter(c => c + 1);
+            } else {
+                setIsRunning(prev => !prev);
+            }
+            return;
+        }
+
+        if (syncData.action === 'sync_on' || syncData.duration) {
+            setIsRunning(syncData.isPlaying);
+            setIsExploded(false);
+            
+            // Somente seta duração e timeLeft de novo se a música mudou ou for inicio
+            if (duration !== syncData.duration || timeLeft === 0) {
+                setDuration(syncData.duration);
+                setTimeLeft(syncData.duration);
+            }
         }
     };
 
@@ -245,6 +287,7 @@ export const RouletteTimerBomb = ({
                             </span>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
+                            <RouletteBackgroundMusic isExploded={isExploded} onSyncRequest={handleSyncMusicDuration} timerIsRunning={isRunning} restartTrackTrigger={restartCounter} />
                             <button
                                 type="button"
                                 onClick={() => changeViewMode('normal')}
@@ -382,6 +425,7 @@ export const RouletteTimerBomb = ({
                         </div>
 
                         <div className="flex items-center gap-2">
+                            <RouletteBackgroundMusic isExploded={isExploded} onSyncRequest={handleSyncMusicDuration} timerIsRunning={isRunning} restartTrackTrigger={restartCounter} />
                             <button
                                 type="button"
                                 onClick={() => changeViewMode('normal')}
@@ -577,6 +621,23 @@ export const RouletteTimerBomb = ({
                                 <button type="button" onClick={() => setShowCustomInput(false)} className="p-1 text-slate-400 text-xs cursor-pointer">✕</button>
                             </form>
                         )}
+
+                        <div className="flex items-center justify-center mt-3 pt-2 border-t border-slate-800">
+                            <label className="flex items-center gap-1.5 cursor-pointer group">
+                                <div className="relative flex items-center">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={tickEnabled} 
+                                        onChange={(e) => setTickEnabled(e.target.checked)}
+                                        className="peer sr-only"
+                                    />
+                                    <div className="w-8 h-4 bg-slate-800 border border-slate-700 rounded-full peer-checked:bg-amber-500/30 peer-checked:border-amber-500 transition-all after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-slate-500 after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4 peer-checked:after:bg-amber-400"></div>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase group-hover:text-slate-300 transition-colors select-none">
+                                    Ouvir Batida do Cronômetro
+                                </span>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -632,6 +693,7 @@ export const RouletteTimerBomb = ({
                     </div>
 
                     <div className="flex items-center gap-1">
+                        <RouletteBackgroundMusic isExploded={isExploded} onSyncRequest={handleSyncMusicDuration} timerIsRunning={isRunning} restartTrackTrigger={restartCounter} />
                         {/* Botão Minimizar no Canto */}
                         <button
                             type="button"
@@ -909,6 +971,23 @@ export const RouletteTimerBomb = ({
                             <button type="button" onClick={() => setShowCustomInput(false)} className="p-1 text-slate-400 hover:text-white text-xs cursor-pointer">✕</button>
                         </form>
                     )}
+
+                    <div className="flex items-center justify-center mt-3 pt-2 border-t border-slate-800">
+                        <label className="flex items-center gap-1.5 cursor-pointer group">
+                            <div className="relative flex items-center">
+                                <input 
+                                    type="checkbox" 
+                                    checked={tickEnabled} 
+                                    onChange={(e) => setTickEnabled(e.target.checked)}
+                                    className="peer sr-only"
+                                />
+                                <div className="w-8 h-4 bg-slate-800 border border-slate-700 rounded-full peer-checked:bg-amber-500/30 peer-checked:border-amber-500 transition-all after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-slate-500 after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4 peer-checked:after:bg-amber-400"></div>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase group-hover:text-slate-300 transition-colors select-none">
+                                Ouvir Batida do Cronômetro
+                            </span>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>

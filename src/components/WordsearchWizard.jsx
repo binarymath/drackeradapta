@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Loader2, AlertCircle, CheckCircle2, ChevronRight, FileText, MousePointerClick, 
-  Play, X, Settings2, Plus, Trash2, Sparkles, HelpCircle, Calculator, BookOpen, Target 
+  Play, X, Settings2, Plus, Trash2, Sparkles, HelpCircle, Calculator, BookOpen, Target, Key
 } from 'lucide-react';
 import { generateWordSearch, extractWords, generateMathProblems } from '../utils/wordsearchGenerator';
 
@@ -89,13 +89,39 @@ export default function WordsearchWizard({
         setAvailableWords(presetWords);
         setSelectedWords(presetWords.slice(0, Math.min(maxSelectableWords, presetWords.length)));
 
+        let detectedMode = initialData.gameModeType;
+        let detectedMathFormat = initialData.mathAnswerFormat;
+        let detectedMathSubtopic = initialData.mathSubtopic;
+        
+        // Auto-detect legacy activities that didn't save gameModeType
+        if (!detectedMode && initialData.words && initialData.words.length > 0) {
+            const hasObjects = typeof initialData.words[0] === 'object';
+            if (hasObjects) {
+                if (baseStory.toLowerCase().includes('matemátic') || baseStory.toLowerCase().includes('operaç')) {
+                    detectedMode = 'math';
+                    detectedMathFormat = 'numeric'; // Safe default
+                } else {
+                    detectedMode = 'clues';
+                }
+            } else {
+                detectedMode = 'text';
+            }
+        }
+        
         if (initialData.rows) setRows(initialData.rows);
         if (initialData.cols) setCols(initialData.cols);
         if (initialData.directions) setDirections(initialData.directions);
-        if (initialData.gameModeType) setGameModeType(initialData.gameModeType);
+        
+        setGameModeType(detectedMode || 'text');
+        if (detectedMathSubtopic) setMathSubtopic(detectedMathSubtopic);
+        if (detectedMathFormat) setMathAnswerFormat(detectedMathFormat);
       }
 
-      setStep(1);
+      if (initialData && (initialData.gameModeType === 'math' || initialData.gameModeType === 'clues' || (typeof initialData.words?.[0] === 'object'))) {
+        setStep(2);
+      } else {
+        setStep(1);
+      }
       return;
     }
 
@@ -119,10 +145,15 @@ export default function WordsearchWizard({
       setIsLoading(true);
       setTimeout(() => {
         const problems = generateMathProblems(20, mathMaxOrder, mathOperations, mathMultMaxOrder, mathDivMaxOrder);
-        const mappedWords = problems.map(p => ({ word: String(p.answer), clue: p.problem }));
+        const mappedWords = problems.map(p => ({ 
+            word: mathAnswerFormat === 'numeric' 
+                ? p.problem.replace(' ?', p.answer).replace(/\s+/g, '') // e.g. "2+2=4"
+                : String(p.answer), 
+            clue: p.problem 
+        }));
         setAvailableWords(mappedWords);
         setSelectedWords(mappedWords.slice(0, Math.min(maxSelectableWords, mappedWords.length)));
-        setEditableText(`Resolva as operações e encontre os resultados no caça-palavras!`);
+        setEditableText(`Resolva as operações e encontre a conta completa no caça-palavras!`);
         setStep(2);
         setIsLoading(false);
       }, 400);
@@ -141,7 +172,7 @@ export default function WordsearchWizard({
 
       try {
         const formatGuide = mathAnswerFormat === 'numeric'
-          ? 'As respostas devem ser NÚMEROS/DÍGITOS curtos (ex: "3", "10", "1", "50").'
+          ? 'As respostas DEVEM SER A EQUAÇÃO OU OPERAÇÃO COMPLETA resolvida, sem espaços, contendo NO MÍNIMO 4 caracteres (ex: "2x+4=10", "x=3,14", "2+3=5", "10/2=5", "50%de10=5"). NUNCA retorne apenas um número sozinho (ex: "3"), pois ele não serve para um caça-palavras de números!'
           : 'As respostas devem ser palavras escritas POR EXTENSO em letras maiúsculas de 1 única palavra sem espaços (ex: "TRES", "DEZ", "UM", "CINQUENTA", "DELTA", "RAIZ", "HIPOTENUSA").';
 
         let subtopicText = '';
@@ -171,18 +202,25 @@ SEJA EXTREMAMENTE RIGOROSO NO FORMATO JSON E RETORNE APENAS O JSON EM TEXTO PURO
           temperature: 0.6
         });
 
-        const cleanedJson = rawResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
+        let cleanedJson = rawResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
+        // Improve JSON parsing robustness
+        const startIndex = cleanedJson.indexOf('[');
+        const endIndex = cleanedJson.lastIndexOf(']');
+        if (startIndex !== -1 && endIndex !== -1) {
+            cleanedJson = cleanedJson.substring(startIndex, endIndex + 1);
+        }
+        
         const parsed = JSON.parse(cleanedJson);
 
         if (Array.isArray(parsed) && parsed.length > 0) {
           const mapped = parsed.map(p => ({
             clue: p.clue || p.question || 'Desafio',
-            word: (p.word || p.answer || 'RESPOSTA').toString().toUpperCase().replace(/[^A-Z0-9ÁÉÍÓÚÂÊÔÃÕÇ]/g, '')
-          })).filter(p => p.word.length >= 1);
+            word: (p.word || p.answer || 'RESPOSTA').toString().toUpperCase().replace(/[^A-Z0-9ÁÉÍÓÚÂÊÔÃÕÇ,\.\-=+*xX÷\/%]/g, '')
+          })).filter(p => p.word.length >= (mathAnswerFormat === 'numeric' ? 3 : 2));
 
           setAvailableWords(mapped);
           setSelectedWords(mapped.slice(0, Math.min(maxSelectableWords, mapped.length)));
-          setEditableText(`Resolva os desafios matemáticos e encontre os resultados no caça-palavras!`);
+          setEditableText(`Resolva os desafios matemáticos e encontre a resposta completa no caça-palavras!`);
           setStep(2);
         } else {
           throw new Error('Formato inválido retornado pela IA');
@@ -338,21 +376,15 @@ Texto divertido: `;
 
   // Gerenciamento de Pares de Pergunta / Resposta
   const handleAddPair = () => {
-    const newPair = { clue: `Pergunta ${availableWords.length + 1}`, word: `RESPOSTA` };
-    setAvailableWords(prev => [...prev, newPair]);
-    if (selectedWords.length < maxSelectableWords) {
-      setSelectedWords(prev => [...prev, newPair]);
-    }
+    const isNumericGrid = (gameModeType === 'math' && mathAnswerFormat === 'numeric');
+    const defaultWord = isNumericGrid ? '1+1=2' : 'RESPOSTA';
+    const newPair = { clue: `Pergunta ${selectedWords.length + 1}`, word: defaultWord };
+    
+    // In Clues/Math mode, we only care about selectedWords
+    setSelectedWords(prev => [...prev, newPair]);
   };
 
   const handleEditPair = (idx, field, value) => {
-    setAvailableWords(prev => {
-      const next = [...prev];
-      if (next[idx]) {
-        next[idx] = { ...next[idx], [field]: value };
-      }
-      return next;
-    });
     setSelectedWords(prev => {
       const next = [...prev];
       if (next[idx]) {
@@ -363,14 +395,14 @@ Texto divertido: `;
   };
 
   const handleDeletePair = (idx) => {
-    const target = availableWords[idx];
-    setAvailableWords(prev => prev.filter((_, i) => i !== idx));
-    setSelectedWords(prev => prev.filter(sw => sw !== target));
+    setSelectedWords(prev => prev.filter((_, i) => i !== idx));
   };
 
   React.useEffect(() => {
-    setSelectedWords(prev => prev.slice(0, maxSelectableWords));
-  }, [maxSelectableWords]);
+    if (gameModeType === 'text') {
+      setSelectedWords(prev => prev.slice(0, maxSelectableWords));
+    }
+  }, [maxSelectableWords, gameModeType]);
 
   const handleGenerateGrid = () => {
     if (selectedWords.length < 3) {
@@ -381,7 +413,7 @@ Texto divertido: `;
     setIsLoading(true);
     try {
       const isObjectMode = gameModeType === 'clues' || gameModeType === 'math';
-      const isNumericGrid = (gameModeType === 'math' && mathAnswerFormat === 'numeric' && mathSubtopic === 'operacoes');
+      const isNumericGrid = (gameModeType === 'math' && mathAnswerFormat === 'numeric');
 
       const wordsToGenerate = isObjectMode 
         ? selectedWords.map(sw => (typeof sw === 'object' ? sw.word : sw)) 
@@ -437,7 +469,9 @@ Texto divertido: `;
         rows,
         cols,
         directions,
-        gameModeType
+        gameModeType,
+        mathSubtopic,
+        mathAnswerFormat
       });
       setStep(3);
 
@@ -522,51 +556,60 @@ Texto divertido: `;
               <div className="text-4xl">🔮</div>
             </div>
             <div className="space-y-4 max-w-lg w-full">
-              <h3 className="text-2xl font-black text-brown-900">Qual o estilo do seu Caça-Palavras?</h3>
+              <h3 className="text-2xl font-black text-brown-900">Como você quer montar o jogo?</h3>
               
-              {/* Seletor de Modo Universal (3 Abas) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 bg-brown-100/90 rounded-2xl w-full">
-                <button 
-                  type="button"
+              {/* Seletor de Modo Universal (3 Grandes Cards Animados) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
+                <div 
                   onClick={() => setGameModeType('text')}
-                  className={`py-3 px-2 rounded-xl font-bold text-xs transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
+                  className={`relative p-5 rounded-3xl cursor-pointer transition-all duration-300 flex flex-col items-center gap-3 overflow-hidden group ${
                     gameModeType === 'text' 
-                      ? 'bg-white shadow-sm text-brown-900 font-black ring-2 ring-brown-400' 
-                      : 'text-brown-600 hover:bg-brown-50'
+                      ? 'bg-gradient-to-br from-amber-50 to-orange-100 shadow-xl ring-4 ring-orange-400 scale-105' 
+                      : 'bg-white border-2 border-slate-100 hover:border-orange-200 hover:shadow-md'
                   }`}
                 >
-                  <BookOpen className="w-5 h-5 text-brown-600" />
-                  <span>📖 História / Texto</span>
-                  <span className="text-[10px] font-semibold text-brown-400 leading-tight">Leitura e Vocabulário</span>
-                </button>
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${gameModeType === 'text' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-500'}`}>
+                    <BookOpen className="w-7 h-7" />
+                  </div>
+                  <div className="text-center">
+                    <h4 className={`font-black text-sm mb-1 ${gameModeType === 'text' ? 'text-orange-950' : 'text-slate-700'}`}>📖 História / Texto</h4>
+                    <p className={`text-[10px] font-bold leading-tight ${gameModeType === 'text' ? 'text-orange-700' : 'text-slate-400'}`}>O aluno lê uma historinha e procura as palavras nela.</p>
+                  </div>
+                </div>
 
-                <button 
-                  type="button"
+                <div 
                   onClick={() => setGameModeType('clues')}
-                  className={`py-3 px-2 rounded-xl font-bold text-xs transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
+                  className={`relative p-5 rounded-3xl cursor-pointer transition-all duration-300 flex flex-col items-center gap-3 overflow-hidden group ${
                     gameModeType === 'clues' 
-                      ? 'bg-white shadow-sm text-indigo-950 font-black ring-2 ring-indigo-400' 
-                      : 'text-brown-600 hover:bg-brown-50'
+                      ? 'bg-gradient-to-br from-indigo-50 to-blue-100 shadow-xl ring-4 ring-indigo-400 scale-105' 
+                      : 'bg-white border-2 border-slate-100 hover:border-indigo-200 hover:shadow-md'
                   }`}
                 >
-                  <Target className="w-5 h-5 text-indigo-600" />
-                  <span>🎯 Perguntas & Pistas</span>
-                  <span className="text-[10px] font-semibold text-indigo-500 leading-tight">Qualquer Disciplina</span>
-                </button>
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${gameModeType === 'clues' ? 'bg-indigo-500 text-white' : 'bg-indigo-100 text-indigo-500'}`}>
+                    <Target className="w-7 h-7" />
+                  </div>
+                  <div className="text-center">
+                    <h4 className={`font-black text-sm mb-1 ${gameModeType === 'clues' ? 'text-indigo-950' : 'text-slate-700'}`}>🎯 Perguntas</h4>
+                    <p className={`text-[10px] font-bold leading-tight ${gameModeType === 'clues' ? 'text-indigo-700' : 'text-slate-400'}`}>O aluno lê uma pergunta e procura a resposta na grade.</p>
+                  </div>
+                </div>
 
-                <button 
-                  type="button"
+                <div 
                   onClick={() => setGameModeType('math')}
-                  className={`py-3 px-2 rounded-xl font-bold text-xs transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
+                  className={`relative p-5 rounded-3xl cursor-pointer transition-all duration-300 flex flex-col items-center gap-3 overflow-hidden group ${
                     gameModeType === 'math' 
-                      ? 'bg-white shadow-sm text-purple-950 font-black ring-2 ring-purple-400' 
-                      : 'text-brown-600 hover:bg-brown-50'
+                      ? 'bg-gradient-to-br from-purple-50 to-fuchsia-100 shadow-xl ring-4 ring-purple-400 scale-105' 
+                      : 'bg-white border-2 border-slate-100 hover:border-purple-200 hover:shadow-md'
                   }`}
                 >
-                  <Calculator className="w-5 h-5 text-purple-600" />
-                  <span>🔢 Desafios Matemáticos</span>
-                  <span className="text-[10px] font-semibold text-purple-500 leading-tight">Equações & Contas</span>
-                </button>
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${gameModeType === 'math' ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-500'}`}>
+                    <Calculator className="w-7 h-7" />
+                  </div>
+                  <div className="text-center">
+                    <h4 className={`font-black text-sm mb-1 ${gameModeType === 'math' ? 'text-purple-950' : 'text-slate-700'}`}>🔢 Desafios Math</h4>
+                    <p className={`text-[10px] font-bold leading-tight ${gameModeType === 'math' ? 'text-purple-700' : 'text-slate-400'}`}>O aluno resolve uma conta e procura o resultado!</p>
+                  </div>
+                </div>
               </div>
 
               {/* MODO 1: TEXTO / HISTÓRIA */}
@@ -752,43 +795,61 @@ Texto divertido: `;
                   </div>
                 </div>
 
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
-                  {availableWords.map((item, idx) => {
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                  {selectedWords.map((item, idx) => {
                     const isObj = typeof item === 'object';
                     const clueVal = isObj ? item.clue : item;
                     const wordVal = isObj ? item.word : item;
 
                     return (
-                      <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
-                        <span className="text-xs font-black text-indigo-600 w-5 text-center shrink-0">{idx + 1}.</span>
-                        <input 
-                          type="text"
-                          value={clueVal}
-                          onChange={(e) => handleEditPair(idx, 'clue', e.target.value)}
-                          placeholder="Pergunta / Enunciado do desafio..."
-                          className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                        <span className="text-xs text-slate-400 font-bold">➔</span>
-                        <input 
-                          type="text"
-                          value={wordVal}
-                          onChange={(e) => handleEditPair(idx, 'word', e.target.value.toUpperCase())}
-                          placeholder="RESPOSTA"
-                          className="w-32 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase"
-                        />
+                      <div key={idx} className="flex flex-col gap-2 p-3 rounded-2xl bg-white border border-slate-100 shadow-sm relative group hover:border-indigo-200 transition-all">
+                        
+                        {/* Clue Input (Question) */}
+                        <div className="flex gap-2 w-full items-start">
+                          <div className="bg-gradient-to-br from-indigo-100 to-blue-100 text-indigo-700 w-7 h-7 rounded-full flex items-center justify-center font-black text-xs shrink-0 shadow-inner">
+                            {idx + 1}
+                          </div>
+                          <input 
+                            type="text"
+                            value={clueVal}
+                            onChange={(e) => handleEditPair(idx, 'clue', e.target.value)}
+                            placeholder="Digite a pista ou desafio..."
+                            className="flex-1 bg-slate-50 border border-transparent hover:border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition-colors"
+                          />
+                        </div>
+
+                        {/* Answer Input */}
+                        <div className="flex justify-end gap-2 w-full pl-9 relative">
+                          {/* Connection line */}
+                          <div className="absolute left-5 top-0 bottom-4 w-4 border-l-2 border-b-2 border-slate-200 rounded-bl-xl"></div>
+                          <div className="relative">
+                            <input 
+                              type="text"
+                              value={wordVal}
+                              onChange={(e) => handleEditPair(idx, 'word', e.target.value.toUpperCase().replace(/\s+/g, ''))}
+                              placeholder="RESPOSTA"
+                              className="w-48 bg-emerald-50/50 border border-emerald-200 rounded-xl pl-8 pr-3 py-2 text-sm font-mono font-black text-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase tracking-wider transition-colors placeholder-emerald-300/50"
+                            />
+                            <div className="absolute left-2.5 top-2.5 text-emerald-400">
+                              <Key className="w-4 h-4" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Delete Button */}
                         <button
                           type="button"
                           onClick={() => handleDeletePair(idx)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title="Remover pergunta"
+                          className="absolute right-2 top-2 p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+                          title="Remover"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     );
                   })}
                 </div>
-                <p className="text-xs text-slate-400 mt-2 text-center">{availableWords.length} desafios preparados para a grade</p>
+                <p className="text-xs text-slate-400 mt-2 text-center">{selectedWords.length} desafios preparados para a grade</p>
               </Card>
             ) : (
               /* MODO HISTÓRIA: SELEÇÃO DE PALAVRAS TRADICIONAL */

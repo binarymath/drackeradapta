@@ -156,7 +156,7 @@ export const MainLayout = () => {
     // --- HANDLERS ---
 
     const handleWordsearchComplete = (payload) => {
-        const { content, words, placements, title, story, rows, cols, directions: wizDirections } = payload || {};
+        const { content, words, placements, title, story, rows, cols, directions: wizDirections, gameModeType, mathSubtopic, mathAnswerFormat } = payload || {};
         const newData = {
             words: words || [],
             placements: placements || [],
@@ -164,7 +164,8 @@ export const MainLayout = () => {
             hideText: wordsearchHideText,
             hideGrid: wordsearchHideGrid,
             story,
-            rows, cols, directions: wizDirections
+            rows, cols, directions: wizDirections,
+            gameModeType, mathSubtopic, mathAnswerFormat
         };
 
         if (isEditing && activeActivity?.type === 'wordsearch') {

@@ -60,10 +60,6 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         if (gridBuffer.length > 0 || wordListBuffer.length > 0) {
 
             // Só renderiza a estrutura se não estiver tudo oculto
-            // Se hideGrid=true, não mostramos nada?
-            // Regra: se hideGrid=true, o jogo inteiro some (Grid + Lista).
-            // A menos que queiramos manter a lista?
-            // O user pediu "Esconder o Jogo (Só a História)". O jogo é o grid + palavras.
             if (hideGrid) {
                 gridBuffer = [];
                 wordListBuffer = [];
@@ -86,6 +82,9 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                 const cols = processedRows[0]?.length || 0;
 
                 if (cols > 0) {
+                    // Check if it's a numeric grid (only numbers and symbols)
+                    const isNumericGrid = processedRows.every(row => row.every(l => /^[0-9,\.\-=+*xX÷\/%]$/.test(l)));
+
                     // Logic to highlight words
                     const wordPositions = new Set();
                     if (showAnswers) {
@@ -121,26 +120,59 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                         }
                     }
 
+                    // Adaptive Sizing
+                    let cellSize = '38px';
+                    if (cols > 10 && cols <= 12) cellSize = '36px';
+                    else if (cols > 12 && cols <= 16) cellSize = '30px';
+                    else if (cols > 16) cellSize = '24px';
+
                     cardContent.push(
                         <div key="grid-content" className="flex justify-center mb-6 print:mb-4">
-                            <div className="inline-block p-4 print:p-0 bg-brown-50 print:bg-transparent rounded-xl border border-brown-200 print:border-none shadow-inner print:shadow-none">
+                            <div className={`inline-block p-4 print:p-0 rounded-xl print:rounded-none border shadow-inner print:shadow-none 
+                                ${isNumericGrid ? 'bg-slate-50 border-slate-200 print:bg-transparent print:border-none' : 'bg-brown-50 border-brown-200 print:bg-transparent print:border-none'}`}>
+                                
                                 <div
                                     className="grid"
-                                    style={{ gridTemplateColumns: `repeat(${cols}, auto)`, gap: '0px' }}
+                                    style={{ 
+                                        gridTemplateColumns: `repeat(${cols}, auto)`, 
+                                        gap: isNumericGrid ? '0px' : '0px' // Could use gap for alphabetic, but let's handle via padding
+                                    }}
                                 >
                                     {processedRows.map((letters, rowIndex) =>
                                         letters.map((letter, colIndex) => {
                                             const isHighlighted = wordPositions.has(`${rowIndex}-${colIndex}`);
+                                            
+                                            // Dynamic classes for print vs screen, numeric vs alphabetic
+                                            let cellClass = 'flex items-center justify-center text-sm sm:text-base print:text-base font-bold transition-colors select-none ';
+                                            
+                                            if (isNumericGrid) {
+                                                // NUMERIC: Monospace, visible grid lines like a math sheet
+                                                cellClass += 'font-mono border border-slate-200 print:border-slate-300 print:border-dashed ';
+                                                if (isHighlighted) {
+                                                    cellClass += 'bg-blue-600 text-white shadow-sm z-10 print:bg-slate-200 print:text-black print:border-slate-800 print:border-solid ';
+                                                } else {
+                                                    cellClass += 'text-slate-800 print:text-slate-900 bg-white hover:bg-slate-100 ';
+                                                }
+                                            } else {
+                                                // ALPHABETIC: Sans-serif, cleaner, rounded for screen, no borders for print
+                                                cellClass += 'font-sans rounded-md print:rounded-none border border-brown-100/40 print:border-none ';
+                                                if (isHighlighted) {
+                                                    cellClass += 'bg-amber-500 text-white shadow-sm scale-110 z-10 print:bg-transparent print:text-black print:scale-100 print:border print:border-slate-800 print:border-solid print:rounded-full ';
+                                                } else {
+                                                    cellClass += 'text-brown-900 print:text-slate-900 bg-white hover:bg-brown-100 ';
+                                                }
+                                            }
+
                                             return (
                                                 <div
                                                     key={`${rowIndex}-${colIndex}`}
-                                                    className={`flex items-center justify-center font-mono text-sm sm:text-base print:text-base font-bold transition-colors cursor-pointer border border-brown-100/60 print:border-slate-300 ${isHighlighted ? 'bg-brown-500 text-white shadow-sm scale-110 z-10 rounded print:bg-slate-800 print:text-white print:scale-100' : 'text-brown-900 print:text-slate-900 bg-white hover:bg-brown-200'
-                                                        }`}
+                                                    className={cellClass}
                                                     style={{ 
-                                                        width: cols <= 10 ? '38px' : cols <= 12 ? '36px' : '33px', 
-                                                        height: cols <= 10 ? '38px' : cols <= 12 ? '36px' : '33px',
-                                                        minWidth: cols <= 10 ? '38px' : cols <= 12 ? '36px' : '33px', 
-                                                        minHeight: cols <= 10 ? '38px' : cols <= 12 ? '36px' : '33px'
+                                                        width: cellSize, 
+                                                        height: cellSize,
+                                                        minWidth: cellSize, 
+                                                        minHeight: cellSize,
+                                                        margin: isNumericGrid ? '0' : '1px' // Slight margin for alphabetic tiles
                                                     }}
                                                 >
                                                     {letter.toUpperCase()}
@@ -158,16 +190,20 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
             // 2. RENDER WORD LIST
             if (wordListBuffer.length > 0) {
                 const isMathList = wordListBuffer.some(part => (/[+\-x÷=]/.test(part) && /\d/.test(part)) || /\\frac|\\sqrt|\^|_|\\sin|\\cos|\\pi|\$/.test(part));
+                const isClueList = wordListBuffer.some(part => part.length > 25);
                 
-                if (isMathList) {
+                if (isMathList || isClueList) {
                     cardContent.push(
-                        <div key="word-list-content" className="mt-8 pt-6 print:mt-3 print:pt-3 border-t-2 border-dashed border-brown-200">
-                            <h4 className="text-center text-lg font-black text-brown-700 uppercase tracking-widest mb-6 print:mb-3">📝 Resolva as Operações</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border-2 border-brown-300 rounded-xl overflow-hidden bg-white shadow-sm mx-auto p-2">
+                        <div key="word-list-content" className="mt-8 pt-6 print:mt-3 print:pt-3 border-t border-slate-200">
+                            <h4 className="text-center text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-6 print:mb-4">
+                                {isMathList ? "📝 Desafios para Resolver" : "📝 Pistas para Encontrar"}
+                            </h4>
+                            <div className="flex flex-col gap-1 w-full max-w-2xl mx-auto">
                                 {wordListBuffer.map((part, pIdx) => (
-                                    <div key={pIdx} className="flex items-start justify-start border border-brown-100 p-3 print:p-2 rounded-lg hover:bg-brown-50 min-w-0 gap-2">
-                                        <span className="font-bold text-brown-400 shrink-0 min-w-[1.75rem] text-right print:text-sm">{pIdx + 1})</span>
-                                        <div className="min-w-0 flex-1 leading-snug break-words text-base print:text-sm font-medium text-brown-900">
+                                    <div key={pIdx} className="flex items-start gap-4 py-3 print:py-2 border-b border-slate-100 print:border-slate-300 print:border-dashed last:border-0 text-left">
+                                        <div className="print:hidden hidden print:block w-4 h-4 mt-0.5 border border-slate-400 rounded-sm shrink-0"></div>
+                                        <span className="font-black text-sm text-slate-400 mt-0.5">{String(pIdx + 1).padStart(2, '0')}.</span>
+                                        <div className="min-w-0 flex-1 leading-relaxed text-base print:text-sm font-medium text-slate-800">
                                             <LatexRenderer content={part.trim().replace('?', '')} mathFontSize={mathFontSize} textFontSize={textFontSize} />
                                         </div>
                                     </div>
@@ -177,13 +213,16 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                     );
                 } else {
                     cardContent.push(
-                        <div key="word-list-content" className="mt-4 pt-4 border-t-2 border-dashed border-brown-200">
-                            <h4 className="text-center text-sm font-bold text-brown-500 uppercase tracking-widest mb-4">Palavras para Encontrar</h4>
+                        <div key="word-list-content" className="mt-4 pt-4 border-t-2 border-dashed border-brown-200 print:border-slate-200">
+                            <h4 className="text-center text-sm font-bold text-brown-500 print:text-slate-600 uppercase tracking-widest mb-4">Palavras para Encontrar</h4>
                             <div className="flex flex-wrap justify-center gap-3 px-4">
                                 {wordListBuffer.map((part, pIdx) => (
-                                    <Badge key={pIdx} variant="outline" className="text-sm font-bold uppercase tracking-wider cursor-help">
-                                        {part.trim()}
-                                    </Badge>
+                                    <div key={pIdx} className="flex items-center gap-2">
+                                        <div className="hidden print:block w-3 h-3 border border-slate-400 rounded-sm"></div>
+                                        <Badge variant="outline" className="text-sm font-bold uppercase tracking-wider cursor-help print:border-none print:shadow-none print:bg-transparent print:p-0">
+                                            {part.trim()}
+                                        </Badge>
+                                    </div>
                                 ))}
                             </div>
                         </div>
@@ -226,16 +265,20 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
     const flushQuestion = () => {
         if (questionBuffer.length > 0) {
             elements.push(
-                <Card key={`q-${elements.length}`} className="mb-4 hover:border-brown-300 transition-colors">
+                <div key={`q-${elements.length}`} className="mb-6 pl-2 border-l-4 border-slate-200 print:border-slate-300">
                     {questionBuffer.map((qLine, qIdx) => {
                         const isEnunciado = /^\d+\./.test(qLine);
                         return (
-                            <div key={qIdx} className={`${isEnunciado ? 'font-bold text-brown-900 text-lg mb-3' : 'ml-0 pl-4 py-1 text-brown-700 hover:bg-brown-50 rounded flex items-center'}`}>
-                                {isEnunciado ? renderInlineStyles(qLine) : <span className="w-full">{renderInlineStyles(qLine)}</span>}
+                            <div key={qIdx} className={`${isEnunciado ? 'font-bold text-slate-800 text-lg mt-4 mb-2' : 'ml-4 py-1.5 text-slate-700 flex items-start'}`}>
+                                {isEnunciado ? (
+                                    <span className="leading-relaxed">{renderInlineStyles(qLine)}</span>
+                                ) : (
+                                    <span className="w-full leading-relaxed">{renderInlineStyles(qLine)}</span>
+                                )}
                             </div>
                         );
                     })}
-                </Card>
+                </div>
             );
             questionBuffer = [];
         }
@@ -337,7 +380,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         }
 
         // Identificação preliminar do tipo de linha
-        const isWordListHeader = /palavras.*encontrar/i.test(trimmedLine);
+        const isWordListHeader = /palavras.*encontrar|desafios.*encontrar|pistas.*encontrar/i.test(trimmedLine);
 
         // 1. Detecta linhas de GRADE e LISTAS (Estrutura)
         let isStructure = false;
@@ -349,10 +392,10 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         // Check Grid
         if (trimmedLine.length >= 3) {
             const withSpaces = trimmedLine.split(/\s+/).filter(l => l.length > 0);
-            if (withSpaces.length >= 3 && withSpaces.every(l => /^[A-ZÀ-Ú0-9]$/i.test(l))) {
+            if (withSpaces.length >= 3 && withSpaces.every(l => /^[A-ZÀ-Ú0-9,\.\-=+*xX÷\/%]$/i.test(l))) {
                 isGridRow = true;
             }
-            if (!isGridRow && /^[A-ZÀ-Ú0-9]{3,}$/i.test(trimmedLine)) {
+            if (!isGridRow && /^[A-ZÀ-Ú0-9,\.\-=+*xX÷\/%]{3,}$/i.test(trimmedLine)) {
                 isGridRow = true;
             }
         }
@@ -517,11 +560,11 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
             titleRendered = true;
             const t = trimmedLine.replace('[[TITULO]]', '').trim();
             elements.push(
-                <div key={index} className="relative mt-8 mb-6 print:mt-0 print:mb-2 text-center">
-                    <h1 className="text-3xl print:text-2xl font-black text-brown-900 tracking-tight uppercase relative z-10 inline-block px-4 bg-brown-50 rounded-lg">
+                <div key={index} className={`relative mt-8 mb-6 print:mt-0 print:mb-2 text-center ${title ? 'print:hidden' : ''}`}>
+                    <h1 className="text-3xl print:text-xl font-black text-brown-900 tracking-tight uppercase relative z-10 inline-block px-4 bg-brown-50 print:bg-transparent rounded-lg">
                         {t}
                     </h1>
-                    <div className="absolute top-1/2 left-0 w-full h-1 bg-brown-100 -z-0"></div>
+                    <div className="absolute top-1/2 left-0 w-full h-1 bg-brown-100 print:hidden -z-0"></div>
                 </div>
             );
             return;
