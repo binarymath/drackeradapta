@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { safeLocalStorageGet, safeLocalStorageSet, safeLocalStorageRemove } from '../utils/storage';
+import { IndexedDBService } from '../services/IndexedDBService';
 import {
     FileText, MessageSquare, Grid, Music, BrainCircuit, Play, Files, Compass, Brain, Gamepad2, ArrowLeftRight, PieChart, Dices
 } from 'lucide-react';
@@ -15,38 +16,76 @@ export const useActivity = () => {
 };
 
 export const ActivityProvider = ({ children }) => {
-    // --- TABS STATE ---
-    const [tabs, setTabs] = useState(() => {
-        const saved = safeLocalStorageGet('atividade_adaptada_tabs');
-        try {
-            const parsed = saved ? JSON.parse(saved) : [];
-            return parsed.length > 0 ? parsed : [{ id: 'about_system', title: 'Página Inicial', type: 'about_system', content: '' }];
-        } catch (e) {
-            return [{ id: 'about_system', title: 'Página Inicial', type: 'about_system', content: '' }];
-        }
-    });
+    // --- WORKSPACE/PROJECT STATE ---
+    const [projectId, setProjectId] = useState(null);
+    const [projectName, setProjectName] = useState('Carregando...');
+    const [isLoadingProject, setIsLoadingProject] = useState(true);
 
-    const [activeTabId, setActiveTabId] = useState(() => {
-        const saved = safeLocalStorageGet('atividade_adaptada_active_tab');
-        return saved || 'about_system';
-    });
+    // --- TABS & CLASSES STATE ---
+    const [tabs, setTabs] = useState([]);
+    const [activeTabId, setActiveTabId] = useState(null);
+    const [classes, setClasses] = useState([]);
+
+    // --- INITIALIZE WORKSPACE ---
+    useEffect(() => {
+        const initProject = async () => {
+            const params = new URLSearchParams(window.location.search);
+            let pid = params.get('project_id');
+            if (!pid) {
+                pid = safeLocalStorageGet('dracker_last_project') || 'proj_default';
+                const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?project_id=' + pid;
+                window.history.replaceState({path:newurl},'',newurl);
+            }
+            
+            safeLocalStorageSet('dracker_last_project', pid);
+            setProjectId(pid);
+
+            const project = await IndexedDBService.getProject(pid);
+            if (project) {
+                setTabs(project.tabs?.length > 0 ? project.tabs : [{ id: 'about_system', title: 'Página Inicial', type: 'about_system', content: '' }]);
+                setClasses(project.classes || []);
+                setProjectName(project.name || 'Meu Projeto');
+                
+                const savedActive = safeLocalStorageGet(`active_tab_${pid}`);
+                setActiveTabId(savedActive || 'about_system');
+            } else {
+                // Fallback to legacy local storage to migrate existing users seamlessly
+                let legacyTabs = [];
+                let legacyClasses = [];
+                if (pid === 'proj_default') {
+                    try {
+                        const savedTabs = safeLocalStorageGet('atividade_adaptada_tabs');
+                        const savedClasses = safeLocalStorageGet('atividade_adaptada_classes');
+                        legacyTabs = savedTabs ? JSON.parse(savedTabs) : [];
+                        legacyClasses = savedClasses ? JSON.parse(savedClasses) : [];
+                    } catch(e) {}
+                }
+                
+                const initialTabs = legacyTabs.length > 0 ? legacyTabs : [{ id: 'about_system', title: 'Página Inicial', type: 'about_system', content: '' }];
+                
+                await IndexedDBService.saveProjectState(pid, {
+                    name: pid === 'proj_default' ? 'Projeto Principal' : 'Novo Projeto',
+                    tabs: initialTabs,
+                    classes: legacyClasses
+                });
+                
+                setTabs(initialTabs);
+                setClasses(legacyClasses);
+                setActiveTabId('about_system');
+                setProjectName(pid === 'proj_default' ? 'Projeto Principal' : 'Novo Projeto');
+            }
+            
+            setIsLoadingProject(false);
+        };
+        initProject();
+    }, []);
 
     // --- FORM STATE ---
     const [topic, setTopic] = useState('');
     const [lessonDetails, setLessonDetails] = useState('');
     const [activityType, setActivityType] = useState('about_system');
     const [difficulty, setDifficulty] = useState('medium');
-    
-    // --- CLASSES STATE ---
-    const [classes, setClasses] = useState(() => {
-        const saved = safeLocalStorageGet('atividade_adaptada_classes');
-        return saved ? JSON.parse(saved) : [];
-    });
     const [selectedClassId, setSelectedClassId] = useState('');
-
-    useEffect(() => {
-        safeLocalStorageSet('atividade_adaptada_classes', JSON.stringify(classes));
-    }, [classes]);
 
     // --- IMAGE GENERATION STATE ---
     const [imagePrompt, setImagePrompt] = useState('');
@@ -65,18 +104,26 @@ export const ActivityProvider = ({ children }) => {
         type: ''
     });
 
-    // --- PERSISTENCE EFFECT ---
+    // --- PERSISTENCE EFFECT (Auto-Save) ---
     useEffect(() => {
-        safeLocalStorageSet('atividade_adaptada_tabs', JSON.stringify(tabs));
-    }, [tabs]);
+        if (!isLoadingProject && projectId) {
+            IndexedDBService.saveProjectState(projectId, {
+                name: projectName,
+                tabs,
+                classes
+            }).catch(console.error);
+            
+            // Legacy fallback so old systems don't break instantly
+            safeLocalStorageSet('atividade_adaptada_tabs', JSON.stringify(tabs));
+            safeLocalStorageSet('atividade_adaptada_classes', JSON.stringify(classes));
+        }
+    }, [tabs, classes, projectId, projectName, isLoadingProject]);
 
     useEffect(() => {
-        if (activeTabId) {
-            safeLocalStorageSet('atividade_adaptada_active_tab', activeTabId);
-        } else {
-            safeLocalStorageRemove('atividade_adaptada_active_tab');
+        if (projectId && activeTabId) {
+            safeLocalStorageSet(`active_tab_${projectId}`, activeTabId);
         }
-    }, [activeTabId]);
+    }, [activeTabId, projectId]);
 
     // --- DERIVED STATE ---
     const activeActivity = useMemo(() => {
@@ -392,6 +439,7 @@ export const ActivityProvider = ({ children }) => {
 
     return (
         <ActivityContext.Provider value={{
+            projectId, projectName, setProjectName, isLoadingProject,
             tabs, setTabs,
             activeTabId, setActiveTabId,
             activeActivity,

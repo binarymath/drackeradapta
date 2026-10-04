@@ -13,12 +13,14 @@ import {
     Upload,
     History,
     Menu,
-    X
+    X,
+    FolderTree
 } from 'lucide-react';
 
 import { theme } from '../styles/theme';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
+import { useActivity } from '../contexts/ActivityContext';
 
 export const Header = ({
     className,
@@ -40,6 +42,7 @@ export const Header = ({
     openAudioRecorder
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const { projectId, projectName } = useActivity();
 
     const AudioControls = () => (
         <div className="flex items-center gap-2 bg-brown-50 rounded-lg p-1 border border-brown-100">
@@ -91,29 +94,16 @@ export const Header = ({
 
             <div className="h-6 w-px bg-brown-200 mx-1"></div>
 
-            {/* Backup / Restore / Versões */}
-            <div className="flex items-center gap-1.5">
-                <Button
-                    onClick={() => onOpenBackupCenter ? onOpenBackupCenter('timeline') : onBackup()}
-                    variant="secondary"
-                    className="text-xs font-bold bg-white hover:bg-brown-50 border border-brown-300 text-brown-900 shadow-2xs"
-                    title="Central de Versões (.json) e Snapshots"
-                >
-                    <History className="w-3.5 h-3.5 mr-1.5 text-amber-600" /> Versões
-                </Button>
-                <Button
-                    onClick={onBackup}
-                    variant="ghost"
-                    className="text-xs font-bold text-brown-700"
-                    title="Exportar Backup (.json)"
-                >
-                    <Save className="w-3 h-3 mr-1.5" /> Backup
-                </Button>
-                <label className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-sm ${theme.button.primary}`}>
-                    <Upload className="w-3 h-3 mr-1.5" /> Restaurar
-                    <input type="file" accept=".json,.dracker" onChange={onRestore} className="hidden" />
-                </label>
-            </div>
+            {/* Central de Versões Única */}
+            <Button
+                onClick={() => onOpenBackupCenter ? onOpenBackupCenter('timeline') : onBackup()}
+                variant="ghost"
+                className="group flex items-center h-[36px] px-3 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20 border-b-[3px] border-indigo-800 hover:-translate-y-0.5 hover:shadow-lg transition-all active:translate-y-0 active:border-b-0 ml-1.5 lg:ml-2 whitespace-nowrap flex-shrink-0"
+                title="Gerenciador de Workspace e Histórico"
+            >
+                <FolderTree className="w-3.5 h-3.5 mr-1.5 text-indigo-200 group-hover:text-white transition-all duration-500" /> 
+                <span>Gerenciador de Workspace</span>
+            </Button>
 
             <div className="h-6 w-px bg-brown-200 mx-1"></div>
 
@@ -177,7 +167,7 @@ export const Header = ({
                         </div>
 
                         {/* Quick Actions Grid - Friendly & Intuitive */}
-                        <div className="grid grid-cols-5 gap-1.5">
+                        <div className="grid grid-cols-3 gap-2">
                             <Button variant="ghost" onClick={openVoiceSettings} className="flex-col h-auto py-2 gap-1 text-brown-700 bg-white border border-brown-100 shadow-sm hover:bg-brown-50 hover:border-brown-300">
                                 <SlidersHorizontal className="w-5 h-5" />
                                 <span className="text-[10px] font-bold">Voz</span>
@@ -189,24 +179,12 @@ export const Header = ({
                             </Button>
 
                             <Button variant="ghost" onClick={() => onOpenBackupCenter ? onOpenBackupCenter('timeline') : onBackup()} className="flex-col h-auto py-2 gap-1 text-brown-700 bg-white border border-brown-100 shadow-sm hover:bg-brown-50 hover:border-brown-300">
-                                <History className="w-5 h-5 text-amber-600" />
-                                <span className="text-[10px] font-bold">Versões</span>
+                                <FolderTree className="w-5 h-5 text-indigo-600" />
+                                <span className="text-[10px] font-bold">Workspace</span>
                             </Button>
-
-                            <Button variant="ghost" onClick={onBackup} className="flex-col h-auto py-2 gap-1 text-brown-700 bg-white border border-brown-100 shadow-sm hover:bg-brown-50 hover:border-brown-300">
-                                <Save className="w-5 h-5" />
-                                <span className="text-[10px] font-bold">Backup</span>
-                            </Button>
-
-                            <label className="flex flex-col items-center justify-center h-auto py-2 rounded-lg cursor-pointer bg-white border border-brown-100 shadow-sm hover:bg-brown-50 hover:border-brown-300 transition-all text-brown-700 gap-1 active:scale-95">
-                                <Upload className="w-5 h-5" />
-                                <span className="text-[10px] font-bold">Restaurar</span>
-                                <input type="file" accept=".json,.dracker" onChange={onRestore} className="hidden" />
-                            </label>
                         </div>
                     </div>
                 )}
-
             </div>
         </header>
     );
