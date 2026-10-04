@@ -7,12 +7,13 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { gameAudio } from '../../utils/gameAudio';
-import { getDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
+import { getDirectImageUrl, handleDriveImageError, renderQuestionText } from '../../utils/urlUtils';
 import { RouletteTimerBomb } from './RouletteTimerBomb';
 import { StudentSelectorModal } from './card-modals/StudentSelectorModal';
 import { QuestionSelectorModal } from './card-modals/QuestionSelectorModal';
 import { RouletteModeTodosRespondem } from './card-modals/RouletteModeTodosRespondem';
 import { RouletteModeAjuda } from './card-modals/RouletteModeAjuda';
+import { QuestionEditModal } from './card-modals/QuestionEditModal';
 
 // Configuração de Escala de Fonte para Projeção e Acessibilidade Visual
 // A escala de fonte agora é 100% por padrão e varia de 5% em 5%
@@ -41,6 +42,14 @@ export const RouletteCard = ({
     onRevealHint = null,
     onOpenSidebar
 }) => {
+    // Calculo dinâmico do tamanho do nome para evitar que quebre muito o layout
+    const nameLength = winner?.name?.length || 0;
+    const nameSizeClass = nameLength > 25 
+        ? "text-2xl sm:text-3xl md:text-4xl" 
+        : nameLength > 15 
+            ? "text-3xl sm:text-4xl md:text-5xl" 
+            : "text-4xl sm:text-5xl md:text-6xl";
+
     // Controle de Tamanho de Fonte para Acessibilidade / Lousa / Projetor
     const [fontScale, setFontScale] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -130,20 +139,18 @@ export const RouletteCard = ({
     const [showAnswer, setShowAnswer] = useState(false);
     const [showAlternatives, setShowAlternatives] = useState(false);
     
-    // Edição inline da pergunta
-    const [isEditingQuestion, setIsEditingQuestion] = useState(false);
-    const [editQuestionText, setEditQuestionText] = useState("");
+    // Modal de Edição Completa da Pergunta
+    const [showQuestionEditModal, setShowQuestionEditModal] = useState(false);
 
     const handleStartEditing = () => {
-        setEditQuestionText(winner?.question || "");
-        setIsEditingQuestion(true);
+        setShowQuestionEditModal(true);
     };
 
-    const handleSaveEditing = () => {
+    const handleSaveEditing = (updatedQuestionData) => {
         if (onEditQuestionContent) {
-            onEditQuestionContent(editQuestionText);
+            onEditQuestionContent(updatedQuestionData);
         }
-        setIsEditingQuestion(false);
+        setShowQuestionEditModal(false);
     };
     
     // Modal interno para selecionar pergunta da lista
@@ -447,6 +454,7 @@ export const RouletteCard = ({
 
 
     return (
+        <>
         <div className={`fixed z-50 transition-all duration-300 ease-in-out ${
             isCardMinimized 
                 ? 'bottom-4 left-4 right-auto top-auto w-auto h-auto' 
@@ -567,7 +575,7 @@ export const RouletteCard = ({
 
                             </div>
 
-                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 transition-all text-center mt-2">
+                            <h1 className={`${nameSizeClass} font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 transition-all text-center mt-2`}>
                                 <Users className="w-8 h-8 sm:w-9 sm:h-9 text-amber-300 shrink-0" />
                                 <span>{winner.name}</span>
                             </h1>
@@ -662,7 +670,7 @@ export const RouletteCard = ({
 
                             </div>
 
-                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 flex-wrap transition-all text-center mt-2">
+                            <h1 className={`${nameSizeClass} font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 flex-wrap transition-all text-center mt-2`}>
                                 <User className="w-8 h-8 sm:w-9 sm:h-9 text-amber-200 shrink-0" />
                                 <span>{winner.name}</span>
                                 {winner.groupName && (
@@ -831,11 +839,11 @@ export const RouletteCard = ({
                                     </div>
                                 </div>
 
-                                {winner.imageUrl && (
+                                {winner.imageUrl && !(winner.question || '').match(/\[img/i) && (
                                     <div className="mb-4 flex justify-center">
                                         <img 
                                             src={getDirectImageUrl(winner.imageUrl)} 
-                                            alt="Imagem da pergunta" 
+                                            alt="" 
                                             className="max-h-48 rounded-xl border-2 border-slate-200 shadow-sm object-contain"
                                             referrerPolicy="no-referrer"
                                             onError={handleDriveImageError}
@@ -843,38 +851,7 @@ export const RouletteCard = ({
                                     </div>
                                 )}
 
-                                {isEditingQuestion ? (
-                                    <div className="flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-200">
-                                            <textarea
-                                                value={editQuestionText}
-                                                onChange={(e) => setEditQuestionText(e.target.value)}
-                                                className={`text-[1.25em] sm:text-[1.5em] ${textAlign} text-slate-800 font-bold leading-relaxed w-full min-h-[150px] p-4 rounded-xl border-2 border-indigo-400 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 outline-none transition-all resize-y shadow-inner bg-indigo-50/30`}
-                                                autoFocus
-                                                placeholder="Digite a pergunta aqui..."
-                                            />
-                                            <p className="text-[11px] font-bold text-indigo-500/80 -mt-1 px-1">
-                                                Dica: Use <span className="text-indigo-600 bg-indigo-100 px-1 rounded">[C]</span> para centralizar uma linha específica, <span className="text-indigo-600 bg-indigo-100 px-1 rounded">[L]</span> para esquerda, <span className="text-indigo-600 bg-indigo-100 px-1 rounded">[R]</span> direita ou <span className="text-indigo-600 bg-indigo-100 px-1 rounded">[J]</span> justificar.
-                                            </p>
-                                        <div className="flex gap-2 justify-end">
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsEditingQuestion(false)}
-                                                className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
-                                            >
-                                                Cancelar
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleSaveEditing}
-                                                className="px-5 py-2 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all active:scale-95 flex items-center gap-2"
-                                            >
-                                                <Edit3 className="w-4 h-4" />
-                                                Salvar Alteração
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="relative">
+                                <div className="relative">
                                         <div className={`text-[1.25em] sm:text-[1.5em] text-slate-800 font-bold leading-relaxed transition-all whitespace-pre-wrap w-full`}>
                                             {(winner.question || '').split('\n').map((line, idx) => {
                                                 let lineAlign = textAlign;
@@ -896,13 +873,12 @@ export const RouletteCard = ({
 
                                                 return (
                                                     <div key={idx} className={`${lineAlign} min-h-[1.5em] break-words`}>
-                                                        {content}
+                                                        {renderQuestionText(content, winner.imageUrl)}
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                     </div>
-                                )}
 
                                 {/* ALTERNATIVAS DE MÚLTIPLA ESCOLHA (SE VINDAS DE UM QUIZ) */}
                                 {winner.options && Array.isArray(winner.options) && winner.options.length > 0 && (
@@ -1067,17 +1043,17 @@ export const RouletteCard = ({
                             </div>
                         ) : (
                             /* RODAPÉ PARA ATIVIDADES INDIVIDUAIS */
-                            <>
+                            <div className="flex flex-col gap-2 pt-2">
                                 {/* Botões das Dinâmicas Gamificadas: TODOS RESPONDEM & PRECISO DE AJUDA */}
-                                <div className="grid grid-cols-2 gap-2.5">
+                                <div className="grid grid-cols-2 gap-2">
                                     <button
                                         onClick={() => {
                                             setCardMode('todos_respondem');
                                         }}
-                                        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-sm transition-all transform active:scale-95 group"
+                                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-black text-xs sm:text-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-sm transition-all transform active:scale-95 group"
                                     >
                                         <span className="text-base group-hover:scale-125 transition-transform">⚡</span>
-                                        <span>Todos Respondem!</span>
+                                        <span className="truncate">Todos Respondem!</span>
                                     </button>
 
                                     <button
@@ -1085,24 +1061,24 @@ export const RouletteCard = ({
                                             setCardMode('preciso_de_ajuda');
                                             gameAudio.playHelp();
                                         }}
-                                        className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-black text-xs sm:text-sm text-sky-900 bg-sky-200 hover:bg-sky-300 border border-sky-300 shadow-xs transition-all transform active:scale-95"
+                                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-black text-xs sm:text-sm text-sky-900 bg-sky-200 hover:bg-sky-300 border border-sky-300 shadow-xs transition-all transform active:scale-95"
                                     >
                                         <HeartHandshake className="w-4 h-4 text-sky-700 shrink-0" />
-                                        <span>Preciso de Ajuda</span>
+                                        <span className="truncate">Preciso de Ajuda</span>
                                         {hadHelp && (
-                                            <span className="ml-1 text-2xs bg-sky-300 text-sky-950 px-1.5 py-0.5 rounded-md font-bold">
-                                                Já usou {helpCount > 1 ? `(${helpCount}x)` : ''}
+                                            <span className="ml-1 text-2xs bg-sky-300 text-sky-950 px-1 py-0.5 rounded font-bold whitespace-nowrap">
+                                                {helpCount > 1 ? `(${helpCount}x)` : 'Já usou'}
                                             </span>
                                         )}
                                     </button>
                                 </div>
 
                                 {/* Botões de Avaliação Individual */}
-                                <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-1">
-                                    <div className="flex w-full sm:w-auto gap-2">
+                                <div className="flex flex-wrap sm:flex-nowrap items-stretch justify-between gap-2">
+                                    <div className="flex w-full sm:w-auto gap-2 flex-1">
                                         <button 
                                             onClick={onCorrect}
-                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500 text-white font-black rounded-xl hover:bg-emerald-600 transition-all shadow-sm text-sm active:scale-95 cursor-pointer"
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-all shadow-sm text-sm active:scale-95 cursor-pointer"
                                         >
                                             <CheckCircle className="w-4 h-4" />
                                             Acertou
@@ -1110,7 +1086,7 @@ export const RouletteCard = ({
                                         
                                         <button 
                                             onClick={onIncorrect}
-                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 bg-white border-2 border-red-200 text-red-600 font-black rounded-xl hover:bg-red-50 hover:border-red-300 transition-all shadow-xs text-sm active:scale-95 cursor-pointer"
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border-2 border-red-200 text-red-600 font-black rounded-lg hover:bg-red-50 hover:border-red-300 transition-all shadow-xs text-sm active:scale-95 cursor-pointer"
                                         >
                                             <XCircle className="w-4 h-4" />
                                             Errou
@@ -1121,18 +1097,18 @@ export const RouletteCard = ({
                                         {/* RODE NOVAMENTE: NÃO REMOVE DA LISTA */}
                                         <button 
                                             onClick={onSpinAgain}
-                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-200/90 border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-300 transition-all shadow-2xs text-xs sm:text-sm cursor-pointer"
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-200/90 border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-300 transition-all shadow-2xs text-xs cursor-pointer h-full"
                                             title="Girar novamente sem remover nem penalizar o aluno (permanece ativo na lista)"
                                         >
-                                            <RotateCw className="w-4 h-4 text-slate-500" />
-                                            <span>Rode Novamente</span>
+                                            <RotateCw className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                            <span className="truncate">Rode Novamente</span>
                                         </button>
 
                                         {/* Opção separada e discreta se o aluno faltou hoje */}
                                         {onAbsent && (
                                             <button 
                                                 onClick={onAbsent}
-                                                className="text-2xs font-semibold text-slate-400 hover:text-orange-600 px-2 py-3 transition-colors cursor-pointer"
+                                                className="text-2xs font-semibold text-slate-400 hover:text-orange-600 px-2 transition-colors cursor-pointer shrink-0"
                                                 title="Marcar aluno como Ausente (faltou hoje à aula)"
                                             >
                                                 Faltou?
@@ -1140,7 +1116,7 @@ export const RouletteCard = ({
                                         )}
                                     </div>
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
                 )}
@@ -1165,5 +1141,13 @@ export const RouletteCard = ({
 
         </div>
     </div>
+    
+    <QuestionEditModal 
+        show={showQuestionEditModal}
+        onClose={() => setShowQuestionEditModal(false)}
+        question={winner}
+        onSave={handleSaveEditing}
+    />
+    </>
 );
 };

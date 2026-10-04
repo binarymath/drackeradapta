@@ -31,25 +31,28 @@ export const useRouletteHandlers = (context) => {
         gameAudio.playTick();
     };
 
-    const handleEditQuestionContent = (newContent) => {
+    const handleEditQuestionContent = (updatedData) => {
         if (!winner) return;
 
         // Atualiza a atividade global
-        if (activeActivity?.id && updateActivityData && winner.questionId) {
-            const updatedQuestions = (activeActivity.questions || []).map(q => 
-                String(q.id) === String(winner.questionId) ? { ...q, question: newContent } : q
-            );
+        if (activeActivity?.id && updateActivityData) {
+            const updatedQuestions = (activeActivity.questions || []).map(q => {
+                const isMatch = winner.questionId && q.id 
+                    ? String(q.id) === String(winner.questionId) 
+                    : q.question === winner.question;
+                return isMatch ? { ...q, ...updatedData } : q;
+            });
             updateActivityData(activeActivity.id, { questions: updatedQuestions });
         }
 
         // Atualiza o card atual
-        setWinner(prev => ({ ...prev, question: newContent }));
+        setWinner(prev => ({ ...prev, ...updatedData }));
 
         logTeacherAction(
-            'edit_question_inline',
-            'Edição Rápida de Pergunta',
-            `A pergunta atual foi editada manualmente no card.`,
-            { oldQuestion: winner.question, newQuestion: newContent, studentName: winner.name }
+            'edit_question_modal',
+            'Edição Completa de Pergunta',
+            `A pergunta atual foi editada no modal.`,
+            { oldQuestion: winner.question, newQuestionData: updatedData, studentName: winner.name }
         );
     };
 

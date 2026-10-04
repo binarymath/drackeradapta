@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150">
+    <rect width="200" height="150" fill="#f87171" rx="12" />
+    <text x="100" y="70" font-family="sans-serif" font-size="14" fill="white" text-anchor="middle" font-weight="bold">Link Quebrado ou Privado</text>
+    <text x="100" y="95" font-family="sans-serif" font-size="10" fill="white" text-anchor="middle">Verifique o link da imagem</text>
+</svg>

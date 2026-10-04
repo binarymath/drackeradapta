@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCircle, XCircle, RotateCcw, RotateCw, Eye, EyeOff, Maximize2, Minimize2, Trophy, Type, List } from 'lucide-react';
 import { RouletteTimerBomb } from './RouletteTimerBomb';
+import { getDirectImageUrl, handleDriveImageError, renderQuestionText } from "../../utils/urlUtils";
 import { gameAudio } from '../../utils/gameAudio';
 
 const FONT_LEVELS = [
@@ -145,7 +146,24 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
                                     })()}
                                 </div>
                             </div>
-                            <p className={`text-white font-bold leading-snug transition-all ${currentFont.questionClass}`}>{slot.question}</p>
+                            {slot.imageUrl && !(slot.question || '').match(/\[img/i) && (
+                                <div className="mb-4 flex justify-center">
+                                    <img 
+                                        src={getDirectImageUrl(slot.imageUrl)} 
+                                        alt="" 
+                                        className="max-h-48 rounded-xl border-2 border-white/20 shadow-sm object-contain"
+                                        referrerPolicy="no-referrer"
+                                        onError={handleDriveImageError}
+                                    />
+                                </div>
+                            )}
+                            <div className={`text-white font-bold leading-snug transition-all whitespace-pre-wrap ${currentFont.questionClass}`}>
+                                {(slot.question || '').split('\n').map((line, idx) => (
+                                    <div key={idx} className="min-h-[1.5em] break-words">
+                                        {renderQuestionText(line, slot.imageUrl)}
+                                    </div>
+                                ))}
+                            </div>
                             <div className="mt-3 pt-3 border-t border-white/10">
                                 <div className="flex items-start justify-between gap-2">
                                     {showAnswer && slot.answer ? (

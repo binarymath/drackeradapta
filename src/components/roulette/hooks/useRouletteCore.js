@@ -165,14 +165,18 @@ export const useRouletteCore = () => {
         if (winner && winner.question && activeActivity?.questions) {
             const updatedQ = activeActivity.questions.find(q => q.question === winner.question);
             if (updatedQ) {
-                if (updatedQ.imageUrl !== winner.imageUrl || updatedQ.answer !== winner.answer || updatedQ.difficulty !== winner.difficulty) {
-                    setWinner(prev => ({
-                        ...prev,
-                        imageUrl: updatedQ.imageUrl || null,
-                        answer: updatedQ.answer || '',
-                        difficulty: updatedQ.difficulty || 'Média'
-                    }));
-                }
+                setWinner(prev => {
+                    if (!prev) return prev;
+                    if (updatedQ.imageUrl !== prev.imageUrl || updatedQ.answer !== prev.answer || updatedQ.difficulty !== prev.difficulty) {
+                        return {
+                            ...prev,
+                            imageUrl: updatedQ.imageUrl || null,
+                            answer: updatedQ.answer || '',
+                            difficulty: updatedQ.difficulty || 'Média'
+                        };
+                    }
+                    return prev;
+                });
             }
         }
     }, [activeActivity?.questions, winner?.question]);
