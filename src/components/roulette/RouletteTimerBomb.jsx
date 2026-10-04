@@ -623,7 +623,7 @@ export const RouletteTimerBomb = ({
                         )}
 
                         <div className="flex items-center justify-center mt-3 pt-2 border-t border-slate-800">
-                            <label className="flex items-center gap-1.5 cursor-pointer group">
+                            <label className="flex items-center gap-1.5 cursor-pointer group" onClick={e => e.stopPropagation()}>
                                 <div className="relative flex items-center">
                                     <input 
                                         type="checkbox" 
@@ -973,7 +973,7 @@ export const RouletteTimerBomb = ({
                     )}
 
                     <div className="flex items-center justify-center mt-3 pt-2 border-t border-slate-800">
-                        <label className="flex items-center gap-1.5 cursor-pointer group">
+                        <label className="flex items-center gap-1.5 cursor-pointer group" onClick={e => e.stopPropagation()}>
                             <div className="relative flex items-center">
                                 <input 
                                     type="checkbox" 

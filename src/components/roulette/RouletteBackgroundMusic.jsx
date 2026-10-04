@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Music, Play, Pause, Trash2, Volume2, Link as LinkIcon, Upload, X, Clock, GripVertical, Check, Edit2, Save } from 'lucide-react';
+import { Music, Play, Pause, Trash2, Volume2, Link as LinkIcon, Upload, X, Clock, GripVertical, Check, Edit2, Save, SkipBack, SkipForward } from 'lucide-react';
 
 // Helper for ISO8601 to Seconds (PT1M30S -> 90)
 const parseISO8601Duration = (duration) => {
@@ -34,7 +34,7 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
     const [editName, setEditName] = useState('');
     const [editUrl, setEditUrl] = useState('');
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(true);
+    const [isPlaying, setIsPlaying] = useState(false);
     const [volume, setVolume] = useState(0.4);
     
     // Config: Mode A (Sync) vs Mode B (Independent)
@@ -155,6 +155,16 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
         } else {
             // End of playlist
             setIsPlaying(false);
+        }
+    };
+
+    const prevTrack = () => {
+        if (currentIndex > 0) {
+            setCurrentIndex(prev => prev - 1);
+            setIsPlaying(true);
+        } else {
+            // First track
+            setCurrentIndex(0);
         }
     };
 
@@ -450,12 +460,28 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
                                 </p>
                                 
                                 <div className="flex items-center justify-between gap-4">
-                                    <button 
-                                        onClick={togglePlay}
-                                        className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition-colors shadow-lg shrink-0"
-                                    >
-                                        {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-1" />}
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button 
+                                            onClick={prevTrack} 
+                                            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-indigo-300 hover:text-white transition-colors shrink-0"
+                                            title="Voltar faixa"
+                                        >
+                                            <SkipBack className="w-4 h-4" />
+                                        </button>
+                                        <button 
+                                            onClick={togglePlay}
+                                            className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition-colors shadow-lg shrink-0"
+                                        >
+                                            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-1" />}
+                                        </button>
+                                        <button 
+                                            onClick={nextTrack} 
+                                            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-indigo-300 hover:text-white transition-colors shrink-0"
+                                            title="Próxima faixa"
+                                        >
+                                            <SkipForward className="w-4 h-4" />
+                                        </button>
+                                    </div>
 
                                     {currentTrack.type === 'local' && (
                                         <div className="flex-1 flex items-center gap-2">
