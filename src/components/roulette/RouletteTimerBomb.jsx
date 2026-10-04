@@ -180,6 +180,14 @@ export const RouletteTimerBomb = ({
             return;
         }
 
+        if (syncData.action === 'music_ended') {
+            if (!isExploded) {
+                setTimeLeft(0);
+                triggerExplosionEffects();
+            }
+            return;
+        }
+
         if (syncData.action === 'sync_on' || syncData.duration) {
             setIsRunning(syncData.isPlaying);
             setIsExploded(false);

@@ -155,6 +155,9 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
         } else {
             // End of playlist
             setIsPlaying(false);
+            if (syncWithMusic && onSyncRequest) {
+                onSyncRequest({ action: 'music_ended' });
+            }
         }
     };
 
