@@ -86,17 +86,27 @@ export const RouletteCard = ({
         gameAudio.playTick();
     };
 
-    const [textAlign, setTextAlign] = useState(() => {
+    const [textAligns, setTextAligns] = useState(() => {
         if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('preferred_roulette_question_align');
-            if (saved) return saved;
+            const saved = localStorage.getItem('preferred_roulette_question_aligns_v2');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (typeof parsed === 'object' && parsed !== null) return parsed;
+                } catch(e) {}
+            }
         }
-        return 'text-left';
+        return {};
     });
 
+    const currentTextAlign = textAligns[winner?.question] || 'text-left';
+
     const handleSetAlign = (alignClass) => {
-        setTextAlign(alignClass);
-        try { localStorage.setItem('preferred_roulette_question_align', alignClass); } catch(e){}
+        setTextAligns(prev => {
+            const next = { ...prev, [winner?.question]: alignClass };
+            try { localStorage.setItem('preferred_roulette_question_aligns_v2', JSON.stringify(next)); } catch(e){}
+            return next;
+        });
         gameAudio.playTick();
     };
 
@@ -830,10 +840,10 @@ export const RouletteCard = ({
                                     
                                     {/* Ajuste de Alinhamento Rápido direto no card */}
                                     <div className="inline-flex items-center gap-1 bg-slate-100/90 border border-slate-200 px-1 py-0.5 rounded-xl shadow-2xs">
-                                        <button type="button" onClick={() => handleSetAlign('text-left')} className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors ${textAlign === 'text-left' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`} title="Alinhar à Esquerda"><AlignLeft className="w-3.5 h-3.5" /></button>
-                                        <button type="button" onClick={() => handleSetAlign('text-center')} className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors ${textAlign === 'text-center' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`} title="Centralizar"><AlignCenter className="w-3.5 h-3.5" /></button>
-                                        <button type="button" onClick={() => handleSetAlign('text-right')} className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors ${textAlign === 'text-right' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`} title="Alinhar à Direita"><AlignRight className="w-3.5 h-3.5" /></button>
-                                        <button type="button" onClick={() => handleSetAlign('text-justify')} className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors ${textAlign === 'text-justify' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`} title="Justificar"><AlignJustify className="w-3.5 h-3.5" /></button>
+                                        <button type="button" onClick={() => handleSetAlign('text-left')} className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors ${currentTextAlign === 'text-left' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`} title="Alinhar à Esquerda"><AlignLeft className="w-3.5 h-3.5" /></button>
+                                        <button type="button" onClick={() => handleSetAlign('text-center')} className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors ${currentTextAlign === 'text-center' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`} title="Centralizar"><AlignCenter className="w-3.5 h-3.5" /></button>
+                                        <button type="button" onClick={() => handleSetAlign('text-right')} className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors ${currentTextAlign === 'text-right' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`} title="Alinhar à Direita"><AlignRight className="w-3.5 h-3.5" /></button>
+                                        <button type="button" onClick={() => handleSetAlign('text-justify')} className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors ${currentTextAlign === 'text-justify' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`} title="Justificar"><AlignJustify className="w-3.5 h-3.5" /></button>
                                         <div className="w-px h-4 bg-slate-300 mx-0.5" />
                                         <button type="button" onClick={handleStartEditing} className="w-6 h-6 rounded flex items-center justify-center cursor-pointer transition-colors text-indigo-600 hover:bg-indigo-100 hover:text-indigo-800" title="Editar esta pergunta"><Edit3 className="w-3.5 h-3.5" /></button>
                                     </div>
@@ -854,7 +864,7 @@ export const RouletteCard = ({
                                 <div className="relative">
                                         <div className={`text-[1.25em] sm:text-[1.5em] text-slate-800 font-bold leading-relaxed transition-all whitespace-pre-wrap w-full`}>
                                             {(winner.question || '').split('\n').map((line, idx) => {
-                                                let lineAlign = textAlign;
+                                                let lineAlign = currentTextAlign;
                                                 let content = line;
 
                                                 if (content.trim().startsWith('[C]')) {

@@ -188,6 +188,30 @@ export const BackupVersionCenterModal = ({
         }
     };
 
+    const handleDownloadWorkspace = async (wsId) => {
+        try {
+            const wsState = await IndexedDBService.getProject(wsId);
+            if (!wsState || !wsState.tabs || wsState.tabs.length === 0) {
+                alert('Este workspace está vazio ou não pôde ser carregado.');
+                return;
+            }
+            VersionedBackupService.exportDrackerFile(wsState.tabs, {
+                isRawTabs: true,
+                classes: wsState.classes || [],
+                metadata: {
+                    versionTag: `Workspace Completo: ${wsState.name}`,
+                    description: `Backup do workspace "${wsState.name}" baixado em ${new Date().toLocaleDateString('pt-BR')}.`,
+                    stripImages: false,
+                    author: 'Professor(a)',
+                    classes: wsState.classes || []
+                }
+            });
+        } catch (err) {
+            console.error('Falha ao exportar workspace:', err);
+            alert('Não foi possível exportar este workspace.');
+        }
+    };
+
     const handleCreateNewBlankWorkspace = async () => {
         const newProjectId = `proj_${Date.now()}`;
         await IndexedDBService.saveProjectState(newProjectId, {
@@ -522,9 +546,17 @@ export const BackupVersionCenterModal = ({
                                                         </div>
                                                     )}
                                                     <button 
+                                                        onClick={() => handleDownloadWorkspace(proj.id)}
+                                                        className="p-2 rounded-xl transition-colors cursor-pointer text-brown-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                                        title="Baixar Workspace"
+                                                    >
+                                                        <Download className="w-5 h-5" />
+                                                    </button>
+                                                    <button 
                                                         onClick={() => handleDeleteWorkspace(proj.id)}
                                                         disabled={isCurrent}
                                                         className={`p-2 rounded-xl transition-colors cursor-pointer ${isCurrent ? 'opacity-30' : 'text-brown-400 hover:text-red-500 hover:bg-red-50'}`}
+                                                        title="Deletar Workspace"
                                                     >
                                                         <Trash2 className="w-5 h-5" />
                                                     </button>
