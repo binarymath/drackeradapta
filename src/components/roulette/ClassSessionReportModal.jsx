@@ -483,8 +483,8 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
             <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
                 <td style="padding: 6px 8px;">#${i + 1}</td>
                 <td style="padding: 6px 8px; font-weight: bold;">${h.question}</td>
-                <td style="padding: 6px 8px; text-align: center; color: ${h.result === 'correct' || h.result === 'help_correct' || h.result === 'all_correct' || h.result === 'group_activity' ? '#16a34a' : h.result === 'merit' ? '#d97706' : (h.result === 'rule_violation' || h.result === 'not_executed') ? '#e11d48' : '#dc2626'}; font-weight: bold;">
-                    ${h.result === 'correct' || h.result === 'help_correct' ? 'Acertou ✅' : h.result === 'all_correct' ? '🏆 Desafio da Turma' : h.result === 'group_activity' ? '👥 Grupo' : h.result === 'merit' ? '+1 Mérito ⭐' : h.result === 'not_executed' ? 'Não Executou 🚫' : 'Errou ❌'}
+                <td style="padding: 6px 8px; text-align: center; color: ${h.result === 'correct' || h.result === 'help_correct' || h.result === 'all_correct' || h.result === 'group_activity' || h.result === 'group_correct' ? '#16a34a' : h.result === 'merit' ? '#d97706' : (h.result === 'rule_violation' || h.result === 'not_executed') ? '#e11d48' : '#dc2626'}; font-weight: bold;">
+                    ${h.result === 'correct' || h.result === 'help_correct' ? 'Acertou ✅' : h.result === 'all_correct' ? '🏆 Desafio da Turma' : h.result === 'group_activity' || h.result === 'group_correct' ? '👥 Grupo' : h.result === 'merit' ? '+1 Mérito ⭐' : h.result === 'not_executed' ? 'Não Executou 🚫' : h.result === 'group_incorrect' ? '❌ Erro Grupo' : 'Errou ❌'}
                 </td>
                 <td style="padding: 6px 8px; text-align: center;">
                     ${h.hadHelp || h.helperName ? `🤝 Sim (${h.helperName || 'Apoio'})` : '-'}

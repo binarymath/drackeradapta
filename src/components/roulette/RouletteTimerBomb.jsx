@@ -671,7 +671,7 @@ export const RouletteTimerBomb = ({
             )}
 
             {/* Card Principal da Bomba */}
-            <div className={`relative w-full h-full rounded-3xl p-5 sm:p-6 border-4 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col justify-between overflow-hidden ${
+            <div className={`relative w-full h-full rounded-3xl p-5 sm:p-6 border-4 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col justify-between ${
                 isExploded 
                     ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-red-500 shadow-[0_0_70px_rgba(239,68,68,0.7)] animate-violent-shake'
                     : isCritical

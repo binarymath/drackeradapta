@@ -4,7 +4,7 @@ import { Modal } from '../ui/Modal';
 import { useActivity } from '../../contexts/ActivityContext';
 import { convertQuizQuestionsToRoulette } from '../../services/questionTransitionService';
 import { gameAudio } from '../../utils/gameAudio';
-import { getDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
+import { getDirectImageUrl, handleDriveImageError, isYouTubeUrl, getYouTubeEmbedUrl } from '../../utils/urlUtils';
 
 export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, updateActivityData }) => {
     // Trabalharemos com uma cópia local durante a edição
@@ -36,12 +36,17 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
                 difficulty: q.difficulty || 'Média',
                 imageUrl: q.imageUrl || '',
                 options: q.options || undefined,
+                isActive: q.isActive !== false,
                 name: q.name || '' // keep for legacy compatibility
             })));
             setShowQuizSelector(false);
             setImportSuccessMsg('');
         }
     }, [isOpen, activeActivity]);
+
+    const handleToggleActive = (id) => {
+        setLocalQuestions(prev => prev.map(q => q.id === id ? { ...q, isActive: !q.isActive } : q));
+    };
 
     const handleQuestionChange = (id, newText) => {
         setLocalQuestions(prev => prev.map(q => q.id === id ? { ...q, question: newText } : q));
@@ -83,6 +88,7 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
                 answer: '',
                 difficulty: 'Média',
                 imageUrl: '',
+                isActive: true,
                 name: ''
             }
         ]);
@@ -186,11 +192,22 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
 
                 {/* Lista de Questões */}
                 {localQuestions.map((q, index) => (
-                    <div key={q.id} className="bg-slate-50 border border-slate-200 p-4 rounded-2xl shadow-sm space-y-4 relative group">
+                    <div key={q.id} className={`bg-slate-50 border p-4 rounded-2xl shadow-sm space-y-4 relative group transition-all ${q.isActive ? 'border-slate-200 opacity-100' : 'border-slate-300/50 opacity-60 bg-slate-100'}`}>
                         <div className="flex items-center justify-between gap-2 mb-2">
-                            <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold text-sm">
-                                Pergunta {index + 1}
-                            </span>
+                            <div className="flex items-center gap-3">
+                                <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold text-sm">
+                                    Pergunta {index + 1}
+                                </span>
+                                <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-slate-600 hover:text-slate-800 transition-colors">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={q.isActive} 
+                                        onChange={() => handleToggleActive(q.id)}
+                                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                    />
+                                    Incluir na Roleta
+                                </label>
+                            </div>
 
                             <div className="flex items-center gap-2">
                                 <div className="flex items-center gap-1.5">
@@ -240,7 +257,7 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
                         
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-1">
-                                <ImageIcon className="w-4 h-4 text-slate-400" /> URL da Imagem (Opcional)
+                                <ImageIcon className="w-4 h-4 text-slate-400" /> URL da Imagem ou YouTube (Opcional)
                             </label>
                             <div className="flex gap-4">
                                 <input 
@@ -252,7 +269,11 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
                                 />
                                 {q.imageUrl && (
                                     <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden shrink-0 bg-white flex items-center justify-center relative group">
-                                        <img src={getDirectImageUrl(q.imageUrl)} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleDriveImageError} />
+                                        {isYouTubeUrl(q.imageUrl) ? (
+                                            <iframe src={getYouTubeEmbedUrl(q.imageUrl)} className="w-full h-full object-cover pointer-events-none" />
+                                        ) : (
+                                            <img src={getDirectImageUrl(q.imageUrl)} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleDriveImageError} />
+                                        )}
                                         <button onClick={() => handleImageUrlChange(q.id, '')} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                             <X className="w-6 h-6" />
                                         </button>

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { gameAudio } from '../../utils/gameAudio';
-import { getDirectImageUrl, handleDriveImageError, renderQuestionText } from '../../utils/urlUtils';
+import { getDirectImageUrl, handleDriveImageError, renderQuestionText, isYouTubeUrl, getYouTubeEmbedUrl } from '../../utils/urlUtils';
 import { RouletteTimerBomb } from './RouletteTimerBomb';
 import { StudentSelectorModal } from './card-modals/StudentSelectorModal';
 import { QuestionSelectorModal } from './card-modals/QuestionSelectorModal';
@@ -40,7 +40,8 @@ export const RouletteCard = ({
     onTimerExplode = null,
     onRevealAnswer = null,
     onRevealHint = null,
-    onOpenSidebar
+    onOpenSidebar,
+    onClose
 }) => {
     // Calculo dinâmico do tamanho do nome para evitar que quebre muito o layout
     const nameLength = winner?.name?.length || 0;
@@ -120,7 +121,7 @@ export const RouletteCard = ({
     });
 
     // Modos de Exibição do Card: 'normal' | 'todos_respondem' | 'preciso_de_ajuda'
-    const [cardMode, setCardMode] = useState('normal');
+    const [cardMode, setCardMode] = useState(winner?.id === 'todos_respondem' ? 'todos_respondem' : 'normal');
     
     // Suporte a Representante/Porta-Voz quando for atividade em grupo
     const [selectedSpokesperson, setSelectedSpokesperson] = useState(null);
@@ -522,6 +523,17 @@ export const RouletteCard = ({
                                 {/* Controles: Minimizar, Cronômetro (ACIMA) */}
                                 <div className="flex items-center justify-between gap-1.5 flex-wrap w-full">
                                     <div className="flex items-center gap-1.5">
+                                        {/* Botão Fechar Card */}
+                                        <button
+                                            type="button"
+                                            onClick={onClose}
+                                            className="flex items-center gap-1 bg-black/20 hover:bg-red-500/60 text-white border border-white/25 hover:border-red-400/50 rounded-xl px-2.5 py-1 shadow-2xs backdrop-blur-xs text-xs font-bold transition-all cursor-pointer"
+                                            title="Fechar card"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                            <span className="hidden sm:inline">Fechar</span>
+                                        </button>
+
                                         {/* Botão Minimizar Card Inteiro */}
                                         <button
                                             type="button"
@@ -638,6 +650,17 @@ export const RouletteCard = ({
                                 {/* Controles (ACIMA) */}
                                 <div className="flex items-center justify-between gap-1.5 flex-wrap w-full">
                                     <div className="flex items-center gap-1.5">
+                                        {/* Botão Fechar Card */}
+                                        <button
+                                            type="button"
+                                            onClick={onClose}
+                                            className="flex items-center gap-1 bg-black/20 hover:bg-red-500/60 text-white border border-white/25 hover:border-red-400/50 rounded-xl px-2.5 py-1 shadow-2xs backdrop-blur-xs text-xs font-bold transition-all cursor-pointer"
+                                            title="Fechar card"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                            <span className="hidden sm:inline">Fechar</span>
+                                        </button>
+
                                         {/* Botão Minimizar Card Inteiro */}
                                         <button
                                             type="button"
@@ -850,14 +873,23 @@ export const RouletteCard = ({
                                 </div>
 
                                 {winner.imageUrl && !(winner.question || '').match(/\[img/i) && (
-                                    <div className="mb-4 flex justify-center">
-                                        <img 
-                                            src={getDirectImageUrl(winner.imageUrl)} 
-                                            alt="" 
-                                            className="max-h-48 rounded-xl border-2 border-slate-200 shadow-sm object-contain"
-                                            referrerPolicy="no-referrer"
-                                            onError={handleDriveImageError}
-                                        />
+                                    <div className="mb-4 flex justify-center w-full">
+                                        {isYouTubeUrl(winner.imageUrl) ? (
+                                            <iframe
+                                                src={getYouTubeEmbedUrl(winner.imageUrl)}
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                                className="aspect-video w-full max-w-2xl rounded-xl border-2 border-slate-200 shadow-sm"
+                                            />
+                                        ) : (
+                                            <img 
+                                                src={getDirectImageUrl(winner.imageUrl)} 
+                                                alt="" 
+                                                className="max-h-48 rounded-xl border-2 border-slate-200 shadow-sm object-contain"
+                                                referrerPolicy="no-referrer"
+                                                onError={handleDriveImageError}
+                                            />
+                                        )}
                                     </div>
                                 )}
 

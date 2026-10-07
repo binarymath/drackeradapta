@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { gameAudio } from '../../../utils/gameAudio';
 
 export const useRouletteHandlers = (context) => {
-    const { logTeacherAction, gameMode, currentSessionId, sessionStartTime, activeActivity, currentClass, updateStudentInClass, saveClassUpdates, setUsedQuestions, setShowCard, setWinner, winner, setStudentDrawCounts, updateActivityData, setQuestionDrawCounts, combinedItems, pickWeightedQuestion, uniqueQuestions, questionDrawCounts, studentDrawCounts, currentGroups, activeGroupItems, usedQuestions, studentToGroupMap, groupRoundSlots, setGroupRoundSlots, setActiveGroupTab, addActivityTab } = context;
+    const { logTeacherAction, gameMode, currentSessionId, sessionStartTime, activeActivity, currentClass, updateStudentInClass, saveClassUpdates, setUsedQuestions, setShowCard, setWinner, winner, setStudentDrawCounts, updateActivityData, setQuestionDrawCounts, combinedItems, pickWeightedQuestion, uniqueQuestions, questionDrawCounts, studentDrawCounts, currentGroups, activeGroupItems, usedQuestions, studentToGroupMap, groupRoundSlots, setGroupRoundSlots, setActiveGroupTab, addActivityTab, selectedManualQuestionId, setSelectedManualQuestionId } = context;
 
     const handleChangeWinnerStudent = (newStudentObj, swapMode = 'random') => {
         if (!newStudentObj) return;
@@ -57,12 +57,31 @@ export const useRouletteHandlers = (context) => {
     };
 
     const handleSelectStudentManually = (studentId) => {
-        const student = combinedItems.find(s => s.id === studentId);
+        let student = null;
+        if (studentId === 'todos_respondem') {
+            student = {
+                id: 'todos_respondem',
+                name: 'TODA A TURMA',
+                status: 'active'
+            };
+        } else {
+            student = combinedItems.find(s => s.id === studentId);
+        }
         if (!student) return;
 
-        // Tentar selecionar uma pergunta por peso
-        let questionObj = pickWeightedQuestion(uniqueQuestions, questionDrawCounts);
+        // Tentar selecionar uma pergunta
+        let questionObj = null;
+        if (selectedManualQuestionId) {
+            questionObj = uniqueQuestions.find(q => q.id === selectedManualQuestionId);
+        }
+        if (!questionObj) {
+            questionObj = pickWeightedQuestion(uniqueQuestions, questionDrawCounts);
+        }
+        
         const rawQuestion = questionObj ? questionObj.question : 'Nenhuma pergunta gerada para esta sessão.';
+
+        // Limpa a seleção manual após o uso
+        if (setSelectedManualQuestionId) setSelectedManualQuestionId(null);
 
         // Incrementa a contagem de sorteios
         const sIdKey = String(student.id);
@@ -589,7 +608,10 @@ export const useRouletteHandlers = (context) => {
         if (!group) return;
 
         let questionObj = null;
-        if (uniqueQuestions.length > 0) {
+        if (selectedManualQuestionId) {
+            questionObj = uniqueQuestions.find(q => q.id === selectedManualQuestionId);
+        }
+        if (!questionObj && uniqueQuestions.length > 0) {
             const unused = uniqueQuestions.filter(q => !usedQuestions.has(q.question));
             if (unused.length > 0) {
                 questionObj = unused[Math.floor(Math.random() * unused.length)];
@@ -600,6 +622,9 @@ export const useRouletteHandlers = (context) => {
         }
 
         const rawQuestion = questionObj ? questionObj.question : 'Nenhuma pergunta gerada para esta sessão.';
+        
+        // Limpa a seleção manual após o uso
+        if (setSelectedManualQuestionId) setSelectedManualQuestionId(null);
 
         logTeacherAction(
             'manual_select_group',
@@ -746,7 +771,7 @@ export const useRouletteHandlers = (context) => {
             gameMode: 'groups',
             topic: topic,
             question: `[Equipe ${groupName}] ${questionText}`,
-            result: isCorrect ? 'group_activity' : 'incorrect',
+            result: isCorrect ? 'group_activity' : 'group_incorrect',
             isGroupActivity: true,
             groupId: targetGroupId,
             groupName: groupName,
@@ -849,7 +874,7 @@ export const useRouletteHandlers = (context) => {
             gameMode: 'groups',
             topic,
             question: `[Equipe ${groupName}] ${slot.question}`,
-            result: isCorrect ? 'group_activity' : 'incorrect',
+            result: isCorrect ? 'group_activity' : 'group_incorrect',
             isGroupActivity: true,
             groupId: targetGroupId,
             groupName,
@@ -900,6 +925,34 @@ export const useRouletteHandlers = (context) => {
         setGroupRoundSlots(prev => prev.map((s, i) =>
             i === slotIndex ? { ...s, question: newQ.question, answer: newQ.answer || '', difficulty: newQ.difficulty || 'Média', imageUrl: newQ.imageUrl || null } : s
         ));
+    };
+
+    const handleEditGroupSlotQuestionContent = (slotIndex, updatedData) => {
+        const slot = groupRoundSlots?.[slotIndex];
+        if (!slot) return;
+
+        // Atualiza a atividade global se possível
+        if (activeActivity?.id && updateActivityData) {
+            const updatedQuestions = (activeActivity.questions || []).map(q => {
+                const isMatch = slot.questionId && q.id 
+                    ? String(q.id) === String(slot.questionId) 
+                    : q.question === slot.question;
+                return isMatch ? { ...q, ...updatedData } : q;
+            });
+            updateActivityData(activeActivity.id, { questions: updatedQuestions });
+        }
+
+        // Atualiza o slot localmente
+        setGroupRoundSlots(prev => prev.map((s, i) =>
+            i === slotIndex ? { ...s, ...updatedData } : s
+        ));
+
+        logTeacherAction(
+            'edit_question_modal',
+            'Edição Completa de Pergunta (Rodada Simultânea)',
+            `A pergunta da equipe ${slot.group?.name} foi editada no modal.`,
+            { oldQuestion: slot.question, newQuestionData: updatedData, groupName: slot.group?.name }
+        );
     };
 
     const handleClearGroupRound = () => {
@@ -1056,6 +1109,7 @@ export const useRouletteHandlers = (context) => {
         handleGroupResult,
         handleGroupSlotResult,
         handleChangeGroupSlotQuestion,
+        handleEditGroupSlotQuestionContent,
         handleClearGroupRound,
         handleTimerExplode,
         handleRevealAnswer,

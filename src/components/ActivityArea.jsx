@@ -96,6 +96,7 @@ export const ActivityArea = ({
     const [quizShowDifficulty, setQuizShowDifficulty] = useState(true);
     const [quizImageMaxHeight, setQuizImageMaxHeight] = useState(160); // px
     const [quizImageBgColor, setQuizImageBgColor] = useState('#ffffff');
+    const [quizFontSize, setQuizFontSize] = useState(12.5); // px
     // null = todas as questões; Set<number> = índices selecionados
     const [selectedQuizIndexes, setSelectedQuizIndexes] = useState(null);
     const [showQuestionPicker, setShowQuestionPicker] = useState(false);
@@ -256,6 +257,22 @@ export const ActivityArea = ({
                                                             <span>✏️</span> Só Enunciado
                                                         </button>
                                                     </div>
+
+                                                    <label className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
+                                                        <span className="text-xs font-bold text-slate-700" title="Tamanho da fonte">A</span>
+                                                        <select
+                                                            value={quizFontSize}
+                                                            onChange={e => setQuizFontSize(Number(e.target.value))}
+                                                            className="text-xs border-none bg-transparent focus:ring-0 font-semibold text-blue-700 outline-none p-0 cursor-pointer"
+                                                        >
+                                                            <option value={10}>Pequena</option>
+                                                            <option value={12.5}>Normal</option>
+                                                            <option value={15}>Média</option>
+                                                            <option value={18}>Grande</option>
+                                                            <option value={22}>Gigante</option>
+                                                            <option value={28}>Máxima</option>
+                                                        </select>
+                                                    </label>
 
                                                     <label className="flex items-center gap-2 cursor-pointer select-none bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-50 transition-all shadow-2xs whitespace-nowrap">
                                                         <input
@@ -513,6 +530,7 @@ export const ActivityArea = ({
                                     imageMaxHeight={quizImageMaxHeight}
                                     imageBgColor={quizImageBgColor}
                                     questionRepeats={quizQuestionRepeats}
+                                    fontSize={quizFontSize}
                                 />
                             ) : isMusicGame && musicData ? (
                                 <MusicGame

@@ -359,7 +359,7 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
                 <strong>Questão ${i + 1}:</strong> ${h.question}<br/>
                 <span style="color: #4338ca; font-weight: bold;">GRUPO:</span> ${h.groupName || 'Equipe'} 
                 ${h.representativeName ? `<em>(Representante: ${h.representativeName})</em>` : ''} — 
-                <strong>${h.result === 'group_correct' || h.result === 'correct' ? '✅ Pontuou com a equipe' : '❌ Erro em grupo'}</strong>
+                <strong>${h.result === 'group_correct' || h.result === 'group_activity' || h.result === 'correct' ? '✅ Pontuou com a equipe' : '❌ Erro em grupo'}</strong>
                 <em>(${new Date(h.date).toLocaleDateString()} ${new Date(h.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})</em>
             </li>
         `).join('');
@@ -382,8 +382,8 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                     <td style="padding: 8px;">${i + 1}</td>
                     <td style="padding: 8px;">${h.question}</td>
-                    <td style="padding: 8px; font-weight: bold; color: ${h.result === 'correct' || h.result === 'group_correct' ? '#15803d' : h.result === 'merit' ? '#16a34a' : h.result === 'help_correct' ? '#0369a1' : h.result === 'rule_violation' || h.result === 'not_executed' ? '#e11d48' : '#b91c1c'};">
-                        ${h.result === 'correct' || h.result === 'group_correct' ? 'Acertou' : h.result === 'merit' ? '+1 Ponto por Mérito' : h.result === 'rule_violation' ? '-1 Infringiu Regra' : h.result === 'not_executed' ? '-1 Não Executou' : h.result === 'help_correct' ? 'Acertou com Ajuda' : h.result === 'all_correct' ? 'Desafio da Turma' : 'Errou'}
+                    <td style="padding: 8px; font-weight: bold; color: ${h.result === 'correct' || h.result === 'group_correct' || h.result === 'group_activity' ? '#15803d' : h.result === 'merit' ? '#16a34a' : h.result === 'help_correct' ? '#0369a1' : h.result === 'rule_violation' || h.result === 'not_executed' ? '#e11d48' : '#b91c1c'};">
+                        ${h.result === 'correct' || h.result === 'group_correct' ? 'Acertou' : h.result === 'group_activity' ? 'Atividade em Grupo' : h.result === 'merit' ? '+1 Ponto por Mérito' : h.result === 'rule_violation' ? '-1 Infringiu Regra' : h.result === 'not_executed' ? '-1 Não Executou' : h.result === 'help_correct' ? 'Acertou com Ajuda' : h.result === 'all_correct' ? 'Desafio da Turma' : 'Errou'}
                     </td>
                     <td style="padding: 8px;">${statusAjuda}</td>
                     <td style="padding: 8px; font-size: 11px; color: #64748b;">

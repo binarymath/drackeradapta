@@ -224,7 +224,7 @@ export const CyberpunkWheel = ({ items = [], spinning = false, winner = null, on
                                             transform: `rotate(${labelCoords.angle > 180 ? labelCoords.angle + 90 : labelCoords.angle - 90}deg)`
                                         }}
                                     >
-                                        {item.name.length > 11 ? item.name.substring(0, 9) + '..' : item.name.toUpperCase()}
+                                        {item.name.split(' ')[0].length > 11 ? item.name.split(' ')[0].substring(0, 9) + '..' : item.name.split(' ')[0].toUpperCase()}
                                     </text>
                                 </g>
                             );

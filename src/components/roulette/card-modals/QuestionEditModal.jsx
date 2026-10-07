@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Edit3, Image as ImageIcon, MessageCircle, Info } from 'lucide-react';
-import { getDirectImageUrl, handleDriveImageError } from '../../../utils/urlUtils';
+import { getDirectImageUrl, handleDriveImageError, isYouTubeUrl, getYouTubeEmbedUrl } from '../../../utils/urlUtils';
 
 export const QuestionEditModal = ({
     show,
@@ -75,7 +75,7 @@ export const QuestionEditModal = ({
                             autoFocus
                         />
                         <p className="text-[11px] text-slate-500 font-medium px-2">
-                            Dica: Digite <strong className="text-indigo-600 bg-indigo-50 px-1 rounded">[IMG]</strong> no meio do texto para escolher onde a imagem vai aparecer! Você também pode ajustar o tamanho usando <strong className="text-indigo-600 bg-indigo-50 px-1 rounded">[IMG=300]</strong> ou <strong className="text-indigo-600 bg-indigo-50 px-1 rounded">[IMG=50%]</strong>.
+                            Dica: Digite <strong className="text-indigo-600 bg-indigo-50 px-1 rounded">[IMG]</strong> ou <strong className="text-indigo-600 bg-indigo-50 px-1 rounded">[YT]</strong> no meio do texto para escolher onde a mídia vai aparecer! Você também pode ajustar o tamanho usando <strong className="text-indigo-600 bg-indigo-50 px-1 rounded">[IMG=300]</strong>.
                         </p>
                     </div>
 
@@ -98,7 +98,7 @@ export const QuestionEditModal = ({
                         <div className="space-y-2">
                             <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
                                 <ImageIcon className="w-4 h-4 text-rose-500" />
-                                Link da Imagem (Opcional)
+                                Link da Imagem ou YouTube (Opcional)
                             </label>
                             <input
                                 type="url"
@@ -109,13 +109,22 @@ export const QuestionEditModal = ({
                             />
                             {formData.imageUrl && (
                                 <div className="mt-2 h-32 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center p-2">
-                                    <img 
-                                        src={getDirectImageUrl(formData.imageUrl)} 
-                                        alt="Preview" 
-                                        className="max-h-full max-w-full object-contain rounded-lg shadow-sm" 
-                                        referrerPolicy="no-referrer"
-                                        onError={handleDriveImageError}
-                                    />
+                                    {isYouTubeUrl(formData.imageUrl) ? (
+                                        <iframe 
+                                            src={getYouTubeEmbedUrl(formData.imageUrl)} 
+                                            className="w-full h-full rounded-lg shadow-sm"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        />
+                                    ) : (
+                                        <img 
+                                            src={getDirectImageUrl(formData.imageUrl)} 
+                                            alt="Preview" 
+                                            className="max-h-full max-w-full object-contain rounded-lg shadow-sm" 
+                                            referrerPolicy="no-referrer"
+                                            onError={handleDriveImageError}
+                                        />
+                                    )}
                                 </div>
                             )}
                         </div>

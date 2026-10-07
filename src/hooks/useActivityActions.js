@@ -346,10 +346,10 @@ export const useActivityActions = () => {
 
             text = formattedOutput + gabaritoOutput;
 
-            if (isEditing) {
+            if (activeTabId) {
                 setTabs(prev => prev.map(t => {
                     if (t.id === activeTabId) {
-                        return { ...t, content: text, quizData: editedData };
+                        return { ...t, content: text, quizData: editedData, type: 'quiz' };
                     }
                     return t;
                 }));

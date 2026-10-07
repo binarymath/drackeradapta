@@ -41,6 +41,8 @@ export const useRouletteCore = () => {
         return activeActivity?.gameMode || 'individual';
     });
 
+    const [groupSpinMode, setGroupSpinMode] = useState('single'); // 'single' ou 'all'
+
     // Aba de visualização do placar lateral: 'students' | 'groups'
     const [placarTab, setPlacarTab] = useState(() => {
         return activeActivity?.gameMode === 'groups' ? 'groups' : 'students';
@@ -334,18 +336,22 @@ export const useRouletteCore = () => {
         const questions = activeActivity?.questions || [];
         const uniqueMap = new Map();
         questions.forEach((q, idx) => {
-            if (q && q.question && !uniqueMap.has(q.question)) {
+            if (q && q.question && q.isActive !== false && !uniqueMap.has(q.question)) {
                 uniqueMap.set(q.question, {
                     id: q.id || `q_${idx}_${Date.now()}`,
                     question: (q.question || '').replace(/(\d+)\.(\d+)/g, '$1,$2'),
                     answer: q.answer ? q.answer.replace(/(\d+)\.(\d+)/g, '$1,$2') : '',
                     difficulty: q.difficulty || (idx % 3 === 0 ? 'Fácil' : idx % 3 === 1 ? 'Média' : 'Difícil'),
-                    imageUrl: q.imageUrl || null
+                    imageUrl: q.imageUrl || null,
+                    isActive: true
                 });
             }
         });
         return Array.from(uniqueMap.values());
     }, [activeActivity?.questions]);
+
+    // Pergunta forçada escolhida manualmente pelo professor
+    const [selectedManualQuestionId, setSelectedManualQuestionId] = useState(null);
 
     // Conjunto de IDs de alunos removidos da roleta especificamente para esta atividade (aba)
     const activityRemovedIds = useMemo(() => {
@@ -623,15 +629,25 @@ export const useRouletteCore = () => {
         const assignedQs = new Set();
         const updatedQCounts = { ...questionDrawCounts };
 
-        const slots = activeGroupItems.map(group => {
-            const availableQs = uniqueQuestions.filter(q => !assignedQs.has(q.question));
-            const q = pickWeightedQuestion(availableQs.length > 0 ? availableQs : uniqueQuestions, updatedQCounts);
+        const manualQ = selectedManualQuestionId ? uniqueQuestions.find(q => q.id === selectedManualQuestionId) : null;
 
-            if (q) {
+        const slots = activeGroupItems.map(group => {
+            let q = manualQ;
+            if (!q) {
+                const availableQs = uniqueQuestions.filter(qu => !assignedQs.has(qu.question));
+                q = pickWeightedQuestion(availableQs.length > 0 ? availableQs : uniqueQuestions, updatedQCounts);
+            }
+
+            if (q && !manualQ) {
                 assignedQs.add(q.question);
                 const qKey = q.id || q.question;
                 updatedQCounts[qKey] = (updatedQCounts[qKey] || 0) + 1;
+            } else if (q && manualQ) {
+                // Se foi forçada, incrementamos a contagem para estatísticas
+                const qKey = q.id || q.question;
+                updatedQCounts[qKey] = (updatedQCounts[qKey] || 0) + 1;
             }
+            
             return {
                 group,
                 question: q?.question || 'Nenhuma pergunta disponível.',
@@ -641,6 +657,9 @@ export const useRouletteCore = () => {
                 result: null // null = pendente
             };
         });
+
+        // Limpa a seleção manual após ser usada na rodada
+        setSelectedManualQuestionId(null);
 
         setQuestionDrawCounts(updatedQCounts);
         if (activeActivity?.id && updateActivityData) {
@@ -666,22 +685,55 @@ export const useRouletteCore = () => {
     const handleSpin = () => {
         if (gameMode === 'groups') {
             if (activeGroupItems.length === 0) return;
-            // Se há rodada ativa com pendentes, pede confirmação
-            const hasPending = groupRoundSlots && groupRoundSlots.some(s => s.result === null);
-            if (hasPending) {
-                setShowGroupRoundConfirm(true);
+            
+            if (groupSpinMode === 'all') {
+                const hasPending = groupRoundSlots && groupRoundSlots.some(s => s.result === null);
+                if (hasPending) {
+                    setShowGroupRoundConfirm(true);
+                    return;
+                }
+                setSpinning(true);
+                setShowCard(false);
+                setWinner({ id: 'simultaneous', name: '💥 TODAS AS EQUIPES 💥' });
+                setGroupRoundSlots(null);
+                gameAudio.playTick();
+                return;
+            } else {
+                setSpinning(true);
+                setShowCard(false);
+                setWinner(null);
+                setGroupRoundSlots(null); // IMPORTANT: Clear simultaneous slots so single card shows
+                const selectedGroup = activeGroupItems[Math.floor(Math.random() * activeGroupItems.length)];
+                
+                let questionObj = null;
+                if (selectedManualQuestionId) {
+                    questionObj = uniqueQuestions.find(q => q.id === selectedManualQuestionId);
+                }
+                if (!questionObj) {
+                    questionObj = pickWeightedQuestion(uniqueQuestions, questionDrawCounts);
+                }
+                const rawQuestion = questionObj ? questionObj.question : 'Nenhuma pergunta gerada para esta sessão.';
+
+                setSelectedManualQuestionId(null);
+                
+                logTeacherAction(
+                    'spin_group',
+                    'Giro da Roleta (Equipe Única)',
+                    `Roleta girada. Equipe Sorteada: "${selectedGroup.name}".`,
+                    { groupName: selectedGroup.name, groupId: selectedGroup.id, question: rawQuestion }
+                );
+
+                setWinner({
+                    ...selectedGroup,
+                    question: rawQuestion,
+                    answer: questionObj?.answer || '',
+                    difficulty: questionObj?.difficulty || 'Média',
+                    imageUrl: questionObj?.imageUrl || null,
+                    questionId: questionObj?.id || null,
+                    isGroup: true
+                });
                 return;
             }
-            setSpinning(true);
-            setShowCard(false);
-            setWinner(null);
-            setGroupRoundSlots(null);
-            setTimeout(() => {
-                setSpinning(false);
-                startGroupRound();
-            }, 1200);
-            gameAudio.playTick();
-            return;
         }
         // Modo individual — Sorteio Ponderado por Decaimento Suave (Modo 2)
         const pool = activeItems;
@@ -696,8 +748,17 @@ export const useRouletteCore = () => {
             return;
         }
 
-        let questionObj = pickWeightedQuestion(uniqueQuestions, questionDrawCounts);
+        let questionObj = null;
+        if (selectedManualQuestionId) {
+            questionObj = uniqueQuestions.find(q => q.id === selectedManualQuestionId);
+        }
+        if (!questionObj) {
+            questionObj = pickWeightedQuestion(uniqueQuestions, questionDrawCounts);
+        }
         const rawQuestion = questionObj ? questionObj.question : 'Nenhuma pergunta gerada para esta sessão.';
+
+        // Limpa a seleção manual para que os próximos sorteios sejam aleatórios se não forçado novamente
+        setSelectedManualQuestionId(null);
 
         // Incrementa a contagem de sorteios no estado da atividade
         const sIdKey = String(selectedWinner.id);
@@ -745,7 +806,11 @@ export const useRouletteCore = () => {
 
     const handleSpinComplete = () => {
         setSpinning(false);
-        setShowCard(true); // Mostra o card com nome e pergunta
+        if (gameMode === 'groups' && groupSpinMode === 'all') {
+            startGroupRound();
+        } else {
+            setShowCard(true); // Mostra o card individual (Aluno ou Equipe)
+        }
     };
 
     // Modo Tela Cheia / 100% da tela para projeções e lousas interativas
@@ -864,7 +929,7 @@ export const useRouletteCore = () => {
 
 
 
-    const handlers = useRouletteHandlers({ logTeacherAction, gameMode, currentSessionId, sessionStartTime, activeActivity, currentClass, updateStudentInClass, saveClassUpdates, setUsedQuestions, setShowCard, setWinner, winner, setStudentDrawCounts, updateActivityData, setQuestionDrawCounts, combinedItems, pickWeightedQuestion, uniqueQuestions, questionDrawCounts, studentDrawCounts, currentGroups, activeGroupItems, usedQuestions, studentToGroupMap, groupRoundSlots, setGroupRoundSlots, setActiveGroupTab, addActivityTab });
+    const handlers = useRouletteHandlers({ logTeacherAction, gameMode, groupSpinMode, currentSessionId, sessionStartTime, activeActivity, currentClass, updateStudentInClass, saveClassUpdates, setUsedQuestions, setShowCard, setWinner, winner, setStudentDrawCounts, updateActivityData, setQuestionDrawCounts, combinedItems, pickWeightedQuestion, uniqueQuestions, questionDrawCounts, studentDrawCounts, currentGroups, activeGroupItems, usedQuestions, studentToGroupMap, groupRoundSlots, setGroupRoundSlots, setActiveGroupTab, addActivityTab, selectedManualQuestionId, setSelectedManualQuestionId });
     return {
         ...handlers,
         activeActivity,
@@ -883,6 +948,8 @@ export const useRouletteCore = () => {
         currentSessionId,
         currentTheme,
         gameMode,
+        groupSpinMode,
+        setGroupSpinMode,
         geminiService,
         getItemWeight,
         groupRoundSlots,
@@ -953,5 +1020,7 @@ export const useRouletteCore = () => {
         updateStudentInClass,
         usedQuestions,
         winner,
+        selectedManualQuestionId,
+        setSelectedManualQuestionId,
     };
 };

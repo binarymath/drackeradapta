@@ -194,7 +194,7 @@ export const MinimalistGlassWheel = ({ items = [], spinning = false, winner = nu
                                             transform: `rotate(${labelCoords.angle > 180 ? labelCoords.angle + 90 : labelCoords.angle - 90}deg)`
                                         }}
                                     >
-                                        {item.name.length > 12 ? item.name.substring(0, 10) + '...' : item.name}
+                                        {item.name.split(' ')[0].length > 12 ? item.name.split(' ')[0].substring(0, 10) + '...' : item.name.split(' ')[0]}
                                     </text>
                                 </g>
                             );

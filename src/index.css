@@ -198,7 +198,7 @@ code {
 .animate-marquee {
   display: inline-block;
   white-space: nowrap;
-  animation: marquee 25s linear infinite;
+  animation: marquee 150s linear infinite;
 }
 
 /* Animação de tremor de explosão da Bomba */

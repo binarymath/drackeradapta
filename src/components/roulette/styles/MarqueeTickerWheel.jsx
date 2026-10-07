@@ -231,7 +231,7 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
                     
                     {/* Linha Superior (Nome Anterior - Faded) */}
                     <div className={`${isMaximized ? 'h-10 sm:h-14 text-sm sm:text-lg' : 'h-10 sm:h-12 text-sm sm:text-base'} flex items-center justify-center opacity-30 text-slate-300 font-mono tracking-wider overflow-hidden`}>
-                        {prevItem?.name ? prevItem.name.toUpperCase() : '---'}
+                        {prevItem?.name ? prevItem.name.split(' ')[0].toUpperCase() : '---'}
                     </div>
 
                     {/* Faixa Central em Destaque: O Split-Flap Principal */}
@@ -263,7 +263,7 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
                                         ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
                                         : 'text-slate-100'
                             }`}>
-                                {activeItem?.name || 'SELECIONE'}
+                                {activeItem?.name ? activeItem.name.split(' ')[0].toUpperCase() : 'SELECIONE'}
                             </span>
                         </div>
 
@@ -275,7 +275,7 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
 
                     {/* Linha Inferior (Próximo Nome - Faded) */}
                     <div className={`${isMaximized ? 'h-10 sm:h-14 text-sm sm:text-lg' : 'h-10 sm:h-12 text-sm sm:text-base'} flex items-center justify-center opacity-30 text-slate-300 font-mono tracking-wider overflow-hidden`}>
-                        {nextItem?.name ? nextItem.name.toUpperCase() : '---'}
+                        {nextItem?.name ? nextItem.name.split(' ')[0].toUpperCase() : '---'}
                     </div>
 
                     {/* Foco Centralizador Indicador Lateral */}
@@ -297,13 +297,13 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
                         <div className="animate-marquee font-mono text-xs text-slate-400 font-medium">
                             {items.map((item, idx) => (
                                 <span key={item.id || idx} className="mx-2 hover:text-amber-300 transition-colors">
-                                    [#{idx + 1} {item.name.toUpperCase()}]
+                                    [#{idx + 1} {item.name.split(' ')[0].toUpperCase()}]
                                 </span>
                             ))}
                             {/* Repetição para loop contínuo */}
                             {items.map((item, idx) => (
                                 <span key={`rep-${item.id || idx}`} className="mx-2 hover:text-amber-300 transition-colors">
-                                    [#{idx + 1} {item.name.toUpperCase()}]
+                                    [#{idx + 1} {item.name.split(' ')[0].toUpperCase()}]
                                 </span>
                             ))}
                         </div>

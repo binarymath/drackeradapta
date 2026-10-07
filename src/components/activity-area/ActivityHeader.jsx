@@ -70,6 +70,19 @@ export const ActivityHeader = ({
                     </Button>
                 )}
 
+                {/* Manual Input Trigger for empty Quiz */}
+                {activityType === 'quiz' && !hasContent && (
+                    <Button
+                        onClick={onEdit}
+                        variant="secondary"
+                        className="h-8 text-sm px-3 border-dashed border-brown-300 hover:border-brown-400 bg-amber-50 text-amber-700"
+                        icon={PenSquare}
+                        title="Criar ou Importar Quiz"
+                    >
+                        Criar Quiz / Importar
+                    </Button>
+                )}
+
                 {hasContent && (
                     <>
                         {(activityType === 'quiz' || activityType === 'simplify' || activityType === 'domino') && (

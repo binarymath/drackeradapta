@@ -22,6 +22,7 @@ export const QuizPrint = ({
     imageMaxHeight = 160,
     questionRepeats,
     imageBgColor = 'transparent',
+    fontSize = 12.5,
 }) => {
     if (!quizData?.questions?.length) return null;
 
@@ -73,7 +74,7 @@ export const QuizPrint = ({
         : { width: '100%', objectFit: 'contain', display: 'block' };
 
     return (
-        <div className="qp-wrap">
+        <div className="qp-wrap" style={{ '--qp-font-size': `${fontSize}px` }}>
 
             {/* ===== CABEÇALHO ===== */}
             <div className="qp-header">
@@ -381,10 +382,10 @@ export const QuizPrint = ({
                 .qp-diff--hard   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 
                 .qp-statement {
-                    font-size: 12.5px; font-weight: 700;
+                    font-size: var(--qp-font-size, 12.5px); font-weight: 700;
                     color: #1c0e03; line-height: 1.4; margin: 0;
                 }
-                .qp-card--text-only .qp-statement { font-size: 11px; }
+                .qp-card--text-only .qp-statement { font-size: calc(var(--qp-font-size, 12.5px) * 0.88); }
 
                 /* ── Imagem da questão ── */
                 .qp-question-img-wrap {
@@ -406,7 +407,7 @@ export const QuizPrint = ({
                     display: flex; align-items: center; gap: 7px;
                     background: #fffbeb; border: 1.5px solid #fde68a;
                     border-radius: 7px; padding: 5px 9px;
-                    font-size: 11.5px; color: #44230a;
+                    font-size: calc(var(--qp-font-size, 12.5px) * 0.92); color: #44230a;
                     -webkit-print-color-adjust: exact;
                     print-color-adjust: exact;
                 }

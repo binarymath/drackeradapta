@@ -186,10 +186,8 @@ export const MainLayout = () => {
     };
 
     const handleEditQuiz = () => {
-        if (activeActivity?.quizData) {
-            setIsEditing(true);
-            actions.openEditQuiz(activeActivity.quizData);
-        }
+        setIsEditing(true);
+        actions.openEditQuiz(activeActivity?.quizData || { questions: [] });
     };
     const handleEditMusic = () => {
         if (activeActivity?.musicData) {
@@ -394,12 +392,11 @@ export const MainLayout = () => {
                         // Edit Handlers
                         onEdit={
                             activityType === 'wordsearch' ? handleEditWordsearch :
-                                activeActivity?.type === 'quiz' ? handleEditQuiz :
-                                        activeActivity?.type === 'simplify' ? handleEditMusic :
-                                            activeActivity?.type === 'wordsearch' ? handleEditWordsearch :
-                                                activeActivity?.type === 'connect_dots' ? handleEditConnectDots :
-                                                    activeActivity?.type === 'domino' ? handleEditDomino :
-                                                        undefined
+                                (activeActivity?.type === 'quiz' || activityType === 'quiz') ? handleEditQuiz :
+                                        (activeActivity?.type === 'simplify' || activityType === 'simplify') ? handleEditMusic :
+                                            (activeActivity?.type === 'connect_dots' || activityType === 'connect_dots') ? handleEditConnectDots :
+                                                (activeActivity?.type === 'domino' || activityType === 'domino') ? handleEditDomino :
+                                                    undefined
                         }
                         musicData={activeActivity?.musicData}
 

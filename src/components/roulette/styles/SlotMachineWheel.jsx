@@ -295,7 +295,7 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
                                         ? `${isMaximized ? 'text-lg sm:text-2xl md:text-3xl' : 'text-base sm:text-lg'} text-amber-400`
                                         : `${isMaximized ? 'text-lg sm:text-2xl md:text-3xl' : 'text-base sm:text-lg'} text-white`
                             }`}>
-                                {currentStudent?.name || 'PRONTO'}
+                                {currentStudent?.name ? currentStudent.name.split(' ')[0] : 'PRONTO'}
                             </span>
                         </div>
 

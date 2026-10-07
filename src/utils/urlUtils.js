@@ -92,13 +92,42 @@ export function handleDriveImageError(e) {
 }
 
 /**
- * Renderiza o texto da pergunta, substituindo [img]URL[/img] e [IMG] por imagens inline.
+ * Verifica se a URL é do YouTube.
+ */
+export function isYouTubeUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    return /youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=)/.test(url);
+}
+
+/**
+ * Extrai o ID do vídeo do YouTube.
+ */
+export function getYouTubeVideoId(url) {
+    if (!url || typeof url !== 'string') return null;
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+    return match ? match[1] : null;
+}
+
+/**
+ * Converte um link do YouTube em um link de embed.
+ */
+export function getYouTubeEmbedUrl(url) {
+    const videoId = getYouTubeVideoId(url);
+    if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?rel=0`;
+    }
+    return url;
+}
+
+/**
+ * Renderiza o texto da pergunta, substituindo [img]URL[/img], [IMG] e [yt]URL[/yt] por mídia inline.
  */
 export function renderQuestionText(text, defaultImageUrl = null) {
     if (!text) return null;
     
     // Regex para encontrar [img]...[/img], [IMG], [IMG=300], [IMG=300x200]
-    const regex = /\[img(?:=([a-zA-Z0-9%]+))?\](.*?)\[\/img\]|\[IMG(?:=([a-zA-Z0-9%]+))?\]/gi;
+    // Também suporta [yt]...[/yt] e [video]...[/video]
+    const regex = /\[(?:img|yt|video)(?:=([a-zA-Z0-9%]+))?\](.*?)\[\/(?:img|yt|video)\]|\[IMG(?:=([a-zA-Z0-9%]+))?\]/gi;
     const parts = [];
     let lastIndex = 0;
     
@@ -140,17 +169,29 @@ export function renderQuestionText(text, defaultImageUrl = null) {
         }
         
         if (urlToRender) {
-            parts.push(
-                React.createElement('img', {
-                    key: match.index,
-                    src: toDirectImageUrl(urlToRender),
-                    alt: "",
-                    className: className,
-                    style: inlineStyle,
-                    referrerPolicy: "no-referrer",
-                    onError: handleDriveImageError
-                })
-            );
+            if (isYouTubeUrl(urlToRender) || match[0].toLowerCase().startsWith('[yt') || match[0].toLowerCase().startsWith('[video')) {
+                parts.push(
+                    React.createElement('iframe', {
+                        key: match.index,
+                        src: getYouTubeEmbedUrl(urlToRender),
+                        allowFullScreen: true,
+                        className: "rounded-xl border-2 border-slate-200 shadow-sm aspect-video w-full max-w-2xl my-4 mx-auto block",
+                        style: inlineStyle
+                    })
+                );
+            } else {
+                parts.push(
+                    React.createElement('img', {
+                        key: match.index,
+                        src: toDirectImageUrl(urlToRender),
+                        alt: "",
+                        className: className,
+                        style: inlineStyle,
+                        referrerPolicy: "no-referrer",
+                        onError: handleDriveImageError
+                    })
+                );
+            }
         } else {
             // Se usou [IMG] mas não tem defaultImageUrl
             parts.push(match[0]);

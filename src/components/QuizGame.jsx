@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Play, Check, X, RefreshCcw, Trophy, ChevronRight, UserPlus, Trash2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
-import { toDirectImageUrl, handleDriveImageError } from '../utils/urlUtils';
+import { toDirectImageUrl, handleDriveImageError, isYouTubeUrl, getYouTubeEmbedUrl } from '../utils/urlUtils';
 
 
 export const QuizGame = ({ quizData, onRestart }) => {
@@ -307,17 +307,26 @@ export const QuizGame = ({ quizData, onRestart }) => {
                         : 'transparent';
                     return (
                         <div
-                            className="mb-4 rounded-xl border border-brown-100 flex items-center justify-center"
-                            style={{ maxHeight: '240px', background: bg }}
+                            className={`mb-4 rounded-xl border border-brown-100 flex items-center justify-center w-full`}
+                            style={{ maxHeight: isYouTubeUrl(currentQuestion.image_url) ? 'none' : '240px', background: bg }}
                         >
-                            <img
-                                src={toDirectImageUrl(currentQuestion.image_url)}
-                                alt="Imagem da questão"
-                                className="max-w-full object-contain"
-                                style={{ maxHeight: '240px' }}
-                                referrerPolicy="no-referrer"
-                                onError={handleDriveImageError}
-                            />
+                            {isYouTubeUrl(currentQuestion.image_url) ? (
+                                <iframe 
+                                    src={getYouTubeEmbedUrl(currentQuestion.image_url)} 
+                                    className="w-full aspect-video rounded-lg shadow-sm"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                />
+                            ) : (
+                                <img
+                                    src={toDirectImageUrl(currentQuestion.image_url)}
+                                    alt="Imagem da questão"
+                                    className="max-w-full object-contain"
+                                    style={{ maxHeight: '240px' }}
+                                    referrerPolicy="no-referrer"
+                                    onError={handleDriveImageError}
+                                />
+                            )}
                         </div>
                     );
                 })()}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, CheckCircle, Save, AlertCircle, GripVertical, Image, Link2, Dices, Check } from 'lucide-react';
+import { X, Plus, Trash2, CheckCircle, Save, AlertCircle, GripVertical, Image, Link2, Dices, Check, FileSpreadsheet } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -11,7 +11,8 @@ import { Card } from './ui/Card';
 import { useActivity } from '../contexts/ActivityContext';
 import { convertRouletteQuestionsToQuiz } from '../services/questionTransitionService';
 import { gameAudio } from '../utils/gameAudio';
-import { toDirectImageUrl, handleDriveImageError } from '../utils/urlUtils';
+import { toDirectImageUrl, handleDriveImageError, isYouTubeUrl, getYouTubeEmbedUrl } from '../utils/urlUtils';
+import { GoogleSheetsImportModal } from './roulette/GoogleSheetsImportModal';
 
 
 function SortableOptionItem({ id, children }) {
@@ -43,6 +44,7 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
     const [questions, setQuestions] = useState([]);
     const { tabs } = useActivity();
     const [showRouletteSelector, setShowRouletteSelector] = useState(false);
+    const [showSheetsImport, setShowSheetsImport] = useState(false);
     const [importSuccessMsg, setImportSuccessMsg] = useState('');
 
     const rouletteTabs = (tabs || []).filter(t => t.type === 'roulette' && t.questions?.length > 0);
@@ -73,6 +75,26 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
         setQuestions(prev => [...prev, ...newFormatted]);
         setShowRouletteSelector(false);
         setImportSuccessMsg(`+${newFormatted.length} questão(ões) importadas da "${rTab.title || 'Roleta'}"!`);
+        gameAudio?.playSuccess?.();
+        setTimeout(() => setImportSuccessMsg(''), 4000);
+    };
+
+    const handleImportFromSheets = (importedQuestions) => {
+        const newFormatted = importedQuestions.map((q, qIndex) => {
+            return {
+                id: `q-sheets-${Date.now()}-${qIndex}`,
+                statement: q.question || '',
+                difficulty: q.difficulty === 'Fácil' ? 'easy' : q.difficulty === 'Difícil' ? 'hard' : 'medium',
+                image_url: q.imageUrl || '',
+                image_bg_color: 'transparent',
+                options: [
+                    { text: q.answer || '', isCorrect: true, id: `imp_sht_${Date.now()}_${qIndex}_0` },
+                    { text: '', isCorrect: false, id: `imp_sht_${Date.now()}_${qIndex}_1` }
+                ],
+            };
+        });
+        setQuestions(prev => [...prev, ...newFormatted]);
+        setImportSuccessMsg(`+${newFormatted.length} questão(ões) importadas da planilha!`);
         gameAudio?.playSuccess?.();
         setTimeout(() => setImportSuccessMsg(''), 4000);
     };
@@ -208,23 +230,28 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
     };
 
     const handleSave = () => {
-        const exportData = {
-            intro_text: introText,
-            questions: questions.map(q => {
-                const correct = q.options.find(o => o.isCorrect);
-                const distractors = q.options.filter(o => !o.isCorrect).map(o => o.text);
-                return {
-                    statement: q.statement,
-                    correct_answer: correct ? correct.text : (q.options[0]?.text || ''),
-                    distractors,
-                    ordered_options: q.options.map(o => o.text),
-                    difficulty: q.difficulty || 'medium',
-                    image_url: q.image_url ? toDirectImageUrl(q.image_url.trim()) : undefined,
-                    image_bg_color: q.image_bg_color && q.image_bg_color !== 'transparent' ? q.image_bg_color : undefined,
-                };
-            }),
-        };
-        onSave(exportData);
+        try {
+            const exportData = {
+                intro_text: introText,
+                questions: questions.map(q => {
+                    const correct = q.options.find(o => o.isCorrect);
+                    const distractors = q.options.filter(o => !o.isCorrect).map(o => o.text);
+                    return {
+                        statement: q.statement,
+                        correct_answer: correct ? correct.text : (q.options && q.options[0] ? q.options[0].text : ''),
+                        distractors: distractors || [],
+                        ordered_options: q.options ? q.options.map(o => o.text) : [],
+                        difficulty: q.difficulty || 'medium',
+                        image_url: q.image_url ? toDirectImageUrl(q.image_url.trim()) : undefined,
+                        image_bg_color: q.image_bg_color && q.image_bg_color !== 'transparent' ? q.image_bg_color : undefined,
+                    };
+                }),
+            };
+            onSave(exportData);
+        } catch (e) {
+            console.error("Error in handleSave:", e);
+            alert("Ocorreu um erro ao salvar o quiz. Verifique se todas as perguntas têm alternativas válidas.");
+        }
     };
 
     const footer = (
@@ -259,44 +286,56 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <h3 className="text-sm font-bold text-brown-700 uppercase tracking-wider">Questões ({questions.length})</h3>
                         
-                        {rouletteTabs.length > 0 && (
-                            <div className="relative">
-                                <Button
-                                    type="button"
-                                    onClick={() => setShowRouletteSelector(!showRouletteSelector)}
-                                    variant="secondary"
-                                    className="h-8 text-xs px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 font-bold"
-                                    icon={Dices}
-                                >
-                                    Importar da Roleta...
-                                </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                type="button"
+                                onClick={() => setShowSheetsImport(true)}
+                                variant="secondary"
+                                className="h-8 text-xs px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-emerald-300 font-bold"
+                                icon={FileSpreadsheet}
+                            >
+                                Importar Planilha...
+                            </Button>
 
-                                {showRouletteSelector && (
-                                    <div className="absolute right-0 mt-1 w-72 bg-white border border-brown-200 rounded-2xl shadow-xl z-20 p-2 animate-in fade-in slide-in-from-top-2 duration-150">
-                                        <div className="text-[10px] font-black uppercase tracking-wider text-brown-400 px-2 py-1">
-                                            Escolha uma Roleta:
+                            {rouletteTabs.length > 0 && (
+                                <div className="relative">
+                                    <Button
+                                        type="button"
+                                        onClick={() => setShowRouletteSelector(!showRouletteSelector)}
+                                        variant="secondary"
+                                        className="h-8 text-xs px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 font-bold"
+                                        icon={Dices}
+                                    >
+                                        Importar da Roleta...
+                                    </Button>
+
+                                    {showRouletteSelector && (
+                                        <div className="absolute right-0 mt-1 w-72 bg-white border border-brown-200 rounded-2xl shadow-xl z-20 p-2 animate-in fade-in slide-in-from-top-2 duration-150">
+                                            <div className="text-[10px] font-black uppercase tracking-wider text-brown-400 px-2 py-1">
+                                                Escolha uma Roleta:
+                                            </div>
+                                            <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                                {rouletteTabs.map(rt => (
+                                                    <button
+                                                        key={rt.id}
+                                                        type="button"
+                                                        onClick={() => handleImportFromRoulette(rt)}
+                                                        className="w-full text-left p-2 rounded-xl hover:bg-amber-50 transition-colors flex items-center justify-between text-xs"
+                                                    >
+                                                        <div className="truncate font-semibold text-brown-900">
+                                                            {rt.title || 'Roleta'}
+                                                        </div>
+                                                        <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                                                            {rt.questions.length} questões
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                        <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                            {rouletteTabs.map(rt => (
-                                                <button
-                                                    key={rt.id}
-                                                    type="button"
-                                                    onClick={() => handleImportFromRoulette(rt)}
-                                                    className="w-full text-left p-2 rounded-xl hover:bg-amber-50 transition-colors flex items-center justify-between text-xs"
-                                                >
-                                                    <div className="truncate font-semibold text-brown-900">
-                                                        {rt.title || 'Roleta'}
-                                                    </div>
-                                                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full shrink-0 ml-2">
-                                                        {rt.questions.length} questões
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Notificação de Sucesso */}
@@ -356,7 +395,7 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                                     <div className="space-y-1.5">
                                         <div className="flex items-center gap-2">
                                             <Image className="w-3.5 h-3.5 text-brown-400" />
-                                            <span className="text-xs font-semibold text-brown-500 uppercase tracking-wider">Imagem (opcional)</span>
+                                            <span className="text-xs font-semibold text-brown-500 uppercase tracking-wider">Imagem ou YouTube (opcional)</span>
                                         </div>
 
                                         {/* URL */}
@@ -366,7 +405,7 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                                                 type="url"
                                                 value={q.image_url || ''}
                                                 onChange={e => handleImageUrlChange(qIndex, e.target.value)}
-                                                placeholder="URL da imagem ou link do Google Drive..."
+                                                placeholder="URL da imagem ou YouTube..."
                                                 className="flex-1 text-xs p-1.5 rounded border border-brown-200 hover:border-brown-300 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-200 transition-colors bg-white"
                                             />
                                         </div>
@@ -443,15 +482,25 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                                                         : 'repeating-conic-gradient(#e0e0e0 0% 25%, #f5f5f5 0% 50%) 0 0 / 12px 12px',
                                                 }}
                                             >
-                                                <img
-                                                    src={toDirectImageUrl(q.image_url.trim())}
-                                                    alt="Preview"
-                                                    className="w-full object-contain"
-                                                    style={{ maxHeight: '160px' }}
-                                                    referrerPolicy="no-referrer"
-                                                    onError={handleDriveImageError}
-                                                    onLoad={e => { e.target.style.display = 'block'; }}
-                                                />
+                                                {isYouTubeUrl(q.image_url) ? (
+                                                    <iframe 
+                                                        src={getYouTubeEmbedUrl(q.image_url)} 
+                                                        className="w-full"
+                                                        style={{ height: '160px' }}
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        allowFullScreen
+                                                    />
+                                                ) : (
+                                                    <img
+                                                        src={toDirectImageUrl(q.image_url.trim())}
+                                                        alt="Preview"
+                                                        className="w-full object-contain"
+                                                        style={{ maxHeight: '160px' }}
+                                                        referrerPolicy="no-referrer"
+                                                        onError={handleDriveImageError}
+                                                        onLoad={e => { e.target.style.display = 'block'; }}
+                                                    />
+                                                )}
                                                 <div className="hidden items-center justify-center gap-1 p-3 text-xs text-red-500">
                                                     <AlertCircle className="w-4 h-4" />
                                                     <span>Não foi possível carregar a imagem. Verifique o link.</span>
@@ -553,6 +602,13 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                     Adicionar Nova Questão
                 </Button>
             </div>
+            
+            <GoogleSheetsImportModal
+                isOpen={showSheetsImport}
+                onClose={() => setShowSheetsImport(false)}
+                mode="import"
+                onImport={handleImportFromSheets}
+            />
         </Modal>
     );
 };

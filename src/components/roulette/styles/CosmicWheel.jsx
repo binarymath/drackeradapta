@@ -210,7 +210,7 @@ export const CosmicWheel = ({ items = [], spinning = false, winner = null, onSpi
                                             transform: `rotate(${labelCoords.angle > 180 ? labelCoords.angle + 90 : labelCoords.angle - 90}deg)`
                                         }}
                                     >
-                                        {item.name.length > 12 ? item.name.substring(0, 10) + '...' : item.name.toUpperCase()}
+                                        {item.name.split(' ')[0].length > 12 ? item.name.split(' ')[0].substring(0, 10) + '...' : item.name.split(' ')[0].toUpperCase()}
                                     </text>
                                 </g>
                             );

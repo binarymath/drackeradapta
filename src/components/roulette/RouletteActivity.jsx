@@ -96,6 +96,8 @@ export const RouletteActivity = () => {
         showSheetsModal,
         showTransitionModal,
         spinning,
+        groupSpinMode,
+        setGroupSpinMode,
         startGroupRound,
         studentCycleInfo,
         studentDrawCounts,
@@ -108,6 +110,8 @@ export const RouletteActivity = () => {
         updateStudentInClass,
         usedQuestions,
         winner,
+        selectedManualQuestionId,
+        setSelectedManualQuestionId,
         handleChangeWinnerStudent,
         handleSelectStudentManually,
         handleToggleStudentActivityStatus,
@@ -126,6 +130,7 @@ export const RouletteActivity = () => {
         handleGroupResult,
         handleGroupSlotResult,
         handleChangeGroupSlotQuestion,
+        handleEditGroupSlotQuestionContent,
         handleClearGroupRound,
         handleTimerExplode,
         handleRevealAnswer,
@@ -453,9 +458,9 @@ export const RouletteActivity = () => {
                     <div className={`z-10 relative w-full flex items-center justify-center min-h-0 ${isMaximized ? 'flex-1 my-0.5' : 'my-2'}`}>
                         <RouletteWheel 
                             style={rouletteStyle}
-                            items={gameMode === 'groups' ? activeGroupItems : activeItems} 
+                            items={gameMode === 'groups' ? (winner?.id === 'simultaneous' ? [...activeGroupItems, winner] : activeGroupItems) : activeItems} 
                             spinning={spinning} 
-                            winner={gameMode === 'groups' ? null : winner} 
+                            winner={winner} 
                             onSpinComplete={handleSpinComplete} 
                             isMaximized={isMaximized}
                         />
@@ -473,6 +478,7 @@ export const RouletteActivity = () => {
                                 activeTab={activeGroupTab}
                                 onTabChange={setActiveGroupTab}
                                 onSlotResult={handleGroupSlotResult}
+                                onEditQuestionContent={handleEditGroupSlotQuestionContent}
                                 allQuestions={uniqueQuestions}
                                 usedQuestions={usedQuestions}
                                 onChangeQuestion={(idx, specificQ = null) => {
@@ -489,6 +495,7 @@ export const RouletteActivity = () => {
                                     if (newQ) handleChangeGroupSlotQuestion(idx, newQ);
                                 }}
                                 onClear={handleClearGroupRound}
+                                onClose={handleClearGroupRound}
                             />
                         );
                     })()}
@@ -505,6 +512,34 @@ export const RouletteActivity = () => {
                                     className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl transition-all shadow-sm cursor-pointer flex items-center gap-1.5 text-xs"
                                 >
                                     <RotateCcw className="w-3.5 h-3.5" /> Colocar Todos na Roleta
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Seletor de Modo de Giro para Equipes */}
+                        {gameMode === 'groups' && (
+                            <div className="flex bg-slate-900/60 p-1 rounded-xl border border-slate-700 backdrop-blur-md shadow-inner mb-2 w-full max-w-sm sm:max-w-md">
+                                <button
+                                    type="button"
+                                    onClick={() => setGroupSpinMode('single')}
+                                    className={`flex-1 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all ${
+                                        groupSpinMode === 'single'
+                                            ? 'bg-indigo-600 text-white shadow-md'
+                                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                                    }`}
+                                >
+                                    🎯 1 Equipe
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setGroupSpinMode('all')}
+                                    className={`flex-1 py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold rounded-lg transition-all ${
+                                        groupSpinMode === 'all'
+                                            ? 'bg-amber-500 text-slate-950 shadow-md'
+                                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                                    }`}
+                                >
+                                    ⚡ Todas Simultâneas
                                 </button>
                             </div>
                         )}
@@ -613,6 +648,7 @@ export const RouletteActivity = () => {
                                     title="Escolher manualmente um aluno específico para responder agora"
                                 >
                                     <option value="" disabled className="text-slate-900 bg-white">🎯 Escolher Aluno Manualmente...</option>
+                                    <option value="todos_respondem" className="text-slate-900 font-black bg-indigo-100">⚡ Todos Respondem (Turma Toda)</option>
                                     {combinedItems
                                         .filter(s => s.status !== 'absent')
                                         .map(s => (
@@ -623,6 +659,22 @@ export const RouletteActivity = () => {
                                     }
                                 </select>
                             )}
+                            
+                            {/* Seletor Manual de Pergunta */}
+                            <select
+                                value={selectedManualQuestionId || ""}
+                                onChange={(e) => setSelectedManualQuestionId(e.target.value || null)}
+                                disabled={spinning || uniqueQuestions.length === 0}
+                                className="text-xs sm:text-sm font-bold bg-black/40 hover:bg-black/60 text-white/90 border border-white/20 hover:border-purple-400/50 rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-all shadow-md backdrop-blur-sm max-w-xs truncate"
+                                title="Escolher uma pergunta específica para a próxima rodada"
+                            >
+                                <option value="" className="text-slate-900 bg-white">🎲 Pergunta Aleatória (Padrão)</option>
+                                {uniqueQuestions.map(q => (
+                                    <option key={q.id} value={q.id} className="text-slate-900 bg-white">
+                                        {q.question.slice(0, 50)}{q.question.length > 50 ? '...' : ''}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -703,6 +755,10 @@ export const RouletteActivity = () => {
                     onRevealAnswer={handleRevealAnswer}
                     onRevealHint={handleRevealHint}
                     onOpenSidebar={() => setIsSidebarOpen(true)}
+                    onClose={() => {
+                        setShowCard(false);
+                        setWinner(null);
+                    }}
                 />
             )}
 
