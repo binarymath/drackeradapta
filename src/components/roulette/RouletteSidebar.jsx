@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
     User, 
     Users, 
@@ -120,7 +121,10 @@ export const RouletteSidebar = ({
         return studentHelps.length > 0 || !!s.hadHelp || (s.helpCount && s.helpCount > 0);
     }).length;
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    // Portal no body: escapa de containers pai e fica acima da arena maximizada (z-9000) e do card (z-10000)
+    return createPortal(
         <>
             {/* Modal de Justificativa para Adicionar ou Remover Ponto */}
             <PointJustificationModal 
@@ -134,7 +138,7 @@ export const RouletteSidebar = ({
 
             <aside
                 aria-label="Painel Lateral de Alunos e Placar"
-                className={`fixed inset-y-0 right-0 z-[60] w-full md:w-[80vw] max-w-[92vw] bg-white/95 backdrop-blur-xl border-l border-slate-200/80 shadow-[0_0_50px_rgba(0,0,0,0.15)] flex flex-col transform transition-transform duration-300 ease-out select-none ${
+                className={`fixed inset-y-0 right-0 z-[11000] w-full md:w-[80vw] max-w-[92vw] bg-white/95 backdrop-blur-xl border-l border-slate-200/80 shadow-[0_0_50px_rgba(0,0,0,0.15)] flex flex-col transform transition-transform duration-300 ease-out select-none ${
                     isOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'
                 }`}
             >
@@ -872,6 +876,7 @@ export const RouletteSidebar = ({
                     </button>
                 </div>
             </aside>
-        </>
+        </>,
+        document.body
     );
 };

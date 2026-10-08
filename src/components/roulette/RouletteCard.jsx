@@ -64,7 +64,9 @@ export const RouletteCard = ({
                                   document.webkitFullscreenElement || 
                                   document.mozFullScreenElement || 
                                   document.msFullscreenElement;
-                setPortalNode(fsElement || document.body);
+                // Tela cheia agora é aplicada no documento inteiro (<html>), então o portal vai para o body
+                const usableFs = fsElement && fsElement !== document.documentElement ? fsElement : null;
+                setPortalNode(usableFs || document.body);
             };
             updatePortalNode();
             
@@ -494,7 +496,7 @@ export const RouletteCard = ({
 
     return createPortal(
         <>
-        <div className={`fixed z-[999999] transition-all duration-300 ease-in-out ${
+        <div className={`fixed z-[10000] transition-all duration-300 ease-in-out ${
             isCardMinimized 
                 ? 'bottom-4 left-4 right-auto top-auto w-auto h-auto' 
                 : 'inset-0 flex items-center justify-center p-2 sm:p-3 md:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in'

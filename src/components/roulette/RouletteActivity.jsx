@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useActivity } from '../../contexts/ActivityContext';
 import { useGemini } from '../../contexts/GeminiContext';
 import { RouletteWheel } from './RouletteWheel';
@@ -16,6 +17,11 @@ import { GoogleSheetsImportModal } from './GoogleSheetsImportModal';
 import { RouletteEmptyState } from './RouletteEmptyState';
 import { CheckCircle, XCircle, RotateCcw, List, Download, UserX, Edit3, RotateCw, RefreshCw, Eye, EyeOff, HeartHandshake, Award, Maximize2, Minimize2, Users, Plus, Minus, Target, UserMinus, Sparkles, AlertTriangle, User, Trophy, ChevronRight, ChevronLeft, BarChart3, Play, Square } from 'lucide-react';
 import { gameAudio } from '../../utils/gameAudio';
+
+// Quando maximizada, a arena é desenhada direto no <body> (igual ao card do sorteio),
+// escapando de containers pai e cobrindo 100% da tela na camada z-[9000].
+const ArenaPortal = ({ active, children }) =>
+    active && typeof document !== 'undefined' ? createPortal(children, document.body) : children;
 
 // Temas visuais imersivos para o palco de fundo da roleta
 import { useRouletteCore, STAGE_THEMES } from './hooks/useRouletteCore';
@@ -259,11 +265,12 @@ export const RouletteActivity = () => {
             {/* Palco central com arena temática da roleta */}
             <div className="w-full flex justify-center items-center">
                 {/* Arena Imersiva da Roleta */}
+                <ArenaPortal active={isMaximized}>
                 <div 
                     ref={arenaRef}
                     className={`transition-all duration-500 ${
                         isMaximized 
-                            ? `fixed inset-0 z-40 w-full h-[100dvh] max-h-[100dvh] m-0 rounded-none border-0 p-3 sm:p-5 md:p-6 flex flex-col justify-between overflow-hidden ${currentTheme.container}`
+                            ? `fixed inset-0 z-[9000] w-full h-[100dvh] max-h-[100dvh] m-0 rounded-none border-0 p-3 sm:p-5 md:p-6 flex flex-col justify-between overflow-hidden animate-in fade-in duration-300 ${currentTheme.container}`
                             : `w-full max-w-5xl relative flex flex-col items-center justify-center p-5 sm:p-7 rounded-3xl border overflow-hidden ${currentTheme.container}`
                     }`}
                 >
@@ -645,8 +652,9 @@ export const RouletteActivity = () => {
                         </div>
                     </div>
                 </div>
+                </ArenaPortal>
                 
-                {/* CARD DO RESULTADO DO SORTEIO (DENTRO DA ARENA PARA SUPORTE A FULLSCREEN NATIVO) */}
+                {/* CARD DO RESULTADO DO SORTEIO (portal próprio no body, camada z-[10000]) */}
                 {showCard && winner && (
                     <RouletteCard 
                         winner={winner} 
@@ -680,7 +688,7 @@ export const RouletteActivity = () => {
             </div>
 
             {/* Botão Flutuante Criativo na Borda Direita para Abrir a Sidebar */}
-            {!isSidebarOpen && (
+            {!isSidebarOpen && !isMaximized && (
                 <button
                     type="button"
                     onClick={() => setIsSidebarOpen(true)}

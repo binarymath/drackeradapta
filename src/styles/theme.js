@@ -35,7 +35,7 @@ export const theme = {
 
     // Specific Component Styles
     modal: {
-        overlay: "fixed inset-0 z-50 flex items-center justify-center bg-brown-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200",
+        overlay: "fixed inset-0 z-[12000] flex items-center justify-center bg-brown-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200",
         container: "bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200",
         header: "p-4 border-b border-brown-100 flex items-center justify-between bg-brown-50",
         body: "p-6 space-y-4 overflow-y-auto flex-1 bg-brown-50/30",

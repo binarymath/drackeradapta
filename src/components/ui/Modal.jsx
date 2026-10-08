@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { theme } from '../../styles/theme';
 
@@ -17,7 +18,7 @@ export const Modal = ({ isOpen, onClose, title, children, footer, icon: Icon, si
 
     const containerClasses = theme.modal.container.replace('max-w-2xl', '').trim();
 
-    return (
+    const content = (
         <div className={theme.modal.overlay}>
             <div className={`${containerClasses} ${maxWidthClass}`}>
                 {/* Header */}
@@ -49,4 +50,8 @@ export const Modal = ({ isOpen, onClose, title, children, footer, icon: Icon, si
             </div>
         </div>
     );
+
+    // Portal no body: o modal sempre fica na frente (acima da roleta maximizada, card e painel lateral)
+    if (typeof document === 'undefined') return content;
+    return createPortal(content, document.body);
 };

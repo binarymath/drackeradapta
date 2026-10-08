@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle, XCircle, RotateCcw, RotateCw, Eye, EyeOff, Maximize2, Minimize2, Trophy, Type, List, Shuffle, AlignLeft, AlignCenter, AlignRight, AlignJustify, Edit3 } from 'lucide-react';
 import { QuestionEditModal } from './card-modals/QuestionEditModal';
 import { RouletteTimerBomb } from './RouletteTimerBomb';
@@ -90,7 +91,7 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
         return { label: 'Media', color: 'bg-amber-100 text-amber-800 border-amber-300', dot: 'bg-amber-500' };
     };
 
-    const containerClass = `fixed z-50 transition-all duration-300 ease-in-out ${
+    const containerClass = `fixed z-[10000] transition-all duration-300 ease-in-out ${
         isCardMinimized 
             ? 'bottom-4 left-4 right-auto top-auto w-auto h-auto' 
             : 'inset-0 flex items-center justify-center p-2 sm:p-3 md:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in'
@@ -102,7 +103,10 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
             : `flex flex-col lg:flex-row h-[92vh] max-h-[92vh] ${timerViewMode === 'normal' ? 'w-[96vw] max-w-[1560px] gap-2.5 sm:gap-3' : 'w-[90vw] max-w-[1150px] gap-0'}`
     }`;
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    // Portal no body (igual ao RouletteCard): fica acima da arena maximizada e abaixo do painel lateral/modais
+    return createPortal(
         <div className={containerClass}>
             {/* WIDGET MINIMIZADO */}
             {isCardMinimized && (
@@ -444,6 +448,7 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
                 questionData={slot}
                 onSave={handleSaveEditing}
             />
-        </div>
+        </div>,
+        document.body
     );
 };

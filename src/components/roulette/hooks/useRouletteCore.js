@@ -835,23 +835,35 @@ export const useRouletteCore = () => {
     const [isMaximized, setIsMaximized] = useState(false);
     const arenaRef = useRef(null);
 
+    const getFullscreenElement = () =>
+        document.fullscreenElement || document.webkitFullscreenElement || null;
+
     const toggleMaximize = async () => {
         if (!isMaximized) {
             setIsMaximized(true);
             try {
-                if (arenaRef.current && arenaRef.current.requestFullscreen && !document.fullscreenElement) {
-                    await arenaRef.current.requestFullscreen();
-                } else if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
-                    await document.documentElement.requestFullscreen();
+                // Tela cheia no DOCUMENTO INTEIRO (não só na arena): assim o painel lateral,
+                // os modais e o card (renderizados via portal no body) continuam visíveis na frente.
+                const root = document.documentElement;
+                if (!getFullscreenElement()) {
+                    if (root.requestFullscreen) {
+                        await root.requestFullscreen();
+                    } else if (root.webkitRequestFullscreen) {
+                        root.webkitRequestFullscreen();
+                    }
                 }
             } catch (err) {
-                // Modo maximizado via CSS fixed funcionará mesmo se o navegador restringir a API nativa
+                // Modo maximizado via CSS (portal fixed) funcionará mesmo se o navegador restringir a API nativa
             }
         } else {
             setIsMaximized(false);
             try {
-                if (document.fullscreenElement && document.exitFullscreen) {
-                    await document.exitFullscreen();
+                if (getFullscreenElement()) {
+                    if (document.exitFullscreen) {
+                        await document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    }
                 }
             } catch (err) {
                 // Fallback silencioso
@@ -859,10 +871,20 @@ export const useRouletteCore = () => {
         }
     };
 
+    // Trava a rolagem da página por trás enquanto a arena está maximizada
+    useEffect(() => {
+        if (!isMaximized) return;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [isMaximized]);
+
     // Sincroniza saída pelo ESC do navegador, tecla F11 ou atalho de teclado
     useEffect(() => {
         const handleFullscreenChange = () => {
-            if (!document.fullscreenElement && isMaximized) {
+            if (!getFullscreenElement() && isMaximized) {
                 setIsMaximized(false);
             }
         };
@@ -885,10 +907,12 @@ export const useRouletteCore = () => {
         };
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
         window.addEventListener('keydown', handleKeyDown);
 
         return () => {
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
             window.removeEventListener('keydown', handleKeyDown);
         };
     }, [isMaximized, spinning, showCard, activeItems.length]);
