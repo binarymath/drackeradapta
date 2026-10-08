@@ -114,7 +114,7 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
         const totalSteps = 42; // Número de trocas de nomes
         let currentIdx = Math.floor(Math.random() * items.length);
 
-        const winnerIndex = items.findIndex(i => i.id === winner.id);
+        const winnerIndex = items.findIndex(i => String(i.id) === String(winner.id));
         const targetWinnerIdx = winnerIndex !== -1 ? winnerIndex : 0;
 
         const cycleNames = () => {
@@ -172,7 +172,7 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
     }
 
     // Alunos para o visor mecânico de 3 faixas
-    const displayIndex = lockedWinner ? items.findIndex(i => i.id === lockedWinner.id) : currentIndex;
+    const displayIndex = lockedWinner ? items.findIndex(i => String(i.id) === String(lockedWinner.id)) : currentIndex;
     const safeIdx = displayIndex >= 0 ? displayIndex : 0;
     
     const prevItem = items[(safeIdx - 1 + items.length) % items.length];

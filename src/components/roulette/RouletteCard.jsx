@@ -60,11 +60,20 @@ export const RouletteCard = ({
     useEffect(() => {
         if (typeof document !== 'undefined') {
             const updatePortalNode = () => {
-                setPortalNode(document.fullscreenElement || document.body);
+                const fsElement = document.fullscreenElement || 
+                                  document.webkitFullscreenElement || 
+                                  document.mozFullScreenElement || 
+                                  document.msFullscreenElement;
+                setPortalNode(fsElement || document.body);
             };
             updatePortalNode();
-            document.addEventListener('fullscreenchange', updatePortalNode);
-            return () => document.removeEventListener('fullscreenchange', updatePortalNode);
+            
+            const events = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+            events.forEach(event => document.addEventListener(event, updatePortalNode));
+            
+            return () => {
+                events.forEach(event => document.removeEventListener(event, updatePortalNode));
+            };
         }
     }, []);
 

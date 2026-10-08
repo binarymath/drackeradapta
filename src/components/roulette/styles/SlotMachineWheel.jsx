@@ -141,7 +141,7 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
         const totalSteps = 45;
         let activeIdx = Math.floor(Math.random() * items.length);
 
-        const winnerIndex = items.findIndex(i => i.id === winner.id);
+        const winnerIndex = items.findIndex(i => String(i.id) === String(winner.id));
         const targetWinnerIdx = winnerIndex !== -1 ? winnerIndex : 0;
 
         const cycleReels = () => {
@@ -197,7 +197,7 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
         );
     }
 
-    const displayIdx = lockedWinner ? items.findIndex(i => i.id === lockedWinner.id) : currentStudentIdx;
+    const displayIdx = lockedWinner ? items.findIndex(i => String(i.id) === String(lockedWinner.id)) : currentStudentIdx;
     const safeIdx = displayIdx >= 0 ? displayIdx : 0;
     const currentStudent = items[safeIdx] || items[0];
 
