@@ -7,6 +7,8 @@ import { generateCrossword } from '../utils/crosswordGenerator';
 import { useActivity } from '../contexts/ActivityContext';
 import { useGemini } from '../contexts/GeminiContext';
 import { useAudio } from '../contexts/AudioContext';
+import { shuffleInPlace } from '../utils/array';
+import { toast } from '../components/ui/Toast';
 
 export const useActivityActions = () => {
     const {
@@ -151,40 +153,31 @@ export const useActivityActions = () => {
             return;
         }
 
+        if (activityType === 'quiz') {
+            setQuizEditorData({ questions: [], topic: topic });
+            setShowQuizEditor(true);
+            return;
+        }
+
+        if (activityType === 'simplify') {
+            setMusicEditorData({ verses: [], topic: topic });
+            setShowMusicEditor(true);
+            return;
+        }
+
+        if (activityType === 'connect_dots') {
+            setConnectDotsEditorData({ pairs: [], topic: topic });
+            setShowConnectDotsEditor(true);
+            return;
+        }
+
         setIsLoading(true);
         setError('');
         setSystemStatus(null);
         setIsEditing(false);
 
         try {
-            if (activityType === 'quiz') {
-                const parsedData = await generateQuizActivity({
-                    topic,
-                    lessonDetails,
-                    difficulty,
-                    model: selectedModel,
-                    geminiService,
-                    questionCount,
-                    difficultyDist
-                });
-                setQuizEditorData(parsedData);
-                setShowQuizEditor(true);
-                setIsLoading(false);
-                return;
-            }
 
-            if (activityType === 'simplify') {
-                const parsedData = await generateMusicActivity({
-                    topic,
-                    lessonDetails,
-                    model: selectedModel,
-                    geminiService
-                });
-                setMusicEditorData(parsedData);
-                setShowMusicEditor(true);
-                setIsLoading(false);
-                return;
-            }
 
             if (activityType === 'rpg') {
                 addActivityTab({
@@ -225,18 +218,7 @@ export const useActivityActions = () => {
                 return;
             }
 
-            if (activityType === 'connect_dots') {
-                const data = await geminiService.generateConnectDots(topic, lessonDetails);
-                addActivityTab({
-                    title: topic || "Liga Pontos",
-                    type: 'connect_dots',
-                    content: `Atividade de Ligar Pontos sobre ${topic}`,
-                    data: data
-                });
-                generateAudio(`Atividade de ligar pontos sobre ${topic}. Relacione a coluna da esquerda com a direita.`);
-                setIsLoading(false);
-                return;
-            }
+
             if (activityType === 'roulette') {
                 if (!selectedClassId) {
                     setError('Para gerar a roleta, selecione uma Turma na barra lateral.');
@@ -283,7 +265,7 @@ export const useActivityActions = () => {
 
 
 
-            const levelLabel = difficulty === 'hard' ? 'Ensino Médio (linguagem avançada, conceitos aprofundados)' : difficulty === 'easy' ? 'Anos Iniciais do Ensino Fundamental (linguagem lúdica, infantil e super fácil)' : 'Anos Finais do Ensino Fundamental (linguagem padrão, conceitos intermediários)';
+
             const context = `Contexto/Detalhes: ${lessonDetails || 'Nenhum detalhe adicional.'}`;
 
             let prompt = `${topic}. ${context}`;
@@ -331,7 +313,7 @@ export const useActivityActions = () => {
                     optionsToDisplay = q.ordered_options.slice(0, 5);
                 } else {
                     const options = [q.correct_answer, ...(q.distractors || [])].slice(0, 5);
-                    optionsToDisplay = options.sort(() => Math.random() - 0.5);
+                    optionsToDisplay = shuffleInPlace(options);
                 }
 
                 formattedOutput += `${index + 1}. ${q.statement}\n`;
@@ -450,7 +432,7 @@ export const useActivityActions = () => {
             if (layout.words.length === 0) {
                 const layout2 = generateCrossword(editedData.words, 20);
                 if (layout2.words.length === 0) {
-                    alert("Não foi possível encaixar todas as palavras.");
+                    toast("Não foi possível encaixar todas as palavras.");
                     return;
                 }
                 finalData = {
@@ -478,7 +460,7 @@ export const useActivityActions = () => {
 
         } catch (e) {
             console.error("Erro ao gerar grid final:", e);
-            alert("Erro ao criar layout: " + e.message);
+            toast("Erro ao criar layout: " + e.message);
         }
     };
 

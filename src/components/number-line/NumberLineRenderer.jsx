@@ -196,7 +196,7 @@ export const NumberLineRenderer = ({
 
     return (
         <div className={`w-full ${isFullscreen ? 'h-full flex items-center justify-center overflow-hidden' : 'overflow-x-auto'} ${isPrint ? '' : 'py-4 select-none'}`}>
-            <div className={isFullscreen ? "w-full h-full flex items-center justify-center bg-transparent p-0 border-0 shadow-none max-w-none" : "min-w-[700px] max-w-5xl mx-auto bg-white rounded-2xl p-4 shadow-sm border border-brown-100"}>
+            <div className={isFullscreen ? "w-full h-full flex items-center justify-center bg-transparent p-0 border-0 shadow-none max-w-none" : "min-w-[700px] max-w-5xl mx-auto bg-white rounded-2xl p-4 shadow-sm border border-slate-200"}>
                 <svg
                     id="number-line-svg"
                     xmlns="http://www.w3.org/2000/svg"

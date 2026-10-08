@@ -35,21 +35,21 @@ export function useAudioNarration(geminiService) {
     setIsGeneratingAudio(false);
   }, [geminiService]);
 
-  const selectVoice = (voices) => {
-    if (speechSettings.voiceURI) {
-      return voices.find(v => v.voiceURI === speechSettings.voiceURI) || null;
-    }
-    const brVoices = voices.filter(v => v.lang.includes('pt-BR') || v.lang.includes('pt_BR'));
-    return brVoices.find(v =>
-      v.name.includes('Google') ||
-      v.name.includes('Francisca') ||
-      v.name.includes('Luciana') ||
-      v.name.toLowerCase().includes('female')
-    ) || brVoices[0] || null;
-  };
-
   const playChunk = useCallback((index) => {
     if (index < 0 || index >= speechChunks.length) return;
+
+    const selectVoice = (voices) => {
+      if (speechSettings.voiceURI) {
+        return voices.find(v => v.voiceURI === speechSettings.voiceURI) || null;
+      }
+      const brVoices = voices.filter(v => v.lang.includes('pt-BR') || v.lang.includes('pt_BR'));
+      return brVoices.find(v =>
+        v.name.includes('Google') ||
+        v.name.includes('Francisca') ||
+        v.name.includes('Luciana') ||
+        v.name.toLowerCase().includes('female')
+      ) || brVoices[0] || null;
+    };
 
     window.speechSynthesis.cancel();
     const chunkText = speechChunks[index];

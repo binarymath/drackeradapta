@@ -5,6 +5,7 @@ import { CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 import { LatexRenderer } from '../ui/LatexRenderer';
+import { shuffle } from '../../utils/array';
 
 const DominoGame = ({ data, isGameMode }) => {
     const { pairs = [], isCircular = false } = data || {};
@@ -64,7 +65,7 @@ const DominoGame = ({ data, isGameMode }) => {
 
     const startGame = () => {
         // Shuffle pieces
-        const shuffled = [...allPieces].sort(() => Math.random() - 0.5);
+        const shuffled = shuffle(allPieces);
         
         // Pick a random first piece for BOTH linear and circular
         const firstPieceIndex = 0;

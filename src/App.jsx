@@ -4,6 +4,8 @@ import { ActivityProvider } from './contexts/ActivityContext';
 import { AudioProvider } from './contexts/AudioContext';
 
 import { MainLayout } from './MainLayout';
+import { ToastHost } from './components/ui/Toast';
+import { ConfirmHost } from './components/ui/ConfirmDialog';
 
 export default function App() {
   return (
@@ -11,6 +13,8 @@ export default function App() {
       <AudioProvider>
         <ActivityProvider>
           <MainLayout />
+          <ToastHost />
+          <ConfirmHost />
         </ActivityProvider>
       </AudioProvider>
     </GeminiProvider>

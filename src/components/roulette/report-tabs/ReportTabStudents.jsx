@@ -2,7 +2,7 @@ import React from 'react';
 import { CheckCircle, XCircle, Clock, Search, Filter, HelpCircle, Shuffle, RotateCcw, RotateCw, UserMinus, Flame, Target, Trophy, ChevronDown, ChevronUp } from 'lucide-react';
 
 export const ReportTabStudents = (props) => {
-    const { metrics, filteredData, actionCategoryFilter, setActionCategoryFilter, actionSearchTerm, setActionSearchTerm, getActionStyle, questionStats, studentStats, groupStats } = props;
+    const { metrics, filteredData, actionCategoryFilter, setActionCategoryFilter, actionSearchTerm, setActionSearchTerm, getActionStyle, questionStats, studentStats, groupStats, handleToggleStudentAbsentStatus, setSelectedStudentForAi, studentAiInsights } = props;
     return (
                     <div className="space-y-4 animate-in fade-in duration-200">
                         <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-2xs">

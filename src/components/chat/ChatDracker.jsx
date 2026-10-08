@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, Copy, Check, PlusCircle } from 'lucide-react';
+import { Send, Loader2, Copy, Check, PlusCircle, Play, Music } from 'lucide-react';
 import { useGemini } from '../../contexts/GeminiContext';
 import { useActivity } from '../../contexts/ActivityContext';
 import ReactMarkdown from 'react-markdown';
@@ -9,7 +9,7 @@ import rehypeKatex from 'rehype-katex';
 
 export const ChatDracker = () => {
     const { geminiService, apiKey } = useGemini();
-    const { activeTabId, tabs, updateActivityData, addActivityTab, topic } = useActivity();
+    const { activeTabId, tabs, updateActivityData, addActivityTab, topic, selectActivityTab } = useActivity();
     
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -30,7 +30,7 @@ export const ChatDracker = () => {
             chatData: {
                 messages: [{
                     role: 'model',
-                    parts: [{ text: "Olá, professor(a)! Sou o Drácker. Para começarmos nossa aventura pedagógica, pode se apresentar com nome e disciplina ?" }]
+                    parts: [{ text: "Olá! Que bom te encontrar por aqui!\n\nEu sou o Drácker, o dragãozinho marrom mais curioso da floresta encantada e mascote do \"Drácker Adapta\"! Minha missão, e a da minha turma de amigos (a sábia Coruja, o ágil Esquilo, a esperta Raposa e o fofinho Coelho), é ajudar você a transformar suas aulas em verdadeiras expedições de aprendizado, cheias de descobertas e engajamento!\n\nPara começarmos nossa aventura juntos, me diga: qual é o seu nome e o assunto de nossa conversa? Assim, posso te ajudar de uma forma ainda mais especial e adaptada aos seus desafios!\n\nMal posso esperar para desvendarmos os mistérios da educação ativa com você! Vamos nessa?" }]
                 }]
             }
         });
@@ -55,9 +55,10 @@ Não use respostas longas demais a menos que seja solicitado. Seja prático.`;
             });
         } else if (!activeTabId || messages.length === 0) {
             // Initial greeting when no tab or empty
+            // Initial greeting when no tab or empty
             setMessages([{
                 role: 'model',
-                parts: [{ text: "Olá, professor(a)! Sou o Drácker. Para começarmos nossa aventura pedagógica, pode se apresentar com nome e disciplina ?" }]
+                parts: [{ text: "Olá! Que bom te encontrar por aqui!\n\nEu sou o Drácker, o dragãozinho marrom mais curioso da floresta encantada e mascote do \"Drácker Adapta\"! Minha missão, e a da minha turma de amigos (a sábia Coruja, o ágil Esquilo, a esperta Raposa e o fofinho Coelho), é ajudar você a transformar suas aulas em verdadeiras expedições de aprendizado, cheias de descobertas e engajamento!\n\nPara começarmos nossa aventura juntos, me diga: qual é o seu nome e o assunto de nossa conversa? Assim, posso te ajudar de uma forma ainda mais especial e adaptada aos seus desafios!\n\nMal posso esperar para desvendarmos os mistérios da educação ativa com você! Vamos nessa?" }]
             }]);
         }
     }, [activeTabId]); // Removed 'tabs' to prevent infinite update loops
@@ -224,8 +225,33 @@ Não use respostas longas demais a menos que seja solicitado. Seja prático.`;
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
+            {/* Input Area com Ações Rápidas */}
             <div className="p-4 md:p-6 bg-white border-t border-brown-100 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
+                
+                {/* Ações Rápidas: Coisas do Drácker */}
+                <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center sm:justify-start gap-3 mb-4 overflow-x-auto custom-scrollbar pb-1">
+                    <div className="flex items-center gap-2 shrink-0">
+                        <img src="/cover_musica_dracker.jpg" alt="Turma" className="w-8 h-8 rounded-full object-cover border border-brown-200" onError={(e) => { e.target.src = '/dracker_expedition_logo.png' }} />
+                        <span className="text-[10px] font-black uppercase text-brown-400 tracking-wider mr-2">Coisas do Drácker:</span>
+                    </div>
+                    
+                    <button
+                        onClick={() => selectActivityTab && selectActivityTab('simplify')}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 hover:bg-pink-100 hover:border-pink-300 transition-colors text-xs font-bold shrink-0"
+                    >
+                        <Music className="w-3.5 h-3.5" />
+                        Rádio Drácker
+                    </button>
+
+                    <button
+                        onClick={() => selectActivityTab && selectActivityTab('video_gallery')}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors text-xs font-bold shrink-0"
+                    >
+                        <Play className="w-3.5 h-3.5" />
+                        Galeria de Vídeos
+                    </button>
+                </div>
+
                 {!apiKey && (
                     <div className="text-sm text-red-500 mb-3 font-semibold text-center bg-red-50 py-2 rounded-lg border border-red-100">
                         ⚠️ Configure sua Chave de API nas configurações (engrenagem) antes de conversar com o Drácker.

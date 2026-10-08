@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Repeat, Music, Download } from 'lucide-react';
 import { Card } from '../ui/Card';
+import { formatMediaTime } from '../../utils/time';
 
 const drackerPlaylist = [
   {
@@ -86,13 +87,6 @@ export const SunoNativePlayer = () => {
         }
     };
 
-    const formatTime = (time) => {
-        if (!time || isNaN(time)) return "0:00";
-        const mins = Math.floor(time / 60);
-        const secs = Math.floor(time % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
-
     const handleProgressClick = (e) => {
         const bounds = e.currentTarget.getBoundingClientRect();
         const percent = (e.clientX - bounds.left) / bounds.width;
@@ -166,7 +160,7 @@ export const SunoNativePlayer = () => {
 
             {/* Barra de Progresso Global (Para a música atual) */}
             <div className="w-full bg-purple-100/50 px-6 py-3 border-b border-purple-200 flex items-center gap-4">
-                <span className="text-xs text-purple-800 font-mono w-10 text-right font-medium">{formatTime(progress)}</span>
+                <span className="text-xs text-purple-800 font-mono w-10 text-right font-medium">{formatMediaTime(progress)}</span>
                 <div 
                     className="flex-1 h-2.5 bg-purple-200/60 rounded-full cursor-pointer hover:h-3.5 transition-all relative overflow-hidden"
                     onClick={handleProgressClick}
@@ -176,7 +170,7 @@ export const SunoNativePlayer = () => {
                         style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
                     ></div>
                 </div>
-                <span className="text-xs text-purple-800 font-mono w-10 font-medium">{formatTime(duration)}</span>
+                <span className="text-xs text-purple-800 font-mono w-10 font-medium">{formatMediaTime(duration)}</span>
             </div>
 
             {/* Lista de Músicas (Light Theme) */}

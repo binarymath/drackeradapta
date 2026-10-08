@@ -11,6 +11,7 @@ import { Input, TextArea } from './ui/Input';
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { LatexRenderer } from './ui/LatexRenderer';
+import { toast } from './ui/Toast';
 
 export const CrosswordListEditor = ({
     initialData,
@@ -96,7 +97,7 @@ export const CrosswordListEditor = ({
         const nonEmpty = trimmed.filter(w => w.word !== '' && w.clue !== '');
 
         if (nonEmpty.length < 2) {
-            alert('Adicione pelo menos 2 entradas válidas (com palavra/número E dica preenchidos).');
+            toast('Adicione pelo menos 2 entradas válidas (com palavra/número E dica preenchidos).');
             return;
         }
 
@@ -116,7 +117,7 @@ export const CrosswordListEditor = ({
         }
 
         if (deduped.length < 2) {
-            alert('Após remover duplicatas, restaram menos de 2 entradas. Revise a lista.');
+            toast('Após remover duplicatas, restaram menos de 2 entradas. Revise a lista.');
             return;
         }
 
@@ -125,7 +126,7 @@ export const CrosswordListEditor = ({
 
     const handleGenerateMath = () => {
         if (mathOperations.length === 0) {
-            alert("Selecione pelo menos uma operação matemática.");
+            toast("Selecione pelo menos uma operação matemática.");
             return;
         }
         const problems = generateMathProblems(mathCount, mathMaxOrder, mathOperations, mathMultMaxOrder, mathDivMaxOrder, mathSpecificDivisor);
@@ -143,7 +144,7 @@ export const CrosswordListEditor = ({
 
     const handleGenerateAIProblems = async () => {
         if (!geminiService || !geminiService.apiKey) {
-            alert("Por favor, configure sua chave de API nas configurações primeiro.");
+            toast("Por favor, configure sua chave de API nas configurações primeiro.");
             return;
         }
 
@@ -219,7 +220,7 @@ Retorne SOMENTE um array JSON:
             
         } catch (e) {
             console.error("Erro na IA:", e);
-            alert("Erro ao gerar problemas com IA: " + e.message);
+            toast("Erro ao gerar problemas com IA: " + e.message);
         } finally {
             setIsGeneratingAI(false);
         }
@@ -227,11 +228,11 @@ Retorne SOMENTE um array JSON:
 
     const handleGenerateAIText = async () => {
         if (!topicInput) {
-            alert("Por favor, digite um Título/Tema primeiro para a IA saber o que gerar.");
+            toast("Por favor, digite um Título/Tema primeiro para a IA saber o que gerar.");
             return;
         }
         if (!geminiService || !geminiService.apiKey) {
-            alert("Por favor, configure sua chave de API nas configurações primeiro.");
+            toast("Por favor, configure sua chave de API nas configurações primeiro.");
             return;
         }
 
@@ -265,7 +266,7 @@ Retorne SOMENTE um array JSON:
             
         } catch (e) {
             console.error("Erro na IA:", e);
-            alert("Erro ao gerar palavras com IA: " + e.message);
+            toast("Erro ao gerar palavras com IA: " + e.message);
         } finally {
             setIsGeneratingAI(false);
         }

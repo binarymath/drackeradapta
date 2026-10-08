@@ -12,6 +12,8 @@ import MemoryVictoryModal from './MemoryVictoryModal';
 import { useActivity } from '../../contexts/ActivityContext';
 import { useGemini } from '../../contexts/GeminiContext';
 import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
+import { formatMinSec } from '../../utils/time';
+import { confirmDialog } from '../ui/ConfirmDialog';
 
 const MemoryGame = ({ isFullWidth }) => {
 
@@ -128,12 +130,6 @@ const MemoryGame = ({ isFullWidth }) => {
     };
 
     // Format time for display
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
-
     return (
         <div className="h-full min-h-[600px] bg-brown-50 text-brown-900 flex flex-col relative font-sans rounded-none lg:rounded-b-2xl">
             {/* Header */}
@@ -150,7 +146,7 @@ const MemoryGame = ({ isFullWidth }) => {
                         <div className="flex items-center gap-3 ml-4 text-sm font-medium text-brown-600 bg-brown-100/50 px-3 py-1 rounded-full">
                             <div className="flex items-center gap-1">
                                 <Clock size={14} />
-                                <span>{formatTime(time)}</span>
+                                <span>{formatMinSec(time)}</span>
                             </div>
                             <div className="w-px h-3 bg-brown-300"></div>
                             <div>
@@ -172,8 +168,8 @@ const MemoryGame = ({ isFullWidth }) => {
                                 <Button variant="secondary" onClick={shuffleCurrentGame} className="h-9 w-9 p-0" title="Embaralhar Cartas">
                                     <Shuffle className="w-5 h-5" />
                                 </Button>
-                                <Button variant="secondary" onClick={() => {
-                                    if (window.confirm('Quer reiniciar este jogo?')) shuffleCurrentGame();
+                                <Button variant="secondary" onClick={async () => {
+                                    if (await confirmDialog('Quer reiniciar este jogo?')) shuffleCurrentGame();
                                 }} className="h-9 w-9 p-0" title="Reiniciar Jogo">
                                     <RotateCcw className="w-5 h-5" />
                                 </Button>
@@ -350,8 +346,13 @@ const MemoryGame = ({ isFullWidth }) => {
                 moves={moves}
                 time={time}
                 topic={topic}
-                onRestart={() => {
-                    if (window.confirm('Jogar novamente com as mesmas cartas? (Cancele para configurar novo jogo)')) {
+                onRestart={async () => {
+                    if (await confirmDialog('Jogar novamente com as mesmas cartas ou configurar um novo jogo?', {
+                        title: 'Jogar novamente',
+                        confirmText: 'Mesmas cartas',
+                        cancelText: 'Novo jogo',
+                        danger: false
+                    })) {
                         shuffleCurrentGame();
                     } else {
                         setShowConfigModal(true);

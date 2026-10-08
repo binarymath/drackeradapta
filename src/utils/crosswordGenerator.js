@@ -1,3 +1,4 @@
+import { shuffle, shuffleInPlace } from './array';
 /**
  * Utilitário para geração de palavras cruzadas via Backtracking.
  * Tenta conectar as palavras em uma grade vazia.
@@ -61,7 +62,7 @@ export const generateCrossword = (wordsWithClues, gridSize = 15) => {
 
             // Busca interseções possíveis com palavras já colocadas
             // Itera aleatoriamente sobre as palavras já colocadas para dar variedade
-            const shuffledPlaced = [...placed].sort(() => Math.random() - 0.5);
+            const shuffledPlaced = shuffle(placed);
 
             for (const p of shuffledPlaced) {
                 if (inserted) break;
@@ -141,7 +142,7 @@ export const generateCrossword = (wordsWithClues, gridSize = 15) => {
             }
         }
         // Embaralha coordenadas para que as ilhas não fiquem todas presas no topo esquerdo
-        coords.sort(() => Math.random() - 0.5);
+        shuffleInPlace(coords);
 
         for (const dir of dirs) {
             if (inserted) break;

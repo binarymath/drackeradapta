@@ -1,7 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import { theme } from '../../styles/theme';
 
 export const Modal = ({ isOpen, onClose, title, children, footer, icon: Icon, size = 'md' }) => {
     if (!isOpen) return null;
@@ -16,34 +15,34 @@ export const Modal = ({ isOpen, onClose, title, children, footer, icon: Icon, si
         'full': 'max-w-[95vw]'
     }[size] || 'max-w-2xl';
 
-    const containerClasses = theme.modal.container.replace('max-w-2xl', '').trim();
+    const containerClasses = "bg-white rounded-3xl shadow-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border-2 border-slate-100";
 
     const content = (
-        <div className={theme.modal.overlay}>
+        <div className="fixed inset-0 z-[12000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className={`${containerClasses} ${maxWidthClass}`}>
                 {/* Header */}
-                <div className={theme.modal.header}>
-                    <div className="flex items-center gap-2">
+                <div className="p-5 border-b-2 border-slate-100 flex items-center justify-between bg-white">
+                    <div className="flex items-center gap-3">
                         {Icon && (
-                            <div className="w-8 h-8 rounded-full bg-brown-100 flex items-center justify-center text-brown-600">
-                                <Icon className="w-5 h-5" />
+                            <div className="w-10 h-10 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600">
+                                <Icon className="w-6 h-6" />
                             </div>
                         )}
-                        <h2 className={theme.text.title}>{title}</h2>
+                        <h2 className="heading-gamified text-xl">{title}</h2>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-brown-200 rounded-full transition-colors text-brown-500">
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-slate-600 active:scale-95">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className={theme.modal.body}>
+                <div className="p-6 space-y-4 overflow-y-auto flex-1 bg-slate-50/50">
                     {children}
                 </div>
 
                 {/* Footer */}
                 {footer && (
-                    <div className={theme.modal.footer}>
+                    <div className="px-6 py-4 border-t-2 border-slate-100 bg-white flex justify-end gap-3">
                         {footer}
                     </div>
                 )}

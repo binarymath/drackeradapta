@@ -8,6 +8,10 @@
  */
 
 import { safeJSONParse } from '../utils/jsonUtils';
+import { shuffleInPlace } from '../utils/array';
+
+const API_ROOT = 'https://generativelanguage.googleapis.com';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 class GeminiService {
   constructor(apiKey, statusCallback = null) {
@@ -40,9 +44,9 @@ class GeminiService {
   async validateApiKey() {
     try {
       // Tenta listar modelos (requisição leve)
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`
-      );
+      const response = await fetch(`${API_ROOT}/v1beta/models`, {
+        headers: { 'x-goog-api-key': this.apiKey }
+      });
       return response.ok;
     } catch (e) {
       return false;
@@ -84,13 +88,13 @@ class GeminiService {
         // Determine API version based on model name or option
         // gemini-2.5-flash-tts often requires v1alpha, while others use v1beta
         const apiVersion = options.apiVersion || (model.includes('gemini-2.5') ? 'v1alpha' : 'v1beta');
-        const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent?key=${this.apiKey}`;
+        const url = `${API_ROOT}/${apiVersion}/models/${model}:generateContent`;
 
         const response = await fetch(
           url,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.apiKey },
             body: JSON.stringify(payload)
           }
         );
@@ -187,8 +191,8 @@ class GeminiService {
       temperature = 0.7
     } = options;
 
-    // MODELO ÚNICO: gemini-2.5-flash (sem fallback)
-    const MODEL = 'gemini-2.5-flash';
+    // Usa o modelo informado (seletor da interface); padrão: gemini-2.5-flash (sem fallback)
+    const MODEL = options.model || DEFAULT_MODEL;
 
     await this.enforceRateLimit();
 
@@ -255,7 +259,7 @@ class GeminiService {
       temperature = 0.7
     } = options;
 
-    const MODEL = 'gemini-2.5-flash';
+    const MODEL = options.model || DEFAULT_MODEL;
 
     await this.enforceRateLimit();
 
@@ -293,49 +297,6 @@ class GeminiService {
     } catch (error) {
       console.error(`[GeminiService] Erro no Chat com ${MODEL}:`, error.message);
       throw error;
-    }
-  }
-
-  /**
-   * Consulta a API para listar modelos disponíveis e escolhe o melhor
-   */
-  async getBestAvailableModel() {
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`);
-      if (!response.ok) throw new Error(`Falha ao listar modelos: ${response.status}`);
-
-      const data = await response.json();
-      if (!data.models) throw new Error('Lista de modelos vazia');
-
-      // Filtra modelos que suportam generateContent
-      const candidates = data.models.filter(m =>
-        m.supportedGenerationMethods?.includes('generateContent')
-      );
-
-      if (candidates.length === 0) throw new Error('Nenhum modelo suporta geração de texto');
-
-      // Prioridade: 1.5 Flash > 2.0 > 1.5 Pro > 1.0
-      const preferences = [
-        'gemini-1.5-flash',
-        'gemini-2.0-flash',
-        'gemini-1.5-pro',
-        'gemini-pro'
-      ];
-
-      for (const pref of preferences) {
-        const match = candidates.find(m => m.name.includes(pref));
-        if (match) return match.name.replace('models/', ''); // Remove prefixo se existir na chamada futura (mas request monta URL com models/, entao cuidado)
-        // O request monta a URL assim: .../models/${model}:generateContent
-        // A API retorna nomes como "models/gemini-pro".
-        // Se eu retornar "gemini-pro", o request fará "models/gemini-pro". OK.
-        // Se eu retornar "models/gemini-pro", o request fará "models/models/gemini-pro". ERRADO.
-        // Entao devo remover o prefixo 'models/'.
-      }
-
-      // Se nao achou preferido, pega o primeiro disponivel (ex: gemini-1.0-pro-001)
-      return candidates[0].name.replace('models/', '');
-    } catch (e) {
-      throw new Error(`Erro buscando modelos: ${e.message}`);
     }
   }
 
@@ -737,7 +698,7 @@ IMPORTANTE: Retorne APENAS o JSON (array de 20 objetos), sem markdown (\`\`\`jso
       }
 
       // Embaralha as perguntas para misturar as dificuldades na roleta
-      questions.sort(() => Math.random() - 0.5);
+      shuffleInPlace(questions);
 
       // Retorna a lista completa das 20 perguntas geradas com dificuldade e ID
       return questions.map((qObj, idx) => {

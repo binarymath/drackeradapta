@@ -10,6 +10,8 @@ import { Input, Select, TextArea } from './ui/Input';
 import { Modal } from './ui/Modal';
 import { ActivityPrintHeader } from './ui/ActivityPrintHeader';
 import { LatexRenderer } from './ui/LatexRenderer';
+import { formatMs } from '../utils/time';
+import { toast } from './ui/Toast';
 
 export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, onRestart }) => {
     // --- STATE ---
@@ -337,9 +339,9 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
         }));
 
         setGridState(newGrid);
-        if (hasEmpty) alert("Preencha todos os campos antes de verificar!");
-        else if (allCorrect) alert("Parabéns! Você completou o desafio!");
-        else alert("Existem erros. Verifique as células vermelhas.");
+        if (hasEmpty) toast("Preencha todos os campos antes de verificar!");
+        else if (allCorrect) toast("Parabéns! Você completou o desafio!");
+        else toast("Existem erros. Verifique as células vermelhas.");
     };
 
     const revealAnswers = () => {
@@ -374,14 +376,6 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
             });
         setRankings(updated);
         localStorage.setItem('crossword_ranking', JSON.stringify(updated));
-    };
-
-    const formatTime = (ms) => {
-        if (!ms || !Number.isFinite(ms) || ms === Number.MAX_SAFE_INTEGER) return '--:--';
-        const totalSeconds = Math.max(0, Math.round(ms / 1000));
-        const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-        const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-        return `${minutes}:${seconds}`;
     };
 
     const deleteRankingEntry = (idx) => {
@@ -421,15 +415,15 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
         const allCorrect = newGrid.every(row => row.every(cell => !cell || cell.isFiller || cell.status === 'correct'));
 
         setGridState(newGrid);
-        if (hasEmpty) alert("Preencha todos os campos antes de verificar!");
+        if (hasEmpty) toast("Preencha todos os campos antes de verificar!");
         else if (allCorrect) {
             const finalTimeMs = startTime ? Date.now() - startTime : Number.MAX_SAFE_INTEGER;
             setLastRunTimeMs(finalTimeMs);
             setIsCompleted(true);
             persistRanking(finalTimeMs);
-            alert("Parabéns! Você completou o desafio!");
+            toast("Parabéns! Você completou o desafio!");
         }
-        else alert("Existem erros. Verifique as células vermelhas.");
+        else toast("Existem erros. Verifique as células vermelhas.");
     };
 
     const [editingIndices, setEditingIndices] = useState(new Set());
@@ -492,7 +486,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
 
         const result = generateCrossword(cleanList, gridSize);
         if (result.words.length < cleanList.length) {
-            alert(`Não foi possível encaixar todas as palavras na grade ${gridSize}x${gridSize}. Algumas palavras ficaram de fora.`);
+            toast(`Não foi possível encaixar todas as palavras na grade ${gridSize}x${gridSize}. Algumas palavras ficaram de fora.`);
         }
 
         const placedWithNum = result.words.map((w, i) => ({ ...w, num: i + 1 }));
@@ -868,7 +862,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                                     <div key={idx} className="flex justify-between items-center">
                                         <span>{idx + 1}. {r.name}</span>
                                         <div className="flex items-center gap-2">
-                                            <span>{r.words} palavras • {formatTime(r.timeMs)}</span>
+                                            <span>{r.words} palavras • {formatMs(r.timeMs)}</span>
                                             <button
                                                 onClick={() => deleteRankingEntry(idx)}
                                                 className="p-1 text-amber-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
@@ -895,7 +889,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                 </div>
                 <h2 className="text-3xl font-bold text-brown-900">Palavras Cruzadas Completas!</h2>
                 {Number.isFinite(lastRunTimeMs) && (
-                    <p className="text-sm text-brown-600">Tempo: {formatTime(lastRunTimeMs)}</p>
+                    <p className="text-sm text-brown-600">Tempo: {formatMs(lastRunTimeMs)}</p>
                 )}
 
                 <div className="flex gap-3">
@@ -917,7 +911,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                                 <div key={idx} className={`flex justify-between items-center ${r.name === (playerName?.trim() || 'Jogador') ? 'font-bold text-green-700' : ''}`}>
                                     <span>{idx + 1}. {r.name}</span>
                                     <div className="flex items-center gap-2">
-                                        <span>{r.words} palavras • {formatTime(r.timeMs)}</span>
+                                        <span>{r.words} palavras • {formatMs(r.timeMs)}</span>
                                         <button
                                             onClick={() => deleteRankingEntry(idx)}
                                             className="p-1 text-amber-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"

@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Music, Play, Pause, Trash2, Volume2, Link as LinkIcon, Upload, X, Clock, GripVertical, Check, Edit2, Save, SkipBack, SkipForward } from 'lucide-react';
+import { formatMediaTime } from '../../utils/time';
+import { toast } from '../ui/Toast';
+
+// Duração de faixa: inválida => "--:--"
+const formatDuration = (sec) => formatMediaTime(sec, '--:--');
 
 // Helper for ISO8601 to Seconds (PT1M30S -> 90)
 const parseISO8601Duration = (duration) => {
@@ -11,13 +16,6 @@ const parseISO8601Duration = (duration) => {
 };
 
 // Formatter mm:ss
-const formatDuration = (sec) => {
-    if (!sec || isNaN(sec)) return '--:--';
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
-};
-
 export const RouletteBackgroundMusic = ({ className = "", isExploded = false, onSyncRequest = null, timerIsRunning = null, restartTrackTrigger = 0 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [playlist, setPlaylist] = useState(() => {
@@ -244,7 +242,7 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
     // Add Local File
     const handleFileUpload = (e) => {
         if (playlist.length >= 10) {
-            alert('A playlist atingiu o limite de 10 músicas.');
+            toast('A playlist atingiu o limite de 10 músicas.');
             return;
         }
         const file = e.target.files[0];
@@ -279,7 +277,7 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
 
         const videoId = extractVideoID(ytInput);
         if (!videoId) {
-            alert('Link inválido.');
+            toast('Link inválido.');
             return;
         }
 

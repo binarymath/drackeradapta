@@ -7,6 +7,7 @@ import {
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card } from './ui/Card';
+import { shuffle } from '../utils/array';
 
 // --- WORDS DATA REMOVED (BATCH MODE ONLY) ---
 
@@ -86,7 +87,7 @@ export default function HangmanGame() {
         if (!hangmanBatch || !hangmanBatch.allWords) return;
 
         // Pick 10 random words from allWords
-        const shuffled = [...hangmanBatch.allWords].sort(() => Math.random() - 0.5).slice(0, 10);
+        const shuffled = shuffle(hangmanBatch.allWords).slice(0, 10);
 
         setHangmanBatch({
             ...hangmanBatch,
@@ -461,7 +462,7 @@ export default function HangmanGame() {
                             )}
 
                             {/* Drawing */}
-                            <div className="mb-8 relative p-4 bg-white rounded-xl border-2 border-dashed border-brown-100">
+                            <div className="mb-8 relative p-4 bg-white rounded-xl border-2 border-dashed border-slate-200">
                                 <HangmanDrawing wrongGuesses={wrongGuesses} />
                             </div>
 

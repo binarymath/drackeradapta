@@ -5,14 +5,36 @@ import {
     FileText, MessageSquare, Grid, Music, BrainCircuit, Play, Files, Compass, Brain, Gamepad2, ArrowLeftRight, PieChart, Dices
 } from 'lucide-react';
 
+const AUTO_SAVE_DELAY_MS = 600;
+
 const ActivityContext = createContext();
 
+export const ProjectContext = createContext();
+export const TabsContext = createContext();
+export const FormContext = createContext();
+export const UIContext = createContext();
+
+export const useProject = () => useContext(ProjectContext);
+export const useTabs = () => useContext(TabsContext);
+export const useForm = () => useContext(FormContext);
+export const useUI = () => useContext(UIContext);
+
 export const useActivity = () => {
-    const context = useContext(ActivityContext);
-    if (!context) {
+    const project = useContext(ProjectContext);
+    const tabs = useContext(TabsContext);
+    const form = useContext(FormContext);
+    const ui = useContext(UIContext);
+    
+    if (!project) {
         throw new Error('useActivity must be used within an ActivityProvider');
     }
-    return context;
+    
+    return useMemo(() => ({
+        ...project,
+        ...tabs,
+        ...form,
+        ...ui
+    }), [project, tabs, form, ui]);
 };
 
 export const ActivityProvider = ({ children }) => {
@@ -42,7 +64,7 @@ export const ActivityProvider = ({ children }) => {
 
             const project = await IndexedDBService.getProject(pid);
             if (project) {
-                setTabs(project.tabs?.length > 0 ? project.tabs : [{ id: 'about_system', title: 'Página Inicial', type: 'about_system', content: '' }]);
+                setTabs(project.tabs?.length > 0 ? project.tabs : [{ id: 'about_system', title: 'Nova Atividade', type: 'about_system', content: '' }]);
                 setClasses(project.classes || []);
                 setProjectName(project.name || 'Meu Projeto');
                 
@@ -61,7 +83,7 @@ export const ActivityProvider = ({ children }) => {
                     } catch(e) {}
                 }
                 
-                const initialTabs = legacyTabs.length > 0 ? legacyTabs : [{ id: 'about_system', title: 'Página Inicial', type: 'about_system', content: '' }];
+                const initialTabs = legacyTabs.length > 0 ? legacyTabs : [{ id: 'about_system', title: 'Nova Atividade', type: 'about_system', content: '' }];
                 
                 await IndexedDBService.saveProjectState(pid, {
                     name: pid === 'proj_default' ? 'Projeto Principal' : 'Novo Projeto',
@@ -104,19 +126,46 @@ export const ActivityProvider = ({ children }) => {
         type: ''
     });
 
-    // --- PERSISTENCE EFFECT (Auto-Save) ---
+    // --- PERSISTENCE EFFECT (Auto-Save com debounce) ---
+    // Agrupa alterações rápidas (digitação, arrastar abas) em uma única gravação.
+    // O último estado é gravado também ao ocultar/fechar a página, evitando perda de dados.
+    const pendingSaveRef = React.useRef(null);
+
     useEffect(() => {
-        if (!isLoadingProject && projectId) {
+        if (isLoadingProject || !projectId) return;
+
+        const save = () => {
+            pendingSaveRef.current = null;
             IndexedDBService.saveProjectState(projectId, {
                 name: projectName,
                 tabs,
                 classes
             }).catch(console.error);
-            
-            // Legacy fallback so old systems don't break instantly
-            safeLocalStorageSet('atividade_adaptada_tabs', JSON.stringify(tabs));
+
+            // Espelho leve das turmas: ainda lido por VersionedBackupService/useBackupSystem.
+            // (O espelho completo das abas foi removido: era custoso e não é lido por ninguém.)
             safeLocalStorageSet('atividade_adaptada_classes', JSON.stringify(classes));
-        }
+        };
+
+        pendingSaveRef.current = save;
+        const timer = setTimeout(save, AUTO_SAVE_DELAY_MS);
+
+        const flush = () => {
+            if (pendingSaveRef.current) {
+                clearTimeout(timer);
+                pendingSaveRef.current();
+            }
+        };
+        const onVisibility = () => { if (document.visibilityState === 'hidden') flush(); };
+
+        window.addEventListener('beforeunload', flush);
+        document.addEventListener('visibilitychange', onVisibility);
+
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('beforeunload', flush);
+            document.removeEventListener('visibilitychange', onVisibility);
+        };
     }, [tabs, classes, projectId, projectName, isLoadingProject]);
 
     useEffect(() => {
@@ -437,43 +486,52 @@ export const ActivityProvider = ({ children }) => {
         }));
     };
 
+    const projectValue = useMemo(() => ({
+        projectId, projectName, setProjectName, isLoadingProject,
+        classes, setClasses
+    }), [projectId, projectName, isLoadingProject, classes]);
+
+    const tabsValue = useMemo(() => ({
+        tabs, setTabs,
+        activeTabId, setActiveTabId,
+        activeActivity,
+        addActivityTab, closeTab, deleteTab, handleTabsReorder,
+        renameTab, pinTab, duplicateTab, closeOtherTabs, closeAllTabs,
+        reopenTab, reopenLastClosedTab,
+        updateActivityData, selectActivityTab,
+        handleActivityTypeChange, handleTabSelection, handleCreateNewFromModal
+    }), [
+        tabs, activeTabId, activeActivity, tabSelectionModal
+    ]);
+
+    const formValue = useMemo(() => ({
+        topic, setTopic,
+        lessonDetails, setLessonDetails,
+        selectedClassId, setSelectedClassId,
+        activityType, setActivityType,
+        difficulty, setDifficulty,
+        activityOptions, difficultyOptions
+    }), [topic, lessonDetails, selectedClassId, activityType, difficulty, activityOptions, difficultyOptions]);
+
+    const uiValue = useMemo(() => ({
+        imagePrompt, setImagePrompt,
+        imageSize, setImageSize,
+        imageStyle, setImageStyle,
+        imagePng, setImagePng,
+        hangmanBatch, setHangmanBatch,
+        isEditing, setIsEditing,
+        tabSelectionModal, setTabSelectionModal
+    }), [imagePrompt, imageSize, imageStyle, imagePng, hangmanBatch, isEditing, tabSelectionModal]);
+
     return (
-        <ActivityContext.Provider value={{
-            projectId, projectName, setProjectName, isLoadingProject,
-            tabs, setTabs,
-            activeTabId, setActiveTabId,
-            activeActivity,
-            addActivityTab, closeTab, deleteTab, handleTabsReorder,
-            renameTab, pinTab, duplicateTab, closeOtherTabs, closeAllTabs,
-            reopenTab, reopenLastClosedTab,
-            updateActivityData,
-
-            topic, setTopic,
-            lessonDetails, setLessonDetails,
-            classes, setClasses,
-            selectedClassId, setSelectedClassId,
-            activityType, setActivityType,
-            difficulty, setDifficulty,
-
-            imagePrompt, setImagePrompt,
-            imageSize, setImageSize,
-            imageStyle, setImageStyle,
-            imagePng, setImagePng,
-
-            hangmanBatch, setHangmanBatch,
-
-            isEditing, setIsEditing,
-
-            tabSelectionModal, setTabSelectionModal,
-            selectActivityTab,
-            handleActivityTypeChange,
-            handleTabSelection,
-            handleCreateNewFromModal,
-
-            activityOptions,
-            difficultyOptions
-        }}>
-            {children}
-        </ActivityContext.Provider>
+        <ProjectContext.Provider value={projectValue}>
+            <TabsContext.Provider value={tabsValue}>
+                <FormContext.Provider value={formValue}>
+                    <UIContext.Provider value={uiValue}>
+                        {children}
+                    </UIContext.Provider>
+                </FormContext.Provider>
+            </TabsContext.Provider>
+        </ProjectContext.Provider>
     );
 };

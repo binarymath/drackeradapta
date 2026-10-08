@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Trophy, Clock, Hash, RotateCcw, Medal } from 'lucide-react';
+import { formatMinSec } from '../../utils/time';
 
 const MemoryVictoryModal = ({ isOpen, onClose, moves, time, topic, onRestart }) => {
     const [playerName, setPlayerName] = useState('');
@@ -20,12 +21,6 @@ const MemoryVictoryModal = ({ isOpen, onClose, moves, time, topic, onRestart }) 
             setPlayerName('');
         }
     }, [isOpen]);
-
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
 
     const handleSaveScore = () => {
         if (!playerName.trim()) return;
@@ -64,7 +59,7 @@ const MemoryVictoryModal = ({ isOpen, onClose, moves, time, topic, onRestart }) 
             <div className="text-center space-y-6">
 
                 {/* Score Summary */}
-                <div className="bg-brown-50 p-6 rounded-xl border border-brown-100 relative overflow-hidden">
+                <div className="bg-brown-50 p-6 rounded-xl border border-slate-200 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <Trophy size={100} className="text-yellow-600" />
                     </div>
@@ -78,7 +73,7 @@ const MemoryVictoryModal = ({ isOpen, onClose, moves, time, topic, onRestart }) 
                                 <Clock size={24} />
                             </div>
                             <span className="text-xs text-gray-500 uppercase font-bold">Tempo</span>
-                            <span className="text-xl font-bold text-brown-800">{formatTime(time)}</span>
+                            <span className="text-xl font-bold text-brown-800">{formatMinSec(time)}</span>
                         </div>
                         <div className="flex flex-col items-center">
                             <div className="bg-white p-3 rounded-full shadow-sm mb-2 text-green-500">
@@ -116,7 +111,7 @@ const MemoryVictoryModal = ({ isOpen, onClose, moves, time, topic, onRestart }) 
                 )}
 
                 {/* Ranking Table */}
-                <div className="border-t border-brown-100 pt-4">
+                <div className="border-t border-slate-200 pt-4">
                     <div className="flex gap-2 mb-4 bg-brown-100/30 p-1 rounded-lg">
                         <button
                             onClick={() => setActiveTab('moves')}
@@ -132,7 +127,7 @@ const MemoryVictoryModal = ({ isOpen, onClose, moves, time, topic, onRestart }) 
                         </button>
                     </div>
 
-                    <div className="bg-white rounded-lg border border-brown-100 overflow-hidden text-sm">
+                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden text-sm">
                         <table className="w-full text-left">
                             <thead className="bg-brown-50 text-brown-600 text-xs uppercase">
                                 <tr>
@@ -149,7 +144,7 @@ const MemoryVictoryModal = ({ isOpen, onClose, moves, time, topic, onRestart }) 
                                         <td className="p-2 pl-4 font-bold text-brown-400">{idx + 1}º</td>
                                         <td className="p-2 font-medium text-brown-800 truncate max-w-[120px]" title={score.topic}>{score.name}</td>
                                         <td className="p-2 text-right font-bold text-brown-600">
-                                            {activeTab === 'moves' ? score.moves : formatTime(score.time)}
+                                            {activeTab === 'moves' ? score.moves : formatMinSec(score.time)}
                                         </td>
                                     </tr>
                                 ))}

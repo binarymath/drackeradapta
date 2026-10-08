@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useWheelSpin } from '../hooks/useWheelSpin';
 
 const COLORS = [
     '#ff4b4b', // Vermelho vibrante
@@ -12,9 +13,25 @@ const COLORS = [
 ];
 
 export const ClassicVegasWheel = ({ items = [], spinning = false, winner = null, onSpinComplete, isMaximized = false }) => {
-    const [rotation, setRotation] = useState(0);
     const wheelRef = useRef(null);
     const [lightsOn, setLightsOn] = useState(false);
+
+    const { rotation } = useWheelSpin({
+        items,
+        spinning,
+        winner,
+        onSpinComplete,
+        audioConfig: {
+            scale: Array.from({length: 45}, (_, i) => 620 - (i * 5)),
+            maxTicks: 45,
+            type: 'triangle',
+            baseDelay: 30,
+            delayMultiplier: 350,
+            easingCurve: (p) => Math.pow(p, 3),
+            dur: 0.045,
+            gainVal: 0.14
+        }
+    });
 
     // Efeito piscar luzes
     useEffect(() => {
@@ -23,93 +40,6 @@ export const ClassicVegasWheel = ({ items = [], spinning = false, winner = null,
         }, 400);
         return () => clearInterval(interval);
     }, []);
-
-    // Efeito Sonoro da Roleta Girando (Web Audio API)
-    useEffect(() => {
-        if (spinning) {
-            let audioCtx;
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            } catch (e) {
-                return;
-            }
-
-            let tickCount = 0;
-            const totalTicks = 45;
-            let timeoutId;
-
-            const playTick = () => {
-                if (tickCount >= totalTicks) return;
-
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(620 - (tickCount * 5), audioCtx.currentTime);
-
-                gain.gain.setValueAtTime(0.14, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.045);
-
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.045);
-
-                tickCount++;
-
-                const progress = tickCount / totalTicks;
-                const easeOut = Math.pow(progress, 3);
-                const nextDelay = 30 + (easeOut * 350);
-
-                timeoutId = setTimeout(playTick, nextDelay);
-            };
-
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume().then(() => playTick()).catch(() => {});
-            } else {
-                playTick();
-            }
-
-            return () => {
-                clearTimeout(timeoutId);
-                if (audioCtx && audioCtx.state !== 'closed') {
-                    audioCtx.close().catch(() => {});
-                }
-            };
-        }
-    }, [spinning]);
-
-    // Cálculo da física de giro e parada precisa no vencedor
-    useEffect(() => {
-        if (spinning && winner && items.length > 0) {
-            const winnerIdx = items.findIndex(i => String(i.id) === String(winner.id));
-            if (winnerIdx === -1) {
-                const timeout = setTimeout(() => {
-                    if (onSpinComplete) onSpinComplete();
-                }, 2000);
-                return () => clearTimeout(timeout);
-            }
-
-            const numItems = items.length;
-            const sliceAngle = 360 / numItems;
-
-            const winnerCenterAngle = (winnerIdx * sliceAngle) + (sliceAngle / 2);
-            const randomOffset = (Math.random() - 0.5) * (sliceAngle * 0.55);
-
-            const extraSpins = 360 * 6; // 6 voltas completas de suspense
-            const currentRotationMod = rotation % 360;
-            const newRotation = rotation + extraSpins + (360 - winnerCenterAngle - currentRotationMod) + randomOffset;
-
-            setRotation(newRotation);
-
-            const timeout = setTimeout(() => {
-                if (onSpinComplete) onSpinComplete();
-            }, 5000);
-
-            return () => clearTimeout(timeout);
-        }
-    }, [spinning, winner]);
 
     if (!items || items.length === 0) {
         return (

@@ -3,6 +3,7 @@ import { Play, Pause, RotateCcw, Flame, Volume2, VolumeX, AlertTriangle, Sparkle
 import confetti from 'canvas-confetti';
 import { gameAudio } from '../../utils/gameAudio';
 import { RouletteBackgroundMusic } from './RouletteBackgroundMusic';
+import { formatClock } from '../../utils/time';
 
 export const RouletteTimerBomb = ({ 
     theme = null,
@@ -116,13 +117,6 @@ export const RouletteTimerBomb = ({
     };
 
     // Formata segundos totais em MM:SS
-    const formatTime = (totalSeconds) => {
-        const safeTotal = Math.max(0, totalSeconds || 0);
-        const mins = Math.floor(safeTotal / 60);
-        const secs = safeTotal % 60;
-        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    };
-
     // Formata segundos em texto legível (ex: 1m 30s)
     const formatTimeDetailed = (totalSeconds) => {
         const safeTotal = Math.max(0, totalSeconds || 0);
@@ -337,7 +331,7 @@ export const RouletteTimerBomb = ({
                                         ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]'
                                         : 'text-slate-200'
                         }`}>
-                            {formatTime(timeLeft)}
+                            {formatClock(timeLeft)}
                         </div>
 
                         <div className="flex items-center gap-1.5">
@@ -502,7 +496,7 @@ export const RouletteTimerBomb = ({
                                             ? 'text-amber-300 drop-shadow-[0_0_18px_rgba(245,158,11,0.7)]'
                                             : 'text-slate-100'
                             }`}>
-                                {formatTime(timeLeft)}
+                                {formatClock(timeLeft)}
                             </div>
 
                             <div className="mt-2 flex justify-center">
@@ -581,7 +575,7 @@ export const RouletteTimerBomb = ({
                             </div>
                             <div className="flex-1 text-center">
                                 <span className="text-[11px] uppercase tracking-widest text-slate-400 font-bold block">Duração: {formatTimeDetailed(duration)}</span>
-                                <span className="text-base font-mono font-black text-amber-300">{formatTime(duration)}</span>
+                                <span className="text-base font-mono font-black text-amber-300">{formatClock(duration)}</span>
                             </div>
                             <div className="flex items-center gap-1">
                                 <button type="button" onClick={() => handleAdjustTime(10)} disabled={duration >= 600} className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-black disabled:opacity-30 cursor-pointer">+10s</button>
@@ -810,7 +804,7 @@ export const RouletteTimerBomb = ({
                                         ? 'text-amber-300 drop-shadow-[0_0_14px_rgba(245,158,11,0.6)]'
                                         : 'text-slate-100 drop-shadow-sm'
                         }`}>
-                            {formatTime(timeLeft)}
+                            {formatClock(timeLeft)}
                         </div>
 
                         <div className="mt-1.5 flex justify-center">
@@ -926,7 +920,7 @@ export const RouletteTimerBomb = ({
 
                         <div className="flex-1 flex flex-col items-center justify-center px-1 text-center">
                             <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Duração: {formatTimeDetailed(duration)}</span>
-                            <span className="text-sm font-mono font-black text-amber-300">{formatTime(duration)}</span>
+                            <span className="text-sm font-mono font-black text-amber-300">{formatClock(duration)}</span>
                         </div>
 
                         <div className="flex items-center gap-1">

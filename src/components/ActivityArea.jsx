@@ -1,30 +1,34 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { ActivityRegistry } from '../core/registry/ActivityRegistry';
 import { useActivity } from '../contexts/ActivityContext';
 import { FileText, Sparkles } from 'lucide-react';
 import RichTextRenderer from './RichTextRenderer';
+import { loadHtml2pdf } from '../utils/loadHtml2pdf';
 import { AboutSystem } from './AboutSystem';
 import { DrackerSummaryRenderer } from './activity-area/DrackerSummaryRenderer';
-
-// Módulos Carregados sob Demanda via Code Splitting (React.lazy)
-const QuizGame = lazy(() => import('./QuizGame').then(m => ({ default: m.QuizGame })));
-const QuizPrint = lazy(() => import('./QuizPrint').then(m => ({ default: m.QuizPrint })));
-const WordSearchGame = lazy(() => import('./WordSearchGame').then(m => ({ default: m.WordSearchGame })));
-const MusicGame = lazy(() => import('./MusicGame').then(m => ({ default: m.MusicGame })));
-const CrosswordActivity = lazy(() => import('./CrosswordActivity').then(m => ({ default: m.CrosswordActivity })));
-const ConnectDotsGame = lazy(() => import('./ConnectDotsGame'));
-const DrackerVideoGallery = lazy(() => import('./DrackerVideoGallery'));
-const DominoGame = lazy(() => import('./domino/DominoGame'));
-const DominoPrint = lazy(() => import('./domino/DominoPrint'));
-const PDFMergerTool = lazy(() => import('./PDFMergerTool').then(m => ({ default: m.PDFMergerTool })));
-const MemoryGame = lazy(() => import('./memory/MemoryGame'));
-const HangmanGame = lazy(() => import('./HangmanGame'));
-const DetectiveRPG = lazy(() => import('./rpg/DetectiveRPG'));
-const ChatDracker = lazy(() => import('./chat/ChatDracker'));
-const TradingCardMaker = lazy(() => import('./trading-cards/TradingCardMaker').then(m => ({ default: m.TradingCardMaker })));
-const NumberLineMaker = lazy(() => import('./number-line/NumberLineMaker').then(m => ({ default: m.NumberLineMaker })));
-const FractionsMaker = lazy(() => import('./fractions/FractionsMaker').then(m => ({ default: m.FractionsMaker })));
-const RouletteActivity = lazy(() => import('./roulette/RouletteActivity').then(m => ({ default: m.RouletteActivity || m.default })));
 import { TransitionQuestionsModal } from './modals/TransitionQuestionsModal';
+
+// Módulos carregados sob demanda via ActivityRegistry (React.lazy + code splitting)
+const {
+    quiz_game: QuizGame,
+    quiz_print: QuizPrint,
+    wordsearch: WordSearchGame,
+    music: MusicGame,
+    crossword: CrosswordActivity,
+    connect_dots: ConnectDotsGame,
+    video_gallery: DrackerVideoGallery,
+    domino_game: DominoGame,
+    domino_print: DominoPrint,
+    merge_pdf: PDFMergerTool,
+    memory: MemoryGame,
+    hangman: HangmanGame,
+    rpg: DetectiveRPG,
+    chat_dracker: ChatDracker,
+    trading_cards: TradingCardMaker,
+    number_line: NumberLineMaker,
+    fractions: FractionsMaker,
+    roulette: RouletteActivity
+} = ActivityRegistry;
 
 const ActivityLoadingFallback = () => (
     <div className="flex flex-col items-center justify-center p-12 min-h-[350px] gap-4 bg-slate-50/50 rounded-2xl animate-pulse my-8">
@@ -155,8 +159,7 @@ export const ActivityArea = ({
             element.classList.add('pdf-show-alternatives');
         }
 
-        const html2pdfModule = await import('html2pdf.js');
-        const html2pdf = html2pdfModule.default || html2pdfModule;
+        const html2pdf = await loadHtml2pdf();
 
         html2pdf().set(opt).from(element).save().then(() => {
             element.classList.remove('pdf-capture-mode');
@@ -167,8 +170,8 @@ export const ActivityArea = ({
     // --- Render Logic ---
 
     return (
-        <div className="w-full flex-1 flex flex-col print:block">
-            <div className="bg-white rounded-2xl shadow-xl border border-brown-200 min-h-96 flex flex-col transition-all print:block print:shadow-none print:border-none">
+        <div className="w-full h-full flex flex-col print:block bg-transparent">
+            <div className="flex-1 flex flex-col min-h-96 print:block">
 
                 <ActivityHeader
                     hasContent={hasContent}
@@ -657,7 +660,7 @@ export const ActivityArea = ({
                         </>
                     ) : (
                         /* --- EMPTY / LOADING STATE --- */
-                        <div className="h-full flex flex-col items-center justify-center text-brown-300 p-8">
+                        <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8">
                             {!isLoading && activityType === 'simplify' && (
                                 <div className="w-full mb-8 animate-in fade-in zoom-in duration-300">
                                     <SunoNativePlayer />
@@ -667,14 +670,14 @@ export const ActivityArea = ({
                             {isLoading ? (
                                 <div className="flex flex-col items-center gap-4">
                                     <img src="/dracker_character.png" alt="Loading" className="w-16 h-16 animate-bounce" />
-                                    <p className="text-brown-500">Criando...</p>
+                                    <p className="text-slate-500 font-bold">Criando...</p>
                                 </div>
                             ) : (
                                 <>
-                                    <FileText className="w-12 h-12 mb-4" />
-                                    <p className="text-brown-400">Área de Atividades</p>
+                                    <FileText className="w-12 h-12 mb-4 opacity-50" />
+                                    <p className="text-slate-400 font-bold">Área de Atividades</p>
                                     {isGeneratingAudio && (
-                                        <p className="text-xs mt-2 text-brown-400">Processando áudio em background...</p>
+                                        <p className="text-xs mt-2 text-indigo-500 font-bold">Processando áudio em background...</p>
                                     )}
                                 </>
                             )}

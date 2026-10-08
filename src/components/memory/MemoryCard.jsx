@@ -45,7 +45,7 @@ const MemoryCard = ({ card, isFlipped, isSolved, onClick, onExpand, cardBackImag
                                 e.stopPropagation();
                                 onExpand(card);
                             }}
-                            className="absolute top-2 right-2 z-20 p-1.5 bg-white/90 hover:bg-white rounded-full text-brown-600 hover:text-brown-900 hover:scale-110 transition-all shadow-sm"
+                            className="absolute top-2 right-2 z-20 p-1.5 bg-white/90 hover:bg-white rounded-full text-slate-600 hover:text-slate-900 hover:scale-110 transition-all shadow-sm"
                             title="Ampliar Carta"
                         >
                             <Maximize2 size={16} />
@@ -55,7 +55,7 @@ const MemoryCard = ({ card, isFlipped, isSolved, onClick, onExpand, cardBackImag
                     <div className={`relative z-10 p-2 flex flex-col items-center w-full h-full ${contentImageUrl ? 'justify-end pb-3' : 'justify-center'}`}>
                         <span 
                             className={`font-bold text-center leading-tight select-none
-                                ${contentImageUrl ? 'text-white bg-black/60 px-2 py-1 rounded backdrop-blur-sm shadow-md' : 'text-brown-800'}`}
+                                ${contentImageUrl ? 'text-white bg-black/60 px-2 py-1 rounded backdrop-blur-sm shadow-md' : 'text-slate-800'}`}
                             style={{ fontSize: `${fontSize}px` }}
                         >
                             {card.content}

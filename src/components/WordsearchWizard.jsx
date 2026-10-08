@@ -11,6 +11,7 @@ import { Button } from './ui/Button';
 import { Input, TextArea } from './ui/Input';
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
+import { shuffle } from '../utils/array';
 
 /**
  * Componente para gerenciar o fluxo em etapas do caça-palavras
@@ -357,7 +358,7 @@ Texto divertido: `;
   };
 
   const handleRandomWords = () => {
-    const shuffled = [...availableWords].sort(() => Math.random() - 0.5);
+    const shuffled = shuffle(availableWords);
     setSelectedWords(shuffled.slice(0, Math.min(maxSelectableWords, shuffled.length)));
   };
 

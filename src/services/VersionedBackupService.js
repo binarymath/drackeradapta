@@ -1,3 +1,4 @@
+import { toast } from '../components/ui/Toast';
 export class VersionedBackupService {
     static CHECKPOINTS_KEY = 'dracker_checkpoints_v3';
     static MAX_LOCAL_CHECKPOINTS = 15;
@@ -308,7 +309,7 @@ export class VersionedBackupService {
     static exportHistoryPack(classes = null) {
         const checkpoints = VersionedBackupService.getCheckpoints();
         if (checkpoints.length === 0) {
-            alert('Não há checkpoints salvos na linha do tempo para exportar.');
+            toast('Não há checkpoints salvos na linha do tempo para exportar.');
             return;
         }
 

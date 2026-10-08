@@ -3,7 +3,7 @@ import { X, Plus, Trash2, CheckCircle, Save, AlertCircle, GripVertical, Image, L
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { theme } from '../styles/theme';
+
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Input, TextArea } from './ui/Input';
@@ -13,6 +13,7 @@ import { convertRouletteQuestionsToQuiz } from '../services/questionTransitionSe
 import { gameAudio } from '../utils/gameAudio';
 import { toDirectImageUrl, handleDriveImageError, isYouTubeUrl, getYouTubeEmbedUrl } from '../utils/urlUtils';
 import { GoogleSheetsImportModal } from './roulette/GoogleSheetsImportModal';
+import { toast } from './ui/Toast';
 
 
 function SortableOptionItem({ id, children }) {
@@ -250,7 +251,7 @@ export const QuizEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
             onSave(exportData);
         } catch (e) {
             console.error("Error in handleSave:", e);
-            alert("Ocorreu um erro ao salvar o quiz. Verifique se todas as perguntas têm alternativas válidas.");
+            toast("Ocorreu um erro ao salvar o quiz. Verifique se todas as perguntas têm alternativas válidas.");
         }
     };
 

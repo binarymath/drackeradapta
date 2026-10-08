@@ -1,3 +1,6 @@
+import { loadHtml2pdf } from '../utils/loadHtml2pdf';
+import { toast } from '../components/ui/Toast';
+
 export class ExportService {
     /**
      * Exporta a atividade para PDF com design amigável para crianças
@@ -326,10 +329,12 @@ export class ExportService {
             pagebreak: { mode: 'css', avoid: ['tr'] }
         };
 
-        if (window.html2pdf) {
-            await window.html2pdf().set(opt).from(container).save();
-        } else {
-            alert('Biblioteca PDF não encontrada. Tente imprimir usando Ctrl+P.');
+        try {
+            const html2pdf = await loadHtml2pdf();
+            await html2pdf().set(opt).from(container).save();
+        } catch (err) {
+            console.error('Falha ao carregar/gerar PDF:', err);
+            toast('Biblioteca PDF não encontrada. Tente imprimir usando Ctrl+P.');
         }
 
         document.body.removeChild(overlay);
@@ -342,7 +347,7 @@ export class ExportService {
      */
     static exportToDOCX(element, title = 'Atividade') {
         if (!element) {
-            alert('Erro: Nenhum conteúdo encontrado para exportar. Tente novamente.');
+            toast('Erro: Nenhum conteúdo encontrado para exportar. Tente novamente.');
             return;
         }
 
@@ -452,7 +457,7 @@ export class ExportService {
 
         } catch (err) {
             console.error(err);
-            alert(`Ocorreu um erro ao gerar o arquivo DOC: ${err.message}`);
+            toast(`Ocorreu um erro ao gerar o arquivo DOC: ${err.message}`);
         }
     }
 

@@ -3,8 +3,9 @@ import { Play, Check, X, RefreshCcw, Trophy, UserPlus, Trash2, Music, Printer } 
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { SunoNativePlayer } from './activity-area/SunoNativePlayer';
+import { shuffle as shuffleArray } from '../utils/array';
+import { formatMs } from '../utils/time';
 
-const shuffleArray = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
 export const MusicGame = ({ musicData, onRestart, onExitToPrint }) => {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -101,14 +102,6 @@ export const MusicGame = ({ musicData, onRestart, onExitToPrint }) => {
             });
         setRankings(updated);
         localStorage.setItem('music_game_ranking', JSON.stringify(updated));
-    };
-
-    const formatTime = (ms) => {
-        if (!ms || !Number.isFinite(ms) || ms === Number.MAX_SAFE_INTEGER) return '--:--';
-        const totalSeconds = Math.max(0, Math.round(ms / 1000));
-        const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-        const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-        return `${minutes}:${seconds}`;
     };
 
     const deleteRankingEntry = (idx) => {
@@ -225,7 +218,7 @@ export const MusicGame = ({ musicData, onRestart, onExitToPrint }) => {
                                         <div key={idx} className="flex justify-between items-center bg-white/60 p-2 rounded-lg border border-white/50">
                                             <span className="font-bold">{idx + 1}. {r.name}</span>
                                             <div className="flex items-center gap-3">
-                                                <span className="bg-amber-200/50 px-2 py-0.5 rounded text-amber-800 font-mono text-xs">{r.score}/{r.total} ({r.percent}%) • {formatTime(r.timeMs)}</span>
+                                                <span className="bg-amber-200/50 px-2 py-0.5 rounded text-amber-800 font-mono text-xs">{r.score}/{r.total} ({r.percent}%) • {formatMs(r.timeMs)}</span>
                                                 <button
                                                     onClick={() => deleteRankingEntry(idx)}
                                                     className="p-1.5 text-amber-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
@@ -266,7 +259,7 @@ export const MusicGame = ({ musicData, onRestart, onExitToPrint }) => {
                     <div className="bg-green-50 p-4 rounded-lg text-center space-y-2">
                         <div className="text-4xl font-bold text-green-600">{score}/{totalQuestions}</div>
                         <div className="text-sm text-green-700">Pontuação: {Math.round((score / totalQuestions) * 100)}%</div>
-                        <div className="text-sm text-green-700">Tempo: {formatTime(lastRunTimeMs)}</div>
+                        <div className="text-sm text-green-700">Tempo: {formatMs(lastRunTimeMs)}</div>
                     </div>
 
                     <Button
@@ -321,7 +314,7 @@ export const MusicGame = ({ musicData, onRestart, onExitToPrint }) => {
                     </div>
                     <div className="text-right">
                         <span className="text-sm font-bold text-amber-600">Acertos: {score}</span>
-                        <div className="text-xs text-amber-500 mt-1">{formatTime(Date.now() - startTime)}</div>
+                        <div className="text-xs text-amber-500 mt-1">{formatMs(Date.now() - startTime)}</div>
                     </div>
                 </div>
 

@@ -459,13 +459,6 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
         setTimeout(() => setCopiedCollectiveAi(false), 2000);
     };
 
-    const handleCopyIndividualAi = () => {
-        if (!aiIndividualSummary) return;
-        navigator.clipboard.writeText(aiIndividualSummary);
-        setCopiedIndividualAi(true);
-        setTimeout(() => setCopiedIndividualAi(false), 2000);
-    };
-
     const handleCopySelectedStudentAi = () => {
         if (!selectedStudentForAi || !studentAiInsights[selectedStudentForAi.id]) return;
         navigator.clipboard.writeText(studentAiInsights[selectedStudentForAi.id]);
@@ -869,11 +862,6 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
         if (aiCollectiveSummary) {
             csv += `\n--- SINTESE PEDAGOGICA COLETIVA DA TURMA (IA) ---\n`;
             csv += `"${aiCollectiveSummary.replace(/"/g, '""')}"\n`;
-        }
-
-        if (aiIndividualSummary) {
-            csv += `\n--- DIAGNOSTICO INDIVIDUAL CONSOLIDADO DOS ALUNOS (IA) ---\n`;
-            csv += `"${aiIndividualSummary.replace(/"/g, '""')}"\n`;
         }
 
         const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
@@ -2289,6 +2277,9 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
         questionStats={questionStats}
         studentStats={studentStats}
         groupStats={groupStats}
+        handleToggleStudentAbsentStatus={handleToggleStudentAbsentStatus}
+        setSelectedStudentForAi={setSelectedStudentForAi}
+        studentAiInsights={studentAiInsights}
     />
 )}
 

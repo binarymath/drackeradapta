@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useWheelSpin } from '../hooks/useWheelSpin';
 
 const COSMIC_COLORS = [
     '#4c1d95', // Roxo nebulosa profundo
@@ -12,96 +13,22 @@ const COSMIC_COLORS = [
 ];
 
 export const CosmicWheel = ({ items = [], spinning = false, winner = null, onSpinComplete, isMaximized = false }) => {
-    const [rotation, setRotation] = useState(0);
-    const audioCtxRef = useRef(null);
-
-    // Efeito Sonoro de Sinos Astrais (Onda Senoidal Cristalina)
-    useEffect(() => {
-        if (spinning) {
-            try {
-                if (!audioCtxRef.current) {
-                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                    if (AudioContextClass) audioCtxRef.current = new AudioContextClass();
-                }
-                const ctx = audioCtxRef.current;
-                if (ctx && ctx.state === 'suspended') {
-                    ctx.resume().catch(() => {});
-                }
-
-                let tick = 0;
-                const maxTicks = 42;
-                let timeoutId;
-
-                const playChimeTick = () => {
-                    if (tick >= maxTicks) return;
-                    if (!ctx || ctx.state === 'closed') return;
-
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-
-                    // Frequências místicas pentatônicas celestiais
-                    const scale = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50];
-                    const freq = scale[tick % scale.length];
-
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, ctx.currentTime);
-
-                    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.12);
-
-                    tick++;
-                    const progress = tick / maxTicks;
-                    const ease = Math.pow(progress, 2.9);
-                    const nextDelay = 35 + (ease * 370);
-
-                    timeoutId = setTimeout(playChimeTick, nextDelay);
-                };
-
-                playChimeTick();
-
-                return () => {
-                    clearTimeout(timeoutId);
-                };
-            } catch (e) {}
+    const { rotation } = useWheelSpin({
+        items,
+        spinning,
+        winner,
+        onSpinComplete,
+        audioConfig: {
+            scale: [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50],
+            maxTicks: 42,
+            type: 'sine',
+            baseDelay: 35,
+            delayMultiplier: 370,
+            easingCurve: (p) => Math.pow(p, 2.9),
+            dur: 0.12,
+            gainVal: 0.12
         }
-    }, [spinning]);
-
-    // Rotação física
-    useEffect(() => {
-        if (spinning && winner && items.length > 0) {
-            const winnerIdx = items.findIndex(i => String(i.id) === String(winner.id));
-            if (winnerIdx === -1) {
-                const timeout = setTimeout(() => {
-                    if (onSpinComplete) onSpinComplete();
-                }, 2000);
-                return () => clearTimeout(timeout);
-            }
-
-            const numItems = items.length;
-            const sliceAngle = 360 / numItems;
-
-            const winnerCenterAngle = (winnerIdx * sliceAngle) + (sliceAngle / 2);
-            const randomOffset = (Math.random() - 0.5) * (sliceAngle * 0.55);
-
-            const extraSpins = 360 * 6;
-            const currentRotationMod = rotation % 360;
-            const newRotation = rotation + extraSpins + (360 - winnerCenterAngle - currentRotationMod) + randomOffset;
-
-            setRotation(newRotation);
-
-            const timeout = setTimeout(() => {
-                if (onSpinComplete) onSpinComplete();
-            }, 5000);
-
-            return () => clearTimeout(timeout);
-        }
-    }, [spinning, winner]);
+    });
 
     if (!items || items.length === 0) {
         return (

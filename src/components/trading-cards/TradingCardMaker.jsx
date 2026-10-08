@@ -5,7 +5,7 @@ import { Input, TextArea } from '../ui/Input';
 import { TradingCard } from './TradingCard';
 import { Plus, Trash2, Printer, CheckSquare, Square, AlignLeft, AlignCenter, AlignRight, AlignJustify } from 'lucide-react';
 import { useActivity } from '../../contexts/ActivityContext';
-import { theme } from '../../styles/theme';
+
 
 export const TradingCardMaker = () => {
     const { activeActivity, updateActivityData, activeTabId, addActivityTab } = useActivity();
@@ -204,7 +204,7 @@ export const TradingCardMaker = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 no-print">
                 {/* Form */}
                 <Card className="flex flex-col gap-4">
-                    <h2 className={theme.text.title}>Criar Novo Card</h2>
+                    <h2 className="heading-gamified text-xl">Criar Novo Card</h2>
                     
                     <div className="grid grid-cols-2 gap-4">
                         <Input label="Nome" value={currentCard.title} onChange={e => setCurrentCard({...currentCard, title: e.target.value})} placeholder="Ex: Célula Animal" />
@@ -393,7 +393,7 @@ export const TradingCardMaker = () => {
                     {/* Skills Area */}
                     <div className="flex flex-col gap-3 mt-2">
                         <div className="flex justify-between items-center">
-                            <label className={theme.text.label}>Habilidades ({currentCard.skills.length}/9)</label>
+                            <label className="block text-[15px] font-bold mb-2 text-slate-700 tracking-wide">Habilidades ({currentCard.skills.length}/9)</label>
                             {currentCard.skills.length < 9 && (
                                 <button onClick={handleAddSkill} className="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-md border border-amber-200 transition-colors">
                                     <Plus className="w-3 h-3" /> Adicionar

@@ -24,7 +24,8 @@ export const ActivityRegistry = {
     chat_dracker: lazy(() => import('../../components/chat/ChatDracker')),
     trading_cards: lazy(() => import('../../components/trading-cards/TradingCardMaker').then(m => ({ default: m.TradingCardMaker }))),
     number_line: lazy(() => import('../../components/number-line/NumberLineMaker').then(m => ({ default: m.NumberLineMaker }))),
-    fractions: lazy(() => import('../../components/fractions/FractionsMaker').then(m => ({ default: m.FractionsMaker })))
+    fractions: lazy(() => import('../../components/fractions/FractionsMaker').then(m => ({ default: m.FractionsMaker }))),
+    roulette: lazy(() => import('../../components/roulette/RouletteActivity').then(m => ({ default: m.RouletteActivity || m.default })))
 };
 
 export default ActivityRegistry;

@@ -10,6 +10,8 @@ import { Button } from './ui/Button';
 import { Input, TextArea } from './ui/Input';
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
+import { shuffleInPlace } from '../utils/array';
+import { toast } from './ui/Toast';
 
 const SortableQuestionItem = ({ question, index, onRemove, onChange, id }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
@@ -124,7 +126,7 @@ export const MusicEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
 
     const removeQuestion = (id) => {
         if (questions.length <= 1) {
-            alert("Você precisa ter pelo menos uma pergunta.");
+            toast("Você precisa ter pelo menos uma pergunta.");
             return;
         }
         setQuestions(questions.filter(q => q.id !== id));
@@ -140,7 +142,7 @@ export const MusicEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
                 correctAnswer: q.correctAnswer,
                 distractors: cleanedDistractors,
                 options,
-                ordered_options: options.sort(() => Math.random() - 0.5),
+                ordered_options: shuffleInPlace(options),
                 difficulty: q.difficulty || ''
             };
         });

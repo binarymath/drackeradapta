@@ -9,6 +9,7 @@ import { LatexRenderer } from '../ui/LatexRenderer';
 
 import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 import { safeJSONParse } from '../../utils/jsonUtils';
+import { toast } from '../ui/Toast';
 export { toDirectImageUrl, handleDriveImageError };
 
 
@@ -71,11 +72,11 @@ export const DominoEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
 
     const handleGenerateAI = async () => {
         if (!topicInput) {
-            alert("Por favor, digite um Tema primeiro para a Inteligência Artificial saber o que gerar.");
+            toast("Por favor, digite um Tema primeiro para a Inteligência Artificial saber o que gerar.");
             return;
         }
         if (!geminiService || !geminiService.apiKey) {
-            alert("Por favor, configure sua chave de API nas configurações primeiro.");
+            toast("Por favor, configure sua chave de API nas configurações primeiro.");
             return;
         }
 
@@ -119,7 +120,7 @@ Retorne APENAS um array JSON com exatamente ${requiredPairs} objetos, sem format
                 list = list.slice(0, requiredPairs);
             }
             if (list.length < requiredPairs) {
-                alert(`A IA gerou apenas ${list.length} pares. Precisamos de exatamente ${requiredPairs}. Adicione os faltantes manualmente na lista abaixo.`);
+                toast(`A IA gerou apenas ${list.length} pares. Precisamos de exatamente ${requiredPairs}. Adicione os faltantes manualmente na lista abaixo.`);
             }
 
             const mappedPairs = list.map((p, idx) => {
@@ -137,7 +138,7 @@ Retorne APENAS um array JSON com exatamente ${requiredPairs} objetos, sem format
             setPairs(mappedPairs);
         } catch (e) {
             console.error("Erro na IA:", e);
-            alert("Erro ao gerar com IA: " + e.message);
+            toast("Erro ao gerar com IA: " + e.message);
         } finally {
             setIsGeneratingAI(false);
         }
@@ -145,7 +146,7 @@ Retorne APENAS um array JSON com exatamente ${requiredPairs} objetos, sem format
 
     const handleSave = () => {
         if (pairs.length < requiredPairs) {
-            alert(`Atenção: O jogo requer exatamente 28 peças (Pares gerados: ${pairs.length}). Faltam ${requiredPairs - pairs.length} pares para fechar o jogo perfeitamente.`);
+            toast(`Atenção: O jogo requer exatamente 28 peças (Pares gerados: ${pairs.length}). Faltam ${requiredPairs - pairs.length} pares para fechar o jogo perfeitamente.`);
             return;
         }
 

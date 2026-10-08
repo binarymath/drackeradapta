@@ -3,6 +3,8 @@ import { Play, Check, X, RefreshCcw, Trophy, ChevronRight, UserPlus, Trash2 } fr
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { toDirectImageUrl, handleDriveImageError, isYouTubeUrl, getYouTubeEmbedUrl } from '../utils/urlUtils';
+import { shuffle } from '../utils/array';
+import { formatMs } from '../utils/time';
 
 
 export const QuizGame = ({ quizData, onRestart }) => {
@@ -70,14 +72,6 @@ export const QuizGame = ({ quizData, onRestart }) => {
         return updated;
     };
 
-    const formatTime = (ms) => {
-        if (!ms || !Number.isFinite(ms) || ms === Number.MAX_SAFE_INTEGER) return '--:--';
-        const totalSeconds = Math.max(0, Math.round(ms / 1000));
-        const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-        const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-        return `${minutes}:${seconds}`;
-    };
-
     const deleteRankingEntry = (idx) => {
         const updated = rankings.filter((_, i) => i !== idx);
         setRankings(updated);
@@ -102,9 +96,7 @@ export const QuizGame = ({ quizData, onRestart }) => {
         if (currentQuestion.ordered_options && currentQuestion.ordered_options.length > 0) {
             return currentQuestion.ordered_options;
         }
-        return [currentQuestion.correct_answer, ...currentQuestion.distractors]
-            .slice(0, 5)
-            .sort(() => Math.random() - 0.5);
+        return shuffle([currentQuestion.correct_answer, ...currentQuestion.distractors].slice(0, 5));
     }, [currentQuestion, currentQuestionIndex, quizData]); // Re-calc only when index/question changes
 
     if (!hasStarted && !isFinished) {
@@ -157,7 +149,7 @@ export const QuizGame = ({ quizData, onRestart }) => {
                                     <div key={idx} className="flex justify-between items-center">
                                         <span>{idx + 1}. {r.name}</span>
                                         <div className="flex items-center gap-2">
-                                            <span>{r.score}/{r.total} ({r.percent}%) • {formatTime(r.timeMs)}</span>
+                                            <span>{r.score}/{r.total} ({r.percent}%) • {formatMs(r.timeMs)}</span>
                                             <button
                                                 onClick={() => deleteRankingEntry(idx)}
                                                 className="p-1 text-amber-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
@@ -235,7 +227,7 @@ export const QuizGame = ({ quizData, onRestart }) => {
                     Você acertou <strong className="text-green-600">{score}</strong> de <strong className="text-brown-900">{shuffledQuestions.length}</strong> questões.
                 </p>
                 {Number.isFinite(lastRunTimeMs) && (
-                    <p className="text-sm text-brown-600">Tempo: {formatTime(lastRunTimeMs)}</p>
+                    <p className="text-sm text-brown-600">Tempo: {formatMs(lastRunTimeMs)}</p>
                 )}
                 <div className="w-full max-w-md bg-brown-100 rounded-full h-4 mb-6 grid overflow-hidden">
                     <div
@@ -263,7 +255,7 @@ export const QuizGame = ({ quizData, onRestart }) => {
                                 <div key={idx} className={`flex justify-between items-center ${r.name === (playerName?.trim() || 'Jogador') ? 'font-bold text-green-700' : ''}`}>
                                     <span>{idx + 1}. {r.name}</span>
                                     <div className="flex items-center gap-2">
-                                        <span>{r.score}/{r.total} ({r.percent}%) • {formatTime(r.timeMs)}</span>
+                                        <span>{r.score}/{r.total} ({r.percent}%) • {formatMs(r.timeMs)}</span>
                                         <button
                                             onClick={() => deleteRankingEntry(idx)}
                                             className="p-1 text-amber-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"

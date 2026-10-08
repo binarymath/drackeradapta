@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { theme } from '../styles/theme';
+
 import { Button } from './ui/Button';
 import {
     Upload,
@@ -95,7 +95,7 @@ const PdfThumbnail = ({ file }) => {
     }
 
     return (
-        <div className="w-full bg-brown-100 rounded-lg overflow-hidden flex items-center justify-center relative border border-brown-200 shadow-inner min-h-[160px]">
+        <div className="w-full bg-brown-100 rounded-lg overflow-hidden flex items-center justify-center relative border border-slate-200 shadow-inner min-h-[160px]">
             {loading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-50/50 z-10">
                     <Loader2 className="w-6 h-6 text-brown-400 animate-spin" />
@@ -126,7 +126,7 @@ const SortablePdfCard = ({ id, file, onRemove }) => {
         <div
             ref={setNodeRef}
             style={style}
-            className={`group relative bg-white rounded-xl border ${isDragging ? 'border-brown-400 ring-2 ring-brown-200 opacity-75 z-50 scale-105' : 'border-brown-200 hover:border-brown-400'} p-3 flex flex-col gap-3 transition-all cursor-grab active:cursor-grabbing hover:shadow-lg h-full`}
+            className={`group relative bg-white rounded-xl border ${isDragging ? 'border-slate-400 ring-2 ring-brown-200 opacity-75 z-50 scale-105' : 'border-slate-200 hover:border-slate-400'} p-3 flex flex-col gap-3 transition-all cursor-grab active:cursor-grabbing hover:shadow-lg h-full`}
             {...attributes}
             {...listeners}
         >
@@ -252,7 +252,7 @@ export const PDFMergerTool = () => {
 
     return (
         <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-2xl shadow border border-brown-200 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow border border-slate-200 overflow-hidden">
 
                 {/* Header Section */}
                 <div className="bg-white px-6 py-5 border-b border-brown-100 flex items-center justify-between">
@@ -270,7 +270,7 @@ export const PDFMergerTool = () => {
                 <div className="p-6 md:p-8">
                     {/* Error Message */}
                     {error && (
-                        <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 text-sm ${theme.status.error}`}>
+                        <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 text-sm bg-rose-100 text-rose-800`}>
                             <AlertCircle className="w-5 h-5 flex-shrink-0" />
                             <p>{error}</p>
                         </div>
@@ -297,7 +297,7 @@ export const PDFMergerTool = () => {
                             <div className="flex justify-between items-center bg-brown-50 p-4 rounded-lg border border-brown-100">
                                 <p className="text-sm font-bold text-brown-700">{files.length} arquivos selecionados</p>
                                 <div className="flex gap-2">
-                                    <label className="cursor-pointer bg-white border border-brown-200 hover:bg-brown-50 text-brown-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                                    <label className="cursor-pointer bg-white border border-slate-200 hover:bg-brown-50 text-brown-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
                                         <Upload className="w-4 h-4" /> Adicionar
                                         <input
                                             type="file"

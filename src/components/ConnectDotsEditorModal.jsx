@@ -4,6 +4,7 @@ import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card } from './ui/Card';
+import { toast } from './ui/Toast';
 
 export function ConnectDotsEditorModal({ isOpen, onClose, initialData, onConfirm }) {
     const [pairs, setPairs] = useState([]);
@@ -22,7 +23,7 @@ export function ConnectDotsEditorModal({ isOpen, onClose, initialData, onConfirm
 
     const handleDelete = (id) => {
         if (pairs.length <= 2) {
-            alert("É necessário ter pelo menos 2 pares.");
+            toast("É necessário ter pelo menos 2 pares.");
             return;
         }
         setPairs(prev => prev.filter(p => p.id !== id));
@@ -41,7 +42,7 @@ export function ConnectDotsEditorModal({ isOpen, onClose, initialData, onConfirm
     const handleSave = () => {
         // Basic validation
         if (pairs.some(p => !p.text.trim() || !p.emoji.trim())) {
-            alert("Preencha todos os campos.");
+            toast("Preencha todos os campos.");
             return;
         }
         onConfirm(pairs);

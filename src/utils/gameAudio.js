@@ -267,6 +267,70 @@ class GameAudioManager {
             osc.stop(now + 0.04);
         } catch (e) {}
     }
+
+    playTone({ freq = 440, type = 'sine', dur = 0.1, gainVal = 0.1 } = {}) {
+        try {
+            const ctx = this.getAudioContext();
+            if (!ctx) return;
+            const osc = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+            
+            gainNode.gain.setValueAtTime(gainVal, ctx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+            
+            osc.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            osc.start();
+            osc.stop(ctx.currentTime + dur);
+        } catch (e) {}
+    }
+
+    playTickSequence({ 
+        scale = [440], 
+        maxTicks = 42, 
+        easingCurve = (p) => Math.pow(p, 2.5), 
+        type = 'sine', 
+        baseDelay = 30, 
+        delayMultiplier = 350,
+        dur = 0.1,
+        gainVal = 0.1
+    } = {}) {
+        try {
+            const ctx = this.getAudioContext();
+            if (!ctx) return () => {};
+
+            let tick = 0;
+            let timeoutId;
+            let isCancelled = false;
+
+            const playTick = () => {
+                if (tick >= maxTicks || isCancelled) return;
+                
+                const freq = scale[tick % scale.length];
+                this.playTone({ freq, type, dur, gainVal });
+                
+                tick++;
+                const progress = tick / maxTicks;
+                const ease = easingCurve(progress);
+                const nextDelay = baseDelay + (ease * delayMultiplier);
+                
+                timeoutId = setTimeout(playTick, nextDelay);
+            };
+            
+            playTick();
+            
+            return () => {
+                isCancelled = true;
+                clearTimeout(timeoutId);
+            };
+        } catch(e) {
+            return () => {};
+        }
+    }
 }
 
 export const gameAudio = new GameAudioManager();

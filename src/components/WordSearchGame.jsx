@@ -5,6 +5,7 @@ import { Badge } from './ui/Badge';
 import { RefreshCw, Trophy, PartyPopper, Check, X, UserPlus, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { LatexRenderer } from './ui/LatexRenderer';
+import { formatMs } from '../utils/time';
 
 export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRestart }) => {
     const [grid, setGrid] = useState([]);
@@ -199,14 +200,6 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
         localStorage.setItem('wordsearch_ranking', JSON.stringify(updated));
     };
 
-    const formatTime = (ms) => {
-        if (!ms || !Number.isFinite(ms) || ms === Number.MAX_SAFE_INTEGER) return '--:--';
-        const totalSeconds = Math.max(0, Math.round(ms / 1000));
-        const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-        const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-        return `${minutes}:${seconds}`;
-    };
-
     const deleteRankingEntry = (idx) => {
         const updated = rankings.filter((_, i) => i !== idx);
         setRankings(updated);
@@ -356,7 +349,7 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
                                     <div key={idx} className="flex justify-between items-center">
                                         <span>{idx + 1}. {r.name}</span>
                                         <div className="flex items-center gap-2">
-                                            <span>{r.wordsFound}/{r.totalWords} ({r.percent}%) • {formatTime(r.timeMs)}</span>
+                                            <span>{r.wordsFound}/{r.totalWords} ({r.percent}%) • {formatMs(r.timeMs)}</span>
                                             <button
                                                 onClick={() => deleteRankingEntry(idx)}
                                                 className="p-1 text-amber-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
@@ -384,7 +377,7 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
                 </Badge>
                 {Number.isFinite(lastRunTimeMs) && (
                     <Badge className="text-sm py-1 px-3 shadow-sm bg-blue-50 border-blue-200 text-blue-700">
-                        Tempo: {formatTime(lastRunTimeMs)}
+                        Tempo: {formatMs(lastRunTimeMs)}
                     </Badge>
                 )}
                 <div className="flex gap-2">
@@ -404,7 +397,7 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
                             <Trophy className="w-8 h-8 text-yellow-500" />
                             Parabéns!
                         </h2>
-                        <p className="text-green-700">Você encontrou todas as palavras em {formatTime(lastRunTimeMs)}!</p>
+                        <p className="text-green-700">Você encontrou todas as palavras em {formatMs(lastRunTimeMs)}!</p>
                     </Card>
 
                     <div className="flex gap-3 w-full">
@@ -426,7 +419,7 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
                                     <div key={idx} className={`flex justify-between items-center ${r.name === (playerName?.trim() || 'Jogador') ? 'font-bold text-green-700' : 'text-brown-800'}`}>
                                         <span>{idx + 1}. {r.name}</span>
                                         <div className="flex items-center gap-2">
-                                            <span>{r.wordsFound}/{r.totalWords} ({r.percent}%) • {formatTime(r.timeMs)}</span>
+                                            <span>{r.wordsFound}/{r.totalWords} ({r.percent}%) • {formatMs(r.timeMs)}</span>
                                             <button
                                                 onClick={() => deleteRankingEntry(idx)}
                                                 className="p-1 text-amber-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"

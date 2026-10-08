@@ -5,6 +5,7 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { GameToggleCard } from './GameToggleCard';
 import { SunoNativePlayer } from './SunoNativePlayer';
+import { toast } from '../ui/Toast';
 
 export const MusicActivityRenderer = ({
     musicData,
@@ -77,7 +78,7 @@ export const MusicActivityRenderer = ({
                             <Button
                                 onClick={() => {
                                     navigator.clipboard.writeText(musicData.lyrics);
-                                    alert('Letra copiada!');
+                                    toast('Letra copiada!');
                                 }}
                                 variant="secondary"
                                 className="text-xs print:hidden"
@@ -129,7 +130,7 @@ export const MusicActivityRenderer = ({
                             <Button
                                 onClick={() => {
                                     navigator.clipboard.writeText(musicData.style);
-                                    alert('Estilo copiado!');
+                                    toast('Estilo copiado!');
                                 }}
                                 variant="secondary"
                                 className="text-xs z-10"

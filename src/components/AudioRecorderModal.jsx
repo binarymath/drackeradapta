@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, Square, Play, Pause, Trash2, Download, X, Minus, Maximize2, RotateCcw } from 'lucide-react';
-import { theme } from '../styles/theme';
+
 import { Button } from './ui/Button';
+import { formatClock } from '../utils/time';
+import { toast } from './ui/Toast';
 
 // Using a fixed position discrete widget approach
 export const AudioRecorderModal = ({ isOpen, onClose }) => {
@@ -158,7 +160,7 @@ export const AudioRecorderModal = ({ isOpen, onClose }) => {
 
         } catch (err) {
             console.error("Error accessing microphone:", err);
-            alert("Erro ao acessar microfone. Verifique as permissões.");
+            toast("Erro ao acessar microfone. Verifique as permissões.");
         }
     };
 
@@ -246,12 +248,6 @@ export const AudioRecorderModal = ({ isOpen, onClose }) => {
     };
 
     // --- UTILS ---
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-        const secs = (seconds % 60).toString().padStart(2, '0');
-        return `${mins}:${secs}`;
-    };
-
     // --- RENDER ---
     if (!isOpen) return null;
 
@@ -264,7 +260,7 @@ export const AudioRecorderModal = ({ isOpen, onClose }) => {
                 cursor: isDragging ? 'grabbing' : 'default'
             }}
         >
-            <div className="bg-white rounded-2xl border border-brown-200 overflow-hidden shadow-lg flex flex-col">
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg flex flex-col">
 
                 {/* Header / Drag Handle */}
                 <div
@@ -313,7 +309,7 @@ export const AudioRecorderModal = ({ isOpen, onClose }) => {
                             {/* Timer Overlay */}
                             <div className="absolute bottom-1 right-2 z-30">
                                 <span className="font-mono text-xl font-bold text-brown-800 tabular-nums drop-shadow-sm">
-                                    {formatTime(duration)}
+                                    {formatClock(duration)}
                                 </span>
                             </div>
                         </div>
@@ -340,7 +336,7 @@ export const AudioRecorderModal = ({ isOpen, onClose }) => {
                                         {isPaused || (audioPlayerRef.current?.paused) ? <Play className="w-4 h-4 ml-0.5" /> : <Pause className="w-4 h-4" />}
                                     </Button>
 
-                                    <a href={audioUrl} download={`gravacao-${new Date().toLocaleTimeString().replace(/:/g, '-')}.webm`} className={`${theme.button.icon} text-green-600 hover:bg-green-50 p-1`} title="Baixar">
+                                    <a href={audioUrl} download={`gravacao-${new Date().toLocaleTimeString().replace(/:/g, '-')}.webm`} className={`btn-icon text-green-600 hover:bg-green-50 p-1`} title="Baixar">
                                         <Download className="w-4 h-4" />
                                     </a>
                                 </>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { VersionedBackupService } from '../services/VersionedBackupService';
+import { toast } from '../components/ui/Toast';
 
 export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, setTopic, classes, setClasses) => {
     // Estado do modal legado (para compatibilidade, caso necessite)
@@ -37,7 +38,7 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, 
     const exportSystemState = () => {
         try {
             if (!tabs || tabs.length === 0) {
-                alert('Não há atividades ativas para realizar o backup.');
+                toast('Não há atividades ativas para realizar o backup.');
                 return;
             }
             VersionedBackupService.exportJsonFile(tabs, {
@@ -53,7 +54,7 @@ export const useBackupSystem = (tabs, setTabs, setActiveTabId, setActivityType, 
             });
         } catch (error) {
             console.error('Falha ao exportar estado do sistema:', error);
-            alert('Erro ao gerar backup (.json).');
+            toast('Erro ao gerar backup (.json).');
         }
     };
 

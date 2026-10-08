@@ -7,6 +7,7 @@ import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
+import { confirmDialog } from './ui/ConfirmDialog';
 
 export const SaveLoadModal = ({ isOpen, onClose, onLoad, onSaveCurrent, onDelete, savedActivities }) => {
     const [name, setName] = useState('');
@@ -91,8 +92,8 @@ export const SaveLoadModal = ({ isOpen, onClose, onLoad, onSaveCurrent, onDelete
                                             Abrir
                                         </Button>
                                         <Button
-                                            onClick={() => {
-                                                if (window.confirm('Tem certeza que deseja excluir?')) {
+                                            onClick={async () => {
+                                                if (await confirmDialog('Tem certeza que deseja excluir?')) {
                                                     onDelete(activity.id);
                                                 }
                                             }}

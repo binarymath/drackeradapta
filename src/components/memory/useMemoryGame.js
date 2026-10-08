@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { memoryService } from './memoryService';
+import { shuffle } from '../../utils/array';
 
 const PAIR_COLORS = [
     'ring-red-500', 'ring-orange-500', 'ring-amber-500',
@@ -34,7 +35,7 @@ export const useMemoryGame = (geminiService, initialData = {}) => {
         const pairIds = [...new Set(rawCards.map(c => c.pairId))];
 
         // Shuffle colors
-        const shuffledColors = [...PAIR_COLORS].sort(() => Math.random() - 0.5);
+        const shuffledColors = shuffle(PAIR_COLORS);
 
         // Map pairId -> Color
         const colorMap = {};
@@ -145,7 +146,7 @@ export const useMemoryGame = (geminiService, initialData = {}) => {
 
             // Assign colors before shuffling
             const coloredCards = assignColorsToPairs(generatedCards);
-            const shuffled = [...coloredCards].sort(() => Math.random() - 0.5);
+            const shuffled = shuffle(coloredCards);
 
             setCards(shuffled);
             setSolved([]);
@@ -166,7 +167,7 @@ export const useMemoryGame = (geminiService, initialData = {}) => {
         // Assign colors before shuffling
         const coloredCards = assignColorsToPairs(gameData);
         // Shuffle ensures randomness even if input was ordered
-        const shuffled = [...coloredCards].sort(() => Math.random() - 0.5);
+        const shuffled = shuffle(coloredCards);
 
         setTopic(gameTopic);
         setCards(shuffled);
@@ -203,7 +204,7 @@ export const useMemoryGame = (geminiService, initialData = {}) => {
 
     const shuffleCurrentGame = () => {
         if (cards.length === 0) return;
-        const shuffled = [...cards].sort(() => Math.random() - 0.5);
+        const shuffled = shuffle(cards);
         setCards(shuffled);
         setFlipped([]);
         setSolved([]);

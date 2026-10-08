@@ -20,7 +20,7 @@ export const ActivityHeader = ({
     onPlayInRoulette
 }) => {
     return (
-        <div className="p-4 border-b border-brown-100 flex items-center justify-between bg-gradient-to-r from-brown-50 to-white no-print rounded-t-2xl shadow-sm">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white no-print rounded-t-[2.5rem]">
             <div className="flex items-center gap-4 flex-1">
                 {/* Logo do Drácker no Cabeçalho */}
                 <div className="relative group shrink-0">
@@ -37,7 +37,7 @@ export const ActivityHeader = ({
                         <span className={`w-2 h-2 rounded-full ${hasContent ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-brown-300'}`}></span>
                         <span className="text-[10px] font-extrabold text-brown-500 uppercase tracking-widest">
                             {activityType === 'about_system' || activityType === 'dashboard'
-                                ? 'Página Inicial'
+                                ? 'Nova Atividade'
                                 : activityType === 'merge_pdf'
                                 ? 'Unir PDF'
                                 : hasContent

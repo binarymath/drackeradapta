@@ -1,4 +1,4 @@
-import { buildFractionsPrompt } from '../prompts/fractionsPrompt';
+
 
 export function generateIntelligentFractionsActivity(gradeLevel = '6º Ano - Ensino Fundamental', focusType = 'misto', themeContext = 'culinaria', questionCount = 6) {
   const count = Number(questionCount) || 6;

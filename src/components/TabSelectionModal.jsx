@@ -3,6 +3,7 @@ import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Trash2, ExternalLink, Pencil, Check, X } from 'lucide-react';
 import { Input } from './ui/Input';
+import { confirmDialog } from './ui/ConfirmDialog';
 
 export const TabSelectionModal = ({ isOpen, tabs, onSelect, onCreateNew, onClose, onDelete, onUpdate }) => {
   const [editingId, setEditingId] = useState(null);
@@ -114,9 +115,9 @@ export const TabSelectionModal = ({ isOpen, tabs, onSelect, onCreateNew, onClose
                 </div>
                 {onDelete && (
                   <button
-                    onClick={(e) => { 
+                    onClick={async (e) => { 
                       e.stopPropagation(); 
-                      if(window.confirm('Tem certeza que deseja excluir esta atividade permanentemente?')) {
+                      if(await confirmDialog('Tem certeza que deseja excluir esta atividade permanentemente?')) {
                         onDelete(tab.id); 
                       }
                     }}

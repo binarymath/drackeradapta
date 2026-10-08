@@ -89,9 +89,9 @@ export default function DrackerVideoGallery() {
     }, [playlistId]);
 
     return (
-        <div className="w-full h-full bg-brown-50 rounded-2xl overflow-hidden flex flex-col border border-brown-200">
+        <div className="w-full h-full bg-brown-50 rounded-2xl overflow-hidden flex flex-col border border-slate-200">
             {/* Header */}
-            <div className="bg-white border-b border-brown-200 px-6 py-4 flex items-center justify-between shrink-0">
+            <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                     {playlistId ? (
                         <button onClick={() => setPlaylistId(null)} className="p-2 bg-brown-100 hover:bg-brown-200 text-brown-700 rounded-lg shadow-sm transition-colors">
@@ -129,7 +129,7 @@ export default function DrackerVideoGallery() {
                             playlistsInfo.map((playlist) => (
                                 <div
                                     key={playlist.id}
-                                    className="group bg-white rounded-2xl overflow-hidden border border-brown-200 hover:border-brown-400 transition-all hover:shadow-lg hover:-translate-y-1 cursor-pointer"
+                                    className="group bg-white rounded-2xl overflow-hidden border border-slate-200 hover:border-slate-400 transition-all hover:shadow-lg hover:-translate-y-1 cursor-pointer"
                                     onClick={() => setPlaylistId(playlist.id)}
                                 >
                                     <div className="relative aspect-video overflow-hidden">
@@ -166,7 +166,7 @@ export default function DrackerVideoGallery() {
                                 videos.map((video) => (
                                     <div
                                         key={video.id}
-                                        className="group bg-white rounded-2xl overflow-hidden border border-brown-200 hover:border-brown-400 transition-all hover:shadow-lg hover:-translate-y-1"
+                                        className="group bg-white rounded-2xl overflow-hidden border border-slate-200 hover:border-slate-400 transition-all hover:shadow-lg hover:-translate-y-1"
                                     >
                                         <div
                                             className="relative aspect-video cursor-pointer overflow-hidden"
@@ -187,7 +187,7 @@ export default function DrackerVideoGallery() {
                                             <h3 className="font-bold text-brown-900 text-base line-clamp-2 mb-2 leading-snug group-hover:text-red-700 transition-colors">
                                                 {video.snippet.title}
                                             </h3>
-                                            <div className="flex items-center justify-between mt-4 border-t border-brown-100 pt-3">
+                                            <div className="flex items-center justify-between mt-4 border-t border-slate-100 pt-3">
                                                 <a
                                                     href={`https://www.youtube.com/watch?v=${video.id}`}
                                                     target="_blank"

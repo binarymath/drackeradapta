@@ -1,9 +1,8 @@
 import React from 'react';
-import { theme } from '../../styles/theme';
 
 export const Card = ({ children, className = '', ...props }) => {
     return (
-        <div className={`${theme.layout.card} ${className}`} {...props}>
+        <div className={`card-gamified ${className}`} {...props}>
             {children}
         </div>
     );

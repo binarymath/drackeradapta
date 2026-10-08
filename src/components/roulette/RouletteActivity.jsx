@@ -163,10 +163,10 @@ export const RouletteActivity = () => {
     }
 
     return (
-        <div className="flex flex-col items-center w-full max-w-6xl mx-auto py-8 relative min-h-[600px] gap-8 animate-in fade-in zoom-in-95 duration-500">
+        <div className="flex flex-col w-full h-full relative animate-in fade-in duration-500">
             
             {/* Header da Turma */}
-            <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 lg:p-6 border-b border-slate-100 shrink-0 z-10 relative">
                 <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                         <select 
@@ -263,7 +263,7 @@ export const RouletteActivity = () => {
             </div>
 
             {/* Palco central com arena temática da roleta */}
-            <div className="w-full flex justify-center items-center">
+            <div className="w-full flex-1 flex flex-col relative">
                 {/* Arena Imersiva da Roleta */}
                 <ArenaPortal active={isMaximized}>
                 <div 
@@ -271,7 +271,7 @@ export const RouletteActivity = () => {
                     className={`transition-all duration-500 ${
                         isMaximized 
                             ? `fixed inset-0 z-[9000] w-full h-[100dvh] max-h-[100dvh] m-0 rounded-none border-0 p-3 sm:p-5 md:p-6 flex flex-col justify-between overflow-hidden animate-in fade-in duration-300 ${currentTheme.container}`
-                            : `w-full max-w-5xl relative flex flex-col items-center justify-center p-5 sm:p-7 rounded-3xl border overflow-hidden ${currentTheme.container}`
+                            : `absolute inset-0 w-full h-full flex flex-col items-center justify-between p-4 sm:p-6 overflow-hidden ${currentTheme.container}`
                     }`}
                 >
                     {/* Spotlight de Iluminação Cênica de Fundo */}

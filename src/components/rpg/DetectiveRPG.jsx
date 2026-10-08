@@ -7,6 +7,7 @@ import { Input } from '../ui/Input';
 import { useGemini } from '../../contexts/GeminiContext';
 import { useActivity } from '../../contexts/ActivityContext';
 import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
+import { toast } from '../ui/Toast';
 
 const DetectiveRPG = ({ topic, context, isFullWidth }) => {
     const { geminiService } = useGemini();
@@ -68,7 +69,7 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
     };
 
     const startGame = async () => {
-        if (teams.length === 0) return alert('Adicione pelo menos uma equipe!');
+        if (teams.length === 0) return toast('Adicione pelo menos uma equipe!');
         setGameStatus('loading');
         try {
             const data = await geminiService.generateFullRPG(topic, context, teams, questionType);
@@ -77,7 +78,7 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
             saveState({ currentData: data, gameStatus: 'playing' });
         } catch (error) {
             console.error('Start Game Error:', error);
-            alert('Erro ao iniciar o jogo: ' + (error.message || 'Erro desconhecido'));
+            toast('Erro ao iniciar o jogo: ' + (error.message || 'Erro desconhecido'));
             setGameStatus('setup');
         }
     };
@@ -104,7 +105,7 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
         // Validação e auto-avaliação para múltipla escolha
         if (questionType === 'multiple_choice') {
             if (Object.keys(selectedOptions).length !== teams.length) {
-                return alert('Por favor, selecione a resposta de todas as equipes antes de continuar.');
+                return toast('Por favor, selecione a resposta de todas as equipes antes de continuar.');
             }
             
             currentEtapa.enigmas.forEach((enigma, index) => {
@@ -118,7 +119,7 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
         } else {
             // Validação para dissertativa
             if (Object.keys(evaluations).length !== teams.length) {
-                return alert('Por favor, avalie todas as equipes antes de continuar.');
+                return toast('Por favor, avalie todas as equipes antes de continuar.');
             }
         }
 
@@ -143,7 +144,7 @@ const DetectiveRPG = ({ topic, context, isFullWidth }) => {
             
             // Verifica se a próxima etapa existe (deve existir pois foi gerada toda de uma vez)
             if (!currentData.etapas || !currentData.etapas[nextRoundNum - 1]) {
-                return alert('Erro: A próxima etapa não foi gerada corretamente.');
+                return toast('Erro: A próxima etapa não foi gerada corretamente.');
             }
 
             setRound(nextRoundNum);

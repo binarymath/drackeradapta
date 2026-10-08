@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
-export const StudentHistoryModal = ({ 
+const StudentHistoryModalContent = ({ 
     isOpen, 
     onClose, 
     student,
@@ -16,8 +16,6 @@ export const StudentHistoryModal = ({
     currentClass = null,
     onUpdateStudent = null
 }) => {
-    if (!student) return null;
-
     const [currentStudent, setCurrentStudent] = useState(student);
     const [filterMode, setFilterMode] = useState('all'); // 'all' | 'teve_ajuda' | 'ajudou' | 'em_grupo' | 'desafio_turma'
     
@@ -984,4 +982,10 @@ Tom formal, acolhedor e focado no crescimento integral do aluno.
             </div>
         </Modal>
     );
+};
+
+// Wrapper: evita chamar hooks condicionalmente quando ainda não há aluno selecionado
+export const StudentHistoryModal = (props) => {
+    if (!props.student) return null;
+    return <StudentHistoryModalContent {...props} />;
 };

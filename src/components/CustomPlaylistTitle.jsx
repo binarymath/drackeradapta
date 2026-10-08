@@ -1,3 +1,4 @@
+import React from 'react';
 function CustomPlaylistTitle({ config, id }) {
     const title = React.useMemo(() => {
         const playlist = config.PLAYLISTS?.find(p => p.id === id);

@@ -7,6 +7,7 @@ import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
 import { ActivityPrintHeader } from './ui/ActivityPrintHeader';
 import { LatexRenderer } from './ui/LatexRenderer';
+import { toast } from './ui/Toast';
 
 const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], foundPlacements = [], hideText = false, hideGrid = false, title = null }) => {
     const [textFontSize, setTextFontSize] = useState(16);
@@ -202,8 +203,8 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                                 {wordListBuffer.map((part, pIdx) => (
                                     <div key={pIdx} className="flex items-start gap-4 py-3 print:py-2 border-b border-slate-100 print:border-slate-300 print:border-dashed last:border-0 text-left">
                                         <div className="print:hidden hidden print:block w-4 h-4 mt-0.5 border border-slate-400 rounded-sm shrink-0"></div>
-                                        <span className="font-black text-sm text-slate-400 mt-0.5">{String(pIdx + 1).padStart(2, '0')}.</span>
-                                        <div className="min-w-0 flex-1 leading-relaxed text-base print:text-sm font-medium text-slate-800">
+                                        <span className="font-black text-sm text-slate-400 mt-0.5 print:text-slate-800">{String(pIdx + 1).padStart(2, '0')}.</span>
+                                        <div className="min-w-0 flex-1 leading-relaxed text-base print:text-sm font-medium text-slate-800 print:text-black">
                                             <LatexRenderer content={part.trim().replace('?', '')} mathFontSize={mathFontSize} textFontSize={textFontSize} />
                                         </div>
                                     </div>
@@ -218,8 +219,8 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                             <div className="flex flex-wrap justify-center gap-3 px-4">
                                 {wordListBuffer.map((part, pIdx) => (
                                     <div key={pIdx} className="flex items-center gap-2">
-                                        <div className="hidden print:block w-3 h-3 border border-slate-400 rounded-sm"></div>
-                                        <Badge variant="outline" className="text-sm font-bold uppercase tracking-wider cursor-help print:border-none print:shadow-none print:bg-transparent print:p-0">
+                                        <div className="hidden print:block w-3 h-3 border border-slate-600 rounded-sm"></div>
+                                        <Badge variant="outline" className="text-sm font-bold uppercase tracking-wider cursor-help print:border-none print:shadow-none print:bg-transparent print:p-0 print:text-black">
                                             {part.trim()}
                                         </Badge>
                                     </div>
@@ -288,7 +289,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         if (storyBuffer.length > 0) {
             const currentStoryText = storyBuffer.join('\n').replace(/\*\*/g, '');
             elements.push(
-                <Card key={`story-${elements.length}`} className="relative mb-6 overflow-hidden">
+                <Card key={`story-${elements.length}`} className="relative mb-6 overflow-hidden print:overflow-visible print:block">
 
                     {/* Copy button inside Card (only for the first story block) */}
                     {title && !hideText && !titleRendered && (
@@ -296,7 +297,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                             <Button
                                 onClick={() => {
                                     navigator.clipboard.writeText(currentStoryText);
-                                    alert('História copiada!');
+                                    toast('História copiada!');
                                 }}
                                 variant="secondary"
                                 className="h-8 text-xs px-2 text-brown-600 bg-brown-50 hover:bg-brown-100 print:hidden"
@@ -308,7 +309,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                     )}
 
                     {/* Story Content */}
-                    <div className="prose prose-lg max-w-none text-brown-900 leading-loose font-serif">
+                    <div className="prose prose-lg max-w-none text-brown-900 leading-loose font-serif print:text-black">
                         {storyBuffer.map((line, idx) => (
                             <p key={idx} className="indent-8 mb-6 text-justify">
                                 {renderInlineStyles(line)}
@@ -417,27 +418,28 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         isStructure = isGridRow || isListRow;
 
         // CORREÇÃO: Se estamos na seção de Lista de Palavras, NÃO pode ser grid.
-        // Isso evita que palavras curtas (ex: "PEGA") ou espaçadas (ex: "P E G A") sejam confundidas com o grid.
         if (inWordListSection && isGridRow) {
             isGridRow = false; // Desativa detecção de grid
-
-            // Força detecção como lista se parecer palavras (maíusculas)
             if (!isListRow && /[A-ZÀ-Ú0-9]/.test(trimmedLine)) {
                 isListRow = true;
-                // Tenta dividir por espaços duplos se houver, senão pega a linha toda
                 if (trimmedLine.includes('  ')) {
                     listParts = trimmedLine.split(/\s{2,}/);
+                } else if (trimmedLine.includes('•')) {
+                    listParts = trimmedLine.split('•');
                 } else {
                     listParts = [trimmedLine];
                 }
             }
             isStructure = isListRow;
         } else if (inWordListSection && !isListRow && !isWordListHeader && trimmedLine.length > 0) {
-            // Fallback para linhas que não parecem grid mas estão na seção (ex: palavras soltas sem bullet)
-            if (/^[A-ZÀ-Ú0-9\s]+$/.test(trimmedLine) && trimmedLine.length < 50) {
+            // Se estamos na seção de palavras, assume que qualquer linha não vazia (antes do divisor) é lista!
+            // Isso evita que palavras isoladas ou matemáticas cancelem a seção.
+            if (!/^_{3,}$/.test(trimmedLine) && !/^-{3,}$/.test(trimmedLine)) {
                 isListRow = true;
                 if (trimmedLine.includes('  ')) {
                     listParts = trimmedLine.split(/\s{2,}/);
+                } else if (trimmedLine.includes('•')) {
+                    listParts = trimmedLine.split('•');
                 } else {
                     listParts = [trimmedLine];
                 }
@@ -543,6 +545,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         }
 
         if (/^_{3,}$/.test(trimmedLine) || /^-{3,}$/.test(trimmedLine)) {
+            flushGameCard(); // Garante que o Grid e as Palavras sejam renderizados ANTES do texto da história!
             flushStory();
             elements.push(
                 <div key={index} className="my-6 text-center">

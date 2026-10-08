@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { gameAudio } from '../../utils/gameAudio';
+import { shuffle } from '../../utils/array';
+import { toast } from '../ui/Toast';
 
 const PRESET_COLORS = [
     { id: 'indigo', name: 'Índigo', hex: '#6366f1', bg: 'bg-indigo-500', text: 'text-indigo-600', light: 'bg-indigo-50', border: 'border-indigo-200' },
@@ -239,7 +241,7 @@ export const GroupsManagerModal = ({
         const presentStudents = students.filter(s => s.status !== 'absent');
         
         // Embaralhar alunos aleatoriamente
-        const shuffled = [...presentStudents].sort(() => Math.random() - 0.5);
+        const shuffled = shuffle(presentStudents);
 
         // Criar grupos
         const newGroupsList = [];
@@ -302,7 +304,7 @@ export const GroupsManagerModal = ({
             setSelectedGroupId(newGroupsList[0].id);
             gameAudio.playSuccess();
         } else {
-            alert('Nenhum aluno possui uma equipe definida. Edite no Diário de Classe a coluna "Equipe/Grupo".');
+            toast('Nenhum aluno possui uma equipe definida. Edite no Diário de Classe a coluna "Equipe/Grupo".');
         }
     };
 

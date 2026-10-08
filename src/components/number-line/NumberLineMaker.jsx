@@ -12,6 +12,7 @@ import { Card } from '../ui/Card';
 import { buildNumberLinePrompt } from '../../core/prompts/numberLinePrompt';
 import { getGeminiService } from '../../services/geminiService';
 import { safeJSONParse } from '../../utils/jsonUtils';
+import { toast } from '../ui/Toast';
 
 const defaultPresets = {
     fractions: {
@@ -551,13 +552,13 @@ export const NumberLineMaker = () => {
                 document.body.removeChild(downloadLink);
             } catch (err) {
                 console.error("Canvas toDataURL failed (likely tainted)", err);
-                alert("Erro ao exportar a imagem: Bloqueio de segurança. Tente usar imagens do Google Drive ou remova as imagens com erro.");
+                toast("Erro ao exportar a imagem: Bloqueio de segurança. Tente usar imagens do Google Drive ou remova as imagens com erro.");
             }
         };
         img.onerror = (e) => {
             console.error("Failed to load SVG Blob into Image", e);
             URL.revokeObjectURL(url);
-            alert("Erro fatal ao processar SVG para exportação. Remova as imagens externas e tente novamente.");
+            toast("Erro fatal ao processar SVG para exportação. Remova as imagens externas e tente novamente.");
         };
         img.src = url;
     };
@@ -565,7 +566,7 @@ export const NumberLineMaker = () => {
     return (
         <div className="space-y-6 w-full">
             {/* Top Navigation Bar & Action Buttons */}
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-brown-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
                 <div className="flex items-center gap-3">
                     <div className="p-3 bg-brown-100 rounded-xl text-brown-800">
                         <ArrowLeftRight className="w-6 h-6" />
@@ -649,7 +650,7 @@ export const NumberLineMaker = () => {
                                 <h3 className="text-sm font-black text-brown-800 uppercase tracking-wider">Visualização em Tempo Real</h3>
                                 <div className="flex flex-wrap items-center gap-2">
                                     {/* Seletor de Pixels para Fonte */}
-                                    <div className="flex items-center gap-1.5 bg-brown-50 px-2 py-1 rounded-lg border border-brown-200 text-xs font-bold text-brown-700">
+                                    <div className="flex items-center gap-1.5 bg-brown-50 px-2 py-1 rounded-lg border border-slate-200 text-xs font-bold text-brown-700">
                                         <span>Fonte:</span>
                                         <select
                                             value={currentData.fontSizePx || 16}
@@ -673,7 +674,7 @@ export const NumberLineMaker = () => {
                                     </div>
 
                                     {/* Seletor de Pixels para Imagem */}
-                                    <div className="flex items-center gap-1.5 bg-brown-50 px-2 py-1 rounded-lg border border-brown-200 text-xs font-bold text-brown-700">
+                                    <div className="flex items-center gap-1.5 bg-brown-50 px-2 py-1 rounded-lg border border-slate-200 text-xs font-bold text-brown-700">
                                         <span>Img:</span>
                                         <select
                                             value={currentData.imageSizePx || 48}
@@ -721,7 +722,7 @@ export const NumberLineMaker = () => {
 
                         {/* Title & Description Settings - Dynamic Interactive Panel */}
                         <Card className="p-6 bg-gradient-to-br from-white via-amber-50/30 to-brown-50/50 border border-amber-200/80 shadow-md space-y-5">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-brown-200/60 pb-3.5">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/60 pb-3.5">
                                 <div className="flex items-center gap-2.5">
                                     <div className="p-2 bg-amber-100 text-amber-800 rounded-xl shadow-2xs">
                                         <Sparkles className="w-5 h-5 animate-pulse" />
@@ -731,7 +732,7 @@ export const NumberLineMaker = () => {
                                         <p className="text-[11px] text-brown-600 font-medium">Personalize o título e as instruções que aparecerão na folha do aluno</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 self-start sm:self-center bg-brown-100/80 text-brown-800 text-[11px] font-extrabold px-2.5 py-1 rounded-full border border-brown-200">
+                                <div className="flex items-center gap-1.5 self-start sm:self-center bg-brown-100/80 text-brown-800 text-[11px] font-extrabold px-2.5 py-1 rounded-full border border-slate-200">
                                     <span>Domínio Ativo:</span>
                                     <span className="text-amber-900 underline decoration-amber-500 decoration-2">
                                         {activeLine.domainType === 'fraction' ? 'Frações' : activeLine.domainType === 'integer' ? 'Números Inteiros' : activeLine.domainType === 'decimal' ? 'Decimais' : 'Frações e Decimais (Misto)'}
@@ -766,7 +767,7 @@ export const NumberLineMaker = () => {
                                         <button
                                             key={sugTitle}
                                             onClick={() => handleUpdateGlobal({ title: sugTitle })}
-                                            className="text-[11px] bg-white hover:bg-amber-100 text-brown-800 font-bold px-2 py-0.5 rounded-lg border border-brown-200 transition-all shadow-2xs hover:border-amber-400 active:scale-95 cursor-pointer"
+                                            className="text-[11px] bg-white hover:bg-amber-100 text-brown-800 font-bold px-2 py-0.5 rounded-lg border border-slate-200 transition-all shadow-2xs hover:border-amber-400 active:scale-95 cursor-pointer"
                                             title="Clique para usar este título"
                                         >
                                             + {sugTitle}
@@ -809,7 +810,7 @@ export const NumberLineMaker = () => {
                                         <button
                                             key={idx}
                                             onClick={() => handleUpdateGlobal({ description: sugDesc })}
-                                            className="text-[11px] bg-white hover:bg-amber-100 text-brown-800 font-semibold px-2.5 py-1 rounded-lg border border-brown-200 transition-all shadow-2xs hover:border-amber-400 text-left active:scale-98 cursor-pointer"
+                                            className="text-[11px] bg-white hover:bg-amber-100 text-brown-800 font-semibold px-2.5 py-1 rounded-lg border border-slate-200 transition-all shadow-2xs hover:border-amber-400 text-left active:scale-98 cursor-pointer"
                                             title="Clique para usar este enunciado"
                                         >
                                             💡 {sugDesc.slice(0, 52)}...
@@ -963,7 +964,7 @@ export const NumberLineMaker = () => {
                                             const defaultCol = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4'][idx % 6] || '#3b82f6';
                                             const col = denColors[den] || defaultCol;
                                             return (
-                                                <div key={den} className="flex items-center gap-1.5 px-2.5 py-1 bg-brown-50 rounded-xl border border-brown-200 shadow-sm">
+                                                <div key={den} className="flex items-center gap-1.5 px-2.5 py-1 bg-brown-50 rounded-xl border border-slate-200 shadow-sm">
                                                     <span className="text-xs font-bold text-brown-800">1/{den}:</span>
                                                     <input
                                                         type="color"
@@ -1008,7 +1009,7 @@ export const NumberLineMaker = () => {
 
                             <div className="space-y-3.5 max-h-[420px] overflow-y-auto pr-1.5 custom-scrollbar">
                                 {(activeLine.points || []).map((pt, index) => (
-                                    <div key={pt.id} className="p-3.5 bg-gradient-to-r from-brown-50/80 to-amber-50/40 rounded-2xl border border-brown-200/80 shadow-xs space-y-3 transition-all hover:border-brown-300">
+                                    <div key={pt.id} className="p-3.5 bg-gradient-to-r from-brown-50/80 to-amber-50/40 rounded-2xl border border-slate-200/80 shadow-xs space-y-3 transition-all hover:border-brown-300">
                                         {/* Linha 1: Cabeçalho do Marcador e Ações Rápidas */}
                                         <div className="flex items-center justify-between gap-2 border-b border-brown-100 pb-2">
                                             <div className="flex items-center gap-2">
@@ -1169,7 +1170,7 @@ export const NumberLineMaker = () => {
             {isFullscreen && (
                 <div className="fixed inset-0 z-[9999] bg-white flex flex-col justify-between p-4 md:p-8 overflow-y-auto animate-in fade-in duration-200 shadow-2xl">
                     {/* Top Bar / Controls in Fullscreen */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b-2 border-brown-200 pb-4 shrink-0 bg-brown-50/80 p-4 rounded-2xl shadow-sm">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b-2 border-slate-200 pb-4 shrink-0 bg-brown-50/80 p-4 rounded-2xl shadow-sm">
                         <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-amber-500 text-white rounded-xl shadow-md">
                                 <Maximize2 className="w-6 h-6" />
@@ -1241,7 +1242,7 @@ export const NumberLineMaker = () => {
 
                     {/* Main Fullscreen Number Line Area */}
                     <div className="flex-1 flex flex-col items-center justify-center my-4 md:my-8 w-full h-full overflow-hidden">
-                        <div className="w-full h-full flex flex-col items-center justify-start bg-white rounded-3xl p-4 md:p-12 border-4 border-brown-200/60 shadow-inner overflow-y-auto custom-scrollbar">
+                        <div className="w-full h-full flex flex-col items-center justify-start bg-white rounded-3xl p-4 md:p-12 border-4 border-slate-200/60 shadow-inner overflow-y-auto custom-scrollbar">
                             {lines.map((line) => (
                                 <div key={line.id} className="w-full mb-8 last:mb-0 shrink-0"><NumberLineRenderer data={{...currentData, ...line}} showAnswers={true} isFullscreen={true} /></div>
                             ))}

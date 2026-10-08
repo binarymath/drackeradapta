@@ -1,3 +1,4 @@
+import { shuffleInPlace } from '../utils/array';
 /**
  * questionTransitionService.js
  * Utilitários e serviços para converter e transicionar questões
@@ -32,7 +33,7 @@ export const convertQuizQuestionsToRoulette = (quizQuestions = [], options = {})
             allOptions = q.ordered_options;
         } else if (q.correct_answer || (q.distractors && q.distractors.length > 0)) {
             const rawOpts = [q.correct_answer, ...(q.distractors || [])].filter(Boolean);
-            allOptions = rawOpts.sort(() => Math.random() - 0.5);
+            allOptions = shuffleInPlace(rawOpts);
         }
 
         return {
@@ -91,7 +92,7 @@ export const convertRouletteQuestionsToQuiz = (rouletteQuestions = [], options =
             statement,
             correct_answer: correctAnswer || 'Opção Correta',
             distractors: ['Opção B', 'Opção C', 'Opção D'],
-            ordered_options: [correctAnswer || 'Opção Correta', 'Opção B', 'Opção C', 'Opção D'].sort(() => Math.random() - 0.5),
+            ordered_options: shuffleInPlace([correctAnswer || 'Opção Correta', 'Opção B', 'Opção C', 'Opção D']),
             difficulty,
             image_url: imageUrl || undefined
         };
@@ -166,7 +167,7 @@ IMPORTANTE: Retorne APENAS o JSON puro sem markdown ou blocos adicionais.`;
             const correctAnswer = (q.answer || q.correct_answer || '').trim();
             const rawDistractors = distractorsMap.get(idx) || ['Alternativa B', 'Alternativa C', 'Alternativa D'];
             
-            const options = [correctAnswer, ...rawDistractors].sort(() => Math.random() - 0.5);
+            const options = shuffleInPlace([correctAnswer, ...rawDistractors]);
 
             return {
                 id: `quiz-q-${Date.now()}-${idx}`,
