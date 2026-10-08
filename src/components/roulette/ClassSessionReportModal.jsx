@@ -605,7 +605,7 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                 <td style="padding: 6px 8px; font-weight: bold;">${s.name}</td>
                 <td style="padding: 6px 8px;">${s.groupName || '-'}</td>
                 <td style="padding: 6px 8px; text-align: center;">
-                    ${s.isAbsent ? '<span style="color: #dc2626; font-weight: bold;">🚫 Ausente</span>' : s.participated ? '<span style="color: #16a34a; font-weight: bold;">Participou</span>' : '<span style="color: #64748b;">Não sorteado</span>'}
+                    ${s.isAbsent ? '<span style="color: #dc2626; font-weight: bold;">🚫 Ausente</span>' : s.observedOnly ? '<span style="color: #ca8a04; font-weight: bold;">👀 Observar</span>' : s.participated ? '<span style="color: #16a34a; font-weight: bold;">Participou</span>' : '<span style="color: #64748b;">Não sorteado</span>'}
                 </td>
                 <td style="padding: 6px 8px; text-align: center; font-weight: bold; color: #16a34a;">${s.hits}</td>
                 <td style="padding: 6px 8px; text-align: center; font-weight: bold; color: #dc2626;">${s.misses}</td>
@@ -617,7 +617,7 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
 
         const actionsTableHtml = (filteredData.actionLogs || []).map(log => `
             <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
-                <td style="padding: 6px 8px; font-family: monospace; font-weight: bold; color: #475569;">${log.timeFormatted || '-'}</td>
+                <td style="padding: 6px 8px; font-family: monospace; font-weight: bold; color: #475569;">${log.dateTimeFormatted || log.timeFormatted || '-'}</td>
                 <td style="padding: 6px 8px; font-weight: bold;">${log.title || 'Ação'}</td>
                 <td style="padding: 6px 8px; color: #334155;">${log.description || '-'}</td>
                 <td style="padding: 6px 8px; color: #475569;">${log.studentName || log.groupName || '-'}</td>
@@ -641,13 +641,33 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                     </thead>
                     <tbody>
                         ${groupStats.map(g => `
-                            <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+                            <tr style="${g.rounds.length > 0 ? '' : 'border-bottom: 1px solid #e2e8f0;'} font-size: 11px;">
                                 <td style="padding: 6px 8px; font-weight: bold;">${g.name}</td>
-                                <td style="padding: 6px 8px; text-align: center;">${g.memberCount}</td>
-                                <td style="padding: 6px 8px; text-align: center;">${g.roundsCount}</td>
+                                <td style="padding: 6px 8px; text-align: center;">${g.totalMembers}</td>
+                                <td style="padding: 6px 8px; text-align: center;">${g.totalRounds}</td>
                                 <td style="padding: 6px 8px; text-align: center; color: #16a34a; font-weight: bold;">${g.hits}</td>
                                 <td style="padding: 6px 8px; text-align: center; color: #dc2626; font-weight: bold;">${g.misses}</td>
                             </tr>
+                            ${g.rounds.length > 0 ? `
+                            <tr style="border-bottom: 1px solid #e2e8f0; font-size: 10px; background-color: #f8fafc;">
+                                <td colspan="5" style="padding: 6px 8px; padding-left: 16px; color: #475569;">
+                                    <strong>Questões Trabalhadas pela Equipe:</strong>
+                                    <ul style="margin: 4px 0 0 0; padding-left: 16px;">
+                                        ${g.rounds.map(r => {
+                                            const isHit = r.result === 'correct' || r.result === 'group_activity' || r.result === 'all_correct';
+                                            const isMiss = r.result === 'incorrect' || r.result === 'group_incorrect';
+                                            const statusColor = isHit ? '#16a34a' : isMiss ? '#dc2626' : '#64748b';
+                                            const statusLabel = isHit ? 'Acerto' : isMiss ? 'Erro' : 'Ação';
+                                            return `
+                                            <li style="margin-bottom: 3px;">
+                                                <span style="color: ${statusColor}; font-weight: bold;">[${statusLabel}]</span> ${r.question}
+                                            </li>
+                                            `;
+                                        }).join('')}
+                                    </ul>
+                                </td>
+                            </tr>
+                            ` : ''}
                         `).join('')}
                     </tbody>
                 </table>
@@ -777,8 +797,8 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
                     <table style="width: 100%; border-collapse: collapse; text-align: left;">
                         <thead>
                             <tr style="background-color: #f8fafc; font-size: 11px; border-bottom: 2px solid #cbd5e1;">
-                                <th style="padding: 6px 8px; width: 65px;">Horário</th>
-                                <th style="padding: 6px 8px; width: 150px;">Ação / Toque</th>
+                                <th style="padding: 6px 8px; width: 115px;">Data / Horário</th>
+                                <th style="padding: 6px 8px; width: 140px;">Ação / Toque</th>
                                 <th style="padding: 6px 8px;">Descrição</th>
                                 <th style="padding: 6px 8px; width: 130px;">Aluno / Alvo</th>
                             </tr>
@@ -2236,6 +2256,7 @@ Tom formal, acolhedor e pronto para o professor colar no Diário de Classe ou pr
         questionStats={questionStats}
         studentStats={studentStats}
         groupStats={groupStats}
+        displayedActionLogs={displayedActionLogs}
     />
 )}
 

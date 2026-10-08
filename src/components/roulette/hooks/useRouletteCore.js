@@ -22,8 +22,9 @@ export const useRouletteCore = () => {
     const [showGroupsModal, setShowGroupsModal] = useState(false);
     const [showClassReportModal, setShowClassReportModal] = useState(false);
     const [showSheetsModal, setShowSheetsModal] = useState(false);
-    const [currentSessionId] = useState(() => 'sess_' + Date.now());
-    const [sessionStartTime] = useState(() => Date.now());
+    const isClassActive = activeActivity?.isClassActive || false;
+    const currentSessionId = activeActivity?.currentSessionId || 'sess_' + Date.now();
+    const sessionStartTime = activeActivity?.sessionStartTime || Date.now();
 
     // Histórico detalhado de ações e toques nos botões da roleta nesta aula/atividade
     const [interactionLogs, setInteractionLogs] = useState(() => {
@@ -48,8 +49,25 @@ export const useRouletteCore = () => {
         return activeActivity?.gameMode === 'groups' ? 'groups' : 'students';
     });
 
+    const toggleClassStatus = useCallback(() => {
+        if (!activeActivity?.id) return;
+        if (!isClassActive) {
+            updateActivityData(activeActivity.id, {
+                isClassActive: true,
+                currentSessionId: 'sess_' + Date.now(),
+                sessionStartTime: Date.now()
+            });
+        } else {
+            updateActivityData(activeActivity.id, {
+                isClassActive: false
+            });
+        }
+    }, [isClassActive, activeActivity?.id, updateActivityData]);
+
     // Registra todos os toques nos botões da roleta, trocas de aluno, trocas de pergunta, ausências e decisões
     const logTeacherAction = useCallback((type, title, description, details = {}) => {
+        if (!isClassActive) return;
+
         const now = Date.now();
         const dateObj = new Date(now);
         const timeFormatted = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -821,7 +839,9 @@ export const useRouletteCore = () => {
         if (!isMaximized) {
             setIsMaximized(true);
             try {
-                if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                if (arenaRef.current && arenaRef.current.requestFullscreen && !document.fullscreenElement) {
+                    await arenaRef.current.requestFullscreen();
+                } else if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
                     await document.documentElement.requestFullscreen();
                 }
             } catch (err) {
@@ -929,9 +949,11 @@ export const useRouletteCore = () => {
 
 
 
-    const handlers = useRouletteHandlers({ logTeacherAction, gameMode, groupSpinMode, currentSessionId, sessionStartTime, activeActivity, currentClass, updateStudentInClass, saveClassUpdates, setUsedQuestions, setShowCard, setWinner, winner, setStudentDrawCounts, updateActivityData, setQuestionDrawCounts, combinedItems, pickWeightedQuestion, uniqueQuestions, questionDrawCounts, studentDrawCounts, currentGroups, activeGroupItems, usedQuestions, studentToGroupMap, groupRoundSlots, setGroupRoundSlots, setActiveGroupTab, addActivityTab, selectedManualQuestionId, setSelectedManualQuestionId });
+    const handlers = useRouletteHandlers({ isClassActive, logTeacherAction, gameMode, groupSpinMode, currentSessionId, sessionStartTime, activeActivity, currentClass, updateStudentInClass, saveClassUpdates, setUsedQuestions, setShowCard, setWinner, winner, setStudentDrawCounts, updateActivityData, setQuestionDrawCounts, combinedItems, pickWeightedQuestion, uniqueQuestions, questionDrawCounts, studentDrawCounts, currentGroups, activeGroupItems, usedQuestions, studentToGroupMap, groupRoundSlots, setGroupRoundSlots, setActiveGroupTab, addActivityTab, selectedManualQuestionId, setSelectedManualQuestionId });
     return {
         ...handlers,
+        isClassActive,
+        toggleClassStatus,
         activeActivity,
         activeGroupItems,
         activeGroupTab,

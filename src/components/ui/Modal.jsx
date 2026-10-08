@@ -11,6 +11,7 @@ export const Modal = ({ isOpen, onClose, title, children, footer, icon: Icon, si
         lg: 'max-w-4xl',
         xl: 'max-w-6xl',
         '2xl': 'max-w-[1400px]',
+        '90vw': 'max-w-[90vw]',
         'full': 'max-w-[95vw]'
     }[size] || 'max-w-2xl';
 

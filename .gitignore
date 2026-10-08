@@ -12,3 +12,5 @@ dist
 ligapontos
 .env
 .env.local
+.vercel
+.env*

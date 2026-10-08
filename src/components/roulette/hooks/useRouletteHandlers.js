@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
 import { gameAudio } from '../../../utils/gameAudio';
 
+
 export const useRouletteHandlers = (context) => {
-    const { logTeacherAction, gameMode, currentSessionId, sessionStartTime, activeActivity, currentClass, updateStudentInClass, saveClassUpdates, setUsedQuestions, setShowCard, setWinner, winner, setStudentDrawCounts, updateActivityData, setQuestionDrawCounts, combinedItems, pickWeightedQuestion, uniqueQuestions, questionDrawCounts, studentDrawCounts, currentGroups, activeGroupItems, usedQuestions, studentToGroupMap, groupRoundSlots, setGroupRoundSlots, setActiveGroupTab, addActivityTab, selectedManualQuestionId, setSelectedManualQuestionId } = context;
+    const { isClassActive, logTeacherAction, gameMode, currentSessionId, sessionStartTime, activeActivity, currentClass, updateStudentInClass, saveClassUpdates, setUsedQuestions, setShowCard, setWinner, winner, setStudentDrawCounts, updateActivityData, setQuestionDrawCounts, combinedItems, pickWeightedQuestion, uniqueQuestions, questionDrawCounts, studentDrawCounts, currentGroups, activeGroupItems, usedQuestions, studentToGroupMap, groupRoundSlots, setGroupRoundSlots, setActiveGroupTab, addActivityTab, selectedManualQuestionId, setSelectedManualQuestionId } = context;
 
     const handleChangeWinnerStudent = (newStudentObj, swapMode = 'random') => {
         if (!newStudentObj) return;
@@ -315,6 +316,11 @@ export const useRouletteHandlers = (context) => {
     const handleResult = (resultType) => {
         if (!winner) return;
         
+        if (!isClassActive) {
+            setShowCard(false);
+            return;
+        }
+        
         const historyEntry = {
             date: Date.now(),
             sessionId: currentSessionId,
@@ -371,6 +377,11 @@ export const useRouletteHandlers = (context) => {
 
     const handleBatchResult = ({ studentIds, questionText, actionType = 'correct' }) => {
         if (!studentIds || studentIds.length === 0) return;
+
+        if (!isClassActive) {
+            setShowCard(false);
+            return;
+        }
 
         const idSet = new Set((studentIds || []).map(String));
         const now = Date.now();
@@ -513,6 +524,11 @@ export const useRouletteHandlers = (context) => {
 
     const handleHelpResult = ({ helperStudentId, isCorrect, questionText, helpType = 'colleague' }) => {
         if (!winner) return;
+        
+        if (!isClassActive) {
+            setShowCard(false);
+            return;
+        }
 
         const now = Date.now();
         const helperStudent = helperStudentId ? currentClass?.students?.find(s => String(s.id) === String(helperStudentId)) : null;
@@ -742,6 +758,12 @@ export const useRouletteHandlers = (context) => {
 
     const handleGroupResult = ({ isCorrect, representativeStudent }) => {
         if (!winner) return;
+        
+        if (!isClassActive) {
+            setShowCard(false);
+            return;
+        }
+        
         const targetGroupId = winner.id;
         const groupName = winner.name;
         const memberIdSet = new Set((winner.studentIds || []).map(String));

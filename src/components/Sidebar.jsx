@@ -166,60 +166,6 @@ export const Sidebar = ({
                         className="!resize-none"
                     />
 
-                    {activityType === 'roulette' && (
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <label className={theme.text.label}>Selecione a Turma</label>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsClassesModalOpen(true)}
-                                    className="text-xs font-bold text-brown-600 hover:text-brown-800 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
-                                    title="Gerenciar todas as turmas"
-                                >
-                                    <Users className="w-3.5 h-3.5 text-brown-600" />
-                                    <span>Gerenciar Turmas</span>
-                                </button>
-                            </div>
-                            <div className="flex items-center gap-2 w-full min-w-0">
-                                <div className="relative flex-1 min-w-0">
-                                    <select 
-                                        value={selectedClassId}
-                                        onChange={(e) => setSelectedClassId(e.target.value)}
-                                        className="w-full min-w-0 truncate px-3 py-2 border border-brown-200 rounded-xl focus:ring-2 focus:ring-brown-500 outline-none bg-white text-brown-800 text-[14px] shadow-sm appearance-none pr-8 cursor-pointer"
-                                        title={classes.find(c => c.id === selectedClassId)?.name || "Escolha uma turma..."}
-                                    >
-                                        <option value="" disabled>Escolha uma turma...</option>
-                                        {classes.map(c => (
-                                            <option key={c.id} value={c.id} title={c.name}>{c.name}</option>
-                                        ))}
-                                    </select>
-                                    <ChevronDown className="w-4 h-4 text-brown-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                                </div>
-                                <Button 
-                                    type="button"
-                                    onClick={() => setIsClassesModalOpen(true)}
-                                    variant="secondary"
-                                    className="shrink-0 whitespace-nowrap px-3 py-2 text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                                    title="Gerenciar Turmas"
-                                >
-                                    <Users className="w-4 h-4 text-brown-700" />
-                                    <span>Gerenciar</span>
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Botão rápido: criar nova roleta via Google Sheets (disponível na Roleta e no Dashboard) */}
-                    {(activityType === 'roulette' || activityType === 'about_system' || activityType === 'dashboard') && onOpenSheetsModal && (
-                        <button
-                            type="button"
-                            onClick={onOpenSheetsModal}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-emerald-300 rounded-xl text-emerald-700 font-bold text-sm hover:bg-emerald-50 hover:border-emerald-400 transition-all cursor-pointer"
-                        >
-                            <span>📊</span>
-                            <span>Nova Roleta via Planilha</span>
-                        </button>
-                    )}
 
                     <div>
                         <label className={theme.text.label}>Dificuldade / Linguagem</label>

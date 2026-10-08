@@ -141,8 +141,8 @@ export const ArcadeRetroWheel = ({ items = [], spinning = false, winner = null, 
     return (
         <div className={`relative ${
             isMaximized 
-                ? 'w-[min(68vh,78vw,700px)] h-[min(68vh,78vw,700px)] sm:w-[min(72vh,80vw,760px)] sm:h-[min(72vh,80vw,760px)] md:w-[min(75vh,82vw,820px)] md:h-[min(75vh,82vw,820px)]' 
-                : 'w-80 h-80 sm:w-96 sm:h-96 md:w-[460px] md:h-[460px]'
+                ? 'w-[min(55vh,65vw,550px)] h-[min(55vh,65vw,550px)] sm:w-[min(60vh,70vw,600px)] sm:h-[min(60vh,70vw,600px)] md:w-[min(62vh,72vw,680px)] md:h-[min(62vh,72vw,680px)]' 
+                : 'w-64 h-64 sm:w-72 sm:h-72 md:w-[380px] md:h-[380px]'
         } flex items-center justify-center select-none transition-all duration-300`}>
             {/* Banner Flutuante de Arcade no Topo */}
             <div className={`absolute left-1/2 transform -translate-x-1/2 z-30 pointer-events-none flex flex-col items-center transition-all duration-300 ${

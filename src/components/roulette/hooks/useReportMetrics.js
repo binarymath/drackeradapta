@@ -38,8 +38,8 @@ export const useReportMetrics = ({
         // Função de validação por atividades selecionadas
         const matchesActivity = (entry) => {
             if (!entry) return false;
-            if (effectiveSelectedActivityIds.length === 0 || effectiveSelectedActivityIds.length === availableActivities.length) {
-                return true;
+            if (effectiveSelectedActivityIds.length === 0) {
+                return true; // Se de fato vazio
             }
             if (entry.activityId && effectiveSelectedActivityIds.includes(String(entry.activityId))) {
                 return true;
@@ -108,6 +108,7 @@ export const useReportMetrics = ({
 
             const nonAbsentHist = hist.filter(h => h.result !== 'absent');
             const participated = !isAbsent && nonAbsentHist.length > 0;
+            const observedOnly = !isAbsent && participated && hits === 0 && misses === 0 && violations > 0;
 
             // Perfis individuais formativos da turma
             const isHighPerformer = !isAbsent && participated && hits > 0 && misses === 0;
@@ -122,6 +123,7 @@ export const useReportMetrics = ({
                 groupName: s.groupName || null,
                 totalAnswers: nonAbsentHist.length,
                 participated,
+                observedOnly,
                 hits,
                 misses,
                 merits,
@@ -234,6 +236,7 @@ export const useReportMetrics = ({
                 name: group.name,
                 color: group.color || 'bg-indigo-600',
                 totalMembers: memberStudents.length,
+                memberNames: memberStudents.map(s => s.name),
                 totalRounds: groupRounds.length,
                 hits: groupHits,
                 misses: groupMisses,
@@ -293,6 +296,13 @@ export const useReportMetrics = ({
             }
             if (!matchesActivity(log)) return false;
             return true; // 'all'
+        }).map(log => {
+            const d = new Date(log.timestamp);
+            const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+            return {
+                ...log,
+                dateTimeFormatted: `${dateStr} ${log.timeFormatted}`
+            };
         });
 
         const studentSwapsCount = filteredActionLogs.filter(l => l.type === 'swap_student').length;

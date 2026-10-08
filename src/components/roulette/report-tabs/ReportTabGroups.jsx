@@ -15,7 +15,7 @@ export const ReportTabGroups = (props) => {
                                                 <span>{grp.name}</span>
                                             </span>
                                             <span className="text-2xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                                                {grp.memberCount} alunos
+                                                {grp.totalMembers} alunos
                                             </span>
                                         </div>
 
@@ -30,7 +30,7 @@ export const ReportTabGroups = (props) => {
                                             <span className="font-bold text-rose-600">❌ {grp.misses} erros</span>
                                         </div>
                                         <span className="text-2xs font-semibold text-slate-400">
-                                            {grp.roundsCount} rodadas
+                                            {grp.totalRounds} rodadas
                                         </span>
                                     </div>
                                 </div>

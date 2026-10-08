@@ -373,12 +373,32 @@ export const RouletteSidebar = ({
                                 )}
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="flex flex-col gap-4">
+                                {/* Cabeçalho da Lista de Equipes com Reset de Faltas */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1 text-xs font-bold text-slate-500 pb-2 border-b border-slate-100">
+                                    <div className="flex items-center gap-2">
+                                        <span className="uppercase text-[11px] tracking-wider text-slate-400 font-extrabold">
+                                            Equipes ({filteredGroups.length})
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={onActivateAll}
+                                        disabled={removedCount === 0}
+                                        className="text-[11px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1.5 rounded-xl transition-all cursor-pointer inline-flex items-center gap-1.5 self-start sm:self-auto disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs"
+                                        title="Zerar faltas: Limpar o status de todos os alunos ausentes, colocando-os de volta em suas equipes para o dia de hoje."
+                                    >
+                                        <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
+                                        <span>Zerar Faltas (Todos Presentes)</span>
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {[...filteredGroups]
                                     .sort((a, b) => (b.hits || 0) - (a.hits || 0))
                                     .map((group, rankIdx) => {
                                         const memberIdSet = new Set((group.studentIds || []).map(String));
-                                        const memberStudents = (currentClass?.students || []).filter(s => memberIdSet.has(String(s.id)));
+                                        const memberStudents = combinedItems.filter(s => memberIdSet.has(String(s.id)));
                                         const medal = rankIdx === 0 ? '🥇' : rankIdx === 1 ? '🥈' : rankIdx === 2 ? '🥉' : `${rankIdx + 1}º`;
 
                                         return (
@@ -444,14 +464,25 @@ export const RouletteSidebar = ({
                                                     {memberStudents.length === 0 ? (
                                                         <span className="text-xs text-slate-400 italic">Nenhum aluno cadastrado nesta equipe</span>
                                                     ) : (
-                                                        memberStudents.map(s => (
-                                                            <span 
-                                                                key={s.id} 
-                                                                className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200/80"
-                                                            >
-                                                                {s.name}
-                                                            </span>
-                                                        ))
+                                                        memberStudents.map(s => {
+                                                            const isAbsent = s.status === 'absent' || s.status === 'removed';
+                                                            return (
+                                                                <button 
+                                                                    key={s.id} 
+                                                                    type="button"
+                                                                    onClick={() => isAbsent ? onReactivate(s.id) : onToggleStudentActivityStatus(s.id, 'remove')}
+                                                                    title={isAbsent ? "Devolver aluno para a roleta e para o grupo" : "Marcar aluno como ausente (não ganhará os pontos de hoje da equipe)"}
+                                                                    className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg border transition-all cursor-pointer group shadow-2xs ${
+                                                                        isAbsent
+                                                                            ? 'bg-slate-50 text-slate-400 border-slate-200/50 hover:bg-slate-100 line-through'
+                                                                            : 'bg-white text-slate-700 border-slate-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200'
+                                                                    }`}
+                                                                >
+                                                                    <div className={`w-1.5 h-1.5 rounded-full transition-colors ${isAbsent ? 'bg-slate-300' : 'bg-emerald-400 group-hover:bg-amber-400'}`} />
+                                                                    <span className={isAbsent ? 'line-through opacity-70 decoration-slate-400' : ''}>{s.name}</span>
+                                                                </button>
+                                                            );
+                                                        })
                                                     )}
                                                 </div>
 
@@ -472,6 +503,7 @@ export const RouletteSidebar = ({
                                         );
                                     })}
                             </div>
+                        </div>
                         )
                     ) : (
                         /* Aba de Alunos - Layout Clean e Organizado */

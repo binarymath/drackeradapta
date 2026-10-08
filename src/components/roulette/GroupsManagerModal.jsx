@@ -36,7 +36,8 @@ export const GroupsManagerModal = ({
         return raw.map((s, idx) => ({
             id: (s.id !== undefined && s.id !== null) ? s.id : `std_${idx}_${Date.now()}`,
             name: s.name || `Aluno ${idx + 1}`,
-            status: s.status || 'active'
+            status: s.status || 'active',
+            groupName: s.groupName || ''
         }));
     }, [propStudents, currentClass?.students]);
     
@@ -77,6 +78,7 @@ export const GroupsManagerModal = ({
     const [editName, setEditName] = useState('');
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [showAutoConfirm, setShowAutoConfirm] = useState(false);
+    const [customNumGroups, setCustomNumGroups] = useState(4);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterTab, setFilterTab] = useState('all'); // 'all' | 'in_group' | 'unassigned'
 
@@ -267,6 +269,43 @@ export const GroupsManagerModal = ({
         gameAudio.playSuccess();
     };
 
+    // Reconstruir Grupos a partir da coluna "Equipe/Grupo" da planilha/diário
+    const handleRebuildFromSheet = () => {
+        const studentGroups = {};
+        
+        students.forEach(student => {
+            const gName = (student.groupName || '').trim();
+            if (gName) {
+                if (!studentGroups[gName]) {
+                    studentGroups[gName] = [];
+                }
+                studentGroups[gName].push(student.id);
+            }
+        });
+
+        const newGroupsList = Object.keys(studentGroups).map((gName, index) => {
+            const existingGroup = groups.find(g => g.name === gName);
+            const colorObj = PRESET_COLORS[index % PRESET_COLORS.length];
+            return {
+                id: existingGroup?.id || 'grp_' + Date.now() + '_' + index,
+                name: gName,
+                color: existingGroup?.color || colorObj.hex,
+                studentIds: studentGroups[gName],
+                hits: existingGroup?.hits || 0,
+                misses: existingGroup?.misses || 0,
+                history: existingGroup?.history || []
+            };
+        });
+
+        if (newGroupsList.length > 0) {
+            setGroups(newGroupsList);
+            setSelectedGroupId(newGroupsList[0].id);
+            gameAudio.playSuccess();
+        } else {
+            alert('Nenhum aluno possui uma equipe definida. Edite no Diário de Classe a coluna "Equipe/Grupo".');
+        }
+    };
+
     // Zerar pontos de todos os grupos
     const handleResetAllScores = () => {
         setGroups(prev => prev.map(g => ({
@@ -316,7 +355,7 @@ export const GroupsManagerModal = ({
             isOpen={isOpen} 
             onClose={onClose} 
             title="Grupos e Equipes da Turma" 
-            maxWidth="max-w-4xl"
+            size="90vw"
         >
             <div className="space-y-4">
                 {/* Banner Explicativo & Ações Rápidas */}
@@ -351,6 +390,17 @@ export const GroupsManagerModal = ({
 
                         <button
                             type="button"
+                            onClick={handleRebuildFromSheet}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-emerald-700 bg-white hover:bg-emerald-100 border border-emerald-200 transition-all shadow-2xs cursor-pointer"
+                            title="Reconstruir as equipes usando as marcações do Diário de Classe"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="hidden sm:inline">Reconstruir do Diário</span>
+                            <span className="sm:hidden">Diário</span>
+                        </button>
+
+                        <button
+                            type="button"
                             onClick={handleAddGroup}
                             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-xs cursor-pointer"
                         >
@@ -376,25 +426,70 @@ export const GroupsManagerModal = ({
                                 ✕
                             </button>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            {[2, 3, 4, 5, 6].map(num => (
-                                <button
-                                    key={num}
-                                    type="button"
-                                    onClick={() => handleAutoDistribute(num)}
-                                    className="px-3.5 py-2 rounded-xl font-black bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition-all cursor-pointer"
-                                >
-                                    {num} Grupos (~{Math.ceil(students.length / num)} alunos cada)
-                                </button>
-                            ))}
-                            <button
-                                type="button"
-                                onClick={() => setShowAutoConfirm(false)}
-                                className="px-3 py-2 rounded-xl font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 transition-colors cursor-pointer"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
+                        {(() => {
+                            const total = students.length;
+                            if (total < 2) return <p className="text-sm text-amber-800 mt-2">Não há alunos suficientes para formar grupos.</p>;
+
+                            const g = Math.max(2, customNumGroups);
+                            const baseSize = Math.floor(total / g);
+                            const remainder = total % g;
+
+                            return (
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-2 bg-white p-4 rounded-2xl border border-amber-200 shadow-sm">
+                                    
+                                    {/* Esquerda: Seletor */}
+                                    <div className="flex items-center gap-3">
+                                        <label className="text-sm font-bold text-amber-900 whitespace-nowrap">
+                                            Quero formar
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="2"
+                                            max={Math.max(2, total)}
+                                            value={customNumGroups}
+                                            onChange={(e) => setCustomNumGroups(Math.max(2, parseInt(e.target.value) || 2))}
+                                            className="w-20 px-2 py-1.5 rounded-xl border-2 border-amber-300 text-amber-900 font-black text-center text-lg focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/20 bg-amber-50/50"
+                                        />
+                                        <span className="text-sm font-bold text-amber-900">
+                                            equipes
+                                        </span>
+                                    </div>
+
+                                    {/* Centro: Detalhes da Divisão */}
+                                    <div className="flex-1 flex justify-center w-full sm:w-auto">
+                                        <div className="flex flex-col sm:flex-row items-center gap-2 text-xs font-semibold text-amber-800 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 w-full sm:w-auto justify-center">
+                                            {remainder === 0 ? (
+                                                <span>Ficarão <strong className="text-amber-950 font-black">{baseSize} alunos</strong> por equipe</span>
+                                            ) : (
+                                                <>
+                                                    <span className="flex items-center gap-1.5">
+                                                        <strong className="text-amber-950 font-black text-sm">{remainder}</strong> 
+                                                        {remainder === 1 ? 'equipe com' : 'equipes com'} 
+                                                        <strong className="bg-amber-200/60 text-amber-950 px-1.5 py-0.5 rounded">{baseSize + 1} 👤</strong>
+                                                    </span>
+                                                    <span className="hidden sm:inline text-amber-300 font-black px-2">•</span>
+                                                    <span className="flex items-center gap-1.5">
+                                                        <strong className="text-amber-950 font-black text-sm">{g - remainder}</strong> 
+                                                        {g - remainder === 1 ? 'equipe com' : 'equipes com'} 
+                                                        <strong className="bg-amber-200/60 text-amber-950 px-1.5 py-0.5 rounded">{baseSize} 👤</strong>
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Direita: Botão de Ação */}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleAutoDistribute(g)}
+                                        className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-black bg-amber-500 hover:bg-amber-600 text-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer w-full sm:w-auto shrink-0"
+                                    >
+                                        <Shuffle className="w-4 h-4" />
+                                        <span>Distribuir</span>
+                                    </button>
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
 

@@ -56,7 +56,11 @@ export const ReportTabStudents = (props) => {
                                                         </div>
                                                     ) : (
                                                         <div className="flex flex-col items-center gap-1">
-                                                            {s.participated ? (
+                                                            {s.observedOnly ? (
+                                                                <span className="px-2 py-0.5 rounded-full text-2xs font-black bg-amber-100 text-amber-800 border border-amber-300">
+                                                                    Observou ({s.totalAnswers}x)
+                                                                </span>
+                                                            ) : s.participated ? (
                                                                 <span className="px-2 py-0.5 rounded-full text-2xs font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
                                                                     Respondeu ({s.totalAnswers}x)
                                                                 </span>

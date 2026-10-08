@@ -2,7 +2,7 @@ import React from 'react';
 import { CheckCircle, XCircle, Clock, Search, Filter, HelpCircle, Shuffle, RotateCcw, RotateCw, UserMinus, Flame, Target, Trophy, ChevronDown, ChevronUp } from 'lucide-react';
 
 export const ReportTabActions = (props) => {
-    const { metrics, filteredData, actionCategoryFilter, setActionCategoryFilter, actionSearchTerm, setActionSearchTerm, getActionStyle, questionStats, studentStats, groupStats } = props;
+    const { metrics, filteredData, actionCategoryFilter, setActionCategoryFilter, actionSearchTerm, setActionSearchTerm, getActionStyle, questionStats, studentStats, groupStats, displayedActionLogs } = props;
     return (
                     <div className="space-y-4 animate-in fade-in duration-200">
                         {/* 1. Indicadores Rápidos de Toques */}
@@ -161,7 +161,7 @@ export const ReportTabActions = (props) => {
                                                     </div>
 
                                                     <div className="flex items-center gap-2 text-2xs text-slate-400 font-mono shrink-0">
-                                                        <span className="font-bold text-slate-600">{log.timeFormatted}</span>
+                                                        <span className="font-bold text-slate-600">{log.dateTimeFormatted || log.timeFormatted}</span>
                                                         <span>•</span>
                                                         <span>{log.elapsedFormatted}</span>
                                                     </div>

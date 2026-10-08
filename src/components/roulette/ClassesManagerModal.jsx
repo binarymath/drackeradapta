@@ -65,6 +65,7 @@ export const ClassesManagerModal = ({ isOpen, onClose, classes, setClasses, sele
         const newClasses = Object.keys(grouped).map((cName, idx) => {
             const existingC = classes.find(c => c.name === cName);
             return {
+                ...(existingC || {}),
                 id: existingC ? existingC.id : Date.now().toString() + idx,
                 name: cName,
                 students: grouped[cName]
