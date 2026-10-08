@@ -235,7 +235,7 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
                     </div>
 
                     {/* Faixa Central em Destaque: O Split-Flap Principal */}
-                    <div className={`relative ${isMaximized ? 'h-28 sm:h-36 md:h-44 my-2' : 'h-20 sm:h-24 my-1'} rounded-xl bg-gradient-to-b from-slate-900 via-slate-950 to-black border-2 transition-all duration-200 flex items-center justify-center shadow-2xl overflow-hidden ${
+                    <div className={`relative ${isMaximized ? 'h-24 sm:h-28 md:h-32 lg:h-44 my-2' : 'h-20 sm:h-24 my-1'} rounded-xl bg-gradient-to-b from-slate-900 via-slate-950 to-black border-2 transition-all duration-200 flex items-center justify-center shadow-2xl overflow-hidden ${
                         lockedWinner 
                             ? 'border-amber-400/90 shadow-[0_0_35px_rgba(245,158,11,0.4)] scale-[1.02]' 
                             : spinning 
@@ -256,7 +256,7 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
                         <div className={`z-10 px-4 sm:px-6 text-center font-mono font-black transition-all ${
                             isFlipping ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
                         }`}>
-                            <span className={`${isMaximized ? 'text-2xl sm:text-4xl md:text-5xl' : 'text-xl sm:text-2xl md:text-3xl'} tracking-widest uppercase truncate block ${
+                            <span className={`${isMaximized ? 'text-2xl sm:text-4xl md:text-4xl lg:text-5xl' : 'text-xl sm:text-2xl md:text-3xl'} tracking-widest uppercase truncate block ${
                                 lockedWinner
                                     ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 drop-shadow-[0_2px_10px_rgba(253,224,71,0.6)] animate-pulse'
                                     : spinning
