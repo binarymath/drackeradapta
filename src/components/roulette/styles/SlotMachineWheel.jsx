@@ -258,7 +258,7 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
                     
                     {/* Linha de Pagamento Central (Payline Dourada) */}
                     <div className={`absolute inset-x-0 top-1/2 -translate-y-1/2 ${
-                        isMaximized ? 'h-24 sm:h-32 md:h-40' : 'h-16 sm:h-20'
+                        isMaximized ? 'h-24 sm:h-32 md:h-32 xl:h-40' : 'h-16 sm:h-20'
                     } border-y-2 border-yellow-400/40 bg-yellow-400/5 pointer-events-none z-10`} />
 
                     {/* Grade de 3 Rolos (Esquerdo / Aluno Central / Direito) */}
@@ -266,7 +266,7 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
                         
                         {/* Rolo Esquerdo (Símbolo Clássico 777) */}
                         <div className={`col-span-3 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-950 rounded-xl sm:rounded-2xl ${
-                            isMaximized ? 'h-28 sm:h-36 md:h-44 text-4xl sm:text-5xl md:text-6xl' : 'h-20 sm:h-24 text-3xl sm:text-4xl'
+                            isMaximized ? 'h-28 sm:h-36 md:h-36 xl:h-44 text-4xl sm:text-5xl md:text-5xl xl:text-6xl' : 'h-20 sm:h-24 text-3xl sm:text-4xl'
                         } flex items-center justify-center border-2 border-slate-700 shadow-lg`}>
                             <span className={spinning ? 'animate-bounce' : ''}>
                                 {leftSymbol}
@@ -275,7 +275,7 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
 
                         {/* Rolo Central Principal: NOME DO ALUNO SORTEADO */}
                         <div className={`col-span-6 rounded-xl sm:rounded-2xl ${
-                            isMaximized ? 'h-28 sm:h-36 md:h-44' : 'h-20 sm:h-24'
+                            isMaximized ? 'h-28 sm:h-36 md:h-36 xl:h-44' : 'h-20 sm:h-24'
                         } flex flex-col items-center justify-center border-2 transition-all duration-300 px-2 sm:px-4 text-center overflow-hidden shadow-2xl ${
                             lockedWinner
                                 ? 'bg-gradient-to-b from-amber-500/20 via-yellow-500/30 to-amber-600/20 border-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.5)] scale-105'
@@ -301,7 +301,7 @@ export const SlotMachineWheel = ({ items = [], spinning = false, winner = null, 
 
                         {/* Rolo Direito (Símbolo Clássico 777) */}
                         <div className={`col-span-3 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-950 rounded-xl sm:rounded-2xl ${
-                            isMaximized ? 'h-28 sm:h-36 md:h-44 text-4xl sm:text-5xl md:text-6xl' : 'h-20 sm:h-24 text-3xl sm:text-4xl'
+                            isMaximized ? 'h-28 sm:h-36 md:h-36 xl:h-44 text-4xl sm:text-5xl md:text-5xl xl:text-6xl' : 'h-20 sm:h-24 text-3xl sm:text-4xl'
                         } flex items-center justify-center border-2 border-slate-700 shadow-lg`}>
                             <span className={spinning ? 'animate-bounce' : ''}>
                                 {rightSymbol}

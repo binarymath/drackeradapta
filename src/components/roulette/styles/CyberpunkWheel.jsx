@@ -155,7 +155,7 @@ export const CyberpunkWheel = ({ items = [], spinning = false, winner = null, on
     return (
         <div className={`relative ${
             isMaximized 
-                ? 'w-[min(55vh,65vw,550px)] h-[min(55vh,65vw,550px)] sm:w-[min(60vh,70vw,600px)] sm:h-[min(60vh,70vw,600px)] md:w-[min(62vh,72vw,680px)] md:h-[min(62vh,72vw,680px)]' 
+                ? 'w-[min(45vh,55vw,450px)] h-[min(45vh,55vw,450px)] sm:w-[min(48vh,60vw,500px)] sm:h-[min(48vh,60vw,500px)] md:w-[min(50vh,62vw,560px)] md:h-[min(50vh,62vw,560px)] xl:w-[min(62vh,72vw,680px)] xl:h-[min(62vh,72vw,680px)]' 
                 : 'w-64 h-64 sm:w-72 sm:h-72 md:w-[380px] md:h-[380px]'
         } flex items-center justify-center select-none transition-all duration-300`}>
             {/* Mira Laser Superior Futurista */}
