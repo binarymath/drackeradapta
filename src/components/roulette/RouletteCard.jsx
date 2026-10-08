@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
     User, HelpCircle, Sparkles, CheckCircle, XCircle, RotateCcw, 
     Eye, EyeOff, Shuffle, ListOrdered, Users, HeartHandshake, Award,
@@ -50,6 +51,22 @@ export const RouletteCard = ({
         : nameLength > 15 
             ? "text-3xl sm:text-4xl md:text-5xl" 
             : "text-4xl sm:text-5xl md:text-6xl";
+
+    // ==========================================
+    // PORTAL NODE (TELA CHEIA OU BODY)
+    // ==========================================
+    const [portalNode, setPortalNode] = useState(null);
+
+    useEffect(() => {
+        if (typeof document !== 'undefined') {
+            const updatePortalNode = () => {
+                setPortalNode(document.fullscreenElement || document.body);
+            };
+            updatePortalNode();
+            document.addEventListener('fullscreenchange', updatePortalNode);
+            return () => document.removeEventListener('fullscreenchange', updatePortalNode);
+        }
+    }, []);
 
     // Controle de Tamanho de Fonte para Acessibilidade / Lousa / Projetor
     const [fontScale, setFontScale] = useState(() => {
@@ -464,9 +481,11 @@ export const RouletteCard = ({
     );
 
 
-    return (
+    if (!portalNode) return null;
+
+    return createPortal(
         <>
-        <div className={`fixed z-50 transition-all duration-300 ease-in-out ${
+        <div className={`fixed z-[999999] transition-all duration-300 ease-in-out ${
             isCardMinimized 
                 ? 'bottom-4 left-4 right-auto top-auto w-auto h-auto' 
                 : 'inset-0 flex items-center justify-center p-2 sm:p-3 md:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in'
@@ -1190,6 +1209,7 @@ export const RouletteCard = ({
         question={winner}
         onSave={handleSaveEditing}
     />
-    </>
+    </>,
+    portalNode
 );
 };
