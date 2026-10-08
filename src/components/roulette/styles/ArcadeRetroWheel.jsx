@@ -74,8 +74,13 @@ export const ArcadeRetroWheel = ({ items = [], spinning = false, winner = null, 
     // Rotação da Roleta
     useEffect(() => {
         if (spinning && winner && items.length > 0) {
-            const winnerIdx = items.findIndex(i => i.id === winner.id);
-            if (winnerIdx === -1) return;
+            const winnerIdx = items.findIndex(i => String(i.id) === String(winner.id));
+            if (winnerIdx === -1) {
+                const timeout = setTimeout(() => {
+                    if (onSpinComplete) onSpinComplete();
+                }, 2000);
+                return () => clearTimeout(timeout);
+            }
 
             const numItems = items.length;
             const sliceAngle = 360 / numItems;
