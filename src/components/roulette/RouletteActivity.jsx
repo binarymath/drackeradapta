@@ -645,6 +645,38 @@ export const RouletteActivity = () => {
                         </div>
                     </div>
                 </div>
+                
+                {/* CARD DO RESULTADO DO SORTEIO (DENTRO DA ARENA PARA SUPORTE A FULLSCREEN NATIVO) */}
+                {showCard && winner && (
+                    <RouletteCard 
+                        winner={winner} 
+                        allQuestions={uniqueQuestions}
+                        usedQuestions={usedQuestions}
+                        activeStudents={activeItems}
+                        allStudents={combinedItems}
+                        availableHelpers={availableHelpers}
+                        onChangeQuestion={handleChangeWinnerQuestion}
+                        onEditQuestionContent={handleEditQuestionContent}
+                        onChangeStudent={handleChangeWinnerStudent}
+                        onCorrect={() => handleResult('correct')} 
+                        onIncorrect={() => handleResult('incorrect')} 
+                        onSpinAgain={handleSpinAgain}
+                        onAbsent={() => handleResult('absent')}
+                        onBatchResult={handleBatchResult}
+                        onHelpResult={handleHelpResult}
+                        onGroupResult={handleGroupResult}
+                        showDifficulty={showDifficulty}
+                        onToggleDifficulty={handleToggleDifficulty}
+                        onTimerExplode={handleTimerExplode}
+                        onRevealAnswer={handleRevealAnswer}
+                        onRevealHint={handleRevealHint}
+                        onOpenSidebar={() => setIsSidebarOpen(true)}
+                        onClose={() => {
+                            setShowCard(false);
+                            setWinner(null);
+                        }}
+                    />
+                )}
             </div>
 
             {/* Botão Flutuante Criativo na Borda Direita para Abrir a Sidebar */}
@@ -697,37 +729,6 @@ export const RouletteActivity = () => {
                 onOpenClassesModal={() => setShowClassesModal(true)}
             />
 
-            {/* CARD DO RESULTADO DO SORTEIO */}
-            {showCard && winner && (
-                <RouletteCard 
-                    winner={winner} 
-                    allQuestions={uniqueQuestions}
-                    usedQuestions={usedQuestions}
-                    activeStudents={activeItems}
-                    allStudents={combinedItems}
-                    availableHelpers={availableHelpers}
-                    onChangeQuestion={handleChangeWinnerQuestion}
-                    onEditQuestionContent={handleEditQuestionContent}
-                    onChangeStudent={handleChangeWinnerStudent}
-                    onCorrect={() => handleResult('correct')} 
-                    onIncorrect={() => handleResult('incorrect')} 
-                    onSpinAgain={handleSpinAgain}
-                    onAbsent={() => handleResult('absent')}
-                    onBatchResult={handleBatchResult}
-                    onHelpResult={handleHelpResult}
-                    onGroupResult={handleGroupResult}
-                    showDifficulty={showDifficulty}
-                    onToggleDifficulty={handleToggleDifficulty}
-                    onTimerExplode={handleTimerExplode}
-                    onRevealAnswer={handleRevealAnswer}
-                    onRevealHint={handleRevealHint}
-                    onOpenSidebar={() => setIsSidebarOpen(true)}
-                    onClose={() => {
-                        setShowCard(false);
-                        setWinner(null);
-                    }}
-                />
-            )}
 
             <StudentHistoryModal 
                 isOpen={!!historyStudent} 
