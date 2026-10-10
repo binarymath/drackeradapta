@@ -587,40 +587,63 @@ class GeminiService {
       
       if (!Array.isArray(rawEtapas) || rawEtapas.length === 0) return null;
 
-      const normalizedEtapas = rawEtapas.map((etapa, idx) => {
+      // Garante que existam exatamente safeStages etapas
+      const allEtapas = [...rawEtapas];
+      for (let s = allEtapas.length + 1; s <= safeStages; s++) {
+        allEtapas.push({
+          round: s,
+          titulo_capitulo: s === safeStages ? `Capítulo ${s}: A Revelação Final` : `Capítulo ${s}: A Investigação Continua`,
+          local_cena: `Cenário da Etapa ${s}`,
+          item_recompensa: `Relíquia do Conhecimento ${s}`,
+          narrativa_avanco: `A equipe avança determinada para a etapa ${s} da investigação de ${topic}!`,
+          enigmas: []
+        });
+      }
+
+      const normalizedEtapas = allEtapas.slice(0, safeStages).map((etapa, idx) => {
         const roundNum = Number(etapa.round) || (idx + 1);
         const rawEnigmas = etapa.enigmas || etapa.desafios || etapa.questions || etapa.missoes || [];
 
         let normalizedEnigmas = [];
         if (isIndividualMode) {
           const firstEnigma = rawEnigmas[0] || {};
+          let options = Array.isArray(firstEnigma.options) ? firstEnigma.options : (Array.isArray(firstEnigma.alternativas) ? firstEnigma.alternativas : []);
+          if (questionType === 'multiple_choice' && (!options || options.length < 2)) {
+            options = ['A) Opção 1', 'B) Opção 2', 'C) Opção 3', 'D) Opção 4'];
+          }
           normalizedEnigmas = [{
             team: 'Missão Individual no Caderno',
             question: firstEnigma.question || firstEnigma.pergunta || firstEnigma.desafio || `Atenção, bravos exploradores! Em seus cadernos de aula, resolvam o desafio do capítulo ${roundNum} sobre ${topic}.`,
-            options: Array.isArray(firstEnigma.options) ? firstEnigma.options : (Array.isArray(firstEnigma.alternativas) ? firstEnigma.alternativas : []),
+            options: options,
             correct_answer: firstEnigma.correct_answer || firstEnigma.resposta_correta || firstEnigma.gabarito || 'Conferência visual no caderno.',
             dica_dracker: firstEnigma.dica_dracker || firstEnigma.dica || 'Revisem com cuidado os cálculos e raciocínios!'
           }];
         } else {
-          // Garante exatamente 1 enigma para CADA equipe cadastrada na partida
+          // Garante OBRIGATORIAMENTE 1 enigma para CADA equipe cadastrada na partida
           normalizedEnigmas = safeTeams.map((team, tIdx) => {
+            const teamName = team.name || `Equipe ${tIdx + 1}`;
             const matched = rawEnigmas.find(e => 
-              (e.team && String(e.team).toLowerCase().includes(team.name.toLowerCase())) ||
-              (e.question && String(e.question).toLowerCase().includes(team.name.toLowerCase()))
+              (e.team && String(e.team).toLowerCase().includes(teamName.toLowerCase())) ||
+              (e.question && String(e.question).toLowerCase().includes(teamName.toLowerCase()))
             ) || rawEnigmas[tIdx] || rawEnigmas[tIdx % Math.max(1, rawEnigmas.length)] || {};
 
             let questionText = matched.question || matched.pergunta || matched.desafio || '';
             if (!questionText) {
-              questionText = `Atenção, ${team.name}! Investiguem a cena e resolvam o desafio sobre ${topic}.`;
-            } else if (!questionText.includes(team.name)) {
-              questionText = `Atenção, ${team.name}! ${questionText}`;
+              questionText = `Atenção, ${teamName}! Investiguem a cena e resolvam o desafio do capítulo ${roundNum} sobre ${topic}.`;
+            } else if (!questionText.toLowerCase().includes(teamName.toLowerCase())) {
+              questionText = `Atenção, ${teamName}! ${questionText}`;
+            }
+
+            let options = Array.isArray(matched.options) ? matched.options : (Array.isArray(matched.alternativas) ? matched.alternativas : []);
+            if (questionType === 'multiple_choice' && (!options || options.length < 2)) {
+              options = ['A) Alternativa 1', 'B) Alternativa 2', 'C) Alternativa 3', 'D) Alternativa 4'];
             }
 
             return {
-              team: team.name,
+              team: teamName,
               question: questionText,
-              options: Array.isArray(matched.options) ? matched.options : (Array.isArray(matched.alternativas) ? matched.alternativas : []),
-              correct_answer: matched.correct_answer || matched.resposta_correta || matched.gabarito || 'Conferência visual com o professor.',
+              options: options,
+              correct_answer: matched.correct_answer || matched.resposta_correta || matched.gabarito || `Conferência visual com o professor para a equipe ${teamName}.`,
               dica_dracker: matched.dica_dracker || matched.dica || 'Trabalhem em equipe para desvendar o enigma!'
             };
           });
@@ -656,17 +679,18 @@ class GeminiService {
       ${isIndividualMode ? `
       MODO DE JOGO: JORNADA INDIVIDUAL NO CADERNO ESCOLAR.
       Os alunos realizarão as atividades individualmente em seus cadernos de aula!
-      Portanto, para CADA etapa (round), crie UMA MISSÃO INVESTIGATIVA CENTRAL PARA O CADERNO que toda a turma deva copiar, resolver, calcular ou responder no caderno escolar.
+      Portanto, para CADA etapa (round 1 até ${safeStages}), crie UMA MISSÃO INVESTIGATIVA CENTRAL PARA O CADERNO que toda a turma deva copiar, resolver, calcular ou responder no caderno escolar.
       No array "enigmas" de cada etapa, retorne 1 enigma com "team": "Missão Individual no Caderno".
       ` : `
-      EQUIPES/HERÓIS NA PARTIDA: ${safeTeams.map(t => t.name).join(', ')}.
-      Para CADA etapa, crie uma pergunta contextualizada e desafiadora para as equipes (gerando 1 enigma para cada equipe: ${safeTeams.map(t => `"${t.name}"`).join(', ')}).
+      EQUIPES/HERÓIS NA PARTIDA (${safeTeams.length} equipes): ${safeTeams.map(t => t.name).join(', ')}.
+      Para CADA etapa (do capítulo 1 até o capítulo ${safeStages}), você DEVE OBRIGATORIAMENTE gerar ${safeTeams.length} enigmas em "enigmas" (exatamente 1 enigma para CADA equipe: ${safeTeams.map(t => `"${t.name}"`).join(', ')}).
+      NUNCA omita perguntas de nenhuma equipe na etapa final nem em nenhuma outra!
       `}
       
       ${universeDescription}
 
       CRIE A HISTÓRIA COMPLETA DO JOGO (COM INÍCIO, MEIO E FIM).
-      O jogo deve ter EXATAMENTE ${safeStages} ETAPAS (rounds/capítulos).
+      O jogo deve ter EXATAMENTE ${safeStages} ETAPAS (rounds/capítulos numerados de 1 a ${safeStages}).
       A história deve evoluir gradativamente até a grande revelação no final (etapa ${safeStages}).
       
       MUITO IMPORTANTE: O JOGO PRECISA SER ÁGIL, EMOCIONANTE E DIRETO AO PONTO!
@@ -689,13 +713,19 @@ class GeminiService {
             "item_recompensa": "Nome do artefato mágico",
             "narrativa_avanco": "O desenvolvimento da cena...",
             "enigmas": [
-              {
-                "team": "${isIndividualMode ? 'Missão Individual no Caderno' : safeTeams[0]?.name}",
-                "question": "Pergunta contextualizada no tema...",
-                "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+              ${isIndividualMode ? `{
+                "team": "Missão Individual no Caderno",
+                "question": "Pergunta para a turma resolver no caderno sobre ${topic}...",
+                "options": ${questionType === 'multiple_choice' ? '["A) ...", "B) ...", "C) ...", "D) ..."]' : '[]'},
                 "correct_answer": "Resposta correta e resolução",
                 "dica_dracker": "Uma pista pedagógica do Drácker"
-              }
+              }` : safeTeams.map(t => `{
+                "team": "${t.name}",
+                "question": "Atenção, ${t.name}! Pergunta sobre ${topic}...",
+                "options": ${questionType === 'multiple_choice' ? '["A) ...", "B) ...", "C) ...", "D) ..."]' : '[]'},
+                "correct_answer": "Resposta correta e resolução",
+                "dica_dracker": "Uma pista pedagógica do Drácker"
+              }`).join(',\n              ')}
             ]
           }
         ],

@@ -507,6 +507,54 @@ export const DetectiveRPG = ({ topic, context, isFullWidth }) => {
     const [activityContext, setActivityContext] = useState(() => {
         return savedData.activityContext || context || activeActivity?.details || '';
     });
+
+    // Lista de equipes ativas resiliente a qualquer modo de participação ou recarregamento
+    const effectiveTeams = (teams && teams.length > 0)
+        ? teams 
+        : (participationMode === 'class_groups' && classGroups && classGroups.length > 0 
+            ? classGroups.map(g => ({ id: g.id, name: g.name, color: g.color || 'bg-indigo-600', studentIds: g.studentIds || [] }))
+            : (participationMode === 'class_students' && classStudents && classStudents.length > 0
+                ? classStudents.map(s => ({ id: s.id, name: s.name, isIndividual: true }))
+                : (customTeams && customTeams.length > 0 ? customTeams : [{ id: 1, name: 'Equipe 1' }, { id: 2, name: 'Equipe 2' }])));
+
+    // Helper para recuperar ou sintetizar um enigma perfeito para cada equipe sem deixar ninguém sem pergunta
+    const getTeamEnigma = (team, index, currentEnigmas = [], stageRound = round) => {
+        const teamName = team?.name || `Equipe ${index + 1}`;
+        const matched = (currentEnigmas || []).find(e => 
+            e && (
+                (e.team && (String(e.team).toLowerCase().includes(teamName.toLowerCase()) || teamName.toLowerCase().includes(String(e.team).toLowerCase()))) ||
+                (e.question && String(e.question).toLowerCase().includes(teamName.toLowerCase()))
+            )
+        ) || currentEnigmas[index] || currentEnigmas[0];
+
+        if (matched && (matched.question || matched.pergunta || matched.desafio)) {
+            let questionText = matched.question || matched.pergunta || matched.desafio || '';
+            if (!questionText.toLowerCase().includes(teamName.toLowerCase())) {
+                questionText = `Atenção, ${teamName}! ${questionText}`;
+            }
+            let options = Array.isArray(matched.options) ? matched.options : (Array.isArray(matched.alternativas) ? matched.alternativas : []);
+            if (questionType === 'multiple_choice' && (!options || options.length < 2)) {
+                options = ['A) Alternativa 1', 'B) Alternativa 2', 'C) Alternativa 3', 'D) Alternativa 4'];
+            }
+            return {
+                ...matched,
+                team: teamName,
+                question: questionText,
+                options: options,
+                correct_answer: matched.correct_answer || matched.resposta_correta || matched.gabarito || `Gabarito e resolução esperada para a equipe ${teamName}.`,
+                dica_dracker: matched.dica_dracker || matched.dica || 'Trabalhem em equipe e revisem os cálculos para desvendar o enigma!'
+            };
+        }
+
+        return {
+            team: teamName,
+            question: `Atenção, ${teamName}! Investiguem a cena e resolvam o desafio do capítulo ${stageRound} sobre ${activityTopic || topic || 'o conteúdo pedagógico'}.`,
+            options: questionType === 'multiple_choice' ? ['A) Alternativa 1', 'B) Alternativa 2', 'C) Alternativa 3', 'D) Alternativa 4'] : [],
+            correct_answer: `Gabarito e resolução esperada para a equipe ${teamName}.`,
+            dica_dracker: 'Trabalhem em equipe para encontrar a solução!'
+        };
+    };
+
     const [showSavedMissionsModal, setShowSavedMissionsModal] = useState(false);
     const [showDocGuideModal, setShowDocGuideModal] = useState(false);
     const [savedLibraryVersion, setSavedLibraryVersion] = useState(0);
@@ -1722,29 +1770,29 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
         } else {
             // Modo de Equipes (Roleta ou Personalizado)
             if (questionType === 'multiple_choice') {
-                if (Object.keys(selectedOptions).length !== teams.length) {
-                    return toast('Por favor, selecione a resposta de todas as equipes antes de continuar.');
+                const missingOptionTeam = effectiveTeams.find(t => selectedOptions[t.id] === undefined);
+                if (missingOptionTeam) {
+                    return toast(`Por favor, selecione a resposta da equipe "${missingOptionTeam.name}" antes de continuar.`);
                 }
                 
-                currentEtapa.enigmas.forEach((enigma, index) => {
-                    const team = teams.find(t => enigma.team.toLowerCase().includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(enigma.team.toLowerCase())) || teams[index];
-                    if (team) {
-                        const chosenOptText = enigma.options[selectedOptions[team.id]];
-                        const isCorrect = chosenOptText && enigma.correct_answer && (chosenOptText.charAt(0) === enigma.correct_answer.charAt(0) || enigma.correct_answer.includes(chosenOptText));
-                        finalEvaluations[team.id] = isCorrect ? 'success' : 'fail';
-                    }
+                effectiveTeams.forEach((team, index) => {
+                    const enigma = getTeamEnigma(team, index, currentEtapa?.enigmas, round);
+                    const chosenOptText = enigma.options?.[selectedOptions[team.id]];
+                    const isCorrect = chosenOptText && enigma.correct_answer && (chosenOptText.charAt(0) === enigma.correct_answer.charAt(0) || enigma.correct_answer.includes(chosenOptText));
+                    finalEvaluations[team.id] = isCorrect ? 'success' : 'fail';
                 });
             } else {
                 // Validação para dissertativa
-                if (Object.keys(evaluations).length !== teams.length) {
-                    return toast('Por favor, avalie todas as equipes antes de continuar.');
+                const missingEvalTeam = effectiveTeams.find(t => evaluations[t.id] === undefined);
+                if (missingEvalTeam) {
+                    return toast(`Por favor, avalie a resposta da equipe "${missingEvalTeam.name}" antes de continuar.`);
                 }
             }
 
             // CRUCIAL: Refletir ações nos relatórios e turmas sem duplicações!
             if (currentClass?.id && !isTestMode) {
-                currentEtapa.enigmas.forEach((enigma, index) => {
-                    const team = teams.find(t => enigma.team.toLowerCase().includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(enigma.team.toLowerCase())) || teams[index];
+                effectiveTeams.forEach((team, index) => {
+                    const enigma = getTeamEnigma(team, index, currentEtapa?.enigmas, round);
                     if (!team) return;
 
                     const isCorrect = finalEvaluations[team.id] === 'success';
@@ -1823,7 +1871,7 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
 
         const currentHistoryLog = {
             round,
-            enigmas: currentEtapa.enigmas,
+            enigmas: effectiveTeams.map((team, idx) => getTeamEnigma(team, idx, currentEtapa?.enigmas, round)),
             evaluations: finalEvaluations,
             selectedOptions: { ...selectedOptions }
         };
@@ -1841,8 +1889,24 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
         if (round < totalStages) {
             const nextRoundNum = round + 1;
             
-            if (!currentData.etapas || !currentData.etapas[nextRoundNum - 1]) {
-                return toast('Erro: A próxima etapa não foi encontrada.');
+            // Garante que o próximo capítulo existe no objeto de etapas mesmo se o gerador inicial não tiver retornado
+            let updatedData = { ...currentData };
+            if (!updatedData.etapas) updatedData.etapas = [];
+            if (!updatedData.etapas[nextRoundNum - 1]) {
+                updatedData.etapas[nextRoundNum - 1] = {
+                    round: nextRoundNum,
+                    titulo_capitulo: nextRoundNum === totalStages ? `Capítulo ${nextRoundNum}: A Revelação Final` : `Capítulo ${nextRoundNum}: A Investigação Continua`,
+                    local_cena: 'Cenário da Missão',
+                    item_recompensa: `Relíquia do Conhecimento ${nextRoundNum}`,
+                    narrativa_avanco: `A equipe avança com coragem para o Capítulo ${nextRoundNum} para desvendar todos os segredos de ${activityTopic || topic || 'a aula'}!`,
+                    enigmas: effectiveTeams.map((team, tIdx) => ({
+                        team: team.name,
+                        question: `Atenção, ${team.name}! Investiguem a cena e resolvam o desafio do capítulo ${nextRoundNum} sobre ${activityTopic || topic || 'a aula'}.`,
+                        options: questionType === 'multiple_choice' ? ['A) Alternativa 1', 'B) Alternativa 2', 'C) Alternativa 3', 'D) Alternativa 4'] : [],
+                        correct_answer: `Gabarito e resolução esperada para a equipe ${team.name}.`,
+                        dica_dracker: 'Trabalhem em equipe para superar este capítulo!'
+                    }))
+                };
             }
 
             setRound(nextRoundNum);
@@ -1852,7 +1916,7 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
             setRevealedAnswers({});
             setCarouselIndex(0);
             
-            const updatedData = { ...currentData, showHelpOnNextRound: needsHelp };
+            updatedData = { ...updatedData, showHelpOnNextRound: needsHelp };
             setCurrentData(updatedData);
             
             saveState({ 
@@ -1881,7 +1945,7 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
             // Finale (Conclusão Épica)
             const scores = {};
             newHistory.forEach(log => {
-                Object.keys(log.evaluations).forEach(teamId => {
+                Object.keys(log.evaluations || {}).forEach(teamId => {
                     const status = log.evaluations[teamId];
                     const pts = status === 'success' ? 3 : status === 'partial' ? 1 : 0;
                     scores[teamId] = (scores[teamId] || 0) + pts;
@@ -1896,22 +1960,22 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                 totalPointsAll += scores[teamId];
                 if (scores[teamId] > maxScore) {
                     maxScore = scores[teamId];
-                    const t = teams.find(x => x.id.toString() === teamId.toString());
+                    const t = effectiveTeams.find(x => x.id.toString() === teamId.toString());
                     winnerNames = [t ? t.name : "Equipe"];
                 } else if (scores[teamId] === maxScore) {
-                    const t = teams.find(x => x.id.toString() === teamId.toString());
+                    const t = effectiveTeams.find(x => x.id.toString() === teamId.toString());
                     winnerNames.push(t ? t.name : "Equipe");
                 }
             });
             
             let winner = winnerNames[0] || 'Todos Nós!';
             if (winnerNames.length > 1) {
-                winner = winnerNames.length === teams.length ? "Empate Geral!" : "Empate: " + winnerNames.join(" e ");
+                winner = winnerNames.length === effectiveTeams.length ? "Empate Geral!" : "Empate: " + winnerNames.join(" e ");
             }
             
-            const maxPossiblePoints = teams.length * totalStages * 3;
-            const averageScore = totalPointsAll / maxPossiblePoints;
-            const finalStoryText = averageScore > 0.5 ? currentData.finais?.vitoria_epica : currentData.finais?.vitoria_com_ajuda;
+            const maxPossiblePoints = effectiveTeams.length * totalStages * 3;
+            const averageScore = maxPossiblePoints > 0 ? (totalPointsAll / maxPossiblePoints) : 1;
+            const finalStoryText = averageScore > 0.5 ? currentData?.finais?.vitoria_epica : currentData?.finais?.vitoria_com_ajuda;
             
             const finalHistoryObj = { rounds: newHistory, winner, finalStoryText };
             setCurrentData(prev => ({ ...prev, finalHistory: finalHistoryObj }));
@@ -1938,7 +2002,22 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                 }
             );
 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            gameAudio?.playSuccess?.();
+
+            const scrollToTop = () => {
+                try {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.body.scrollTo({ top: 0, behavior: 'smooth' });
+                    const area = document.getElementById('activity-area-print') || document.querySelector('.overflow-y-auto');
+                    if (area) {
+                        area.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                } catch (_) {}
+            };
+
+            scrollToTop();
+            setTimeout(scrollToTop, 100);
         }
     };
 
@@ -2120,26 +2199,33 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                     </div>
                                 )}
 
-                                {/* Desafios e Enigmas do Capítulo */}
+                                 {/* Desafios e Enigmas do Capítulo */}
                                 <div className="space-y-6">
-                                    <h4 className="text-sm sm:text-base font-black uppercase text-slate-600 tracking-wider flex items-center gap-2">
-                                        <BookOpen className="w-5 h-5 text-indigo-600" />
-                                        <span>Desafios e Enigmas deste Capítulo ({enigmas.length})</span>
-                                    </h4>
+                                    {(() => {
+                                        const reviewEnigmasList = participationMode === 'class_students'
+                                            ? (liveEtapa.enigmas || [])
+                                            : effectiveTeams.map((team, idx) => getTeamEnigma(team, idx, liveEtapa.enigmas, stageNum));
 
-                                    {enigmas.length === 0 ? (
-                                        <p className="text-sm sm:text-base text-slate-500 italic">Nenhum enigma registrado para este capítulo.</p>
-                                    ) : (
-                                enigmas.map((enigma, eIdx) => {
-                                    const isRevealed = !!reviewRevealedAnswers[eIdx];
-                                    const { intro, challenge } = parseQuestionParts(enigma.question);
-                                    const teamLabel = enigma.team || (participationMode === 'class_students' ? 'Missão Coletiva no Caderno' : `Equipe ${eIdx + 1}`);
+                                        return (
+                                            <>
+                                                <h4 className="text-sm sm:text-base font-black uppercase text-slate-600 tracking-wider flex items-center gap-2">
+                                                    <BookOpen className="w-5 h-5 text-indigo-600" />
+                                                    <span>Desafios e Enigmas deste Capítulo ({reviewEnigmasList.length})</span>
+                                                </h4>
 
-                                    return (
-                                        <div 
-                                            key={eIdx}
-                                            className="bg-slate-50 border-2 border-slate-300 rounded-3xl p-5 sm:p-7 md:p-8 space-y-5 shadow-xs hover:border-indigo-300 transition-colors"
-                                        >
+                                                {reviewEnigmasList.length === 0 ? (
+                                                    <p className="text-sm sm:text-base text-slate-500 italic">Nenhum enigma registrado para este capítulo.</p>
+                                                ) : (
+                                                    reviewEnigmasList.map((enigma, eIdx) => {
+                                                        const isRevealed = !!reviewRevealedAnswers[eIdx];
+                                                        const { intro, challenge } = parseQuestionParts(enigma.question);
+                                                        const teamLabel = enigma.team || (participationMode === 'class_students' ? 'Missão Coletiva no Caderno' : `Equipe ${eIdx + 1}`);
+
+                                                        return (
+                                                            <div 
+                                                                key={eIdx}
+                                                                className="bg-slate-50 border-2 border-slate-300 rounded-3xl p-5 sm:p-7 md:p-8 space-y-5 shadow-xs hover:border-indigo-300 transition-colors"
+                                                            >
                                             {/* Cabeçalho do Enigma */}
                                             <div className="flex items-center justify-between gap-3 flex-wrap">
                                                 <span className="text-sm sm:text-base md:text-lg font-black uppercase tracking-wider text-indigo-900 bg-indigo-100 border border-indigo-200 px-4 py-1.5 rounded-xl">
@@ -2219,14 +2305,17 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                                     />
                                                 </div>
                                             )}
-                                        </div>
-                                    );
-                                })
-                            )}
-                        </div>
-                    </>
-                )}
-            </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </>
+                        );
+                    })()}
+                </div>
+            </>
+        )}
+    </div>
 
                     {/* Rodapé com Navegação */}
                     <div className="pt-4 border-t-2 border-slate-100 flex items-center justify-between gap-3 shrink-0 flex-wrap">
@@ -4177,11 +4266,10 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                                 })()}
                                             </button>
                                         ) : (
-                                            enigmas.map((enigma, idx) => {
-                                                const team = teams.find(t => enigma.team.toLowerCase().includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(enigma.team.toLowerCase())) || teams[idx];
+                                            effectiveTeams.map((team, idx) => {
                                                 return (
                                                     <button 
-                                                        key={idx} 
+                                                        key={team.id || idx} 
                                                         onClick={() => setCarouselIndex(idx + 1)}
                                                         className={`px-2.5 py-1 rounded-full transition-all text-xs font-bold cursor-pointer flex items-center gap-1.5 ${
                                                             carouselIndex === idx + 1 
@@ -4190,7 +4278,7 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                                         }`}
                                                     >
                                                         <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                                                        <span>{team ? team.name : `Equipe ${idx + 1}`}</span>
+                                                        <span>{team.name}</span>
                                                     </button>
                                                 );
                                             })
@@ -4219,17 +4307,17 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                             renderNotebookMission()
                                         ) : (
                                             (() => {
-                                                const enigmaIdx = carouselIndex - 1;
-                                                const enigma = enigmas[enigmaIdx];
-                                                const team = teams.find(t => enigma.team.toLowerCase().includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(enigma.team.toLowerCase())) || teams[enigmaIdx];
+                                                const teamIdx = carouselIndex - 1;
+                                                const team = effectiveTeams[teamIdx];
                                                 if (!team) return null;
+                                                const enigma = getTeamEnigma(team, teamIdx, etapaAtual?.enigmas, round);
 
                                             return (
                                                 <div className="p-6 md:p-10 xl:p-14 flex flex-col w-full max-w-6xl mx-auto space-y-6">
                                                     <div className="flex items-center justify-between gap-4 flex-wrap">
                                                         <div className="flex items-center gap-4">
                                                             <div className={`w-14 h-14 ${team.color || 'bg-indigo-600'} text-white rounded-2xl flex items-center justify-center font-black text-2xl shadow-sm`}>
-                                                                {enigmaIdx + 1}
+                                                                {teamIdx + 1}
                                                             </div>
                                                             <div>
                                                                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Desafio do Esquadrão</span>
@@ -4245,7 +4333,7 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                                                 onResetFont={handleResetFont}
                                                                 textAlign={textAlign}
                                                                 onSetAlign={handleSetAlign}
-                                                                onEdit={() => handleOpenEditEnigma(enigma, enigmaIdx, team.name)}
+                                                                onEdit={() => handleOpenEditEnigma(enigma, teamIdx, team.name)}
                                                                 editTooltip={`Editar desafio de ${team.name}`}
                                                             />
                                                             {/* Botão de Dica do Drácker */}
@@ -4265,7 +4353,7 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                                         <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-300 p-4 rounded-2xl animate-fade-in flex items-start gap-3 shadow-xs">
                                                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-xl shrink-0 shadow-xs">
                                                                 🐉
-                            </div>
+                                                            </div>
                                                             <div className="space-y-1">
                                                                 <span className="text-xs font-black uppercase text-amber-800 tracking-wider block">
                                                                     Sussurro Secreto do Drácker:
@@ -4341,14 +4429,14 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                                                         {revealedAnswers[team.id] && (
                                                                             <button
                                                                                 type="button"
-                                                                                onClick={() => handleRequestDetailedAnswer(enigma, enigmaIdx, team.id)}
-                                                                                disabled={loadingDetailAnswer[`${round}_${enigmaIdx}_${team.id}`]}
+                                                                                onClick={() => handleRequestDetailedAnswer(enigma, teamIdx, team.id)}
+                                                                                disabled={loadingDetailAnswer[`${round}_${teamIdx}_${team.id}`]}
                                                                                 className="text-xs font-bold text-amber-900 bg-amber-200 hover:bg-amber-300 border border-amber-400 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
                                                                                 title="Solicitar ao Drácker a resolução detalhada passo a passo deste desafio"
                                                                             >
-                                                                                <Sparkles className="w-3.5 h-3.5 text-amber-700 animate-spin" style={{ animationDuration: loadingDetailAnswer[`${round}_${enigmaIdx}_${team.id}`] ? '1s' : '0s' }} />
+                                                                                <Sparkles className="w-3.5 h-3.5 text-amber-700 animate-spin" style={{ animationDuration: loadingDetailAnswer[`${round}_${teamIdx}_${team.id}`] ? '1s' : '0s' }} />
                                                                                 <span>
-                                                                                    {loadingDetailAnswer[`${round}_${enigmaIdx}_${team.id}`] 
+                                                                                    {loadingDetailAnswer[`${round}_${teamIdx}_${team.id}`] 
                                                                                         ? 'Drácker detalhando resolução...' 
                                                                                         : (enigma.correct_answer && enigma.correct_answer.length > 50 
                                                                                             ? 'Atualizar Resolução Detalhada' 
@@ -4441,15 +4529,15 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                         </button>
                                     </div>
 
-                                    {carouselIndex === (participationMode === 'class_students' ? 1 : enigmas.length) ? (
+                                    {carouselIndex === (participationMode === 'class_students' ? 1 : effectiveTeams.length) ? (
                                         <Button 
                                             onClick={nextRound}
                                             disabled={
                                                 participationMode === 'class_students'
                                                     ? false
                                                     : (questionType === 'multiple_choice' 
-                                                        ? Object.keys(selectedOptions).length !== teams.length 
-                                                        : Object.keys(evaluations).length !== teams.length)
+                                                        ? !effectiveTeams.every(t => selectedOptions[t.id] !== undefined)
+                                                        : !effectiveTeams.every(t => evaluations[t.id] !== undefined))
                                             }
                                             variant="primary"
                                             icon={ChevronRight}
@@ -4459,7 +4547,7 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                         </Button>
                                     ) : (
                                         <Button 
-                                            onClick={() => setCarouselIndex(prev => Math.min((participationMode === 'class_students' ? 1 : enigmas.length), prev + 1))}
+                                            onClick={() => setCarouselIndex(prev => Math.min((participationMode === 'class_students' ? 1 : effectiveTeams.length), prev + 1))}
                                             variant="primary"
                                             className="bg-slate-800 hover:bg-slate-900 text-base px-6 py-2.5 cursor-pointer"
                                         >
@@ -4498,12 +4586,12 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                             {participationMode === 'class_students' ? (
                                 renderNotebookMission()
                             ) : (
-                                enigmas.map((enigma, index) => {
-                                    const team = teams.find(t => enigma.team.toLowerCase().includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(enigma.team.toLowerCase())) || teams[index];
+                                effectiveTeams.map((team, index) => {
+                                    const enigma = getTeamEnigma(team, index, etapaAtual?.enigmas, round);
                                     if (!team) return null;
 
                                 return (
-                                    <div key={index} className="bg-slate-50 border-2 border-slate-200 rounded-3xl p-6 md:p-8 shadow-xs hover:border-indigo-300 transition-all relative mt-8 space-y-4">
+                                    <div key={team.id || index} className="bg-slate-50 border-2 border-slate-200 rounded-3xl p-6 md:p-8 shadow-xs hover:border-indigo-300 transition-all relative mt-8 space-y-4">
                                         <div className="flex items-center justify-between gap-3 flex-wrap">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 ${team.color || 'bg-indigo-600'} text-white rounded-xl flex items-center justify-center font-black shadow-xs`}>
@@ -4682,8 +4770,8 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                         participationMode === 'class_students'
                                             ? false
                                             : (questionType === 'multiple_choice' 
-                                                ? Object.keys(selectedOptions).length !== teams.length 
-                                                : Object.keys(evaluations).length !== teams.length)
+                                                ? !effectiveTeams.every(t => selectedOptions[t.id] !== undefined)
+                                                : !effectiveTeams.every(t => evaluations[t.id] !== undefined))
                                     }
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white text-base px-8 py-3 rounded-2xl shadow-md cursor-pointer"
                                 >
@@ -4828,13 +4916,13 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                     )}
 
                     {/* QUADRO DE PONTUAÇÃO DAS EQUIPES */}
-                    {teams.length > 0 && (
+                    {effectiveTeams.length > 0 && (
                         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm text-left space-y-4">
                             <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
                                 <Trophy className="w-5 h-5 text-amber-500" /> Placar dos Bravos Exploradores
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                {teams.map((team) => {
+                                {effectiveTeams.map((team) => {
                                     let totalPts = 0;
                                     let hits = 0;
                                     let misses = 0;
