@@ -192,6 +192,97 @@ export const DetectiveRPG = ({ topic, context, isFullWidth }) => {
     // Override para visualização de capítulos bloqueados no modo professor
     const [reviewOverrideLocked, setReviewOverrideLocked] = useState({});
 
+    // Equipes ativas e equipes customizadas
+    const [teams, setTeams] = useState(savedData.teams || []);
+    const [customTeams, setCustomTeams] = useState(savedData.customTeams || [
+        { id: 1, name: 'Equipe Lupa de Ouro' }, 
+        { id: 2, name: 'Equipe Pegada Oculta' }
+    ]);
+    const [newTeamName, setNewTeamName] = useState('');
+    const [questionType, setQuestionType] = useState(savedData.questionType || 'multiple_choice');
+    
+    const [round, setRound] = useState(() => activeClassProgress?.round || savedData.round || 1);
+    const [history, setHistory] = useState(() => activeClassProgress?.history || savedData.history || []);
+    const [currentData, setCurrentData] = useState(savedData.currentData || null);
+    const [evaluations, setEvaluations] = useState(() => activeClassProgress?.evaluations || savedData.evaluations || {}); 
+    const [selectedOptions, setSelectedOptions] = useState(() => activeClassProgress?.selectedOptions || savedData.selectedOptions || {});
+    const [mediaUrls, setMediaUrls] = useState(savedData.mediaUrls || {}); // { round: url }
+    
+    // Estados para Jornada no Caderno Escolar & Mídias
+    const [studentNotebookExecutions, setStudentNotebookExecutions] = useState(() => activeClassProgress?.studentNotebookExecutions || savedData.studentNotebookExecutions || {});
+    // Controle de Alunos Ausentes (Falta na Aula) para não receber pontuações destinadas a todos
+    const [absentStudentIds, setAbsentStudentIds] = useState(() => activeClassProgress?.absentStudentIds || savedData.absentStudentIds || []);
+    const [showMediaInlineInput, setShowMediaInlineInput] = useState(false);
+    const [showRestartModal, setShowRestartModal] = useState(false);
+    const [showMediaManagerModal, setShowMediaManagerModal] = useState(false);
+    const [showSetupMediaCustomizer, setShowSetupMediaCustomizer] = useState(false);
+
+    // Título/Tema e Contexto Pedagógico (para quando o professor acessa direto pelo RPG)
+    const [activityTopic, setActivityTopic] = useState(() => {
+        return savedData.activityTopic || topic || activeActivity?.topic || activeActivity?.title || '';
+    });
+    const [activityContext, setActivityContext] = useState(() => {
+        return savedData.activityContext || context || activeActivity?.details || '';
+    });
+
+    const [showSavedMissionsModal, setShowSavedMissionsModal] = useState(false);
+    const [showDocGuideModal, setShowDocGuideModal] = useState(false);
+    const [savedLibraryVersion, setSavedLibraryVersion] = useState(0);
+    const [expandedMissionId, setExpandedMissionId] = useState(null); // id da missão com preview do roteiro aberto
+
+    // Estados para o Modal de Revisão do Capítulo com Questões e Gabarito
+    const [selectedReviewChapter, setSelectedReviewChapter] = useState(null);
+    const [reviewRevealedAnswers, setReviewRevealedAnswers] = useState({});
+
+    // Lista de equipes ativas resiliente a qualquer modo de participação ou recarregamento
+    const effectiveTeams = useMemo(() => {
+        return (teams && teams.length > 0)
+            ? teams 
+            : (participationMode === 'class_groups' && classGroups && classGroups.length > 0 
+                ? classGroups.map(g => ({ id: g.id, name: g.name, color: g.color || 'bg-indigo-600', studentIds: g.studentIds || [] }))
+                : (participationMode === 'class_students' && classStudents && classStudents.length > 0
+                    ? classStudents.map(s => ({ id: s.id, name: s.name, isIndividual: true }))
+                    : (customTeams && customTeams.length > 0 ? customTeams : [{ id: 1, name: 'Equipe 1' }, { id: 2, name: 'Equipe 2' }])));
+    }, [teams, participationMode, classGroups, classStudents, customTeams]);
+
+    // Helper para recuperar ou sintetizar um enigma perfeito para cada equipe sem deixar ninguém sem pergunta
+    const getTeamEnigma = (team, index, currentEnigmas = [], stageRound = round) => {
+        const teamName = team?.name || `Equipe ${index + 1}`;
+        const matched = (currentEnigmas || []).find(e => 
+            e && (
+                (e.team && (String(e.team).toLowerCase().includes(teamName.toLowerCase()) || teamName.toLowerCase().includes(String(e.team).toLowerCase()))) ||
+                (e.question && String(e.question).toLowerCase().includes(teamName.toLowerCase()))
+            )
+        ) || currentEnigmas[index] || currentEnigmas[0];
+
+        if (matched && (matched.question || matched.pergunta || matched.desafio)) {
+            let questionText = matched.question || matched.pergunta || matched.desafio || '';
+            if (!questionText.toLowerCase().includes(teamName.toLowerCase())) {
+                questionText = `Atenção, ${teamName}! ${questionText}`;
+            }
+            let options = Array.isArray(matched.options) ? matched.options : (Array.isArray(matched.alternativas) ? matched.alternativas : []);
+            if (questionType === 'multiple_choice' && (!options || options.length < 2)) {
+                options = ['A) Alternativa 1', 'B) Alternativa 2', 'C) Alternativa 3', 'D) Alternativa 4'];
+            }
+            return {
+                ...matched,
+                team: teamName,
+                question: questionText,
+                options: options,
+                correct_answer: matched.correct_answer || matched.resposta_correta || matched.gabarito || `Gabarito e resolução esperada para a equipe ${teamName}.`,
+                dica_dracker: matched.dica_dracker || matched.dica || 'Trabalhem em equipe e revisem os cálculos para desvendar o enigma!'
+            };
+        }
+
+        return {
+            team: teamName,
+            question: `Atenção, ${teamName}! Investiguem a cena e resolvam o desafio do capítulo ${stageRound} sobre ${activityTopic || topic || 'o conteúdo pedagógico'}.`,
+            options: questionType === 'multiple_choice' ? ['A) Alternativa 1', 'B) Alternativa 2', 'C) Alternativa 3', 'D) Alternativa 4'] : [],
+            correct_answer: `Gabarito e resolução esperada para a equipe ${teamName}.`,
+            dica_dracker: 'Trabalhem em equipe para encontrar a solução!'
+        };
+    };
+
     // Contador de Tempo da Aula com Teto Automático (50 min ou 100 min)
     useEffect(() => {
         if (!isClassActive || !sessionStartTime) {
@@ -475,91 +566,6 @@ export const DetectiveRPG = ({ topic, context, isFullWidth }) => {
         }
     };
 
-    // Equipes ativas e equipes customizadas
-    const [teams, setTeams] = useState(savedData.teams || []);
-    const [customTeams, setCustomTeams] = useState(savedData.customTeams || [
-        { id: 1, name: 'Equipe Lupa de Ouro' }, 
-        { id: 2, name: 'Equipe Pegada Oculta' }
-    ]);
-    const [newTeamName, setNewTeamName] = useState('');
-    const [questionType, setQuestionType] = useState(savedData.questionType || 'multiple_choice');
-    
-    const [round, setRound] = useState(() => activeClassProgress?.round || savedData.round || 1);
-    const [history, setHistory] = useState(() => activeClassProgress?.history || savedData.history || []);
-    const [currentData, setCurrentData] = useState(savedData.currentData || null);
-    const [evaluations, setEvaluations] = useState(() => activeClassProgress?.evaluations || savedData.evaluations || {}); 
-    const [selectedOptions, setSelectedOptions] = useState(() => activeClassProgress?.selectedOptions || savedData.selectedOptions || {});
-    const [mediaUrls, setMediaUrls] = useState(savedData.mediaUrls || {}); // { round: url }
-    
-    // Estados para Jornada no Caderno Escolar & Mídias
-    const [studentNotebookExecutions, setStudentNotebookExecutions] = useState(() => activeClassProgress?.studentNotebookExecutions || savedData.studentNotebookExecutions || {});
-    // Controle de Alunos Ausentes (Falta na Aula) para não receber pontuações destinadas a todos
-    const [absentStudentIds, setAbsentStudentIds] = useState(() => activeClassProgress?.absentStudentIds || savedData.absentStudentIds || []);
-    const [showMediaInlineInput, setShowMediaInlineInput] = useState(false);
-    const [showRestartModal, setShowRestartModal] = useState(false);
-    const [showMediaManagerModal, setShowMediaManagerModal] = useState(false);
-    const [showSetupMediaCustomizer, setShowSetupMediaCustomizer] = useState(false);
-
-    // Título/Tema e Contexto Pedagógico (para quando o professor acessa direto pelo RPG)
-    const [activityTopic, setActivityTopic] = useState(() => {
-        return savedData.activityTopic || topic || activeActivity?.topic || activeActivity?.title || '';
-    });
-    const [activityContext, setActivityContext] = useState(() => {
-        return savedData.activityContext || context || activeActivity?.details || '';
-    });
-
-    // Lista de equipes ativas resiliente a qualquer modo de participação ou recarregamento
-    const effectiveTeams = (teams && teams.length > 0)
-        ? teams 
-        : (participationMode === 'class_groups' && classGroups && classGroups.length > 0 
-            ? classGroups.map(g => ({ id: g.id, name: g.name, color: g.color || 'bg-indigo-600', studentIds: g.studentIds || [] }))
-            : (participationMode === 'class_students' && classStudents && classStudents.length > 0
-                ? classStudents.map(s => ({ id: s.id, name: s.name, isIndividual: true }))
-                : (customTeams && customTeams.length > 0 ? customTeams : [{ id: 1, name: 'Equipe 1' }, { id: 2, name: 'Equipe 2' }])));
-
-    // Helper para recuperar ou sintetizar um enigma perfeito para cada equipe sem deixar ninguém sem pergunta
-    const getTeamEnigma = (team, index, currentEnigmas = [], stageRound = round) => {
-        const teamName = team?.name || `Equipe ${index + 1}`;
-        const matched = (currentEnigmas || []).find(e => 
-            e && (
-                (e.team && (String(e.team).toLowerCase().includes(teamName.toLowerCase()) || teamName.toLowerCase().includes(String(e.team).toLowerCase()))) ||
-                (e.question && String(e.question).toLowerCase().includes(teamName.toLowerCase()))
-            )
-        ) || currentEnigmas[index] || currentEnigmas[0];
-
-        if (matched && (matched.question || matched.pergunta || matched.desafio)) {
-            let questionText = matched.question || matched.pergunta || matched.desafio || '';
-            if (!questionText.toLowerCase().includes(teamName.toLowerCase())) {
-                questionText = `Atenção, ${teamName}! ${questionText}`;
-            }
-            let options = Array.isArray(matched.options) ? matched.options : (Array.isArray(matched.alternativas) ? matched.alternativas : []);
-            if (questionType === 'multiple_choice' && (!options || options.length < 2)) {
-                options = ['A) Alternativa 1', 'B) Alternativa 2', 'C) Alternativa 3', 'D) Alternativa 4'];
-            }
-            return {
-                ...matched,
-                team: teamName,
-                question: questionText,
-                options: options,
-                correct_answer: matched.correct_answer || matched.resposta_correta || matched.gabarito || `Gabarito e resolução esperada para a equipe ${teamName}.`,
-                dica_dracker: matched.dica_dracker || matched.dica || 'Trabalhem em equipe e revisem os cálculos para desvendar o enigma!'
-            };
-        }
-
-        return {
-            team: teamName,
-            question: `Atenção, ${teamName}! Investiguem a cena e resolvam o desafio do capítulo ${stageRound} sobre ${activityTopic || topic || 'o conteúdo pedagógico'}.`,
-            options: questionType === 'multiple_choice' ? ['A) Alternativa 1', 'B) Alternativa 2', 'C) Alternativa 3', 'D) Alternativa 4'] : [],
-            correct_answer: `Gabarito e resolução esperada para a equipe ${teamName}.`,
-            dica_dracker: 'Trabalhem em equipe para encontrar a solução!'
-        };
-    };
-
-    const [showSavedMissionsModal, setShowSavedMissionsModal] = useState(false);
-    const [showDocGuideModal, setShowDocGuideModal] = useState(false);
-    const [savedLibraryVersion, setSavedLibraryVersion] = useState(0);
-    const [expandedMissionId, setExpandedMissionId] = useState(null); // id da missão com preview do roteiro aberto
-
     // Listener para abrir o modal de missões construídas a partir do botão no cabeçalho superior
     useEffect(() => {
         const handleOpenMissions = () => setShowSavedMissionsModal(true);
@@ -567,10 +573,7 @@ export const DetectiveRPG = ({ topic, context, isFullWidth }) => {
         return () => window.removeEventListener('open_rpg_saved_missions', handleOpenMissions);
     }, []);
 
-    // Estados e listener para o Modal de Revisão do Capítulo com Questões e Gabarito
-    const [selectedReviewChapter, setSelectedReviewChapter] = useState(null);
-    const [reviewRevealedAnswers, setReviewRevealedAnswers] = useState({});
-
+    // Listener para o Modal de Revisão do Capítulo com Questões e Gabarito
     useEffect(() => {
         const handleOpenReview = (e) => {
             if (e.detail?.etapa) {
