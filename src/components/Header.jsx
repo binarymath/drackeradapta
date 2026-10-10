@@ -100,73 +100,86 @@ export const Header = ({
 
     return (
         <header className={`sticky top-4 z-50 no-print ${className || ''}`}>
-            <div className={`mx-4 md:mx-6 pr-4 md:pr-6 px-4 min-h-[4rem] h-auto flex flex-col md:flex-row md:items-center justify-between bg-white/90 backdrop-blur-md shadow-md border-2 border-slate-100 rounded-[2rem] py-2 md:py-0`}>
+            <div className="mx-2 sm:mx-4 md:mx-6 px-3 sm:px-4 md:px-6 min-h-[4rem] h-auto flex flex-col md:flex-row md:items-center justify-between bg-white/95 backdrop-blur-md shadow-md border-2 border-slate-100 rounded-[2rem] py-2 md:py-0 gap-2">
 
-                {/* Left Side: Logo */}
-                <div className="flex items-center justify-between w-full md:w-auto">
+                {/* Left Side: Logo & Mobile API Status */}
+                <div className="flex items-center justify-between w-full md:w-auto gap-2 sm:gap-3">
                     {/* Logo Section */}
-                    <div className="flex items-center gap-3 text-brown-900">
-                        <img src="/dracker_character.png" alt="Drácker Logo" className="w-12 h-12 md:w-16 md:h-16 object-contain drop-shadow-md hover:scale-110 transition-transform duration-300" />
-                        <div>
-                            <h1 className="text-xl md:text-2xl font-bold tracking-tight leading-none font-handwritten">Dracker AdaptAI</h1>
+                    <div className="flex items-center gap-2.5 sm:gap-3 text-brown-900 min-w-0">
+                        <img src="/dracker_character.png" alt="Drácker Logo" className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain drop-shadow-md hover:scale-110 transition-transform duration-300 shrink-0" />
+                        <div className="min-w-0">
+                            <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight leading-none font-handwritten truncate">Dracker AdaptAI</h1>
                             {/* API Status Badge - Mobile Compact */}
-                            <button 
-                                onClick={() => setShowSettings(true)}
-                                className="flex md:hidden mt-1 cursor-pointer active:scale-95 transition-transform"
-                                title="Configurar Chave API"
-                            >
-                                {apiKeyStatus === 'valid' && (
-                                    <span className="text-[10px] font-bold text-green-700 bg-green-100/60 px-2 py-0.5 rounded-full flex items-center gap-1 border border-green-300">
+                            <div className="flex md:hidden mt-0.5">
+                                {apiKeyStatus === 'valid' ? (
+                                    <button 
+                                        onClick={() => setShowSettings(true)}
+                                        className="text-[10px] font-bold text-green-700 bg-green-100/70 px-2 py-0.5 rounded-full flex items-center gap-1 border border-green-300 cursor-pointer"
+                                        title="Chave de API Gemini configurada"
+                                    >
                                         <CheckCircle className="w-3 h-3 text-green-600" /> API OK
-                                    </span>
-                                )}
-                                {apiKeyStatus === 'validating' && (
-                                    <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100/60 px-2 py-0.5 rounded-full flex items-center gap-1 border border-yellow-300">
+                                    </button>
+                                ) : apiKeyStatus === 'validating' ? (
+                                    <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100/70 px-2 py-0.5 rounded-full flex items-center gap-1 border border-yellow-300">
                                         <Loader2 className="w-3 h-3 animate-spin text-yellow-600" /> Verificando...
                                     </span>
+                                ) : (
+                                    <button 
+                                        onClick={() => setShowSettings(true)}
+                                        className="text-[10px] font-black text-white bg-gradient-to-r from-rose-600 to-amber-600 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs animate-pulse border border-rose-700 cursor-pointer active:scale-95 transition-transform"
+                                        title="Clique para inserir sua Chave API Gemini"
+                                    >
+                                        <Key className="w-3 h-3 text-amber-200" /> Inserir Chave API
+                                    </button>
                                 )}
-                                {(!apiKeyStatus || apiKeyStatus === 'empty' || apiKeyStatus === 'invalid') && (
-                                    <span className="text-[10px] font-black text-rose-800 bg-rose-100/90 px-2 py-0.5 rounded-full flex items-center gap-1 border border-rose-300 shadow-xs animate-pulse">
-                                        <Key className="w-3 h-3 text-rose-600" /> Inserir Chave API
-                                    </span>
-                                )}
-                            </button>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Mobile Menu Toggle Button */}
-                    <button
-                        className="md:hidden p-2 text-brown-600 hover:bg-brown-50 rounded-lg transition-colors"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    >
-                        {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
-                    </button>
+                    {/* Em telas menores/tablet portrait: Ação direta de Inserir API ao lado do Menu */}
+                    <div className="flex md:hidden items-center gap-1.5 sm:gap-2">
+                        {(!apiKeyStatus || apiKeyStatus === 'empty' || apiKeyStatus === 'invalid') && (
+                            <button 
+                                onClick={() => setShowSettings(true)}
+                                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 text-white font-black text-xs shadow-md shadow-rose-500/30 animate-pulse active:scale-95 transition-all border border-rose-600 cursor-pointer"
+                                title="Inserir Chave de API Gemini"
+                            >
+                                <Key className="w-3.5 h-3.5 text-amber-200" />
+                                <span>Inserir API</span>
+                            </button>
+                        )}
+                        <button
+                            className="p-2 text-brown-600 hover:bg-brown-50 rounded-lg transition-colors"
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        >
+                            {isMenuOpen ? <X size={26} /> : <Menu size={26} />}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Right Side: Desktop & Tablet Controls & Action Buttons */}
-                <div className="hidden md:flex items-center gap-3">
+                <div className="hidden md:flex items-center gap-2 lg:gap-3 flex-wrap justify-end">
+                    {/* Botão de API Key em Destaque */}
                     <button 
                         onClick={() => setShowSettings(true)}
-                        className="mr-1 sm:mr-2 flex items-center group relative cursor-pointer"
+                        className="mr-1 flex items-center group relative cursor-pointer"
                         title="Configurar Chave API Gemini"
                     >
-                        {apiKeyStatus === 'valid' && (
+                        {apiKeyStatus === 'valid' ? (
                             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100/50 border border-green-300 text-green-800 text-xs font-bold transition-all group-hover:bg-green-100 group-hover:border-green-400 group-hover:shadow-sm">
                                 <CheckCircle className="w-3.5 h-3.5 text-green-600" />
                                 <span className="group-hover:hidden transition-all">API OK</span>
                                 <span className="hidden group-hover:inline transition-all">Trocar API</span>
                             </div>
-                        )}
-                        {apiKeyStatus === 'validating' && (
+                        ) : apiKeyStatus === 'validating' ? (
                             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-100/80 border border-yellow-300 text-yellow-800 text-xs font-bold shadow-xs">
                                 <Loader2 className="w-3.5 h-3.5 animate-spin text-yellow-600" />
                                 <span>Verificando...</span>
                             </div>
-                        )}
-                        {(!apiKeyStatus || apiKeyStatus === 'empty' || apiKeyStatus === 'invalid') && (
-                            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 text-white border border-rose-600 text-xs font-black shadow-md shadow-rose-500/25 animate-pulse group-hover:animate-none group-hover:brightness-110 group-hover:shadow-lg transition-all group-hover:-translate-y-0.5">
-                                <Key className="w-3.5 h-3.5 text-amber-200" />
-                                <span className="tracking-wide">Inserir Chave API</span>
+                        ) : (
+                            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 text-white border-2 border-rose-400 text-xs sm:text-sm font-black shadow-lg shadow-rose-500/30 animate-pulse group-hover:animate-none group-hover:brightness-110 group-hover:shadow-xl transition-all group-hover:-translate-y-0.5">
+                                <Key className="w-4 h-4 text-amber-200" />
+                                <span className="tracking-wide">Inserir Chave de API</span>
                             </div>
                         )}
                     </button>
@@ -179,20 +192,20 @@ export const Header = ({
                     <Button
                         onClick={() => onOpenBackupCenter ? onOpenBackupCenter('timeline') : onBackup()}
                         variant="ghost"
-                        className="group flex items-center px-4 py-2.5 rounded-[1.25rem] text-sm font-black bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20 border-b-[3px] border-indigo-800 hover:-translate-y-0.5 hover:shadow-lg transition-all active:translate-y-0 active:border-b-0 whitespace-nowrap flex-shrink-0"
+                        className="group flex items-center px-3.5 lg:px-4 py-2.5 rounded-[1.25rem] text-xs lg:text-sm font-black bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20 border-b-[3px] border-indigo-800 hover:-translate-y-0.5 hover:shadow-lg transition-all active:translate-y-0 active:border-b-0 whitespace-nowrap flex-shrink-0"
                         title="Gerenciador de Workspace e Histórico"
                     >
-                        <FolderTree className="w-4 h-4 mr-2 text-indigo-200 group-hover:text-white transition-all duration-500" /> 
+                        <FolderTree className="w-4 h-4 mr-1.5 lg:mr-2 text-indigo-200 group-hover:text-white transition-all duration-500" /> 
                         <span>Workspace</span>
                     </Button>
 
                     {!hideAtividadesButton && (
                         <button
                             onClick={onOpenDashboard}
-                            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-[1.25rem] bg-brown-900 hover:bg-brown-950 text-white text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all border border-brown-800 shrink-0 group"
+                            className="flex items-center justify-center gap-1.5 lg:gap-2 px-4 lg:px-5 py-2.5 rounded-[1.25rem] bg-brown-900 hover:bg-brown-950 text-white text-xs lg:text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all border border-brown-800 shrink-0 group"
                             title="Ver Minhas Atividades"
                         >
-                            <LayoutGrid className="w-5 h-5 text-amber-300 group-hover:scale-110 transition-transform" />
+                            <LayoutGrid className="w-4 h-4 lg:w-5 lg:h-5 text-amber-300 group-hover:scale-110 transition-transform" />
                             <span className="tracking-wide">Minhas Atividades</span>
                         </button>
                     )}

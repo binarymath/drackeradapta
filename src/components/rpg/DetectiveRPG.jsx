@@ -4,7 +4,7 @@ import {
     RefreshCw, Award, BookOpen, Map, Sparkles, AlertTriangle, 
     Search, Wand2, Tent, ShieldCheck, Target, Flag, Rocket, Crown, Waves, Compass, 
     TreePine, GraduationCap, Shuffle, Layers, Lightbulb, Gift, Trophy, Check, Eye, EyeOff,
-    RotateCcw, Video, Image as ImageIcon, Trash2, UserX
+    RotateCcw, Video, Image as ImageIcon, Trash2, UserX, Key
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -92,7 +92,7 @@ const RPG_UNIVERSES = [
 ];
 
 export function DetectiveRPG({ topic, context, isFullWidth }) {
-    const { geminiService } = useGemini();
+    const { geminiService, apiKeyStatus, setShowSettings } = useGemini();
     const { 
         activeActivity, 
         updateActivityData, 
@@ -3378,6 +3378,28 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                         </div>
                     )}
                 </Card>
+
+                {/* AVISO DE CHAVE DE API GEMINI SE NÃO CONFIGURADA */}
+                {(!geminiService || !apiKeyStatus || apiKeyStatus === 'empty' || apiKeyStatus === 'invalid') && (
+                    <div 
+                        onClick={() => setShowSettings(true)}
+                        className="bg-gradient-to-r from-rose-500 via-rose-600 to-amber-600 text-white rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer shadow-lg shadow-rose-500/20 hover:brightness-105 transition-all animate-pulse border-2 border-rose-400"
+                        title="Clique para configurar sua Chave de API Gemini"
+                    >
+                        <div className="flex items-center gap-3 text-center sm:text-left">
+                            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-black shrink-0 mx-auto sm:mx-0">
+                                <Key className="w-5 h-5 text-amber-200" />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-black text-white">Chave de API Gemini Necessária</h4>
+                                <p className="text-xs text-rose-100 font-medium">Você precisa inserir sua chave da IA Gemini para gerar esta aventura mágica.</p>
+                            </div>
+                        </div>
+                        <span className="text-xs font-black bg-white text-rose-700 px-4 py-2 rounded-xl whitespace-nowrap shadow-sm hover:bg-rose-50 transition-colors shrink-0">
+                            Inserir Chave Agora
+                        </span>
+                    </div>
+                )}
 
                 {/* BOTÃO PRINCIPAL DE INÍCIO */}
                 <Button 

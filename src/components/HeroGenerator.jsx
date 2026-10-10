@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Sparkles, Loader2, AlertCircle, Play, Music } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, Play, Music, Key } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input, TextArea } from './ui/Input';
+import { useGemini } from '../contexts/GeminiContext';
 
 export const HeroGenerator = ({
     topic,
@@ -21,11 +22,12 @@ export const HeroGenerator = ({
     navLinks,
     selectActivityTab
 }) => {
+    const { apiKeyStatus, setShowSettings } = useGemini();
     // Foco principal: Barra de Busca Gigante
     return (
         <div className="flex flex-col items-center justify-center w-full h-full max-w-4xl mx-auto p-4 md:p-8 animate-in fade-in zoom-in-95 duration-500 overflow-y-auto">
             {/* Título Hero */}
-            <div className="text-center mb-8 md:mb-10 space-y-4">
+            <div className="text-center mb-6 md:mb-8 space-y-3">
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-800 tracking-tight font-['Fredoka']">
                     O que vamos <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-amber-500">criar hoje?</span>
                 </h1>
@@ -33,6 +35,28 @@ export const HeroGenerator = ({
                     Digite o tema e deixe nossa IA gerar atividades gamificadas perfeitas para seus alunos em segundos.
                 </p>
             </div>
+
+            {/* Banner de Chave API se não configurada */}
+            {(!apiKeyStatus || apiKeyStatus === 'empty' || apiKeyStatus === 'invalid') && (
+                <div 
+                    onClick={() => setShowSettings(true)}
+                    className="w-full mb-6 bg-gradient-to-r from-rose-500 via-rose-600 to-amber-600 text-white rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer shadow-lg shadow-rose-500/20 hover:brightness-105 transition-all animate-pulse border-2 border-rose-400"
+                    title="Clique para configurar sua Chave de API Gemini"
+                >
+                    <div className="flex items-center gap-3 text-center sm:text-left">
+                        <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-black shrink-0 mx-auto sm:mx-0">
+                            <Key className="w-5 h-5 text-amber-200" />
+                        </div>
+                        <div>
+                            <h4 className="text-sm font-black text-white">Chave de API Gemini Não Configurada</h4>
+                            <p className="text-xs text-rose-100 font-medium">Insira sua chave do Google AI Studio para desbloquear a geração com IA.</p>
+                        </div>
+                    </div>
+                    <span className="text-xs font-black bg-white text-rose-700 px-4 py-2 rounded-xl whitespace-nowrap shadow-sm hover:bg-rose-50 transition-colors shrink-0">
+                        Configurar Chave API
+                    </span>
+                </div>
+            )}
 
             {/* Caixa Mágica de Geração */}
             <div className="w-full bg-white p-6 md:p-10 rounded-[2.5rem] shadow-2xl shadow-indigo-200/40 border border-slate-100/60 space-y-8 relative z-10">
