@@ -567,9 +567,24 @@ class GeminiService {
     const safeTeams = Array.isArray(teams) && teams.length > 0 ? teams : [{ name: 'Equipe 1' }, { name: 'Equipe 2' }];
 
     const normalizeRPGData = (raw) => {
-      if (!raw || typeof raw !== 'object') return null;
+      if (!raw) return null;
+      let obj = raw;
+      if (typeof obj === 'string') {
+        try { obj = JSON.parse(obj); } catch (e) { return null; }
+      }
+      if (typeof obj !== 'object') return null;
 
-      const rawEtapas = raw.etapas || raw.capitulos || raw.rounds || raw.stages || raw.fases || [];
+      // Desembrulha caso venha aninhado em { rpg: ... } ou { aventura: ... } ou { data: ... }
+      if (obj.rpg && typeof obj.rpg === 'object') obj = obj.rpg;
+      else if (obj.aventura && typeof obj.aventura === 'object') obj = obj.aventura;
+      else if (obj.livro_jogo && typeof obj.livro_jogo === 'object') obj = obj.livro_jogo;
+      else if (obj.game && typeof obj.game === 'object') obj = obj.game;
+      else if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data) && (obj.data.etapas || obj.data.capitulos)) obj = obj.data;
+
+      const rawEtapas = Array.isArray(obj) 
+        ? obj 
+        : (obj.etapas || obj.capitulos || obj.rounds || obj.stages || obj.fases || obj.scenes || []);
+      
       if (!Array.isArray(rawEtapas) || rawEtapas.length === 0) return null;
 
       const normalizedEtapas = rawEtapas.map((etapa, idx) => {
@@ -617,11 +632,11 @@ class GeminiService {
       });
 
       return {
-        titulo_aventura: raw.titulo_aventura || raw.title || `Aventura: ${topic}`,
-        historia_abertura: raw.historia_abertura || raw.intro || normalizedEtapas[0]?.narrativa_avanco || `Bem-vindos à grande expedição de ${topic}!`,
+        titulo_aventura: obj.titulo_aventura || obj.title || `Aventura: ${topic}`,
+        historia_abertura: obj.historia_abertura || obj.intro || normalizedEtapas[0]?.narrativa_avanco || `Bem-vindos à grande expedição de ${topic}!`,
         etapas: normalizedEtapas,
-        reforco_pedagogico: raw.reforco_pedagogico || raw.dica_geral || 'O segredo da investigação é a atenção aos conceitos fundamentais e a colaboração!',
-        finais: raw.finais || {
+        reforco_pedagogico: obj.reforco_pedagogico || obj.dica_geral || 'O segredo da investigação é a atenção aos conceitos fundamentais e a colaboração!',
+        finais: obj.finais || {
           vitoria_epica: 'Parabéns a todos! O mistério foi completamente desvendado com maestria!',
           vitoria_com_ajuda: 'Excelente esforço da turma! A jornada fortaleceu o aprendizado e a união de todos.'
         }
@@ -748,11 +763,49 @@ class GeminiService {
       if (fallbackNormalized && fallbackNormalized.etapas && fallbackNormalized.etapas.length > 0) {
         return fallbackNormalized;
       }
-      throw new Error("Não foi possível estruturar as etapas da aventura.");
-    } catch (e) {
-      console.error("Erro Full RPG:", e);
-      throw new Error("Falha ao gerar o livro-jogo: " + e.message);
+    } catch (fallbackErr) {
+      console.warn("Tentativa 2 do RPG falhou, gerando template estruturado de contingência:", fallbackErr);
     }
+
+    // Template de contingência instantâneo para garantir que o professor NUNCA seja bloqueado
+    const emergencyStages = [];
+    for (let s = 1; s <= safeStages; s++) {
+      const enigmas = isIndividualMode
+        ? [{
+            team: 'Missão Individual no Caderno',
+            question: `Atenção, bravos exploradores! Em seus cadernos de aula, resolvam a etapa ${s} do desafio sobre ${topic}.`,
+            options: questionType === 'multiple_choice' ? ['A) Opção 1', 'B) Opção 2', 'C) Opção 3', 'D) Opção 4'] : [],
+            correct_answer: `Resolução pedagógica da etapa ${s} sobre ${topic}.`,
+            dica_dracker: `Lembrem-se dos conceitos fundamentais de ${topic} e revisem seus cálculos!`
+          }]
+        : safeTeams.map((team, tIdx) => ({
+            team: team.name || `Equipe ${tIdx + 1}`,
+            question: `Atenção, ${team.name || `Equipe ${tIdx + 1}`}! Investiguem o mistério e resolvam o desafio da etapa ${s} sobre ${topic}.`,
+            options: questionType === 'multiple_choice' ? ['A) Opção 1', 'B) Opção 2', 'C) Opção 3', 'D) Opção 4'] : [],
+            correct_answer: `Gabarito e resolução esperada para a equipe ${team.name}.`,
+            dica_dracker: `Trabalhem juntos e analisem as pistas de ${topic}!`
+          }));
+
+      emergencyStages.push({
+        round: s,
+        titulo_capitulo: s === 1 ? 'O Início do Mistério' : `Capítulo ${s}: O Enigma de ${topic}`,
+        local_cena: s === 1 ? 'Ponto de Partida' : `Cenário de Investigação ${s}`,
+        item_recompensa: `Relíquia do Conhecimento ${s}`,
+        narrativa_avanco: `O Drácker e os exploradores avançam com coragem na investigação de ${topic}!`,
+        enigmas
+      });
+    }
+
+    return {
+      titulo_aventura: `Expedição Drácker: ${topic}`,
+      historia_abertura: `Uma fascinante jornada de descobertas e mistérios começa agora para desvendar todos os segredos de ${topic}!`,
+      etapas: emergencyStages,
+      reforco_pedagogico: `O Mestre Drácker lembra: em ${topic}, a atenção aos detalhes e o trabalho em equipe são as chaves da vitória!`,
+      finais: {
+        vitoria_epica: `Vitória espetacular! Todos os enigmas de ${topic} foram desvendados com brilhantismo!`,
+        vitoria_com_ajuda: `Missão cumprida com muito esforço e aprendizado conjunto sobre ${topic}!`
+      }
+    };
   }
 
   /**

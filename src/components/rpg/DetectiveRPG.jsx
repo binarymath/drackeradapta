@@ -1354,6 +1354,11 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
 
     // Iniciar Aventura
     const startGame = async () => {
+        if (!geminiService) {
+            setGameStatus('setup');
+            return toast('Aguardando inicialização do serviço da IA Gemini... Verifique a chave de API.');
+        }
+
         let activeTeams = [];
 
         if (participationMode === 'class_groups') {
