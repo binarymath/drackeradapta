@@ -115,9 +115,21 @@ export const Header = ({
                                 className="flex md:hidden mt-1 cursor-pointer active:scale-95 transition-transform"
                                 title="Configurar Chave API"
                             >
-                                {apiKeyStatus === 'valid' && <span className="text-[10px] font-bold text-green-700 bg-green-100/50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-green-200"><CheckCircle className="w-3 h-3" /> API OK</span>}
-                                {apiKeyStatus === 'validating' && <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100/50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-yellow-200"><Loader2 className="w-3 h-3 animate-spin" /> Verificando...</span>}
-                                {apiKeyStatus === 'invalid' && <span className="text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full flex items-center gap-1 border border-red-200 shadow-sm animate-pulse"><AlertCircle className="w-3 h-3" /> Inserir API</span>}
+                                {apiKeyStatus === 'valid' && (
+                                    <span className="text-[10px] font-bold text-green-700 bg-green-100/60 px-2 py-0.5 rounded-full flex items-center gap-1 border border-green-300">
+                                        <CheckCircle className="w-3 h-3 text-green-600" /> API OK
+                                    </span>
+                                )}
+                                {apiKeyStatus === 'validating' && (
+                                    <span className="text-[10px] font-bold text-yellow-700 bg-yellow-100/60 px-2 py-0.5 rounded-full flex items-center gap-1 border border-yellow-300">
+                                        <Loader2 className="w-3 h-3 animate-spin text-yellow-600" /> Verificando...
+                                    </span>
+                                )}
+                                {(!apiKeyStatus || apiKeyStatus === 'empty' || apiKeyStatus === 'invalid') && (
+                                    <span className="text-[10px] font-black text-rose-800 bg-rose-100/90 px-2 py-0.5 rounded-full flex items-center gap-1 border border-rose-300 shadow-xs animate-pulse">
+                                        <Key className="w-3 h-3 text-rose-600" /> Inserir Chave API
+                                    </span>
+                                )}
                             </button>
                         </div>
                     </div>
@@ -131,30 +143,30 @@ export const Header = ({
                     </button>
                 </div>
 
-                {/* Right Side: Desktop Controls & Action Buttons */}
+                {/* Right Side: Desktop & Tablet Controls & Action Buttons */}
                 <div className="hidden md:flex items-center gap-3">
                     <button 
                         onClick={() => setShowSettings(true)}
-                        className="mr-2 hidden lg:flex items-center group relative cursor-pointer"
-                        title="Configurar Chave API"
+                        className="mr-1 sm:mr-2 flex items-center group relative cursor-pointer"
+                        title="Configurar Chave API Gemini"
                     >
                         {apiKeyStatus === 'valid' && (
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100/40 border border-green-200/80 text-green-700 text-xs font-bold transition-all group-hover:bg-green-100 group-hover:border-green-300 group-hover:shadow-sm group-hover:text-green-800">
-                                <CheckCircle className="w-3.5 h-3.5" />
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100/50 border border-green-300 text-green-800 text-xs font-bold transition-all group-hover:bg-green-100 group-hover:border-green-400 group-hover:shadow-sm">
+                                <CheckCircle className="w-3.5 h-3.5 text-green-600" />
                                 <span className="group-hover:hidden transition-all">API OK</span>
                                 <span className="hidden group-hover:inline transition-all">Trocar API</span>
                             </div>
                         )}
                         {apiKeyStatus === 'validating' && (
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-100/50 border border-yellow-200 text-yellow-700 text-xs font-bold">
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-100/80 border border-yellow-300 text-yellow-800 text-xs font-bold shadow-xs">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-yellow-600" />
                                 <span>Verificando...</span>
                             </div>
                         )}
-                        {apiKeyStatus === 'invalid' && (
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 border border-red-200 text-red-700 text-xs font-bold shadow-sm animate-pulse group-hover:animate-none group-hover:bg-red-200 group-hover:shadow transition-all group-hover:-translate-y-0.5">
-                                <AlertCircle className="w-3.5 h-3.5" />
-                                <span>Inserir Chave API</span>
+                        {(!apiKeyStatus || apiKeyStatus === 'empty' || apiKeyStatus === 'invalid') && (
+                            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 text-white border border-rose-600 text-xs font-black shadow-md shadow-rose-500/25 animate-pulse group-hover:animate-none group-hover:brightness-110 group-hover:shadow-lg transition-all group-hover:-translate-y-0.5">
+                                <Key className="w-3.5 h-3.5 text-amber-200" />
+                                <span className="tracking-wide">Inserir Chave API</span>
                             </div>
                         )}
                     </button>
@@ -202,9 +214,19 @@ export const Header = ({
                                 <span className="text-[10px] font-bold">Voz</span>
                             </Button>
 
-                            <Button variant="ghost" onClick={() => setShowSettings(!showSettings)} className="flex-col h-auto py-2 gap-1 text-brown-700 bg-white border border-brown-100 shadow-sm hover:bg-brown-50 hover:border-brown-300">
-                                <Key className="w-5 h-5 text-amber-600" />
-                                <span className="text-[10px] font-bold">Config</span>
+                            <Button 
+                                variant="ghost" 
+                                onClick={() => setShowSettings(!showSettings)} 
+                                className={`flex-col h-auto py-2 gap-1 bg-white border shadow-sm hover:bg-brown-50 hover:border-brown-300 ${
+                                    (!apiKeyStatus || apiKeyStatus === 'empty' || apiKeyStatus === 'invalid')
+                                        ? 'text-rose-700 border-rose-300 bg-rose-50/70 animate-pulse'
+                                        : 'text-brown-700 border-brown-100'
+                                }`}
+                            >
+                                <Key className={`w-5 h-5 ${(!apiKeyStatus || apiKeyStatus === 'empty' || apiKeyStatus === 'invalid') ? 'text-rose-600' : 'text-amber-600'}`} />
+                                <span className="text-[10px] font-black">
+                                    {(!apiKeyStatus || apiKeyStatus === 'empty' || apiKeyStatus === 'invalid') ? 'Inserir API' : 'Config / API'}
+                                </span>
                             </Button>
 
                             <Button variant="ghost" onClick={() => onOpenBackupCenter ? onOpenBackupCenter('timeline') : onBackup()} className="flex-col h-auto py-2 gap-1 text-brown-700 bg-white border border-brown-100 shadow-sm hover:bg-brown-50 hover:border-brown-300">

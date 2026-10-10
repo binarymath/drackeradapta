@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, Check, Pencil, Maximize2, Minimize2, PenSquare, Printer, Dices, Sparkles, XCircle, Compass, Users, Play, Square } from 'lucide-react';
+import { FileText, Check, Pencil, Maximize2, Minimize2, PenSquare, Printer, Dices, Sparkles, XCircle, Compass, Users, Play, Square, Key } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useActivity } from '../../contexts/ActivityContext';
+import { useGemini } from '../../contexts/GeminiContext';
 import { RPGDocGuideModal } from '../rpg/RPGDocGuideModal';
 import { countAllBuiltMissions } from '../../utils/rpgStorage';
 
@@ -23,6 +24,7 @@ export const ActivityHeader = ({
     onPlayInRoulette
 }) => {
     const { activeActivity, tabs, activeTabId, classes } = useActivity();
+    const { apiKeyStatus, setShowSettings } = useGemini();
     const [showRPGDocModal, setShowRPGDocModal] = useState(false);
     const [showRelicsModal, setShowRelicsModal] = useState(false);
     const [missionsVersion, setMissionsVersion] = useState(0);
@@ -84,6 +86,19 @@ export const ActivityHeader = ({
                                 ? 'Atividade Pronta'
                                 : 'Aguardando Geração'}
                         </span>
+
+                        {/* Aviso/Ação de Chave de API se não inserida */}
+                        {(!apiKeyStatus || apiKeyStatus === 'empty' || apiKeyStatus === 'invalid') && (
+                            <button
+                                type="button"
+                                onClick={() => setShowSettings(true)}
+                                className="flex items-center gap-1.5 bg-gradient-to-r from-rose-500 to-amber-500 text-white hover:brightness-110 border border-rose-600 rounded-lg px-2.5 py-0.5 text-xs font-black shadow-xs animate-pulse cursor-pointer transition-all hover:scale-105"
+                                title="Inserir chave de API Gemini para gerar atividades"
+                            >
+                                <Key className="w-3 h-3 text-amber-200" />
+                                <span>Inserir Chave API</span>
+                            </button>
+                        )}
 
                         {/* Nome da Turma ao lado do título de Atividade Pronta (conforme solicitado) */}
                         {activityType === 'rpg' && classes && classes.length > 0 && (
