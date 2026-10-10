@@ -513,9 +513,9 @@ class GeminiService {
   }
 
   /**
-   * Gera a História Completa do Livro-Jogo (Abertura + 4 Etapas + Finais)
+   * Gera a História Completa do Livro-Jogo (Abertura + Etapas + Finais)
    */
-  async generateFullRPG(topic, details, teams, questionType, options = {}) {
+  async generateFullRPG(topic, details, teams = [], questionType = 'essay', options = {}) {
     const {
       universe = 'forest',
       customLore = '',
@@ -562,8 +562,71 @@ class GeminiService {
       `;
     }
 
-    const safeStages = Math.max(3, Math.min(5, Number(stageCount) || 4));
+    const safeStages = Math.max(2, Math.min(5, Number(stageCount) || 4));
     const isIndividualMode = Boolean(options.isIndividual || options.participationMode === 'class_students');
+    const safeTeams = Array.isArray(teams) && teams.length > 0 ? teams : [{ name: 'Equipe 1' }, { name: 'Equipe 2' }];
+
+    const normalizeRPGData = (raw) => {
+      if (!raw || typeof raw !== 'object') return null;
+
+      const rawEtapas = raw.etapas || raw.capitulos || raw.rounds || raw.stages || raw.fases || [];
+      if (!Array.isArray(rawEtapas) || rawEtapas.length === 0) return null;
+
+      const normalizedEtapas = rawEtapas.map((etapa, idx) => {
+        const roundNum = Number(etapa.round) || (idx + 1);
+        const rawEnigmas = etapa.enigmas || etapa.desafios || etapa.questions || etapa.missoes || [];
+
+        let normalizedEnigmas = Array.isArray(rawEnigmas) ? rawEnigmas.map((e, eIdx) => {
+          return {
+            team: e.team || e.equipe || (isIndividualMode ? 'Missão Individual no Caderno' : (safeTeams[eIdx]?.name || `Equipe ${eIdx + 1}`)),
+            question: e.question || e.pergunta || e.desafio || `Resolvam o desafio do capítulo ${roundNum} sobre ${topic}.`,
+            options: Array.isArray(e.options) ? e.options : (Array.isArray(e.alternativas) ? e.alternativas : []),
+            correct_answer: e.correct_answer || e.resposta_correta || e.gabarito || 'Conferência visual no caderno.',
+            dica_dracker: e.dica_dracker || e.dica || 'Prestem muita atenção aos conceitos fundamentais!'
+          };
+        }) : [];
+
+        if (normalizedEnigmas.length === 0) {
+          if (isIndividualMode) {
+            normalizedEnigmas = [{
+              team: 'Missão Individual no Caderno',
+              question: `Atenção, exploradores! Em seus cadernos de aula, resolvam o desafio proposto pelo Drácker sobre ${topic}.`,
+              options: [],
+              correct_answer: 'Conferência visual no caderno.',
+              dica_dracker: 'Revisem com cuidado os cálculos e raciocínios!'
+            }];
+          } else {
+            normalizedEnigmas = safeTeams.map((team, tIdx) => ({
+              team: team.name || `Equipe ${tIdx + 1}`,
+              question: `Atenção, ${team.name || `Equipe ${tIdx + 1}`}! Investiguem o mistério e resolvam o desafio sobre ${topic}.`,
+              options: [],
+              correct_answer: 'Conferência visual com o professor.',
+              dica_dracker: 'Trabalhem em equipe!'
+            }));
+          }
+        }
+
+        return {
+          round: roundNum,
+          titulo_capitulo: etapa.titulo_capitulo || etapa.title || etapa.nome || (roundNum === 1 ? 'O Início do Mistério' : `Capítulo ${roundNum}: A Investigação`),
+          local_cena: etapa.local_cena || etapa.cenario || etapa.local || 'Cenário da Missão',
+          item_recompensa: etapa.item_recompensa || etapa.recompensa || 'Artefato do Conhecimento',
+          narrativa_avanco: etapa.narrativa_avanco || etapa.historia || etapa.narrativa || `A expedição avança para o Capítulo ${roundNum}...`,
+          enigmas: normalizedEnigmas
+        };
+      });
+
+      return {
+        titulo_aventura: raw.titulo_aventura || raw.title || `Aventura: ${topic}`,
+        historia_abertura: raw.historia_abertura || raw.intro || normalizedEtapas[0]?.narrativa_avanco || `Bem-vindos à grande expedição de ${topic}!`,
+        etapas: normalizedEtapas,
+        reforco_pedagogico: raw.reforco_pedagogico || raw.dica_geral || 'O segredo da investigação é a atenção aos conceitos fundamentais e a colaboração!',
+        finais: raw.finais || {
+          vitoria_epica: 'Parabéns a todos! O mistério foi completamente desvendado com maestria!',
+          vitoria_com_ajuda: 'Excelente esforço da turma! A jornada fortaleceu o aprendizado e a união de todos.'
+        }
+      };
+    };
 
     const prompt = `
       Você é o mestre de um RPG Educacional Investigativo infantil/juvenil de alto nível.
@@ -576,7 +639,7 @@ class GeminiService {
       Portanto, para CADA etapa (round), crie UMA MISSÃO INVESTIGATIVA CENTRAL PARA O CADERNO que toda a turma deva copiar, resolver, calcular ou responder no caderno escolar.
       No array "enigmas" de cada etapa, retorne apenas 1 enigma com "team": "Missão Individual no Caderno".
       ` : `
-      EQUIPES/HERÓIS NA PARTIDA: ${teams.map(t => t.name).join(', ')}.
+      EQUIPES/HERÓIS NA PARTIDA: ${safeTeams.map(t => t.name).join(', ')}.
       Para CADA etapa, crie uma pergunta direcionada e DIFERENTE para cada equipe.
       `}
       
@@ -602,7 +665,7 @@ class GeminiService {
       `}
       - GABARITO DO MESTRE DETALHADO OBRIGATÓRIO: No campo "correct_answer", NUNCA forneça apenas a resposta seca (como apenas um número "20%" ou apenas uma letra). O gabarito DEVE fornecer a resposta final clara E a resolução pedagógica detalhada passo a passo com os cálculos e raciocínios (Exemplo: "20%. Resolução detalhada: O valor aumentou de 100 para 120 moedas (aumento de 20 moedas). Como o valor original era 100 moedas, calcula-se (20 / 100) * 100 = 20% de aumento.").
       - Respostas únicas, precisas e inconfundíveis.
-      - NUNCA coloque alternativas que sejam matematicamente equivalentes ou sinônimas (exemplo: se a resposta for 1/2, NÃO coloque 2/4 como outra alternativa. Evite gerar ambiguidades!).
+      - NUNCA coloque alternativas que sejam matematicamente equivalentes ou sinônimas.
       
       ESTRUTURA DA RESPOSTA (JSON PURO, SEM MARKDOWN):
       {
@@ -619,13 +682,12 @@ class GeminiService {
               {
                 "team": "${isIndividualMode ? 'Missão Individual no Caderno' : 'Nome da Equipe 1'}",
                 "question": "Pergunta contextualizada no tema e na aventura...",
-                "options": ["A) ...", "B) ...", "C) ...", "D) ..."], // Vazio [] se for dissertativa
+                "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
                 "correct_answer": "Resposta final destacada + Resolução pedagógica passo a passo detalhada",
                 "dica_dracker": "Uma pista sutil e pedagógica do Drácker para quem precisar de ajuda"
               }
             ]
           }
-          // repita rigorosamente a mesma estrutura para os rounds até ${safeStages}
         ],
         "reforco_pedagogico": "Um balão de fala do Drácker explicando de forma simples o conceito base do TEMA para apoiar os exploradores durante a missão.",
         "finais": {
@@ -634,11 +696,59 @@ class GeminiService {
         }
       }
     `;
+
     try {
-      const text = await this.generateText(prompt, { temperature: 0.8, responseMimeType: "application/json", maxOutputTokens: 8192 });
-      const data = safeJSONParse(text);
-      if (!data || !data.etapas || data.etapas.length < safeStages) throw new Error("Formato inválido ou número de etapas incompleto");
-      return data;
+      const text = await this.generateText(prompt, { temperature: 0.7, responseMimeType: "application/json", maxOutputTokens: 8192 });
+      const parsed = safeJSONParse(text);
+      const normalized = normalizeRPGData(parsed);
+      if (normalized && normalized.etapas && normalized.etapas.length > 0) {
+        return normalized;
+      }
+    } catch (primaryErr) {
+      console.warn("Tentativa 1 do RPG falhou, tentando fallback simplificado:", primaryErr);
+    }
+
+    // Fallback de contingência caso a primeira tentativa falhe
+    try {
+      const fallbackPrompt = `
+        Gere um JSON com uma aventura RPG educacional completa sobre o tema "${topic}".
+        Contexto: "${details}".
+        Gere entre 3 e ${safeStages} etapas no formato JSON:
+        {
+          "titulo_aventura": "Título da Aventura",
+          "historia_abertura": "História inicial em 3 frases",
+          "etapas": [
+            {
+              "round": 1,
+              "titulo_capitulo": "Capítulo 1",
+              "local_cena": "Local da Aventura",
+              "item_recompensa": "Recompensa",
+              "narrativa_avanco": "História deste capítulo",
+              "enigmas": [
+                {
+                  "team": "${isIndividualMode ? 'Missão Individual no Caderno' : (safeTeams[0]?.name || 'Equipe 1')}",
+                  "question": "Desafio pedagógico sobre ${topic}",
+                  "options": ${questionType === 'multiple_choice' ? '["A) ...", "B) ...", "C) ...", "D) ..."]' : '[]'},
+                  "correct_answer": "Resposta correta e explicação",
+                  "dica_dracker": "Dica pedagógica"
+                }
+              ]
+            }
+          ],
+          "reforco_pedagogico": "Dica explicativa do tema",
+          "finais": {
+            "vitoria_epica": "Final vitorioso",
+            "vitoria_com_ajuda": "Final com superação"
+          }
+        }
+      `;
+      const fallbackText = await this.generateText(fallbackPrompt, { temperature: 0.7, responseMimeType: "application/json", maxOutputTokens: 4096 });
+      const fallbackParsed = safeJSONParse(fallbackText);
+      const fallbackNormalized = normalizeRPGData(fallbackParsed);
+      if (fallbackNormalized && fallbackNormalized.etapas && fallbackNormalized.etapas.length > 0) {
+        return fallbackNormalized;
+      }
+      throw new Error("Não foi possível estruturar as etapas da aventura.");
     } catch (e) {
       console.error("Erro Full RPG:", e);
       throw new Error("Falha ao gerar o livro-jogo: " + e.message);
