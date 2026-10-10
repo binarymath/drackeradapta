@@ -19,6 +19,12 @@ import { RPGTypographyToolbar } from './RPGTypographyToolbar';
 import { RPGTextEditModal } from './RPGTextEditModal';
 import { gameAudio } from '../../utils/gameAudio';
 import { RouletteTimerBomb } from '../roulette/RouletteTimerBomb';
+import { 
+    RPG_LIBRARY_STORAGE_KEY, 
+    getSavedRPGLibrary, 
+    saveToRPGLibrary, 
+    removeFromRPGLibrary 
+} from '../../utils/rpgStorage';
 
 // Definição dos Universos Disponíveis
 const RPG_UNIVERSES = [
@@ -84,13 +90,6 @@ const RPG_UNIVERSES = [
         bannerIcon: '🧭'
     }
 ];
-
-import { 
-    RPG_LIBRARY_STORAGE_KEY, 
-    getSavedRPGLibrary, 
-    saveToRPGLibrary, 
-    removeFromRPGLibrary 
-} from '../../utils/rpgStorage';
 
 export const DetectiveRPG = ({ topic, context, isFullWidth }) => {
     const { geminiService } = useGemini();
