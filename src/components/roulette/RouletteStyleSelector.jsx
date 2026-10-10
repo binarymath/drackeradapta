@@ -77,63 +77,10 @@ export const RouletteStyleSelector = ({ selectedStyle = 'slot_machine', onSelect
 
     return (
         <div className={`w-full ${compact ? 'mb-1.5 sm:mb-2' : 'mb-6'}`}>
-            {/* Barra Superior de Controle do Seletor */}
-            {compact ? (
-                <div className="flex items-center justify-between gap-2 mb-1 px-0.5">
-                    <div className="flex items-center gap-2">
-                        <span className="text-base">{activeStyleObj.icon}</span>
-                        <span className="text-xs font-black tracking-wider uppercase text-white/90">
-                            {activeStyleObj.name}
-                        </span>
-                        <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-white/10 text-amber-300 border border-white/15">
-                            {activeStyleObj.badge}
-                        </span>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => setShowModal(true)}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all border border-white/20 shadow-xs cursor-pointer active:scale-95"
-                        title="Ver detalhes dos 6 estilos de roleta"
-                    >
-                        <Sparkles className="w-3 h-3 text-amber-400" />
-                        <span>Ver 6 Estilos</span>
-                    </button>
-                </div>
-            ) : (
-                <div className="flex items-center justify-between gap-3 mb-3">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xl">{activeStyleObj.icon}</span>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-black tracking-wider uppercase text-white/90">
-                                    {activeStyleObj.name}
-                                </span>
-                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-white/10 text-amber-300 border border-white/15">
-                                    {activeStyleObj.badge}
-                                </span>
-                            </div>
-                            <p className="text-[11px] text-slate-400 hidden sm:block">
-                                {activeStyleObj.highlight}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Botão para Abrir Menu / Modal com todos os 6 modelos detalhados */}
-                    <button
-                        type="button"
-                        onClick={() => setShowModal(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all border border-white/20 shadow-xs cursor-pointer active:scale-95"
-                        title="Ver detalhes dos 6 estilos de roleta"
-                    >
-                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Ver 6 Estilos</span>
-                    </button>
-                </div>
-            )}
+            {/* Barra de título removida para visual ultra clean */}
 
             {/* Seletor Segmentado Compacto (Pill Tabs) */}
-            <div className={`bg-black/50 ${compact ? 'p-1 rounded-xl gap-1' : 'p-1.5 rounded-2xl gap-1.5'} border border-white/10 shadow-inner flex items-center overflow-x-auto custom-scrollbar`}>
+            <div className={`bg-slate-100/80 ${compact ? 'p-1 rounded-xl gap-1' : 'p-1.5 rounded-2xl gap-1.5'} border border-slate-200 shadow-inner flex items-center overflow-x-auto custom-scrollbar`}>
                 {ROULETTE_STYLES.map((style) => {
                     const isSelected = selectedStyle === style.id;
 
@@ -143,10 +90,10 @@ export const RouletteStyleSelector = ({ selectedStyle = 'slot_machine', onSelect
                             type="button"
                             onClick={() => !disabled && onSelectStyle(style.id)}
                             disabled={disabled}
-                            className={`flex-1 ${compact ? 'min-w-[84px] py-1 px-2 text-[11px]' : 'min-w-[105px] py-2 px-2.5 text-xs'} rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-1.5 select-none ${
+                            className={`flex-1 ${compact ? 'min-w-[84px] py-1 px-2 text-[11px]' : 'min-w-[105px] py-2 px-2.5 text-xs'} rounded-lg sm:rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-1.5 select-none ${
                                 isSelected
-                                    ? 'bg-gradient-to-r from-white/20 to-white/10 text-white border border-white/30 shadow-md ring-2 ring-white/20 scale-[1.02]'
-                                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
+                                    ? 'bg-white text-indigo-700 border border-slate-200 shadow-sm scale-100 ring-1 ring-slate-200/50'
+                                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 border border-transparent'
                             } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
                         >
                             <span className={compact ? 'text-sm' : 'text-base'}>{style.icon}</span>

@@ -515,63 +515,129 @@ class GeminiService {
   /**
    * Gera a História Completa do Livro-Jogo (Abertura + 4 Etapas + Finais)
    */
-  async generateFullRPG(topic, details, teams, questionType) {
+  async generateFullRPG(topic, details, teams, questionType, options = {}) {
+    const {
+      universe = 'forest',
+      customLore = '',
+      stageCount = 4
+    } = options;
+
+    let universeDescription = '';
+    if (universe === 'forest') {
+      universeDescription = `
+      UNIVERSO: Floresta Encantada e Natureza Mística.
+      PERSONAGENS:
+      - Drácker: Um dragãozinho marrom, detetive da natureza, amigável, curioso e muito inteligente.
+      - Amigos da Floresta: Coruja sábia, Raposa esperta, Esquilo veloz, Coelho saltitante, Castor engenhoso (chame-os pelas espécies ou papéis na floresta).
+      AMBIENTAÇÃO: Bosques mágicos, clareiras secretas, riachos cristalinos e mistérios da fauna/flora.
+      `;
+    } else if (universe === 'space') {
+      universeDescription = `
+      UNIVERSO: Odisséia Espacial e Exploradores Cósmicos.
+      PERSONAGENS:
+      - Drácker: Capitão Drácker, um dragãozinho astronauta corajoso e líder da nave de exploração.
+      - Aliados Espaciais: Robô assistente R-Byte, Estrela guia brilhante, Cientista cósmico.
+      AMBIENTAÇÃO: Estações espaciais orbitais, constelações brilhantes, nebulosas e luas misteriosas.
+      `;
+    } else if (universe === 'medieval') {
+      universeDescription = `
+      UNIVERSO: Reino dos Feiticeiros, Castelos e Masmorras Mágicas.
+      PERSONAGENS:
+      - Drácker: Jovem Mago Dragão, guardião do fogo da sabedoria e feitiços de proteção.
+      - Aliados: Guardião do Castelo, Fada luminosa, Alquimista do reino.
+      AMBIENTAÇÃO: Torres antigas, castelos encantados, bibliotecas secretas e pergaminhos mágicos.
+      `;
+    } else if (universe === 'ocean') {
+      universeDescription = `
+      UNIVERSO: Expedição Submarina e Cidades dos Corais.
+      PERSONAGENS:
+      - Drácker: Drácker Mergulhador das Profundezas com sua bolha/escafandro mágico.
+      - Aliados Aquáticos: Golfinho mensageiro, Tartaruga marinha centenária, Cavalo-marinho sábio.
+      AMBIENTAÇÃO: Cidades de corais coloridos, cavernas marinhas bioluminescentes e baús submersos de mistério.
+      `;
+    } else {
+      universeDescription = `
+      UNIVERSO E TEMA ESPECÍFICO: ${customLore || 'Aventura Fantástica Educativa Adaptada ao Tema'}.
+      PERSONAGENS: Drácker (mentor, guia curioso e conselheiro da turma) e companheiros temáticos adequados ao enredo.
+      `;
+    }
+
+    const safeStages = Math.max(3, Math.min(5, Number(stageCount) || 4));
+    const isIndividualMode = Boolean(options.isIndividual || options.participationMode === 'class_students');
+
     const prompt = `
-      Você é o mestre de um RPG Educacional Investigativo infantil/juvenil.
+      Você é o mestre de um RPG Educacional Investigativo infantil/juvenil de alto nível.
       O TEMA da aula é: "${topic}". O CONTEXTO é: "${details}".
       O formato das perguntas deve ser: ${questionType === 'multiple_choice' ? 'Múltipla Escolha (com 4 alternativas A, B, C, D e a resposta certa)' : 'Dissertativa (pergunta aberta e a resposta esperada)'}.
       
-      EQUIPES NA PARTIDA: ${teams.map(t => t.name).join(', ')}.
+      ${isIndividualMode ? `
+      MODO DE JOGO: JORNADA INDIVIDUAL NO CADERNO ESCOLAR.
+      Os alunos realizarão as atividades individualmente em seus cadernos de aula!
+      Portanto, para CADA etapa (round), crie UMA MISSÃO INVESTIGATIVA CENTRAL PARA O CADERNO que toda a turma deva copiar, resolver, calcular ou responder no caderno escolar.
+      No array "enigmas" de cada etapa, retorne apenas 1 enigma com "team": "Missão Individual no Caderno".
+      ` : `
+      EQUIPES/HERÓIS NA PARTIDA: ${teams.map(t => t.name).join(', ')}.
+      Para CADA etapa, crie uma pergunta direcionada e DIFERENTE para cada equipe.
+      `}
       
-      PERSONAGENS:
-      - Drácker: Um dragãozinho marrom, detetive da natureza, curioso e esperto.
-      - Amigos: Esquilo, coruja, raposa, coelho (Não dê nomes próprios, chame-os pela espécie).
+      ${universeDescription}
 
       CRIE A HISTÓRIA COMPLETA DO JOGO (COM INÍCIO, MEIO E FIM).
-      O jogo deve ter EXATAMENTE 4 ETAPAS (rounds).
-      Para CADA etapa, crie uma pergunta direcionada e DIFERENTE para cada equipe. A história deve evoluir gradativamente até a grande revelação na etapa 4.
+      O jogo deve ter EXATAMENTE ${safeStages} ETAPAS (rounds/capítulos).
+      A história deve evoluir gradativamente até a grande revelação no final (etapa ${safeStages}).
       
-      MUITO IMPORTANTE: O JOGO PRECISA SER RÁPIDO. SEJA CONCISO!
-      - A "historia_abertura" (round 1) deve ter NO MÁXIMO 4 frases.
-      - As "narrativa_avanco" (rounds 2, 3 e 4) devem ter NO MÁXIMO 2 frases.
-      - As perguntas devem ser curtas e diretas.
-      - O "reforco_pedagogico" deve ter NO MÁXIMO 3 frases.
+      MUITO IMPORTANTE: O JOGO PRECISA SER ÁGIL, EMOCIONANTE E DIRETO AO PONTO!
+      - A "historia_abertura" (round 1) deve ter NO MÁXIMO 4 frases cativantes.
+      - As "narrativa_avanco" (rounds 2 até ${safeStages}) devem ter NO MÁXIMO 2 frases cada.
+      - As perguntas devem ser claras, contextualizadas com o tema de estudo e desafiadoras na medida certa.
+      - O "reforco_pedagogico" deve ter NO MÁXIMO 3 frases, sendo um balão de fala acolhedor e explicativo do Drácker sobre o conceito do TEMA para apoiar os alunos durante a investigação (NUNCA diga que o mistério já foi desvendado ou que a aventura terminou).
       - Os finais devem ter NO MÁXIMO 3 frases.
       
-      REGRAS PEDAGÓGICAS:
-      1. As perguntas de todas as equipes dentro da MESMA ETAPA devem ter rigorosamente o MESMO GRAU DE DIFICULDADE.
-      2. Respostas únicas e inconfundíveis.
-      3. NUNCA coloque alternativas que sejam matematicamente equivalentes ou sinônimas (exemplo: se a resposta for 1/2, NÃO coloque 2/4 como outra alternativa. Se a resposta for 0,5, não coloque 5/10. Evite gerar duas opções corretas!).
+      REGRAS PEDAGÓGICAS E DE DIRECIONAMENTO:
+      ${isIndividualMode ? `
+      1. MISSÃO NO CADERNO: A pergunta deve começar convocando a turma para o caderno (Ex: "Atenção, bravos exploradores! Em seus cadernos de aula, resolvam o seguinte desafio proposto pelo Drácker: [pergunta/exercício sobre o tema]?").
+      ` : `
+      1. DIRECIONAMENTO NOMINAL OBRIGATÓRIO: Cada pergunta do campo "question" DEVE obrigatoriamente convocar a equipe pelo nome logo no início, integrando-a na cena da aventura (Exemplo: "Atenção, [Nome da Equipe]! Ao investigarem este local, o Drácker lança este desafio para vocês: [pergunta sobre o tema]?"). NUNCA faça uma pergunta genérica sem citar o nome da equipe!
+      2. As perguntas de todas as equipes dentro da MESMA ETAPA devem ter rigorosamente o MESMO GRAU DE DIFICULDADE.
+      `}
+      - GABARITO DO MESTRE DETALHADO OBRIGATÓRIO: No campo "correct_answer", NUNCA forneça apenas a resposta seca (como apenas um número "20%" ou apenas uma letra). O gabarito DEVE fornecer a resposta final clara E a resolução pedagógica detalhada passo a passo com os cálculos e raciocínios (Exemplo: "20%. Resolução detalhada: O valor aumentou de 100 para 120 moedas (aumento de 20 moedas). Como o valor original era 100 moedas, calcula-se (20 / 100) * 100 = 20% de aumento.").
+      - Respostas únicas, precisas e inconfundíveis.
+      - NUNCA coloque alternativas que sejam matematicamente equivalentes ou sinônimas (exemplo: se a resposta for 1/2, NÃO coloque 2/4 como outra alternativa. Evite gerar ambiguidades!).
       
       ESTRUTURA DA RESPOSTA (JSON PURO, SEM MARKDOWN):
       {
-        "historia_abertura": "A introdução épica da história detalhando o mistério...",
+        "titulo_aventura": "Título épico e cativante da expedição",
+        "historia_abertura": "A introdução épica da história detalhando o mistério no universo selecionado...",
         "etapas": [
           {
             "round": 1,
-            "narrativa_avanco": "O início da investigação...",
+            "titulo_capitulo": "Nome temático do capítulo (Ex: O Portal das Raízes Antigas)",
+            "local_cena": "Nome do local (Ex: Clareira dos Sussurros)",
+            "item_recompensa": "Nome do artefato mágico ou recompensa deste capítulo (Ex: Cristal da Sabedoria)",
+            "narrativa_avanco": "O início da investigação ou desenvolvimento da cena...",
             "enigmas": [
               {
-                "team": "Nome da Equipe 1",
-                "question": "Pergunta 1...",
+                "team": "${isIndividualMode ? 'Missão Individual no Caderno' : 'Nome da Equipe 1'}",
+                "question": "Pergunta contextualizada no tema e na aventura...",
                 "options": ["A) ...", "B) ...", "C) ...", "D) ..."], // Vazio [] se for dissertativa
-                "correct_answer": "Resposta correta"
+                "correct_answer": "Resposta final destacada + Resolução pedagógica passo a passo detalhada",
+                "dica_dracker": "Uma pista sutil e pedagógica do Drácker para quem precisar de ajuda"
               }
             ]
           }
-          // repita rigorosamente a mesma estrutura para os rounds 2, 3 e 4
+          // repita rigorosamente a mesma estrutura para os rounds até ${safeStages}
         ],
-        "reforco_pedagogico": "Um balão de fala do Drácker explicando de forma simples a base do TEMA para alunos que erraram.",
+        "reforco_pedagogico": "Um balão de fala do Drácker explicando de forma simples o conceito base do TEMA para apoiar os exploradores durante a missão.",
         "finais": {
-          "vitoria_epica": "Narrativa final caso a turma tenha pontuação alta.",
-          "vitoria_com_ajuda": "Narrativa final caso a turma tenha pontuação baixa."
+          "vitoria_epica": "Narrativa triunfante caso a turma tenha pontuação alta.",
+          "vitoria_com_ajuda": "Narrativa de superação e aprendizado caso a turma tenha pontuação com mais erros."
         }
       }
     `;
     try {
       const text = await this.generateText(prompt, { temperature: 0.8, responseMimeType: "application/json", maxOutputTokens: 8192 });
       const data = safeJSONParse(text);
-      if (!data || !data.etapas || data.etapas.length < 4) throw new Error("Formato inválido ou número de etapas incompleto");
+      if (!data || !data.etapas || data.etapas.length < safeStages) throw new Error("Formato inválido ou número de etapas incompleto");
       return data;
     } catch (e) {
       console.error("Erro Full RPG:", e);

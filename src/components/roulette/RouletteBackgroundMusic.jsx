@@ -16,7 +16,15 @@ const parseISO8601Duration = (duration) => {
 };
 
 // Formatter mm:ss
-export const RouletteBackgroundMusic = ({ className = "", isExploded = false, onSyncRequest = null, timerIsRunning = null, restartTrackTrigger = 0 }) => {
+export const RouletteBackgroundMusic = ({ 
+    className = "", 
+    isExploded = false, 
+    onSyncRequest = null, 
+    timerIsRunning = null, 
+    restartTrackTrigger = 0,
+    seekTarget = null,
+    isDragging = false
+}) => {
     const [isOpen, setIsOpen] = useState(false);
     const [playlist, setPlaylist] = useState(() => {
         try {
@@ -36,7 +44,20 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
     const [volume, setVolume] = useState(0.4);
     
     // Config: Mode A (Sync) vs Mode B (Independent)
-    const [syncWithMusic, setSyncWithMusic] = useState(false);
+    const [syncWithMusic, setSyncWithMusic] = useState(() => {
+        try {
+            const saved = localStorage.getItem('roulette_music_sync');
+            return saved !== null ? JSON.parse(saved) : true;
+        } catch (e) {
+            return true;
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('roulette_music_sync', JSON.stringify(syncWithMusic));
+        } catch (e) {}
+    }, [syncWithMusic]);
     const [ytPlayerReady, setYtPlayerReady] = useState(false);
     
     const [ytInput, setYtInput] = useState('');
@@ -89,11 +110,22 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isOpen]);
 
-    // Handle Local Audio fading
+    // Handle Local Audio fading & Parar imediatamente quando a bomba explodir
     useEffect(() => {
+        if (isExploded) {
+            setIsPlaying(false);
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
+            if (ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
+                ytPlayerRef.current.pauseVideo();
+            }
+            return;
+        }
+
         if (audioRef.current && currentTrack?.type === 'local') {
-            const targetVolume = isExploded ? Math.min(volume, 0.1) : volume;
             let currentVol = audioRef.current.volume;
+            const targetVolume = volume;
             const step = 0.05;
             const fadeInterval = setInterval(() => {
                 if (Math.abs(currentVol - targetVolume) < step) {
@@ -145,6 +177,16 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
         }
     }, [syncWithMusic, timerIsRunning]); // Remove isPlaying so it doesn't fight
 
+    // Disparo de final da música -> Explode a bomba em modo sincronizado!
+    const handleTrackEnded = () => {
+        if (syncWithMusic && onSyncRequest) {
+            setIsPlaying(false);
+            onSyncRequest({ action: 'music_ended' });
+            return;
+        }
+        nextTrack();
+    };
+
     // Auto-advance
     const nextTrack = () => {
         if (currentIndex < playlist.length - 1) {
@@ -185,6 +227,24 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
         }
     }, [restartTrackTrigger, currentTrack]);
 
+    // Seek da música para a posição exata quando o slider da bomba é movido
+    useEffect(() => {
+        if (seekTarget && syncWithMusic && currentTrack && !isExploded) {
+            const targetTime = Math.max(0, seekTarget.time);
+            if (currentTrack.type === 'local' && audioRef.current) {
+                try {
+                    const maxDur = audioRef.current.duration || targetTime;
+                    audioRef.current.currentTime = Math.min(maxDur, targetTime);
+                } catch (e) {}
+            }
+            if (currentTrack.type === 'youtube' && ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') {
+                try {
+                    ytPlayerRef.current.seekTo(targetTime, true);
+                } catch (e) {}
+            }
+        }
+    }, [seekTarget]);
+
     // YT Player Initialization
     useEffect(() => {
         let player = null;
@@ -204,11 +264,18 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
                             setPlaylist(prev => prev.map(t => 
                                 t.id === currentTrack.id ? { ...t, duration: Math.floor(dur) } : t
                             ));
+                            if (syncWithMusic && onSyncRequest && !isExploded) {
+                                onSyncRequest({
+                                    action: 'sync_on',
+                                    duration: Math.floor(dur),
+                                    isPlaying: isPlaying
+                                });
+                            }
                         }
                     },
                     onStateChange: (event) => {
                         if (event.data === window.YT.PlayerState.ENDED) {
-                            nextTrack();
+                            handleTrackEnded();
                         }
                     }
                 }
@@ -224,6 +291,33 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentTrack?.id, ytPlayerReady]);
+
+    // Checagem contínua para YouTube quando a música chega ao final e envio de sync_time
+    useEffect(() => {
+        let ytInterval = null;
+        if (syncWithMusic && isPlaying && currentTrack?.type === 'youtube' && !isExploded) {
+            ytInterval = setInterval(() => {
+                if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function' && typeof ytPlayerRef.current.getDuration === 'function') {
+                    const dur = ytPlayerRef.current.getDuration();
+                    const curr = ytPlayerRef.current.getCurrentTime();
+                    if (dur > 0) {
+                        const remaining = Math.max(0, Math.ceil(dur - curr));
+                        if (curr >= dur - 0.5 || remaining <= 0) {
+                            handleTrackEnded();
+                        } else if (!isDragging && onSyncRequest) {
+                            onSyncRequest({
+                                action: 'sync_time',
+                                remaining: remaining
+                            });
+                        }
+                    }
+                }
+            }, 500);
+        }
+        return () => {
+            if (ytInterval) clearInterval(ytInterval);
+        };
+    }, [syncWithMusic, isPlaying, currentTrack?.id, isExploded, isDragging]);
 
     // Sync trigger (When toggled ON or track changes)
     useEffect(() => {
@@ -382,7 +476,39 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
                     ref={audioRef} 
                     src={currentTrack.url} 
                     autoPlay={isPlaying}
-                    onEnded={nextTrack}
+                    onEnded={handleTrackEnded}
+                    onLoadedMetadata={(e) => {
+                        const dur = Math.floor(e.target.duration);
+                        if (dur > 0 && (!currentTrack.duration || currentTrack.duration !== dur)) {
+                            setPlaylist(prev => prev.map(t => 
+                                t.id === currentTrack.id ? { ...t, duration: dur } : t
+                            ));
+                            if (syncWithMusic && onSyncRequest && !isExploded) {
+                                onSyncRequest({
+                                    action: 'sync_on',
+                                    duration: dur,
+                                    isPlaying: isPlaying
+                                });
+                            }
+                        }
+                    }}
+                    onTimeUpdate={() => {
+                        if (audioRef.current && syncWithMusic && !isExploded && isPlaying) {
+                            const dur = audioRef.current.duration;
+                            const curr = audioRef.current.currentTime;
+                            if (dur > 0) {
+                                const remaining = Math.max(0, Math.ceil(dur - curr));
+                                if (dur - curr <= 0.4 || remaining <= 0) {
+                                    handleTrackEnded();
+                                } else if (!isDragging && onSyncRequest) {
+                                    onSyncRequest({
+                                        action: 'sync_time',
+                                        remaining: remaining
+                                    });
+                                }
+                            }
+                        }
+                    }}
                     className="hidden" 
                 />
             )}
@@ -511,7 +637,17 @@ export const RouletteBackgroundMusic = ({ className = "", isExploded = false, on
                                             }`}
                                         >
                                             <button 
-                                                onClick={() => { setCurrentIndex(idx); setIsPlaying(true); }}
+                                                onClick={() => { 
+                                                    setCurrentIndex(idx); 
+                                                    setIsPlaying(true); 
+                                                    if (syncWithMusic && onSyncRequest && !isExploded && track.duration > 0) {
+                                                        onSyncRequest({
+                                                            action: 'sync_on',
+                                                            duration: track.duration,
+                                                            isPlaying: true
+                                                        });
+                                                    }
+                                                }}
                                                 className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
                                                     idx === currentIndex ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                                                 }`}

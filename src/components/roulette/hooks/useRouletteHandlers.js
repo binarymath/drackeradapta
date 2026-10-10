@@ -213,7 +213,7 @@ export const useRouletteHandlers = (context) => {
             date: Date.now(),
             sessionId: currentSessionId,
             gameMode,
-            topic: activeActivity?.topic || 'Sem tema',
+            topic: activeActivity?.topic || activeActivity?.title || 'Tema não definido',
             question: motiveText,
             result: isMerit ? 'merit' : 'rule_violation',
             pointsDelta: delta
@@ -325,7 +325,7 @@ export const useRouletteHandlers = (context) => {
             date: Date.now(),
             sessionId: currentSessionId,
             gameMode,
-            topic: activeActivity?.topic || 'Sem tema',
+            topic: activeActivity?.topic || activeActivity?.title || 'Tema não definido',
             question: winner.question,
             result: resultType // 'correct', 'incorrect', 'absent'
         };
@@ -399,7 +399,7 @@ export const useRouletteHandlers = (context) => {
                         sessionId: currentSessionId,
                         activityId: activeActivity?.id || null,
                         gameMode,
-                        topic: activeActivity?.topic || activeActivity?.title || 'Sem tema',
+                        topic: activeActivity?.topic || activeActivity?.title || 'Tema não definido',
                         question: `[Desafio da Turma] ${questionText}`,
                         result: isNotExecuted ? 'not_executed' : 'all_correct'
                     };
@@ -474,7 +474,7 @@ export const useRouletteHandlers = (context) => {
                                 dateStr: targetDateStr,
                                 sessionId: currentSessionId,
                                 gameMode,
-                                topic: activeActivity?.topic || 'Sem tema',
+                                topic: activeActivity?.topic || activeActivity?.title || 'Tema não definido',
                                 question: 'Frequência da Aula',
                                 result: 'absent'
                             });
@@ -555,7 +555,7 @@ export const useRouletteHandlers = (context) => {
                         sessionId: currentSessionId,
                         activityId: activeActivity?.id || null,
                         gameMode,
-                        topic: activeActivity?.topic || activeActivity?.title || 'Sem tema',
+                        topic: activeActivity?.topic || activeActivity?.title || 'Tema não definido',
                         question: `${questionText} [Ajuda: ${helpDescription}]`,
                         result: isCorrect ? 'help_correct' : 'incorrect',
                         helperName: helperName || undefined,
@@ -580,7 +580,7 @@ export const useRouletteHandlers = (context) => {
                         sessionId: currentSessionId,
                         activityId: activeActivity?.id || null,
                         gameMode,
-                        topic: activeActivity?.topic || activeActivity?.title || 'Sem tema',
+                        topic: activeActivity?.topic || activeActivity?.title || 'Tema não definido',
                         question: `Ajudou ${winner.name} em: ${questionText}`,
                         result: isCorrect ? 'help_correct' : 'incorrect',
                         helpedStudent: winner.name,

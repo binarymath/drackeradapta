@@ -20,7 +20,7 @@ export const ActivityRegistry = {
     merge_pdf: lazy(() => import('../../components/PDFMergerTool').then(m => ({ default: m.PDFMergerTool }))),
     memory: lazy(() => import('../../components/memory/MemoryGame')),
     hangman: lazy(() => import('../../components/HangmanGame')),
-    rpg: lazy(() => import('../../components/rpg/DetectiveRPG')),
+    rpg: lazy(() => import('../../components/rpg/DetectiveRPG').then(m => ({ default: m.default || m.DetectiveRPG }))),
     chat_dracker: lazy(() => import('../../components/chat/ChatDracker')),
     trading_cards: lazy(() => import('../../components/trading-cards/TradingCardMaker').then(m => ({ default: m.TradingCardMaker }))),
     number_line: lazy(() => import('../../components/number-line/NumberLineMaker').then(m => ({ default: m.NumberLineMaker }))),

@@ -7,6 +7,7 @@ import { loadHtml2pdf } from '../utils/loadHtml2pdf';
 import { AboutSystem } from './AboutSystem';
 import { DrackerSummaryRenderer } from './activity-area/DrackerSummaryRenderer';
 import { TransitionQuestionsModal } from './modals/TransitionQuestionsModal';
+import { ReportsDashboard } from './reports/ReportsDashboard';
 
 // Módulos carregados sob demanda via ActivityRegistry (React.lazy + code splitting)
 const {
@@ -119,6 +120,7 @@ export const ActivityArea = ({
         (activityType === 'merge_pdf') ||
         (activityType === 'about_system') ||
         (activityType === 'dashboard') ||
+        (activityType === 'reports') ||
 
         (activityType === 'hangman') ||
         (activityType === 'trading_cards') ||
@@ -173,21 +175,23 @@ export const ActivityArea = ({
         <div className="w-full h-full flex flex-col print:block bg-transparent">
             <div className="flex-1 flex flex-col min-h-96 print:block">
 
-                <ActivityHeader
-                    hasContent={hasContent}
-                    activityType={activityType}
-                    onEdit={onEdit}
-                    showAnswers={showAnswers}
-                    setShowAnswers={setShowAnswers}
-                    handleDownloadPdf={handleDownloadPdf}
-                    foundWords={foundWords}
-                    isFullWidth={isFullWidth}
-                    toggleFullWidth={toggleFullWidth}
-                    openManualMusicEditor={openManualMusicEditor}
-                    activityTitle={activityTitle}
-                    setActivityTitle={setActivityTitle}
-                    onPlayInRoulette={() => setShowQuizToRouletteModal(true)}
-                />
+                {activityType !== 'roulette' && (
+                    <ActivityHeader
+                        hasContent={hasContent}
+                        activityType={activityType}
+                        onEdit={onEdit}
+                        showAnswers={showAnswers}
+                        setShowAnswers={setShowAnswers}
+                        handleDownloadPdf={handleDownloadPdf}
+                        foundWords={foundWords}
+                        isFullWidth={isFullWidth}
+                        toggleFullWidth={toggleFullWidth}
+                        openManualMusicEditor={openManualMusicEditor}
+                        activityTitle={activityTitle}
+                        setActivityTitle={setActivityTitle}
+                        onPlayInRoulette={() => setShowQuizToRouletteModal(true)}
+                    />
+                )}
 
                 <div className={`flex-1 ${isFullWidth ? 'p-1 sm:p-2' : 'p-4 sm:p-8'} overflow-y-auto print:overflow-visible custom-scrollbar print:p-0`} ref={activityAreaRef} id="activity-area-print">
                     {hasContent ? (
@@ -557,6 +561,8 @@ export const ActivityArea = ({
                                 <DetectiveRPG key={activeTabId || 'new_rpg'} topic={topic} context={lessonDetails} isFullWidth={isFullWidth} />
                             ) : activityType === 'about_system' || activityType === 'dashboard' ? (
                                 <AboutSystem />
+                            ) : activityType === 'reports' ? (
+                                <ReportsDashboard />
                             ) : activityType === 'merge_pdf' ? (
                                 <PDFMergerTool />
                             ) : activityType === 'connect_dots' && connectDotsData ? (

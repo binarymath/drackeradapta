@@ -401,16 +401,16 @@ export const RouletteCard = ({
     const lastHelped = helpedEntries[helpedEntries.length - 1]?.helpedStudent;
     const [isCardMinimized, setIsCardMinimized] = useState(false);
     const renderQuestionControlBar = () => (
-        <div className="bg-black/15 border-t border-white/20 mt-4 -mx-4 -mb-3 sm:-mx-6 sm:-mb-4 px-4 py-2.5 sm:px-6 flex items-center justify-between gap-2 shrink-0 relative z-10 w-full text-white">
+        <div className="bg-slate-50 border-t border-slate-200 mt-0 px-6 py-2.5 flex items-center justify-between gap-3 flex-wrap shrink-0 w-full text-slate-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">
             <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold text-white bg-black/20 border border-white/10 px-2.5 py-1 rounded-lg shadow-2xs">
+                <span className="text-xs font-bold text-slate-700 bg-white border border-slate-200 px-2.5 py-1 rounded-lg shadow-xs">
                     {allQuestions.length > 0 ? `Pergunta ${currentIndex >= 0 ? currentIndex + 1 : 1} de ${allQuestions.length}` : 'Pergunta'}
                 </span>
 
                 {showDifficulty && (() => {
                     const badge = getDifficultyBadge(winner.difficulty);
                     return (
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border border-white/20 flex items-center gap-1.5 shadow-2xs ${badge.color === 'bg-emerald-100 text-emerald-800 border-emerald-200' ? 'bg-emerald-500/20 text-emerald-100 border-emerald-500/30' : 'bg-black/20 text-white border-white/10'}`}>
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border border-slate-200 bg-white flex items-center gap-1.5 shadow-xs`}>
                             <span className={`w-2 h-2 rounded-full ${badge.dot}`}></span>
                             <span>{badge.label}</span>
                         </span>
@@ -418,18 +418,14 @@ export const RouletteCard = ({
                 })()}
 
                 {onToggleDifficulty && (
-                    <button
-                        onClick={onToggleDifficulty}
-                        className="text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/20 transition-colors"
-                        title={showDifficulty ? 'Dificuldade visível (clique para ocultar)' : 'Dificuldade oculta (clique para exibir)'}
-                    >
+                    <button onClick={onToggleDifficulty} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200 transition-colors">
                         {showDifficulty ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                     </button>
                 )}
 
                 {isCurrentQuestionUsed && (
-                    <span className="text-2xs font-black bg-amber-500/20 text-amber-200 border border-amber-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3 text-amber-400" /> Já respondida
+                    <span className="text-2xs font-black bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3 text-amber-500" /> Já respondida
                     </span>
                 )}
             </div>
@@ -437,55 +433,16 @@ export const RouletteCard = ({
             <div className="flex items-center gap-2 flex-wrap justify-end">
                 {cardMode === 'normal' && !winner?.isGroup && onChangeStudent && (
                     <>
-                        <button
-                            type="button"
-                            onClick={handleNextStudentRandom}
-                            className="flex items-center gap-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
-                            title="Sortear outro aluno para responder a esta pergunta"
-                        >
-                            <Shuffle className="w-3.5 h-3.5 text-white" />
-                            <span className="hidden sm:inline">Outro Aluno</span>
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => setShowStudentSelector(!showStudentSelector)}
-                            className="flex items-center gap-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
-                            title="Escolher outro aluno da turma para responder"
-                        >
-                            <Users className="w-3.5 h-3.5 text-white" />
-                            <span>{showStudentSelector ? 'Fechar Lista' : 'Trocar Aluno'}</span>
-                        </button>
+                        <button type="button" onClick={handleNextStudentRandom} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm cursor-pointer"><Shuffle className="w-3.5 h-3.5 text-slate-400" /><span className="hidden sm:inline">Outro Aluno</span></button>
+                        <button type="button" onClick={() => setShowStudentSelector(!showStudentSelector)} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm cursor-pointer"><Users className="w-3.5 h-3.5 text-slate-400" /><span>{showStudentSelector ? 'Fechar Lista' : 'Trocar Aluno'}</span></button>
                     </>
                 )}
 
-                <button
-                    onClick={handleNextQuestion}
-                    className="flex items-center gap-1.5 text-xs font-bold text-white bg-white/20 hover:bg-white/30 border border-white/20 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
-                    title="Sortear outra pergunta diferente para este aluno"
-                >
-                    <Shuffle className="w-3.5 h-3.5 text-white" />
-                    <span>Outra Pergunta</span>
-                </button>
-
-                <button
-                    onClick={() => setShowQuestionSelector(!showQuestionSelector)}
-                    className="flex items-center gap-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
-                    title="Ver lista de todas as perguntas disponíveis"
-                >
-                    <ListOrdered className="w-3.5 h-3.5 text-white" />
-                    <span className="hidden sm:inline">Escolher da Lista</span>
-                </button>
+                <button onClick={handleNextQuestion} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm cursor-pointer"><Shuffle className="w-3.5 h-3.5 text-slate-400" /><span>Outra Pergunta</span></button>
+                <button onClick={() => setShowQuestionSelector(!showQuestionSelector)} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm cursor-pointer"><ListOrdered className="w-3.5 h-3.5 text-slate-400" /><span className="hidden sm:inline">Escolher da Lista</span></button>
                 
                 {onOpenSidebar && (
-                    <button
-                        onClick={onOpenSidebar}
-                        className="flex items-center gap-1.5 text-xs font-bold text-white bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer"
-                        title="Abrir placar e lista de alunos"
-                    >
-                        <Users className="w-3.5 h-3.5 text-white" />
-                        <span className="hidden sm:inline">Placar</span>
-                    </button>
+                    <button onClick={onOpenSidebar} className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-all active:scale-95 shadow-sm cursor-pointer"><Users className="w-3.5 h-3.5 text-slate-400" /><span className="hidden sm:inline">Placar</span></button>
                 )}
             </div>
         </div>
@@ -499,7 +456,7 @@ export const RouletteCard = ({
         <div className={`fixed z-[10000] transition-all duration-300 ease-in-out ${
             isCardMinimized 
                 ? 'bottom-4 left-4 right-auto top-auto w-auto h-auto' 
-                : 'inset-0 flex items-center justify-center p-2 sm:p-3 md:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in'
+                : 'inset-0 flex items-center justify-center bg-slate-950/75 backdrop-blur-md animate-in fade-in'
         }`}>
             {/* WIDGET MINIMIZADO */}
             {isCardMinimized && (
@@ -520,16 +477,16 @@ export const RouletteCard = ({
             )}
 
             {/* CONTAINER FLEX: ACOPLA O CARD DO ALUNO E O CRONÔMETRO LADO A LADO COM A MESMA ALTURA */}
-            <div className={`mx-auto items-stretch transition-all duration-300 ${
+            <div className={`w-full h-full mx-auto items-stretch transition-all duration-500 ease-out ${
                 isCardMinimized 
                     ? 'hidden' 
-                    : `flex flex-col lg:flex-row h-[92vh] max-h-[92vh] ${timerViewMode === 'normal' ? 'w-[96vw] max-w-[1560px] gap-2.5 sm:gap-3' : 'w-[90vw] max-w-[1150px] gap-0'}`
+                    : `flex flex-col lg:flex-row bg-slate-50 overflow-hidden`
             }`}>
                 
                 {/* ============================================================ */}
                 {/* 1. CARD PRINCIPAL DO ALUNO SORTEADO */}
                 {/* ============================================================ */}
-                <div className="bg-white rounded-3xl shadow-2xl flex-1 min-w-0 h-full overflow-hidden animate-in zoom-in-95 duration-300 relative border-4 border-amber-400 flex flex-col transition-all">
+                <div className="flex-1 min-w-0 h-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out relative flex flex-col transition-all bg-white">
                 
                 {/* ============================================================ */}
                 {/* CABEÇALHO DINÂMICO CONFORME O MODO ATIVO */}
@@ -537,224 +494,108 @@ export const RouletteCard = ({
                 {cardMode === 'normal' && (
                     winner.isGroup ? (
                         /* CABEÇALHO DO MODO GRUPOS / EQUIPES */
-                        <div 
-                            className="px-4 py-3 sm:px-6 sm:py-4 text-center relative overflow-hidden shrink-0 shadow-sm text-white"
-                            style={{
-                                background: winner.color 
-                                    ? `linear-gradient(135deg, ${winner.color} 0%, #1e1b4b 100%)` 
-                                    : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
-                            }}
-                        >
-                            <div className="absolute top-0 left-0 w-full h-full opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                            <Sparkles className="w-8 h-8 text-white/40 absolute top-3 left-4 animate-pulse" />
-                            <Sparkles className="w-6 h-6 text-white/40 absolute bottom-3 right-4 animate-pulse" />
-                            
-                            <div className="flex flex-col gap-2 relative z-10 mb-2 w-full">
-                                {/* Controles: Minimizar, Cronômetro (ACIMA) */}
-                                <div className="flex items-center justify-between gap-1.5 flex-wrap w-full">
-                                    <div className="flex items-center gap-1.5">
-                                        {/* Botão Fechar Card */}
-                                        <button
-                                            type="button"
-                                            onClick={onClose}
-                                            className="flex items-center gap-1 bg-black/20 hover:bg-red-500/60 text-white border border-white/25 hover:border-red-400/50 rounded-xl px-2.5 py-1 shadow-2xs backdrop-blur-xs text-xs font-bold transition-all cursor-pointer"
-                                            title="Fechar card"
-                                        >
-                                            <X className="w-3.5 h-3.5" />
-                                            <span className="hidden sm:inline">Fechar</span>
-                                        </button>
-
-                                        {/* Botão Minimizar Card Inteiro */}
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsCardMinimized(true)}
-                                            className="flex items-center gap-1 bg-black/20 hover:bg-black/40 text-white border border-white/25 rounded-xl px-2.5 py-1 shadow-2xs backdrop-blur-xs text-xs font-bold transition-all cursor-pointer"
-                                            title="Minimizar card para ver a roleta"
-                                        >
-                                            <Minimize2 className="w-3.5 h-3.5 text-amber-200" />
-                                            <span className="hidden sm:inline">Minimizar</span>
-                                        </button>
-                                        
-                                        {/* LEGENDA DA EQUIPE */}
-                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/30 text-white text-xs font-black uppercase tracking-widest backdrop-blur-sm border border-white/20">
-                                            <Users className="w-3.5 h-3.5 text-amber-300" />
-                                            <span className="hidden sm:inline">Equipe / Grupo Sorteado</span>
+                        <div className="px-6 py-4 border-b border-slate-200 shrink-0 flex flex-col gap-3 bg-white z-20">
+                            <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                                <div className="flex items-center gap-4">
+                                    <div 
+                                        className="flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm text-white shrink-0"
+                                        style={{
+                                            background: winner.color 
+                                                ? `linear-gradient(135deg, ${winner.color} 0%, #1e1b4b 100%)` 
+                                                : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
+                                        }}
+                                    >
+                                        <Users className="w-6 h-6" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <h1 className="text-2xl sm:text-3xl font-black text-slate-800 leading-tight text-left">{winner.name}</h1>
+                                        <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 py-0.5 bg-slate-100 rounded-full">Equipe Sorteada</span>
+                                            {selectedSpokesperson && (
+                                                <span className="text-[10px] font-bold text-amber-900 uppercase tracking-widest px-2 py-0.5 bg-amber-100 rounded-full border border-amber-300 flex items-center gap-1">
+                                                    ⭐ Porta-voz: {selectedSpokesperson.name}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
-
-                                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                        {/* Chip para reacoplar cronômetro se minimizado */}
-                                        {timerViewMode === 'minimized' && (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setTimerViewMode('normal');
-                                                    try { localStorage.setItem('preferred_roulette_timer_mode', 'normal'); } catch (e) {}
-                                                }}
-                                                className="flex items-center gap-1 text-xs font-black text-slate-950 bg-amber-400 hover:bg-amber-300 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer animate-in fade-in"
-                                                title="Acoplar cronômetro de volta ao lado direito do card"
-                                            >
-                                                <span>💣</span>
-                                                <span className="hidden sm:inline">Acoplar Cronômetro</span>
-                                            </button>
-                                        )}
-
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedSpokesperson(null)}
-                                        className={`text-xs font-bold px-2.5 py-1 rounded-xl transition-all shadow-xs cursor-pointer ${
-                                            !selectedSpokesperson 
-                                                ? 'bg-white text-slate-900 font-black' 
-                                                : 'bg-white/20 text-white hover:bg-white/30'
-                                        }`}
-                                        title="Todos do grupo respondem juntos"
-                                    >
-                                        👥 Grupo Todo
-                                    </button>
-                                    <button
-                                        type="button"
-                                        disabled={isDrawingSpokesperson || !winner.members || winner.members.length === 0}
-                                        onClick={handleDrawSpokesperson}
-                                        className="flex items-center gap-1 text-xs font-black bg-amber-400 hover:bg-amber-300 text-slate-950 px-2.5 py-1 rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer disabled:opacity-50"
-                                        title="Sortear um aluno deste grupo para ser o porta-voz"
-                                    >
-                                        <Shuffle className="w-3.5 h-3.5 text-slate-950" />
-                                        <span>{isDrawingSpokesperson ? 'Sorteando...' : 'Sortear Porta-Voz'}</span>
-                                    </button>
-                                </div>
                                 </div>
                                 
-
+                                <div className="flex items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
+                                    {timerViewMode === 'minimized' && (
+                                        <button type="button" onClick={() => { setTimerViewMode('normal'); try { localStorage.setItem('preferred_roulette_timer_mode', 'normal'); } catch (e) {} }} className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-900 rounded-xl text-xs font-black transition-all shadow-xs">
+                                            <span>💣</span><span>Acoplar Bomba</span>
+                                        </button>
+                                    )}
+                                    <button type="button" onClick={() => setIsCardMinimized(true)} className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors"><Minimize2 className="w-4 h-4" /></button>
+                                    <button type="button" onClick={onClose} className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors"><X className="w-4 h-4" /></button>
+                                </div>
                             </div>
 
-                            <h1 className={`${nameSizeClass} font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 transition-all text-center mt-2`}>
-                                <Users className="w-8 h-8 sm:w-9 sm:h-9 text-amber-300 shrink-0" />
-                                <span>{winner.name}</span>
-                            </h1>
-
-                            {/* Lista de Integrantes da Equipe */}
-                            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 relative z-10">
-                                <span className="text-2xs uppercase tracking-wider text-white/70 font-black mr-1">Integrantes:</span>
+                            {/* Controles de Porta-Voz */}
+                            <div className="flex flex-wrap items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                <span className="text-2xs uppercase tracking-wider text-slate-500 font-bold mr-1">Integrantes:</span>
                                 {(winner.members || []).length === 0 ? (
-                                    <span className="text-xs text-white/80 italic">Sem alunos atribuídos a este grupo</span>
+                                    <span className="text-xs text-slate-400 italic">Sem alunos atribuídos a este grupo</span>
                                 ) : (
                                     (winner.members || []).map(member => {
                                         const isRep = selectedSpokesperson?.id === member.id;
                                         return (
-                                            <button
-                                                key={member.id}
-                                                type="button"
-                                                onClick={() => setSelectedSpokesperson(isRep ? null : member)}
-                                                className={`text-xs font-bold px-2.5 py-0.5 rounded-full border transition-all cursor-pointer flex items-center gap-1 ${
-                                                    isRep 
-                                                        ? 'bg-amber-400 text-slate-950 border-amber-300 font-black shadow-sm ring-2 ring-white/60 scale-105' 
-                                                        : 'bg-black/30 hover:bg-black/50 text-white border-white/20'
-                                                }`}
-                                                title={isRep ? "Porta-voz da rodada" : "Clique para selecionar como porta-voz"}
-                                            >
-                                                {isRep && <span>⭐</span>}
-                                                <span>{member.name}</span>
+                                            <button key={member.id} type="button" onClick={() => setSelectedSpokesperson(isRep ? null : member)} className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all cursor-pointer flex items-center gap-1 ${isRep ? 'bg-amber-100 text-amber-900 border-amber-300 font-black shadow-xs scale-105' : 'bg-white hover:bg-slate-100 text-slate-600 border-slate-200 shadow-sm'}`}>
+                                                {isRep && <span>⭐</span>}<span>{member.name}</span>
                                             </button>
                                         );
                                     })
                                 )}
-                            </div>
-
-                            {selectedSpokesperson && (
-                                <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black shadow-xs animate-in zoom-in-95">
-                                    <span>⭐ Porta-voz da rodada:</span>
-                                    <strong>{selectedSpokesperson.name}</strong>
+                                <div className="ml-auto flex items-center gap-2 border-l border-slate-200 pl-3 shrink-0">
+                                    <button type="button" onClick={() => setSelectedSpokesperson(null)} className={`text-2xs font-bold px-2.5 py-1.5 rounded-lg transition-all cursor-pointer ${!selectedSpokesperson ? 'bg-slate-800 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>👥 Grupo Todo</button>
+                                    <button type="button" disabled={isDrawingSpokesperson || !winner.members || winner.members.length === 0} onClick={handleDrawSpokesperson} className="flex items-center gap-1 text-2xs font-bold bg-amber-400 hover:bg-amber-300 text-slate-900 px-2.5 py-1.5 rounded-lg transition-all shadow-xs cursor-pointer disabled:opacity-50"><Shuffle className="w-3 h-3" /><span>Sortear</span></button>
                                 </div>
-                            )}
+                            </div>
                             
                             {renderQuestionControlBar()}
                         </div>
                     ) : (
-                        /* CABEÇALHO DO MODO INDIVIDUAL */
-                        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 py-3 sm:px-6 sm:py-4 text-center relative overflow-hidden shrink-0 shadow-sm">
-                            <div className="absolute top-0 left-0 w-full h-full opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                            <Sparkles className="w-8 h-8 text-amber-200/60 absolute top-3 left-4 animate-pulse" />
-                            <Sparkles className="w-6 h-6 text-amber-200/60 absolute bottom-3 right-4 animate-pulse" />
-                            
-                            <div className="flex flex-col gap-2 relative z-10 mb-1.5 w-full">
-                                {/* Controles (ACIMA) */}
-                                <div className="flex items-center justify-between gap-1.5 flex-wrap w-full">
-                                    <div className="flex items-center gap-1.5">
-                                        {/* Botão Fechar Card */}
-                                        <button
-                                            type="button"
-                                            onClick={onClose}
-                                            className="flex items-center gap-1 bg-black/20 hover:bg-red-500/60 text-white border border-white/25 hover:border-red-400/50 rounded-xl px-2.5 py-1 shadow-2xs backdrop-blur-xs text-xs font-bold transition-all cursor-pointer"
-                                            title="Fechar card"
-                                        >
-                                            <X className="w-3.5 h-3.5" />
-                                            <span className="hidden sm:inline">Fechar</span>
-                                        </button>
-
-                                        {/* Botão Minimizar Card Inteiro */}
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsCardMinimized(true)}
-                                            className="flex items-center gap-1 bg-black/20 hover:bg-black/40 text-white border border-white/25 rounded-xl px-2.5 py-1 shadow-2xs backdrop-blur-xs text-xs font-bold transition-all cursor-pointer"
-                                            title="Minimizar card para ver a roleta"
-                                        >
-                                            <Minimize2 className="w-3.5 h-3.5 text-amber-200" />
-                                            <span className="hidden sm:inline">Minimizar</span>
-                                        </button>
-                                        
-                                        {/* LEGENDA DO ALUNO */}
-                                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/20 text-amber-100 text-xs font-black uppercase tracking-widest backdrop-blur-sm shadow-sm border border-black/10">
-                                            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                                            <span className="hidden sm:inline">Aluno Sorteado</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                        {/* Chip para reacoplar cronômetro se minimizado */}
-                                        {timerViewMode === 'minimized' && (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setTimerViewMode('normal');
-                                                    try { localStorage.setItem('preferred_roulette_timer_mode', 'normal'); } catch (e) {}
-                                                }}
-                                                className="flex items-center gap-1 text-xs font-black text-slate-950 bg-amber-300 hover:bg-amber-200 px-2.5 py-1 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer animate-in fade-in"
-                                                title="Acoplar cronômetro de volta ao lado direito do card"
-                                            >
-                                                <span>💣</span>
-                                                <span className="hidden sm:inline">Acoplar Cronômetro</span>
-                                            </button>
+                        /* CABEÇALHO DO MODO INDIVIDUAL (LIMPO E ACOPLADO) */
+                        <div className="px-6 py-4 border-b border-slate-200 shrink-0 flex items-center justify-between gap-4 bg-white z-20 flex-wrap w-full">
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center justify-center w-12 h-12 rounded-2xl shadow-sm bg-gradient-to-br from-amber-400 to-orange-500 text-white shrink-0">
+                                    <User className="w-6 h-6" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                        <h1 className="text-2xl sm:text-3xl font-black text-slate-800 leading-tight text-left">{winner.name}</h1>
+                                        {winner.groupName && (
+                                            <span className="text-2xs font-bold px-2.5 py-0.5 rounded-full border shadow-sm text-white" style={{ backgroundColor: winner.groupColor || '#6366f1' }}>
+                                                👥 {winner.groupName}
+                                            </span>
                                         )}
-
-
-
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-2 py-0.5 bg-slate-100 rounded-full">Aluno Sorteado</span>
+                                        {onAbsent && (
+                                            <button 
+                                                onClick={onAbsent}
+                                                className="text-[10px] font-bold text-slate-400 hover:text-white px-2 py-0.5 hover:bg-red-500 rounded-full transition-colors cursor-pointer ml-1"
+                                                title="Marcar aluno como Ausente (faltou hoje à aula)"
+                                            >
+                                                Faltou?
+                                            </button>
+                                        )}                                    </div>
                                 </div>
-                                </div>
-
                             </div>
-
-                            <h1 className={`${nameSizeClass} font-black text-white drop-shadow-md flex items-center justify-center gap-3 relative z-10 flex-wrap transition-all text-center mt-2`}>
-                                <User className="w-8 h-8 sm:w-9 sm:h-9 text-amber-200 shrink-0" />
-                                <span>{winner.name}</span>
-                                {winner.groupName && (
-                                    <span 
-                                        className="text-xs font-bold px-2.5 py-1 rounded-full border shadow-2xs text-white"
-                                        style={{ backgroundColor: winner.groupColor || '#6366f1' }}
-                                    >
-                                        👥 {winner.groupName}
-                                    </span>
+                            
+                            <div className="flex items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
+                                {/* Seletor Retrátil de Alunos */}
+                                <StudentSelectorModal show={showStudentSelector} onClose={() => setShowStudentSelector(false)} allStudents={allStudents} activeStudents={activeStudents} winnerId={winner?.id} onSelect={handleSelectSpecificStudent} />
+                                
+                                {timerViewMode === 'minimized' && (
+                                    <button type="button" onClick={() => { setTimerViewMode('normal'); try { localStorage.setItem('preferred_roulette_timer_mode', 'normal'); } catch (e) {} }} className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-900 rounded-xl text-xs font-black transition-all shadow-xs">
+                                        <span>💣</span><span>Acoplar Bomba</span>
+                                    </button>
                                 )}
-                            </h1>
-
-                            {/* Seletor Retrátil de Alunos */}
-                            <StudentSelectorModal 
-                                show={showStudentSelector}
-                                onClose={() => setShowStudentSelector(false)}
-                                allStudents={allStudents}
-                                activeStudents={activeStudents}
-                                winnerId={winner?.id}
-                                onSelect={handleSelectSpecificStudent}
-                            />
+                                <button type="button" onClick={() => setIsCardMinimized(true)} className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors"><Minimize2 className="w-4 h-4" /></button>
+                                <button type="button" onClick={onClose} className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-colors"><X className="w-4 h-4" /></button>
+                            </div>
                             
                             {renderQuestionControlBar()}
                         </div>
@@ -828,12 +669,13 @@ export const RouletteCard = ({
                 {/* ============================================================ */}
                 {/* CORPO CENTRAL DO CARD (SCROLLÁVEL SE NECESSÁRIO) */}
                 {/* ============================================================ */}
-                <div className="p-5 sm:p-6 overflow-y-auto space-y-5 bg-slate-50/60 flex-1 custom-scrollbar">
+                <div className="p-6 sm:p-8 overflow-y-auto bg-transparent flex-1 custom-scrollbar w-full pb-36">
+                    <div className={`mx-auto w-full transition-all duration-500 max-w-6xl flex flex-col space-y-6`}>
                     
                     {/* ======================================================== */}
                     {/* CARD DA PERGUNTA DA RODADA (LARGURA TOTAL DO CARD DO ALUNO) */}
                     {/* ======================================================== */}
-                    <div className="w-full bg-white border-2 border-indigo-100 p-5 sm:p-6 rounded-2xl shadow-sm text-center relative flex flex-col justify-between transition-all duration-300" style={{ fontSize: `${fontScale}%` }}>
+                    <div className={`w-full text-center relative flex flex-col justify-between transition-all duration-300`} style={{ fontSize: `${fontScale}%` }}>
                         <div>
                             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -1010,49 +852,52 @@ export const RouletteCard = ({
                                 </div>
                             )}
                         </div>
-                            {/* ======================================================== */}
-                    {/* CONTEÚDO ESPECÍFICO: MODO "TODOS RESPONDEM" */}
-                    {/* ======================================================== */}
-                    {cardMode === 'todos_respondem' && (
-                        <RouletteModeTodosRespondem
-                            activeStudents={activeStudents}
-                            allStudents={allStudents}
-                            winner={winner}
-                            onBatchResult={onBatchResult}
-                            showSelectionGrid={showSelectionGrid}
-                            setShowSelectionGrid={setShowSelectionGrid}
-                            studentStatuses={studentStatuses}
-                            setStudentStatuses={setStudentStatuses}
-                        />
-                    )}                      {/* ======================================================== */}
-                    {/* CONTEÚDO ESPECÍFICO: MODO "PRECISO DE AJUDA" */}
-                    {/* ======================================================== */}
-                    {cardMode === 'preciso_de_ajuda' && (
-                        <RouletteModeAjuda
-                            winner={winner}
-                            activeStudents={activeStudents}
-                            helpTab={helpTab}
-                            setHelpTab={setHelpTab}
-                            isDrawingHelper={isDrawingHelper}
-                            helperStudent={helperStudent}
-                            setHelperStudent={setHelperStudent}
-                            drawingNameDisplay={drawingNameDisplay}
-                            handleDrawHelper={handleDrawHelper}
-                            availableHelpers={availableHelpers}
-                            onHelpResult={onHelpResult}
-                            showHintRevealed={showHintRevealed}
-                            setShowHintRevealed={setShowHintRevealed}
-                            getMaskedHint={getMaskedHint}
-                            onRevealHint={onRevealHint}
-                        />
-                    )}
-                </div>
+                    </div>
 
+                    <div className="w-full transition-all duration-500">
+                        {/* ======================================================== */}
+                        {/* CONTEÚDO ESPECÍFICO: MODO "TODOS RESPONDEM" */}
+                        {/* ======================================================== */}
+                        {cardMode === 'todos_respondem' && (
+                            <RouletteModeTodosRespondem
+                                activeStudents={activeStudents}
+                                allStudents={allStudents}
+                                winner={winner}
+                                onBatchResult={onBatchResult}
+                                showSelectionGrid={showSelectionGrid}
+                                setShowSelectionGrid={setShowSelectionGrid}
+                                studentStatuses={studentStatuses}
+                                setStudentStatuses={setStudentStatuses}
+                            />
+                        )}
+
+                        {/* ======================================================== */}
+                        {/* CONTEÚDO ESPECÍFICO: MODO "PRECISO DE AJUDA" */}
+                        {/* ======================================================== */}
+                        {cardMode === 'preciso_de_ajuda' && (
+                            <RouletteModeAjuda
+                                winner={winner}
+                                activeStudents={activeStudents}
+                                helpTab={helpTab}
+                                setHelpTab={setHelpTab}
+                                isDrawingHelper={isDrawingHelper}
+                                helperStudent={helperStudent}
+                                setHelperStudent={setHelperStudent}
+                                drawingNameDisplay={drawingNameDisplay}
+                                handleDrawHelper={handleDrawHelper}
+                                availableHelpers={availableHelpers}
+                                onHelpResult={onHelpResult}
+                                showHintRevealed={showHintRevealed}
+                                setShowHintRevealed={setShowHintRevealed}
+                                getMaskedHint={getMaskedHint}
+                                onRevealHint={onRevealHint}
+                            />
+                        )}
                 {/* ============================================================ */}
                 {/* RODAPÉ PRINCIPAL: AÇÕES DA ROLETA (MODO NORMAL) */}
                 {/* ============================================================ */}
                 {cardMode === 'normal' && (
-                    <div className="p-4 sm:p-5 bg-slate-100 border-t border-slate-200 flex flex-col gap-3 shrink-0">
+                    <div className="w-full transition-all duration-500 mt-6 bg-white/90 border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3 shrink-0">
                         {winner.isGroup ? (
                             /* RODAPÉ PARA ATIVIDADES EM GRUPO */
                             <div className="flex flex-col gap-2.5">
@@ -1080,10 +925,10 @@ export const RouletteCard = ({
                                                     onCorrect();
                                                 }
                                             }}
-                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 text-white font-black rounded-xl hover:bg-emerald-600 transition-all shadow-sm text-sm active:scale-95 cursor-pointer"
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-lg border border-emerald-200 hover:bg-emerald-500 hover:text-white transition-all text-xs active:scale-95 cursor-pointer"
                                         >
-                                            <CheckCircle className="w-4 h-4" />
-                                            Grupo Acertou! ✅
+                                            <CheckCircle className="w-3.5 h-3.5" />
+                                            Acertou ✅
                                         </button>
                                         
                                         <button 
@@ -1094,20 +939,20 @@ export const RouletteCard = ({
                                                     onIncorrect();
                                                 }
                                             }}
-                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-red-200 text-red-600 font-black rounded-xl hover:bg-red-50 hover:border-red-300 transition-all shadow-xs text-sm active:scale-95 cursor-pointer"
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-red-50 text-red-600 font-bold rounded-lg border border-red-200 hover:bg-red-500 hover:text-white transition-all text-xs active:scale-95 cursor-pointer"
                                         >
-                                            <XCircle className="w-4 h-4" />
-                                            Grupo Errou ❌
+                                            <XCircle className="w-3.5 h-3.5" />
+                                            Errou ❌
                                         </button>
                                     </div>
 
                                     <div className="flex w-full sm:w-auto items-center justify-end gap-2">
                                         <button 
                                             onClick={onSpinAgain}
-                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-200/90 border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-300 transition-all shadow-2xs text-xs sm:text-sm cursor-pointer"
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 text-slate-600 font-bold rounded-lg hover:bg-slate-100 border border-slate-200 transition-all text-xs cursor-pointer"
                                             title="Girar novamente para outro grupo sem penalizar"
                                         >
-                                            <RotateCw className="w-4 h-4 text-slate-500" />
+                                            <RotateCw className="w-3.5 h-3.5 text-slate-400" />
                                             <span>Rode Novamente</span>
                                         </button>
                                     </div>
@@ -1122,7 +967,7 @@ export const RouletteCard = ({
                                         onClick={() => {
                                             setCardMode('todos_respondem');
                                         }}
-                                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-black text-xs sm:text-sm text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-sm transition-all transform active:scale-95 group"
+                                        className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg font-bold text-xs text-indigo-700 bg-indigo-50 hover:bg-indigo-600 hover:text-white border border-indigo-200 transition-all transform active:scale-95 group"
                                     >
                                         <span className="text-base group-hover:scale-125 transition-transform">⚡</span>
                                         <span className="truncate">Todos Respondem!</span>
@@ -1133,12 +978,12 @@ export const RouletteCard = ({
                                             setCardMode('preciso_de_ajuda');
                                             gameAudio.playHelp();
                                         }}
-                                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-black text-xs sm:text-sm text-sky-900 bg-sky-200 hover:bg-sky-300 border border-sky-300 shadow-xs transition-all transform active:scale-95"
+                                        className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg font-bold text-xs text-sky-700 bg-sky-50 hover:bg-sky-500 hover:text-white border border-sky-200 transition-all transform active:scale-95 group"
                                     >
-                                        <HeartHandshake className="w-4 h-4 text-sky-700 shrink-0" />
+                                        <HeartHandshake className="w-3.5 h-3.5 text-sky-500 group-hover:text-white shrink-0" />
                                         <span className="truncate">Preciso de Ajuda</span>
                                         {hadHelp && (
-                                            <span className="ml-1 text-2xs bg-sky-300 text-sky-950 px-1 py-0.5 rounded font-bold whitespace-nowrap">
+                                            <span className="ml-1 text-2xs bg-sky-200 text-sky-900 group-hover:bg-white group-hover:text-sky-700 px-1 py-0.5 rounded font-black whitespace-nowrap">
                                                 {helpCount > 1 ? `(${helpCount}x)` : 'Já usou'}
                                             </span>
                                         )}
@@ -1150,17 +995,17 @@ export const RouletteCard = ({
                                     <div className="flex w-full sm:w-auto gap-2 flex-1">
                                         <button 
                                             onClick={onCorrect}
-                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-500 text-white font-black rounded-lg hover:bg-emerald-600 transition-all shadow-sm text-sm active:scale-95 cursor-pointer"
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-lg border border-emerald-200 hover:bg-emerald-500 hover:text-white transition-all text-xs active:scale-95 cursor-pointer"
                                         >
-                                            <CheckCircle className="w-4 h-4" />
+                                            <CheckCircle className="w-3.5 h-3.5" />
                                             Acertou
                                         </button>
                                         
                                         <button 
                                             onClick={onIncorrect}
-                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border-2 border-red-200 text-red-600 font-black rounded-lg hover:bg-red-50 hover:border-red-300 transition-all shadow-xs text-sm active:scale-95 cursor-pointer"
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-red-50 text-red-600 font-bold rounded-lg border border-red-200 hover:bg-red-500 hover:text-white transition-all text-xs active:scale-95 cursor-pointer"
                                         >
-                                            <XCircle className="w-4 h-4" />
+                                            <XCircle className="w-3.5 h-3.5" />
                                             Errou
                                         </button>
                                     </div>
@@ -1169,29 +1014,20 @@ export const RouletteCard = ({
                                         {/* RODE NOVAMENTE: NÃO REMOVE DA LISTA */}
                                         <button 
                                             onClick={onSpinAgain}
-                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-200/90 border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-300 transition-all shadow-2xs text-xs cursor-pointer h-full"
+                                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-50 text-slate-600 font-bold rounded-lg hover:bg-slate-100 border border-slate-200 transition-all text-xs cursor-pointer h-full"
                                             title="Girar novamente sem remover nem penalizar o aluno (permanece ativo na lista)"
                                         >
-                                            <RotateCw className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                            <RotateCw className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                                             <span className="truncate">Rode Novamente</span>
                                         </button>
-
-                                        {/* Opção separada e discreta se o aluno faltou hoje */}
-                                        {onAbsent && (
-                                            <button 
-                                                onClick={onAbsent}
-                                                className="text-2xs font-semibold text-slate-400 hover:text-orange-600 px-2 transition-colors cursor-pointer shrink-0"
-                                                title="Marcar aluno como Ausente (faltou hoje à aula)"
-                                            >
-                                                Faltou?
-                                            </button>
-                                        )}
                                     </div>
                                 </div>
                             </div>
                         )}
                     </div>
                 )}
+                    </div>
+                </div>
 
             </div>
             {/* FIM DO CARD PRINCIPAL DO ALUNO */}
@@ -1200,7 +1036,7 @@ export const RouletteCard = ({
             {/* 2. PAINEL DIREITO: CRONÔMETRO BOMBA ACOPLADO (MESMA ALTURA) */}
             {/* ============================================================ */}
             <div className={timerViewMode === 'normal' 
-                ? 'w-full lg:w-[380px] xl:w-[415px] 2xl:w-[435px] shrink-0 h-full self-stretch flex flex-col animate-in fade-in slide-in-from-right-3 duration-300' 
+                ? 'w-full lg:w-[380px] xl:w-[415px] 2xl:w-[435px] shrink-0 h-full self-stretch flex flex-col animate-in fade-in slide-in-from-right-3 duration-300 bg-slate-900 border-l border-slate-200/20 relative z-40' 
                 : 'contents'
             }>
                 <RouletteTimerBomb 

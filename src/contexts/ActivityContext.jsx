@@ -176,7 +176,7 @@ export const ActivityProvider = ({ children }) => {
 
     // --- DERIVED STATE ---
     const activeActivity = useMemo(() => {
-        if (activityType === 'about_system' || activityType === 'dashboard' || activityType === 'merge_pdf') return null;
+        if (activityType === 'about_system' || activityType === 'dashboard' || activityType === 'merge_pdf' || activityType === 'reports') return null;
         const foundActive = tabs.find(t => t.id === activeTabId && !t.hidden);
         if (foundActive) return foundActive;
         const foundAnyVisibleOfSameType = tabs.find(t => !t.hidden && t.type === activityType);
@@ -387,7 +387,7 @@ export const ActivityProvider = ({ children }) => {
 
     // Activity Switch Logic
     const handleActivityTypeChange = (type) => {
-        if (type === 'about_system' || type === 'dashboard' || type === 'merge_pdf') {
+        if (type === 'about_system' || type === 'dashboard' || type === 'merge_pdf' || type === 'reports') {
             setActivityType(type);
             setActiveTabId(null);
             return;
@@ -486,10 +486,47 @@ export const ActivityProvider = ({ children }) => {
         }));
     };
 
+    const saveClassUpdates = (classId, updater) => {
+        if (!classId) return;
+        let updatedClass = null;
+        setClasses(prevClasses => {
+            const safePrev = Array.isArray(prevClasses) ? prevClasses : [];
+            const existingClass = safePrev.find(c => String(c.id) === String(classId));
+            if (existingClass) {
+                updatedClass = updater(existingClass);
+                return safePrev.map(c => String(c.id) === String(classId) ? updatedClass : c);
+            }
+            return prevClasses;
+        });
+
+        // Atualiza a activity atual caso ela esteja com essa turma carregada
+        if (updatedClass && activeActivity && (String(activeActivity.classId) === String(classId) || String(activeActivity.classData?.id) === String(classId))) {
+            updateActivityData(activeActivity.id, {
+                classData: updatedClass
+            });
+        }
+    };
+
+    const updateStudentInClass = (classId, studentId, updates, historyEntry = null) => {
+        saveClassUpdates(classId, prev => {
+            const newStudents = (prev.students || []).map(s => {
+                if (String(s.id) === String(studentId)) {
+                    const updatedStudent = { ...s, ...updates };
+                    if (historyEntry) {
+                        updatedStudent.history = [...(s.history || []), historyEntry];
+                    }
+                    return updatedStudent;
+                }
+                return s;
+            });
+            return { ...prev, students: newStudents };
+        });
+    };
+
     const projectValue = useMemo(() => ({
         projectId, projectName, setProjectName, isLoadingProject,
-        classes, setClasses
-    }), [projectId, projectName, isLoadingProject, classes]);
+        classes, setClasses, saveClassUpdates, updateStudentInClass
+    }), [projectId, projectName, isLoadingProject, classes, activeActivity]);
 
     const tabsValue = useMemo(() => ({
         tabs, setTabs,

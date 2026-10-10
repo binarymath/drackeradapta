@@ -307,7 +307,7 @@ export const MainLayout = () => {
     ], [activityOptions]);
 
     const showDashboard = activityType === 'dashboard' && !activeActivity;
-    const showHero = (!activeActivity && !['merge_pdf', 'video_gallery', 'chat_dracker', 'simplify', 'dashboard'].includes(activityType)) || activeActivity?.type === 'about_system' || activityType === 'about_system';
+    const showHero = (!activeActivity && !['merge_pdf', 'video_gallery', 'chat_dracker', 'simplify', 'dashboard', 'reports'].includes(activityType)) || activeActivity?.type === 'about_system' || activityType === 'about_system';
 
     return (
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">

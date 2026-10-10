@@ -6,12 +6,12 @@ import { gameAudio } from '../../../utils/gameAudio';
 import { useRouletteHandlers } from './useRouletteHandlers';
 
 export const STAGE_THEMES = {
-    slot_machine: { container: 'bg-gradient-to-b from-slate-950 via-red-950/40 to-slate-950 border-amber-500/40 shadow-[0_25px_60px_rgba(245,158,11,0.18)]', spotlight: 'radial-gradient(circle at center, rgba(245,158,11,0.18) 0%, transparent 70%)', button: 'bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 text-slate-950 font-black shadow-[0_10px_25px_rgba(245,158,11,0.4)] border-2 border-yellow-200 hover:brightness-110', label: 'PUXAR ALAVANCA / GIRAR! 🪙', spinningLabel: 'Girando os Rolos...' },
-    marquee: { container: 'bg-gradient-to-b from-slate-950 via-slate-900 to-black border-slate-700/80 shadow-[0_25px_60px_rgba(0,0,0,0.6)]', spotlight: 'radial-gradient(circle at center, rgba(251,191,36,0.14) 0%, transparent 70%)', button: 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 text-white font-black shadow-amber-600/30 border-2 border-amber-400 hover:brightness-110', label: 'SORTEAR NO LETREIRO! 🔤', spinningLabel: 'Alternando Nomes...' },
-    classic: { container: 'bg-gradient-to-b from-emerald-950 via-slate-950 to-emerald-950 border-emerald-500/40 shadow-[0_25px_60px_rgba(16,185,129,0.15)]', spotlight: 'radial-gradient(circle at center, rgba(253,224,71,0.16) 0%, transparent 70%)', button: 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 font-black shadow-amber-500/30 border-2 border-amber-300 hover:brightness-110', label: 'GIRAR ROLETA VEGAS! 🎰', spinningLabel: 'Girando a Roda...' },
-    cyberpunk: { container: 'bg-gradient-to-b from-slate-950 via-purple-950/40 to-slate-950 border-cyan-500/40 shadow-[0_25px_60px_rgba(6,182,212,0.22)]', spotlight: 'radial-gradient(circle at center, rgba(6,182,212,0.2) 0%, transparent 70%)', button: 'bg-gradient-to-r from-cyan-500 via-fuchsia-600 to-cyan-500 text-white font-black shadow-[0_10px_25px_rgba(6,182,212,0.4)] border-2 border-cyan-300 hover:brightness-110', label: 'LOCK TARGET / SCAN! ⚡', spinningLabel: 'Escaneando Alunos...' },
-    arcade: { container: 'bg-gradient-to-b from-slate-950 via-indigo-950/50 to-black border-yellow-400/40 shadow-[0_25px_60px_rgba(250,204,21,0.18)]', spotlight: 'radial-gradient(circle at center, rgba(250,204,21,0.15) 0%, transparent 70%)', button: 'bg-yellow-400 text-black font-black border-4 border-black shadow-[5px_5px_0px_#000] hover:bg-yellow-300', label: 'PRESS START / GIRAR! 👾', spinningLabel: 'Player 1 Sorteando...' },
-    cosmic: { container: 'bg-gradient-to-b from-slate-950 via-purple-950/60 to-indigo-950 border-purple-500/40 shadow-[0_25px_60px_rgba(168,85,247,0.22)]', spotlight: 'radial-gradient(circle at center, rgba(168,85,247,0.2) 0%, transparent 70%)', button: 'bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-black shadow-purple-600/30 border-2 border-purple-300 hover:brightness-110', label: 'INVOCAR ASTROS / GIRAR! 🌌', spinningLabel: 'Alinhando os Astros...' }
+    slot_machine: { container: 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-900 via-slate-900 to-black border-amber-500/30 shadow-inner', spotlight: 'radial-gradient(circle at center, rgba(245,158,11,0.15) 0%, transparent 70%)', button: 'bg-gradient-to-br from-amber-400 to-amber-600 text-white font-black shadow-[0_0_20px_rgba(245,158,11,0.4)] hover:shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:from-amber-300 hover:to-amber-500 active:scale-95 transition-all rounded-full border border-amber-300', label: 'SORTEAR ALUNO 🪙', spinningLabel: 'Girando os Rolos...' },
+    marquee: { container: 'bg-slate-950 border-slate-700 shadow-inner', spotlight: 'radial-gradient(circle at center, rgba(59,130,246,0.15) 0%, transparent 70%)', button: 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-black shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] hover:from-blue-400 hover:to-indigo-500 active:scale-95 transition-all rounded-full border border-blue-400', label: 'SORTEAR ALUNO 🔤', spinningLabel: 'Alternando Nomes...' },
+    classic: { container: 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-950 to-slate-950 border-red-900/50 shadow-inner', spotlight: 'radial-gradient(circle at center, rgba(239,68,68,0.15) 0%, transparent 70%)', button: 'bg-gradient-to-br from-red-500 to-rose-600 text-white font-black shadow-[0_0_20px_rgba(239,68,68,0.4)] hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] hover:from-red-400 hover:to-rose-500 active:scale-95 transition-all rounded-full border border-red-400', label: 'GIRAR ROLETA 🎰', spinningLabel: 'Girando a Roda...' },
+    cyberpunk: { container: 'bg-slate-900 border-fuchsia-500/50 shadow-[inset_0_0_20px_rgba(217,70,239,0.1)]', spotlight: 'radial-gradient(circle at center, rgba(217,70,239,0.15) 0%, transparent 70%)', button: 'bg-gradient-to-br from-fuchsia-500 to-purple-700 text-white font-black shadow-[0_0_25px_rgba(217,70,239,0.5)] hover:shadow-[0_0_35px_rgba(217,70,239,0.7)] hover:from-fuchsia-400 hover:to-purple-600 active:scale-95 transition-all rounded-none border-b-4 border-r-4 border-fuchsia-300', label: 'SORTEAR ALUNO ⚡', spinningLabel: 'Escaneando Alunos...' },
+    arcade: { container: 'bg-slate-900 border-cyan-500/50 shadow-[inset_0_0_20px_rgba(6,182,212,0.1)]', spotlight: 'radial-gradient(circle at center, rgba(6,182,212,0.15) 0%, transparent 70%)', button: 'bg-gradient-to-br from-cyan-400 to-blue-600 text-white font-black shadow-[0_0_20px_rgba(6,182,212,0.5)] hover:shadow-[0_0_30px_rgba(6,182,212,0.7)] hover:from-cyan-300 hover:to-blue-500 active:scale-95 transition-all rounded-xl border-b-4 border-cyan-200', label: 'SORTEAR ALUNO 👾', spinningLabel: 'Sorteando...' },
+    cosmic: { container: 'bg-slate-950 border-violet-500/30 shadow-[inset_0_0_30px_rgba(139,92,246,0.1)]', spotlight: 'radial-gradient(circle at center, rgba(139,92,246,0.2) 0%, transparent 70%)', button: 'bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white font-black shadow-[0_0_30px_rgba(139,92,246,0.6)] hover:shadow-[0_0_40px_rgba(139,92,246,0.8)] hover:from-violet-400 hover:to-fuchsia-500 active:scale-95 transition-all rounded-full border border-violet-400', label: 'GIRAR ROLETA 🌌', spinningLabel: 'Sorteando...' }
 };
 
 export const useRouletteCore = () => {
@@ -64,6 +64,12 @@ export const useRouletteCore = () => {
         }
     }, [isClassActive, activeActivity?.id, updateActivityData]);
 
+    // O ID da turma e os dados vêm da aba ativa
+    const classId = activeActivity?.classId;
+    
+    // Procura a turma vinculada, ou usa os dados próprios da aba (classData), ou primeira turma disponível, ou gera turma automática
+    const currentClass = useCurrentClass(classes, classId, activeActivity);
+
     // Registra todos os toques nos botões da roleta, trocas de aluno, trocas de pergunta, ausências e decisões
     const logTeacherAction = useCallback((type, title, description, details = {}) => {
         if (!isClassActive) return;
@@ -93,6 +99,7 @@ export const useRouletteCore = () => {
             elapsedFormatted,
             sessionId: currentSessionId,
             activityId: activeActivity?.id || null,
+            className: currentClass?.name || 'Turma não identificada',
             topic: activeActivity?.topic || activeActivity?.title || 'Sem tema',
             gameMode,
             type,
@@ -109,16 +116,10 @@ export const useRouletteCore = () => {
             }
             return updated;
         });
-    }, [currentSessionId, sessionStartTime, gameMode, activeActivity?.id, updateActivityData]);
+    }, [currentSessionId, sessionStartTime, gameMode, activeActivity?.id, updateActivityData, currentClass?.name]);
 
     // Estado de visibilidade do Sidebar retrátil de alunos e placar (abre para a direita a partir da esquerda)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-    // O ID da turma e os dados vêm da aba ativa
-    const classId = activeActivity?.classId;
-    
-    // Procura a turma vinculada, ou usa os dados próprios da aba (classData), ou primeira turma disponível, ou gera turma automática
-    const currentClass = useCurrentClass(classes, classId, activeActivity);
 
     // Sincroniza e registra a turma no estado global de turmas do professor
     useEffect(() => {
@@ -459,29 +460,15 @@ export const useRouletteCore = () => {
         });
     }, [currentClass, currentGroups, uniqueQuestions]);
 
-    // Função mestra unificada para salvar alterações na turma (atualiza classes globalmente e activeActivity.classData)
+    // Função mestra unificada para salvar alterações na turma agora vem do ActivityContext
+    // Mas para manter compatibilidade com o código atual do useRouletteCore que não passa o classId,
+    // criamos um wrapper local
+    const { saveClassUpdates: globalSaveClassUpdates, updateStudentInClass: globalUpdateStudent } = useActivity();
+    
     const saveClassUpdates = (updater) => {
         const targetClassId = currentClass?.id || classId;
-        if (!targetClassId || !currentClass) return;
-
-        const updatedClass = updater(currentClass);
-
-        setClasses(prevClasses => {
-            const safePrev = Array.isArray(prevClasses) ? prevClasses : [];
-            const exists = safePrev.some(c => String(c.id) === String(targetClassId));
-            if (exists) {
-                return safePrev.map(c => String(c.id) === String(targetClassId) ? updatedClass : c);
-            } else {
-                return [...safePrev, updatedClass];
-            }
-        });
-
-        if (activeActivity?.id && updateActivityData) {
-            updateActivityData(activeActivity.id, {
-                classId: targetClassId,
-                classData: updatedClass
-            });
-        }
+        if (!targetClassId) return;
+        globalSaveClassUpdates(targetClassId, updater);
     };
 
     // Reconciliação inteligente: Garante que pontos e histórico de equipes anteriores reflitam na pontuação individual

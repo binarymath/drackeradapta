@@ -13,9 +13,11 @@ export const RouletteModeTodosRespondem = ({
     studentStatuses = {},
     setStudentStatuses
 }) => {
-    const studentsToList = (allStudents && allStudents.length > 0) 
+    const baseStudents = (allStudents && allStudents.length > 0) 
         ? allStudents.filter(s => s.status !== 'absent') 
         : activeStudents;
+
+    const studentsToList = [...baseStudents].sort((a, b) => a.name.localeCompare(b.name));
 
     return (
         <div className="bg-indigo-50/90 border-2 border-indigo-200 p-5 rounded-2xl space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -37,24 +39,33 @@ export const RouletteModeTodosRespondem = ({
                                 });
                             }
                         }}
-                        className="p-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-1"
+                        disabled={showSelectionGrid}
+                        className={`p-3.5 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex flex-col items-center justify-center gap-1 ${
+                            showSelectionGrid 
+                                ? 'bg-slate-100 text-slate-400 border-2 border-slate-200 opacity-50 cursor-not-allowed' 
+                                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white'
+                        }`}
                     >
                         <span className="flex items-center gap-1.5 text-base">
                             🏆 Toda a Turma Acertou!
                         </span>
-                        <span className="text-2xs text-emerald-100 font-normal">
+                        <span className={`text-2xs font-normal ${showSelectionGrid ? 'text-slate-400' : 'text-emerald-100'}`}>
                             +1 ponto para todos os {studentsToList.length} alunos
                         </span>
                     </button>
 
                     <button
                         onClick={() => setShowSelectionGrid(!showSelectionGrid)}
-                        className="p-3.5 bg-white border-2 border-indigo-300 text-indigo-800 hover:bg-indigo-50 rounded-xl font-bold text-sm shadow-xs transition-all active:scale-95 flex flex-col items-center justify-center gap-1"
+                        className={`p-3.5 rounded-xl font-bold text-sm shadow-xs transition-all active:scale-95 flex flex-col items-center justify-center gap-1 border-2 ${
+                            showSelectionGrid
+                                ? 'bg-indigo-50 border-indigo-400 text-indigo-900 ring-2 ring-indigo-200'
+                                : 'bg-white border-indigo-300 text-indigo-800 hover:bg-indigo-50'
+                        }`}
                     >
                         <span className="flex items-center gap-1.5 text-base">
                             🎯 Marcar Quem Acertou
                         </span>
-                        <span className="text-2xs text-indigo-600 font-normal">
+                        <span className={`text-2xs font-normal ${showSelectionGrid ? 'text-indigo-700' : 'text-indigo-600'}`}>
                             {showSelectionGrid ? 'Ocultar lista seletiva' : 'Escolher alunos que acertaram'}
                         </span>
                     </button>
@@ -92,7 +103,7 @@ export const RouletteModeTodosRespondem = ({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-1 custom-scrollbar">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-1">
                             {studentsToList.map(student => {
                                 const status = studentStatuses[student.id] || 'unselected';
                                 

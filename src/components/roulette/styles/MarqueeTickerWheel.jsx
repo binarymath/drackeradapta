@@ -179,149 +179,127 @@ export const MarqueeTickerWheel = ({ items = [], spinning = false, winner = null
     const activeItem = items[safeIdx] || items[0];
     const nextItem = items[(safeIdx + 1) % items.length];
 
+    const getFontSize = (name, isMax) => {
+        const len = name ? name.length : 0;
+        if (len > 22) return isMax ? 'text-2xl sm:text-3xl md:text-4xl' : 'text-xl sm:text-2xl md:text-3xl';
+        if (len > 14) return isMax ? 'text-3xl sm:text-4xl md:text-5xl' : 'text-2xl sm:text-3xl md:text-4xl';
+        return isMax ? 'text-4xl sm:text-5xl md:text-6xl' : 'text-3xl sm:text-4xl md:text-5xl';
+    };
+
     return (
         <div className={`relative w-full ${
-            isMaximized ? 'max-w-3xl sm:max-w-4xl md:max-w-5xl' : 'max-w-lg'
-        } mx-auto flex flex-col items-center select-none transition-all duration-300`}>
-            {/* Chassis Principal Estilo Painel de Aeroporto / Estação Ferroviária */}
-            <div className={`w-full bg-gradient-to-b from-slate-950 via-slate-900 to-black rounded-3xl ${
-                isMaximized ? 'p-4 sm:p-6 md:p-7' : 'p-5 sm:p-6'
-            } shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(245,158,11,0.15)] border-4 border-slate-800 relative overflow-hidden`}>
+            isMaximized ? 'max-w-5xl sm:max-w-6xl md:max-w-[90rem]' : 'max-w-4xl'
+        } mx-auto flex flex-col items-center justify-center select-none py-6 transition-all duration-300`}>
+            
+            {/* ESTRUTURA PRINCIPAL DO LETREIRO (Broadway Style) */}
+            <div className="relative w-full flex flex-col items-center bg-zinc-950 p-6 sm:p-8 md:p-10 rounded-2xl sm:rounded-[2rem] border-8 border-zinc-900 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.9),inset_0_4px_20px_rgba(0,0,0,0.8)]">
                 
-                {/* Textura de Linhas de LED sutis */}
-                <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-40" />
-
-                {/* Parafusos nos quatro cantos industriais */}
-                <div className="absolute top-2.5 left-2.5 w-2.5 h-2.5 rounded-full bg-slate-600 border border-slate-400 shadow-inner flex items-center justify-center">
-                    <div className="w-1.5 h-[1px] bg-slate-800" />
-                </div>
-                <div className="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-slate-600 border border-slate-400 shadow-inner flex items-center justify-center">
-                    <div className="w-1.5 h-[1px] bg-slate-800 rotate-90" />
-                </div>
-                <div className="absolute bottom-2.5 left-2.5 w-2.5 h-2.5 rounded-full bg-slate-600 border border-slate-400 shadow-inner flex items-center justify-center">
-                    <div className="w-1.5 h-[1px] bg-slate-800 rotate-45" />
-                </div>
-                <div className="absolute bottom-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-slate-600 border border-slate-400 shadow-inner flex items-center justify-center">
-                    <div className="w-1.5 h-[1px] bg-slate-800 -rotate-45" />
-                </div>
-
-                {/* Top Header do Letreiro */}
-                <div className={`flex items-center justify-between ${isMaximized ? 'pb-2.5 mb-3' : 'pb-3 mb-4'} border-b border-slate-800/80`}>
-                    <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                {/* LÂMPADAS DE BORDA (Dots iluminados estilo camarim/cinema) */}
+                <div className="absolute inset-0 m-2 sm:m-3 border-[3px] border-zinc-800 rounded-xl sm:rounded-3xl pointer-events-none" />
+                {/* Array de lâmpadas simulado via position absolute */}
+                <div className="absolute top-1 left-4 right-4 flex justify-between z-10">
+                    {[...Array(isMaximized ? 20 : 12)].map((_, i) => (
+                        <div key={`t-${i}`} className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-100 ${
                             spinning 
-                                ? 'bg-amber-400 shadow-[0_0_12px_#f59e0b] animate-ping' 
-                                : lockedWinner
-                                    ? 'bg-emerald-400 shadow-[0_0_12px_#10b981]'
-                                    : 'bg-emerald-500 shadow-[0_0_8px_#10b981]'
+                                ? (i % 2 === 0 ? (spotlightPulse ? 'bg-yellow-200 shadow-[0_0_12px_#fef08a]' : 'bg-yellow-900/40') : (!spotlightPulse ? 'bg-yellow-200 shadow-[0_0_12px_#fef08a]' : 'bg-yellow-900/40'))
+                                : lockedWinner 
+                                    ? 'bg-yellow-200 shadow-[0_0_15px_#fde047] animate-pulse'
+                                    : 'bg-yellow-800/60 shadow-none'
                         }`} />
-                        <span className={`font-mono ${isMaximized ? 'text-xs sm:text-base' : 'text-[11px] sm:text-xs'} font-black tracking-widest text-amber-400/90 uppercase`}>
-                            {spinning ? 'SORTEANDO PARTICIPANTE...' : lockedWinner ? 'ALUNO SORTEADO 🏆' : 'LETREIRO ELETRÔNICO PRONTO'}
-                        </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 bg-black/60 px-2.5 py-1 rounded-md border border-slate-800">
-                        <span className="text-[10px] font-mono font-bold text-slate-400">TOTAL:</span>
-                        <span className="text-[11px] font-mono font-black text-amber-300">{items.length}</span>
-                    </div>
+                    ))}
+                </div>
+                <div className="absolute bottom-1 left-4 right-4 flex justify-between z-10">
+                    {[...Array(isMaximized ? 20 : 12)].map((_, i) => (
+                        <div key={`b-${i}`} className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-100 ${
+                            spinning 
+                                ? (i % 2 !== 0 ? (spotlightPulse ? 'bg-yellow-200 shadow-[0_0_12px_#fef08a]' : 'bg-yellow-900/40') : (!spotlightPulse ? 'bg-yellow-200 shadow-[0_0_12px_#fef08a]' : 'bg-yellow-900/40'))
+                                : lockedWinner 
+                                    ? 'bg-yellow-200 shadow-[0_0_15px_#fde047] animate-pulse'
+                                    : 'bg-yellow-800/60 shadow-none'
+                        }`} />
+                    ))}
+                </div>
+                <div className="absolute left-1 top-4 bottom-4 flex flex-col justify-between z-10">
+                    {[...Array(isMaximized ? 8 : 6)].map((_, i) => (
+                        <div key={`l-${i}`} className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-100 ${
+                            spinning 
+                                ? (i % 2 === 0 ? (spotlightPulse ? 'bg-yellow-200 shadow-[0_0_12px_#fef08a]' : 'bg-yellow-900/40') : (!spotlightPulse ? 'bg-yellow-200 shadow-[0_0_12px_#fef08a]' : 'bg-yellow-900/40'))
+                                : lockedWinner 
+                                    ? 'bg-yellow-200 shadow-[0_0_15px_#fde047] animate-pulse'
+                                    : 'bg-yellow-800/60 shadow-none'
+                        }`} />
+                    ))}
+                </div>
+                <div className="absolute right-1 top-4 bottom-4 flex flex-col justify-between z-10">
+                    {[...Array(isMaximized ? 8 : 6)].map((_, i) => (
+                        <div key={`r-${i}`} className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-100 ${
+                            spinning 
+                                ? (i % 2 !== 0 ? (spotlightPulse ? 'bg-yellow-200 shadow-[0_0_12px_#fef08a]' : 'bg-yellow-900/40') : (!spotlightPulse ? 'bg-yellow-200 shadow-[0_0_12px_#fef08a]' : 'bg-yellow-900/40'))
+                                : lockedWinner 
+                                    ? 'bg-yellow-200 shadow-[0_0_15px_#fde047] animate-pulse'
+                                    : 'bg-yellow-800/60 shadow-none'
+                        }`} />
+                    ))}
                 </div>
 
-                {/* Janela Central Mecânica: Display Split-Flap de 3 Faixas */}
-                <div className={`relative bg-black rounded-2xl ${isMaximized ? 'p-3 sm:p-4' : 'p-2 sm:p-3'} border-2 border-slate-800/90 shadow-inner overflow-hidden`}>
+                {/* VISOR CENTRAL DO LETREIRO */}
+                <div className="relative w-full bg-black rounded-lg border-2 border-zinc-800 shadow-[inset_0_10px_30px_rgba(0,0,0,1)] p-4 sm:p-6 overflow-hidden flex flex-col justify-center mt-2">
                     
-                    {/* Linha Superior (Nome Anterior - Faded) */}
-                    <div className={`${isMaximized ? 'h-10 sm:h-14 text-sm sm:text-lg' : 'h-10 sm:h-12 text-sm sm:text-base'} flex items-center justify-center opacity-30 text-slate-300 font-mono tracking-wider overflow-hidden`}>
-                        {prevItem?.name ? prevItem.name.split(' ')[0].toUpperCase() : '---'}
+                    {/* Trilhos horizontais simulados */}
+                    <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 19px, #fff 20px)' }}></div>
+                    
+                    {/* Linha Superior (Nome Anterior - Faded Neon) */}
+                    <div className={`${isMaximized ? 'h-10 sm:h-14 text-lg sm:text-2xl' : 'h-10 sm:h-12 text-base sm:text-xl'} flex items-center justify-center opacity-20 text-amber-500 font-black tracking-[0.3em] uppercase blur-[2px] truncate w-full px-4`}>
+                        {prevItem?.name || '---'}
                     </div>
 
-                    {/* Faixa Central em Destaque: O Split-Flap Principal */}
-                    <div className={`relative ${isMaximized ? 'h-24 sm:h-28 md:h-32 xl:h-44 my-2' : 'h-20 sm:h-24 my-1'} rounded-xl bg-gradient-to-b from-slate-900 via-slate-950 to-black border-2 transition-all duration-200 flex items-center justify-center shadow-2xl overflow-hidden ${
+                    {/* Faixa Central em Destaque (Neon Brilhante) */}
+                    <div className={`relative ${isMaximized ? 'h-24 sm:h-32 md:h-40 my-4' : 'h-20 sm:h-28 my-3'} bg-zinc-900/50 rounded-lg flex items-center justify-center overflow-hidden border border-amber-900/30 ${
                         lockedWinner 
-                            ? 'border-amber-400/90 shadow-[0_0_35px_rgba(245,158,11,0.4)] scale-[1.02]' 
-                            : spinning 
-                                ? 'border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.25)]' 
-                                : 'border-slate-700/60'
+                            ? 'shadow-[0_0_40px_rgba(251,191,36,0.2)]' 
+                            : ''
                     }`}>
-                        {/* Linha Horizontal de Corte Mecânico (Split Crease) */}
-                        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] bg-black shadow-[0_1px_0_rgba(255,255,255,0.15)] z-20 pointer-events-none" />
-
-                        {/* Dobradiças laterais do Split-Flap */}
-                        <div className="absolute left-1 top-1/2 -translate-y-1/2 w-2 h-4 bg-slate-700 rounded-sm border border-slate-500 z-30" />
-                        <div className="absolute right-1 top-1/2 -translate-y-1/2 w-2 h-4 bg-slate-700 rounded-sm border border-slate-500 z-30" />
-
-                        {/* Brilho Superior do Cartão de Aba */}
-                        <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/[0.08] to-transparent pointer-events-none" />
-
-                        {/* Nome do Aluno Ativo */}
-                        <div className={`z-10 px-4 sm:px-6 text-center font-mono font-black transition-all ${
-                            isFlipping ? 'scale-95 opacity-90' : 'scale-100 opacity-100'
-                        }`}>
-                            <span className={`${isMaximized ? 'text-2xl sm:text-4xl md:text-4xl xl:text-5xl' : 'text-xl sm:text-2xl md:text-3xl'} tracking-widest uppercase truncate block ${
+                        <div className={`z-10 px-4 sm:px-6 text-center transition-transform w-full ${
+                            isFlipping ? '-translate-y-full opacity-0 scale-95 blur-[4px]' : 'translate-y-0 opacity-100 scale-100 blur-none'
+                        } duration-100`}>
+                            <span className={`${getFontSize(activeItem?.name, isMaximized)} font-black tracking-widest block uppercase truncate w-full ${
                                 lockedWinner
-                                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 drop-shadow-[0_2px_10px_rgba(253,224,71,0.6)] animate-pulse'
+                                    ? 'text-amber-300 drop-shadow-[0_0_15px_#f59e0b]'
                                     : spinning
-                                        ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
-                                        : 'text-slate-100'
-                            }`}>
-                                {activeItem?.name ? activeItem.name.split(' ')[0].toUpperCase() : 'SELECIONE'}
+                                        ? 'text-amber-500 drop-shadow-[0_0_8px_#b45309]'
+                                        : 'text-amber-400 drop-shadow-[0_0_10px_#d97706]'
+                            }`} style={{ textShadow: lockedWinner ? '0 0 15px #fde047, 0 0 30px #f59e0b, 0 0 45px #b45309' : '0 0 10px #b45309' }}>
+                                {activeItem?.name || 'SELECIONE'}
                             </span>
                         </div>
-
-                        {/* Holofotes laterais de iluminação */}
-                        {lockedWinner && (
-                            <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-transparent to-amber-500/10 pointer-events-none animate-pulse" />
-                        )}
                     </div>
 
-                    {/* Linha Inferior (Próximo Nome - Faded) */}
-                    <div className={`${isMaximized ? 'h-10 sm:h-14 text-sm sm:text-lg' : 'h-10 sm:h-12 text-sm sm:text-base'} flex items-center justify-center opacity-30 text-slate-300 font-mono tracking-wider overflow-hidden`}>
-                        {nextItem?.name ? nextItem.name.split(' ')[0].toUpperCase() : '---'}
+                    {/* Linha Inferior (Próximo Nome - Faded Neon) */}
+                    <div className={`${isMaximized ? 'h-10 sm:h-14 text-lg sm:text-2xl' : 'h-10 sm:h-12 text-base sm:text-xl'} flex items-center justify-center opacity-20 text-amber-500 font-black tracking-[0.3em] uppercase blur-[2px] truncate w-full px-4`}>
+                        {nextItem?.name || '---'}
                     </div>
 
-                    {/* Foco Centralizador Indicador Lateral */}
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 text-amber-500 text-lg font-black pl-1 pointer-events-none">
-                        ▶
-                    </div>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 text-amber-500 text-lg font-black pr-1 pointer-events-none">
-                        ◀
-                    </div>
                 </div>
 
-                {/* Fita Ticker Tape Rolante Inferior (Marquee Contínuo dos Alunos) */}
-                <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-2 overflow-hidden bg-black/40 rounded-xl px-3 py-2 border border-slate-800">
-                    <span className="text-[10px] font-mono font-black text-amber-400/90 uppercase whitespace-nowrap flex items-center gap-1">
-                        <span className="animate-pulse">●</span> TURMA:
-                    </span>
-                    
+                {/* Ticker Inferior (Letreiro de Rodapé em LED Vermelho) */}
+                <div className="mt-6 w-[90%] border-2 border-red-900/50 bg-black py-2 px-3 rounded-md overflow-hidden relative shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)]">
                     <div className="flex-1 overflow-hidden relative whitespace-nowrap">
-                        <div className="animate-marquee font-mono text-xs text-slate-400 font-medium">
+                        <div className="animate-marquee text-xs sm:text-sm text-red-500 font-mono font-bold tracking-widest" style={{ textShadow: '0 0 5px #ef4444' }}>
                             {items.map((item, idx) => (
-                                <span key={item.id || idx} className="mx-2 hover:text-amber-300 transition-colors">
-                                    [#{idx + 1} {item.name.split(' ')[0].toUpperCase()}]
+                                <span key={item.id || idx} className="mx-4 uppercase">
+                                    {idx + 1}. {item.name}
                                 </span>
                             ))}
-                            {/* Repetição para loop contínuo */}
                             {items.map((item, idx) => (
-                                <span key={`rep-${item.id || idx}`} className="mx-2 hover:text-amber-300 transition-colors">
-                                    [#{idx + 1} {item.name.split(' ')[0].toUpperCase()}]
+                                <span key={`rep-${item.id || idx}`} className="mx-4 uppercase">
+                                    {idx + 1}. {item.name}
                                 </span>
                             ))}
                         </div>
                     </div>
                 </div>
 
-                {/* Barra Inferior com Indicadores Estilo Console Retrô */}
-                <div className="mt-3 flex items-center justify-between text-[10px] font-mono text-slate-500 px-1">
-                    <span>SYS_MODE: FLAP_TICKER</span>
-                    <span className={spinning ? 'text-amber-400 animate-pulse font-bold' : ''}>
-                        {spinning ? 'ROTATING CYLINDERS...' : 'STANDBY'}
-                    </span>
-                    <span>FPS: 60</span>
-                </div>
             </div>
-
-            {/* Sombra de apoio no chão */}
-            <div className="w-4/5 h-6 bg-black/50 blur-xl rounded-[100%] mt-2 -z-10" />
         </div>
     );
 };

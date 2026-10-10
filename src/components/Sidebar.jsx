@@ -1,6 +1,6 @@
 import React from 'react';
 import { useActivity } from '../contexts/ActivityContext';
-import { Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart } from 'lucide-react';
+import { Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart, BarChart3 } from 'lucide-react';
 
 export const Sidebar = ({
     activityType,
@@ -89,14 +89,23 @@ export const Sidebar = ({
                 })}
             </div>
             
-            {/* Settings bottom */}
-            <div className="pt-4 border-t border-indigo-900/80 w-full flex justify-center">
+            {/* Reports bottom */}
+            <div className="pt-4 border-t border-indigo-900/80 w-full flex justify-center px-2">
                 <button
-                    onClick={() => setShowSettings(!showSettings)}
-                    className="w-12 h-12 rounded-2xl bg-indigo-900/50 flex items-center justify-center text-indigo-300 hover:text-white hover:bg-indigo-600 transition-all shadow-sm"
-                    title="Configurações do App"
+                    onClick={() => handleActivitySelect('reports')}
+                    className={`w-full flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all relative ${
+                        activityType === 'reports'
+                            ? 'bg-amber-500 text-white shadow-md' 
+                            : 'text-amber-300 hover:text-white hover:bg-amber-600/50'
+                    }`}
+                    title="Relatórios"
                 >
-                    <span className="text-xl">⚙️</span>
+                    <span className="[&>svg]:w-6 [&>svg]:h-6 flex items-center justify-center">
+                        <BarChart3 className="w-6 h-6" />
+                    </span>
+                    <span className="text-[9px] font-bold text-center leading-tight hidden lg:block px-1 break-normal w-full">
+                        Relatórios
+                    </span>
                 </button>
             </div>
         </div>
