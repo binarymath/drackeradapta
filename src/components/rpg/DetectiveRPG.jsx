@@ -91,7 +91,7 @@ const RPG_UNIVERSES = [
     }
 ];
 
-export const DetectiveRPG = ({ topic, context, isFullWidth }) => {
+export function DetectiveRPG({ topic, context, isFullWidth }) {
     const { geminiService } = useGemini();
     const { 
         activeActivity, 
