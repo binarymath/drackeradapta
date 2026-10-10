@@ -591,34 +591,39 @@ class GeminiService {
         const roundNum = Number(etapa.round) || (idx + 1);
         const rawEnigmas = etapa.enigmas || etapa.desafios || etapa.questions || etapa.missoes || [];
 
-        let normalizedEnigmas = Array.isArray(rawEnigmas) ? rawEnigmas.map((e, eIdx) => {
-          return {
-            team: e.team || e.equipe || (isIndividualMode ? 'Missão Individual no Caderno' : (safeTeams[eIdx]?.name || `Equipe ${eIdx + 1}`)),
-            question: e.question || e.pergunta || e.desafio || `Resolvam o desafio do capítulo ${roundNum} sobre ${topic}.`,
-            options: Array.isArray(e.options) ? e.options : (Array.isArray(e.alternativas) ? e.alternativas : []),
-            correct_answer: e.correct_answer || e.resposta_correta || e.gabarito || 'Conferência visual no caderno.',
-            dica_dracker: e.dica_dracker || e.dica || 'Prestem muita atenção aos conceitos fundamentais!'
-          };
-        }) : [];
+        let normalizedEnigmas = [];
+        if (isIndividualMode) {
+          const firstEnigma = rawEnigmas[0] || {};
+          normalizedEnigmas = [{
+            team: 'Missão Individual no Caderno',
+            question: firstEnigma.question || firstEnigma.pergunta || firstEnigma.desafio || `Atenção, bravos exploradores! Em seus cadernos de aula, resolvam o desafio do capítulo ${roundNum} sobre ${topic}.`,
+            options: Array.isArray(firstEnigma.options) ? firstEnigma.options : (Array.isArray(firstEnigma.alternativas) ? firstEnigma.alternativas : []),
+            correct_answer: firstEnigma.correct_answer || firstEnigma.resposta_correta || firstEnigma.gabarito || 'Conferência visual no caderno.',
+            dica_dracker: firstEnigma.dica_dracker || firstEnigma.dica || 'Revisem com cuidado os cálculos e raciocínios!'
+          }];
+        } else {
+          // Garante exatamente 1 enigma para CADA equipe cadastrada na partida
+          normalizedEnigmas = safeTeams.map((team, tIdx) => {
+            const matched = rawEnigmas.find(e => 
+              (e.team && String(e.team).toLowerCase().includes(team.name.toLowerCase())) ||
+              (e.question && String(e.question).toLowerCase().includes(team.name.toLowerCase()))
+            ) || rawEnigmas[tIdx] || rawEnigmas[tIdx % Math.max(1, rawEnigmas.length)] || {};
 
-        if (normalizedEnigmas.length === 0) {
-          if (isIndividualMode) {
-            normalizedEnigmas = [{
-              team: 'Missão Individual no Caderno',
-              question: `Atenção, exploradores! Em seus cadernos de aula, resolvam o desafio proposto pelo Drácker sobre ${topic}.`,
-              options: [],
-              correct_answer: 'Conferência visual no caderno.',
-              dica_dracker: 'Revisem com cuidado os cálculos e raciocínios!'
-            }];
-          } else {
-            normalizedEnigmas = safeTeams.map((team, tIdx) => ({
-              team: team.name || `Equipe ${tIdx + 1}`,
-              question: `Atenção, ${team.name || `Equipe ${tIdx + 1}`}! Investiguem o mistério e resolvam o desafio sobre ${topic}.`,
-              options: [],
-              correct_answer: 'Conferência visual com o professor.',
-              dica_dracker: 'Trabalhem em equipe!'
-            }));
-          }
+            let questionText = matched.question || matched.pergunta || matched.desafio || '';
+            if (!questionText) {
+              questionText = `Atenção, ${team.name}! Investiguem a cena e resolvam o desafio sobre ${topic}.`;
+            } else if (!questionText.includes(team.name)) {
+              questionText = `Atenção, ${team.name}! ${questionText}`;
+            }
+
+            return {
+              team: team.name,
+              question: questionText,
+              options: Array.isArray(matched.options) ? matched.options : (Array.isArray(matched.alternativas) ? matched.alternativas : []),
+              correct_answer: matched.correct_answer || matched.resposta_correta || matched.gabarito || 'Conferência visual com o professor.',
+              dica_dracker: matched.dica_dracker || matched.dica || 'Trabalhem em equipe para desvendar o enigma!'
+            };
+          });
         }
 
         return {
@@ -652,10 +657,10 @@ class GeminiService {
       MODO DE JOGO: JORNADA INDIVIDUAL NO CADERNO ESCOLAR.
       Os alunos realizarão as atividades individualmente em seus cadernos de aula!
       Portanto, para CADA etapa (round), crie UMA MISSÃO INVESTIGATIVA CENTRAL PARA O CADERNO que toda a turma deva copiar, resolver, calcular ou responder no caderno escolar.
-      No array "enigmas" de cada etapa, retorne apenas 1 enigma com "team": "Missão Individual no Caderno".
+      No array "enigmas" de cada etapa, retorne 1 enigma com "team": "Missão Individual no Caderno".
       ` : `
       EQUIPES/HERÓIS NA PARTIDA: ${safeTeams.map(t => t.name).join(', ')}.
-      Para CADA etapa, crie uma pergunta direcionada e DIFERENTE para cada equipe.
+      Para CADA etapa, crie uma pergunta contextualizada e desafiadora para as equipes (gerando 1 enigma para cada equipe: ${safeTeams.map(t => `"${t.name}"`).join(', ')}).
       `}
       
       ${universeDescription}
@@ -665,49 +670,39 @@ class GeminiService {
       A história deve evoluir gradativamente até a grande revelação no final (etapa ${safeStages}).
       
       MUITO IMPORTANTE: O JOGO PRECISA SER ÁGIL, EMOCIONANTE E DIRETO AO PONTO!
-      - A "historia_abertura" (round 1) deve ter NO MÁXIMO 4 frases cativantes.
+      - A "historia_abertura" (round 1) deve ter NO MÁXIMO 3 a 4 frases cativantes.
       - As "narrativa_avanco" (rounds 2 até ${safeStages}) devem ter NO MÁXIMO 2 frases cada.
-      - As perguntas devem ser claras, contextualizadas com o tema de estudo e desafiadoras na medida certa.
-      - O "reforco_pedagogico" deve ter NO MÁXIMO 3 frases, sendo um balão de fala acolhedor e explicativo do Drácker sobre o conceito do TEMA para apoiar os alunos durante a investigação (NUNCA diga que o mistério já foi desvendado ou que a aventura terminou).
+      - As perguntas devem ser claras e desafiadoras sobre ${topic}.
+      - Os gabaritos ("correct_answer") devem ser concisos e diretos com a resposta e breve resolução.
+      - O "reforco_pedagogico" deve ter NO MÁXIMO 2 a 3 frases explicativas do Drácker.
       - Os finais devem ter NO MÁXIMO 3 frases.
-      
-      REGRAS PEDAGÓGICAS E DE DIRECIONAMENTO:
-      ${isIndividualMode ? `
-      1. MISSÃO NO CADERNO: A pergunta deve começar convocando a turma para o caderno (Ex: "Atenção, bravos exploradores! Em seus cadernos de aula, resolvam o seguinte desafio proposto pelo Drácker: [pergunta/exercício sobre o tema]?").
-      ` : `
-      1. DIRECIONAMENTO NOMINAL OBRIGATÓRIO: Cada pergunta do campo "question" DEVE obrigatoriamente convocar a equipe pelo nome logo no início, integrando-a na cena da aventura (Exemplo: "Atenção, [Nome da Equipe]! Ao investigarem este local, o Drácker lança este desafio para vocês: [pergunta sobre o tema]?"). NUNCA faça uma pergunta genérica sem citar o nome da equipe!
-      2. As perguntas de todas as equipes dentro da MESMA ETAPA devem ter rigorosamente o MESMO GRAU DE DIFICULDADE.
-      `}
-      - GABARITO DO MESTRE DETALHADO OBRIGATÓRIO: No campo "correct_answer", NUNCA forneça apenas a resposta seca (como apenas um número "20%" ou apenas uma letra). O gabarito DEVE fornecer a resposta final clara E a resolução pedagógica detalhada passo a passo com os cálculos e raciocínios (Exemplo: "20%. Resolução detalhada: O valor aumentou de 100 para 120 moedas (aumento de 20 moedas). Como o valor original era 100 moedas, calcula-se (20 / 100) * 100 = 20% de aumento.").
-      - Respostas únicas, precisas e inconfundíveis.
-      - NUNCA coloque alternativas que sejam matematicamente equivalentes ou sinônimas.
       
       ESTRUTURA DA RESPOSTA (JSON PURO, SEM MARKDOWN):
       {
         "titulo_aventura": "Título épico e cativante da expedição",
-        "historia_abertura": "A introdução épica da história detalhando o mistério no universo selecionado...",
+        "historia_abertura": "A introdução épica da história detalhando o mistério...",
         "etapas": [
           {
             "round": 1,
-            "titulo_capitulo": "Nome temático do capítulo (Ex: O Portal das Raízes Antigas)",
-            "local_cena": "Nome do local (Ex: Clareira dos Sussurros)",
-            "item_recompensa": "Nome do artefato mágico ou recompensa deste capítulo (Ex: Cristal da Sabedoria)",
-            "narrativa_avanco": "O início da investigação ou desenvolvimento da cena...",
+            "titulo_capitulo": "Nome do capítulo",
+            "local_cena": "Nome do local",
+            "item_recompensa": "Nome do artefato mágico",
+            "narrativa_avanco": "O desenvolvimento da cena...",
             "enigmas": [
               {
-                "team": "${isIndividualMode ? 'Missão Individual no Caderno' : 'Nome da Equipe 1'}",
-                "question": "Pergunta contextualizada no tema e na aventura...",
+                "team": "${isIndividualMode ? 'Missão Individual no Caderno' : safeTeams[0]?.name}",
+                "question": "Pergunta contextualizada no tema...",
                 "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
-                "correct_answer": "Resposta final destacada + Resolução pedagógica passo a passo detalhada",
-                "dica_dracker": "Uma pista sutil e pedagógica do Drácker para quem precisar de ajuda"
+                "correct_answer": "Resposta correta e resolução",
+                "dica_dracker": "Uma pista pedagógica do Drácker"
               }
             ]
           }
         ],
-        "reforco_pedagogico": "Um balão de fala do Drácker explicando de forma simples o conceito base do TEMA para apoiar os exploradores durante a missão.",
+        "reforco_pedagogico": "Dica pedagógica explicativa do Drácker.",
         "finais": {
-          "vitoria_epica": "Narrativa triunfante caso a turma tenha pontuação alta.",
-          "vitoria_com_ajuda": "Narrativa de superação e aprendizado caso a turma tenha pontuação com mais erros."
+          "vitoria_epica": "Narrativa triunfante.",
+          "vitoria_com_ajuda": "Narrativa de superação."
         }
       }
     `;

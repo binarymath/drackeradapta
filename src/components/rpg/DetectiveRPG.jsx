@@ -349,6 +349,19 @@ export const DetectiveRPG = ({ topic, context, isFullWidth }) => {
         };
     }, [isClassActive, sessionStartTime, plannedDurationMinutes, selectedClassId, currentClass]);
 
+    // Rolagem automática para o topo sempre que avançar de rodada/capítulo ou mudar de tela
+    useEffect(() => {
+        try {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+            document.body.scrollTo({ top: 0, behavior: 'smooth' });
+            const area = document.getElementById('activity-area-print') || document.querySelector('.overflow-y-auto');
+            if (area) {
+                area.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        } catch (_) {}
+    }, [round, gameStatus]);
+
     // Interceptadores para início de missão: verifica se Aula Oficial está ativa
     const handleStartGameClick = () => {
         if (!isClassActive && !isTestMode) {
@@ -1850,7 +1863,20 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                 currentData: updatedData 
             });
             
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            const scrollToTop = () => {
+                try {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.body.scrollTo({ top: 0, behavior: 'smooth' });
+                    const area = document.getElementById('activity-area-print') || document.querySelector('.overflow-y-auto');
+                    if (area) {
+                        area.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                } catch (_) {}
+            };
+
+            scrollToTop();
+            setTimeout(scrollToTop, 100);
         } else {
             // Finale (Conclusão Épica)
             const scores = {};
