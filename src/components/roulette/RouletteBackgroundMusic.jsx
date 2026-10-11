@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Music, Play, Pause, Trash2, Volume2, Link as LinkIcon, Upload, X, Clock, GripVertical, Check, Edit2, Save, SkipBack, SkipForward } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { 
+    Music, Play, Pause, Trash2, Volume2, Link as LinkIcon, Upload, X, Clock, 
+    GripVertical, Check, Edit2, Save, SkipBack, SkipForward, Sparkles, Youtube, CheckCircle2 
+} from 'lucide-react';
 import { formatMediaTime } from '../../utils/time';
 import { toast } from '../ui/Toast';
 
@@ -15,7 +19,6 @@ const parseISO8601Duration = (duration) => {
     return hours * 3600 + minutes * 60 + seconds;
 };
 
-// Formatter mm:ss
 export const RouletteBackgroundMusic = ({ 
     className = "", 
     isExploded = false, 
@@ -26,6 +29,38 @@ export const RouletteBackgroundMusic = ({
     isDragging = false
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [portalNode, setPortalNode] = useState(null);
+
+    // Setup do Portal Node para renderizar na tela cheia ou no body
+    useEffect(() => {
+        if (typeof document !== 'undefined') {
+            const updatePortalNode = () => {
+                const fsElement = document.fullscreenElement || 
+                                  document.webkitFullscreenElement || 
+                                  document.mozFullScreenElement || 
+                                  document.msFullscreenElement;
+                const usableFs = fsElement && fsElement !== document.documentElement ? fsElement : null;
+                setPortalNode(usableFs || document.body);
+            };
+            updatePortalNode();
+            const events = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+            events.forEach(event => document.addEventListener(event, updatePortalNode));
+            return () => {
+                events.forEach(event => document.removeEventListener(event, updatePortalNode));
+            };
+        }
+    }, []);
+
+    // Fechar com ESC
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') setIsOpen(false);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen]);
+
     const [playlist, setPlaylist] = useState(() => {
         try {
             const saved = localStorage.getItem('roulette_playlist');
@@ -58,14 +93,13 @@ export const RouletteBackgroundMusic = ({
             localStorage.setItem('roulette_music_sync', JSON.stringify(syncWithMusic));
         } catch (e) {}
     }, [syncWithMusic]);
+
     const [ytPlayerReady, setYtPlayerReady] = useState(false);
-    
     const [ytInput, setYtInput] = useState('');
     const [isLoadingUrl, setIsLoadingUrl] = useState(false);
     const fileInputRef = useRef(null);
     const audioRef = useRef(null);
     const ytPlayerRef = useRef(null);
-    const menuRef = useRef(null);
 
     // Current track
     const currentTrack = playlist[currentIndex] || null;
@@ -98,17 +132,6 @@ export const RouletteBackgroundMusic = ({
             setYtPlayerReady(true);
         }
     }, []);
-
-    // Outside click
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target)) {
-                setIsOpen(false);
-            }
-        };
-        if (isOpen) document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen]);
 
     // Handle Local Audio fading & Parar imediatamente quando a bomba explodir
     useEffect(() => {
@@ -143,28 +166,31 @@ export const RouletteBackgroundMusic = ({
     // Play/Pause toggler
     const togglePlay = () => {
         if (syncWithMusic && onSyncRequest) {
-            // Em modo sincronizado, o relógio da bomba é o mestre do Play/Pause.
             onSyncRequest({ action: 'togglePlay' });
             return;
         }
 
-        const nextState = !isPlaying;
-        setIsPlaying(nextState);
-        
-        if (currentTrack?.type === 'local' && audioRef.current) {
-            if (nextState) audioRef.current.play();
-            else audioRef.current.pause();
+        if (!currentTrack) return;
+        setIsPlaying(!isPlaying);
+        if (currentTrack.type === 'local' && audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play().catch(e => console.log(e));
+            }
         }
-        
-        if (currentTrack?.type === 'youtube' && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
-            if (nextState) ytPlayerRef.current.playVideo();
-            else ytPlayerRef.current.pauseVideo();
+        if (currentTrack.type === 'youtube' && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
+            if (isPlaying) {
+                ytPlayerRef.current.pauseVideo();
+            } else {
+                ytPlayerRef.current.playVideo();
+            }
         }
     };
 
-    // External Timer Sync (Bomb -> Music)
+    // Global timer state changes
     useEffect(() => {
-        if (syncWithMusic && timerIsRunning !== null && timerIsRunning !== isPlaying) {
+        if (timerIsRunning !== null && syncWithMusic && !isExploded) {
             setIsPlaying(timerIsRunning);
             if (currentTrack?.type === 'local' && audioRef.current) {
                 if (timerIsRunning) audioRef.current.play().catch(e => console.log(e));
@@ -175,28 +201,36 @@ export const RouletteBackgroundMusic = ({
                 else ytPlayerRef.current.pauseVideo();
             }
         }
-    }, [syncWithMusic, timerIsRunning]); // Remove isPlaying so it doesn't fight
+    }, [timerIsRunning, syncWithMusic, currentTrack, isExploded]);
 
-    // Disparo de final da música -> Explode a bomba em modo sincronizado!
     const handleTrackEnded = () => {
-        if (syncWithMusic && onSyncRequest) {
-            setIsPlaying(false);
-            onSyncRequest({ action: 'music_ended' });
-            return;
+        if (playlist.length > 0) {
+            const nextIdx = (currentIndex + 1) % playlist.length;
+            setCurrentIndex(nextIdx);
+            setIsPlaying(true);
+            const nextTrack = playlist[nextIdx];
+            if (syncWithMusic && onSyncRequest && !isExploded && nextTrack && nextTrack.duration > 0) {
+                onSyncRequest({
+                    action: 'sync_on',
+                    duration: nextTrack.duration,
+                    isPlaying: true
+                });
+            }
         }
-        nextTrack();
     };
 
-    // Auto-advance
     const nextTrack = () => {
-        if (currentIndex < playlist.length - 1) {
-            setCurrentIndex(prev => prev + 1);
+        if (playlist.length > 0) {
+            const nextIdx = (currentIndex + 1) % playlist.length;
+            setCurrentIndex(nextIdx);
             setIsPlaying(true);
-        } else {
-            // End of playlist
-            setIsPlaying(false);
-            if (syncWithMusic && onSyncRequest) {
-                onSyncRequest({ action: 'music_ended' });
+            const nTrack = playlist[nextIdx];
+            if (syncWithMusic && onSyncRequest && !isExploded && nTrack && nTrack.duration > 0) {
+                onSyncRequest({
+                    action: 'sync_on',
+                    duration: nTrack.duration,
+                    isPlaying: true
+                });
             }
         }
     };
@@ -206,7 +240,6 @@ export const RouletteBackgroundMusic = ({
             setCurrentIndex(prev => prev - 1);
             setIsPlaying(true);
         } else {
-            // First track
             setCurrentIndex(0);
         }
     };
@@ -331,7 +364,7 @@ export const RouletteBackgroundMusic = ({
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [syncWithMusic, currentTrack?.id, currentTrack?.duration, isExploded]); // Only when track changes or sync is toggled
+    }, [syncWithMusic, currentTrack?.id, currentTrack?.duration, isExploded]);
 
     // Add Local File
     const handleFileUpload = (e) => {
@@ -344,18 +377,18 @@ export const RouletteBackgroundMusic = ({
 
         const objectUrl = URL.createObjectURL(file);
         
-        // Extrair duração via audio fantasma
         const tempAudio = new Audio(objectUrl);
         tempAudio.onloadedmetadata = () => {
             const newTrack = {
                 id: Date.now().toString(),
                 type: 'local',
                 url: objectUrl,
-                name: file.name,
+                name: file.name.replace(/\.[^/.]+$/, ''),
                 duration: Math.floor(tempAudio.duration)
             };
             setPlaylist(prev => [...prev, newTrack]);
             if (playlist.length === 0) setIsPlaying(true);
+            toast('Música local adicionada à playlist!');
         };
     };
 
@@ -371,14 +404,13 @@ export const RouletteBackgroundMusic = ({
 
         const videoId = extractVideoID(ytInput);
         if (!videoId) {
-            toast('Link inválido.');
+            toast('Link do YouTube inválido.');
             return;
         }
 
         setIsLoadingUrl(true);
-        // Para YouTube sem API Key, a duração começa em 0 e será atualizada pelo YT.Player onReady
         let trackDuration = 0;
-        let trackTitle = `YouTube Track`;
+        let trackTitle = `YouTube Track (${videoId})`;
 
         try {
             const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
@@ -406,6 +438,7 @@ export const RouletteBackgroundMusic = ({
         if (playlist.length === 0) setIsPlaying(true);
         setYtInput('');
         setIsLoadingUrl(false);
+        toast('Música do YouTube adicionada com sucesso!');
     };
 
     const removeTrack = (index) => {
@@ -432,7 +465,7 @@ export const RouletteBackgroundMusic = ({
     const startEditTrack = (track) => {
         setEditingTrackId(track.id);
         setEditName(track.name);
-        setEditUrl(track.url); // For youtube it's the videoId, but we could just show the URL
+        setEditUrl(track.url);
     };
 
     const cancelEditTrack = () => {
@@ -448,7 +481,6 @@ export const RouletteBackgroundMusic = ({
         let finalUrl = editUrl;
         let finalDuration = track.duration;
 
-        // Extract ID if user pasted full URL
         if (track.type === 'youtube' && editUrl.includes('youtu')) {
             const match = editUrl.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/);
             if (match && match[2].length === 11) {
@@ -456,7 +488,6 @@ export const RouletteBackgroundMusic = ({
             }
         }
 
-        // Se a url mudou, forçar reset da duração pra 0 pro ytPlayer puxar de novo
         if (track.type === 'youtube' && finalUrl !== track.url) {
             finalDuration = 0;
         }
@@ -466,10 +497,11 @@ export const RouletteBackgroundMusic = ({
         ));
         
         cancelEditTrack();
+        toast('Faixa atualizada com sucesso!');
     };
 
     return (
-        <div className={`relative ${className}`} ref={menuRef}>
+        <div className={`inline-flex items-center ${className}`}>
             {/* The Invisible Players */}
             {currentTrack?.type === 'local' && (
                 <audio 
@@ -517,244 +549,342 @@ export const RouletteBackgroundMusic = ({
                 <div id={`yt-player-${currentTrack.id}`} className="hidden"></div>
             )}
 
-            {/* Listener for YouTube iframe state changes via postMessage would go here if needed, 
-                but due to CORS and iframe sandboxing, catching 'onEnded' via iframe postMessage without
-                the full YT script wrapper is tricky. For MVP, YT videos might not auto-advance flawlessly 
-                unless we wrap it in a proper YT.Player instance. */}
-
-            {/* Toggle Button */}
+            {/* Botão de Acionamento da Playlist no Cronômetro */}
             <button
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className={`p-1.5 rounded-lg border transition-all cursor-pointer flex items-center gap-1.5 ${
+                onClick={() => setIsOpen(true)}
+                className={`p-1.5 sm:p-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 select-none shadow-2xs ${
                     currentTrack 
-                        ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.4)]' 
-                        : 'border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white'
+                        ? 'border-indigo-500 bg-indigo-600/25 text-indigo-200 hover:bg-indigo-600/35 hover:text-white shadow-[0_0_12px_rgba(99,102,241,0.4)]' 
+                        : 'border-slate-700 bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white'
                 }`}
-                title="Playlist de Fundo"
+                title="Abrir Playlist de Músicas do Cronômetro"
             >
-                <Music className={`w-3.5 h-3.5 ${currentTrack && isPlaying ? 'animate-pulse' : ''}`} />
-                {currentTrack && (
-                    <span className="text-[10px] font-bold max-w-[60px] truncate hidden sm:inline-block">
+                <Music className={`w-3.5 h-3.5 ${currentTrack && isPlaying ? 'animate-bounce text-indigo-400' : ''}`} />
+                {currentTrack ? (
+                    <span className="text-[11px] font-bold max-w-[80px] sm:max-w-[100px] truncate text-indigo-200">
                         {currentTrack.name}
+                    </span>
+                ) : (
+                    <span className="text-[11px] font-bold text-slate-400 hidden sm:inline-block">
+                        Música
                     </span>
                 )}
             </button>
 
-            {/* Popover Menu */}
-            {isOpen && (
-                <div className="fixed inset-x-3 sm:inset-x-auto sm:right-0 sm:absolute top-14 sm:top-full mt-1.5 w-auto sm:w-80 max-w-[340px] mx-auto bg-slate-900/98 border border-slate-700 rounded-2xl shadow-2xl z-[12000] animate-in slide-in-from-top-2 fade-in duration-200 overflow-hidden flex flex-col max-h-[70vh] backdrop-blur-md">
-                    <div className="flex items-center justify-between p-3 sm:p-4 border-b border-slate-800 shrink-0 bg-slate-900/95 sticky top-0 z-10">
-                        <h4 className="text-sm font-black text-white flex items-center gap-2">
-                            <Music className="w-4 h-4 text-indigo-400" /> Playlist
-                        </h4>
-                        <button 
-                            type="button" 
-                            onClick={() => setIsOpen(false)} 
-                            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
+            {/* MODAL EXTERNO / DEDICADO DA PLAYLIST (FORA DO CRONÔMETRO, AMPLO E SUPER LEGÍVEL) */}
+            {isOpen && portalNode && createPortal(
+                <div 
+                    className="fixed inset-0 z-[15000] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200 select-none"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setIsOpen(false);
+                    }}
+                >
+                    <div 
+                        className="bg-slate-900 border-2 border-indigo-500/50 rounded-3xl w-full max-w-xl max-h-[92vh] flex flex-col shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden animate-in zoom-in-95 duration-250 text-white"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Cabeçalho do Estúdio */}
+                        <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-violet-700 px-6 py-4 flex items-center justify-between shrink-0 shadow-md border-b border-white/10">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-white/15 rounded-2xl shadow-inner flex items-center justify-center">
+                                    <Music className="w-6 h-6 text-indigo-100" />
+                                </div>
+                                <div>
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-200 block">
+                                        Trilha Sonora & Efeitos
+                                    </span>
+                                    <h3 className="text-lg sm:text-xl font-black text-white leading-tight flex items-center gap-2">
+                                        Playlist do Cronômetro
+                                        {currentTrack && (
+                                            <span className="text-2xs font-bold px-2.5 py-0.5 rounded-full bg-white/20 border border-white/30 text-white">
+                                                {isPlaying ? '▶ Tocando' : '⏸ Pausada'}
+                                            </span>
+                                        )}
+                                    </h3>
+                                </div>
+                            </div>
+                            <button 
+                                type="button" 
+                                onClick={() => setIsOpen(false)} 
+                                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition-colors cursor-pointer"
+                                title="Fechar Playlist"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
 
-                    <div className="p-3 sm:p-4 overflow-y-auto no-scrollbar flex-1 space-y-3">
-                        {/* Settings / Sync */}
-                        {playlist.length > 0 && (
-                            <div className="bg-slate-800/50 p-2.5 sm:p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2.5">
+                        {/* Conteúdo Completo e Super Legível */}
+                        <div className="p-5 sm:p-6 overflow-y-auto custom-scrollbar flex-1 space-y-5 text-slate-100">
+                            
+                            {/* Card 1: Modo de Sincronização */}
+                            <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/80 flex items-center justify-between gap-4 shadow-sm">
                                 <div className="flex-1 min-w-0">
-                                    <h5 className="text-xs font-bold text-white mb-0.5">Sincronizar com Cronômetro</h5>
-                                    <p className="text-[10px] text-slate-400 leading-tight">
-                                        {syncWithMusic ? 'A bomba explodirá exatamente quando a música atual acabar.' : 'A música tocará livremente no fundo.'}
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Clock className="w-4 h-4 text-indigo-400 shrink-0" />
+                                        <h5 className="text-sm font-bold text-white">Sincronizar Duração com a Bomba</h5>
+                                    </div>
+                                    <p className="text-xs text-slate-300 leading-relaxed">
+                                        {syncWithMusic 
+                                            ? '⚡ Ativado: O tempo da bomba e a música correm juntos. A bomba explode exatamente ao final da música!' 
+                                            : '🎵 Desativado: A música toca livremente em segundo plano sem alterar o tempo configurado.'}
                                     </p>
                                 </div>
                                 <button
+                                    type="button"
                                     onClick={() => setSyncWithMusic(!syncWithMusic)}
-                                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                                        syncWithMusic ? 'bg-indigo-500' : 'bg-slate-700'
+                                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                        syncWithMusic ? 'bg-indigo-600 shadow-[0_0_12px_rgba(99,102,241,0.6)]' : 'bg-slate-700'
                                     }`}
                                 >
-                                    <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                        syncWithMusic ? 'translate-x-4' : 'translate-x-0'
+                                    <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                        syncWithMusic ? 'translate-x-5' : 'translate-x-0'
                                     }`} />
                                 </button>
                             </div>
-                        )}
 
-                        {/* Current Player Controls (if any) */}
-                        {currentTrack && (
-                            <div className="bg-gradient-to-br from-indigo-900/40 to-slate-800 p-3 rounded-xl border border-indigo-500/30">
-                                <p className="text-xs font-bold text-indigo-200 truncate mb-1" title={currentTrack.name}>
-                                    {currentTrack.name}
-                                </p>
-                                <p className="text-[10px] text-slate-400 mb-3 font-mono">
-                                    {formatDuration(currentTrack.duration)} • {currentTrack.type === 'youtube' ? 'YouTube' : 'Computador'}
-                                </p>
-                                
-                                <div className="flex items-center justify-between gap-4">
-                                    <div className="flex items-center gap-2">
-                                        <button 
-                                            onClick={prevTrack} 
-                                            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-indigo-300 hover:text-white transition-colors shrink-0"
-                                            title="Voltar faixa"
-                                        >
-                                            <SkipBack className="w-4 h-4" />
-                                        </button>
-                                        <button 
-                                            onClick={togglePlay}
-                                            className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition-colors shadow-lg shrink-0"
-                                        >
-                                            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-1" />}
-                                        </button>
-                                        <button 
-                                            onClick={nextTrack} 
-                                            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-indigo-300 hover:text-white transition-colors shrink-0"
-                                            title="Próxima faixa"
-                                        >
-                                            <SkipForward className="w-4 h-4" />
-                                        </button>
+                            {/* Card 2: Faixa Atual & Mesa de Controle */}
+                            {currentTrack ? (
+                                <div className="bg-gradient-to-br from-indigo-950/80 via-slate-800/90 to-purple-950/50 p-4 rounded-2xl border border-indigo-500/40 shadow-md space-y-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="min-w-0 flex-1">
+                                            <span className="text-[10px] uppercase font-black tracking-wider text-indigo-300 block mb-0.5">
+                                                Faixa Ativa no Momento
+                                            </span>
+                                            <p className="text-sm sm:text-base font-bold text-white truncate" title={currentTrack.name}>
+                                                {currentTrack.name}
+                                            </p>
+                                        </div>
+                                        <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-xl bg-slate-900/80 border border-slate-700 text-indigo-200 shrink-0">
+                                            {formatDuration(currentTrack.duration)} • {currentTrack.type === 'youtube' ? 'YouTube' : 'Áudio Local'}
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/10">
+                                        <div className="flex items-center gap-2">
+                                            <button 
+                                                type="button"
+                                                onClick={prevTrack} 
+                                                className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-indigo-300 hover:text-white transition-all active:scale-95 cursor-pointer shadow-xs"
+                                                title="Faixa Anterior"
+                                            >
+                                                <SkipBack className="w-4 h-4" />
+                                            </button>
+                                            <button 
+                                                type="button"
+                                                onClick={togglePlay}
+                                                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-indigo-600/30 cursor-pointer"
+                                            >
+                                                {isPlaying ? <><Pause className="w-4 h-4" /> Pausar</> : <><Play className="w-4 h-4 ml-0.5 fill-white" /> Tocar Agora</>}
+                                            </button>
+                                            <button 
+                                                type="button"
+                                                onClick={nextTrack} 
+                                                className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-indigo-300 hover:text-white transition-all active:scale-95 cursor-pointer shadow-xs"
+                                                title="Próxima Faixa"
+                                            >
+                                                <SkipForward className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        {currentTrack.type === 'local' && (
+                                            <div className="flex items-center gap-2.5 min-w-[130px]">
+                                                <Volume2 className="w-4 h-4 text-slate-400 shrink-0" />
+                                                <input 
+                                                    type="range" min="0" max="1" step="0.05" value={volume}
+                                                    onChange={(e) => setVolume(parseFloat(e.target.value))}
+                                                    className="w-full accent-indigo-500 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                                                    title={`Volume: ${Math.round(volume * 100)}%`}
+                                                />
+                                                <span className="text-2xs font-mono text-slate-400 w-7">{Math.round(volume * 100)}%</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-slate-800/40 border border-dashed border-slate-700 p-6 rounded-2xl text-center text-slate-400">
+                                    <Music className="w-8 h-8 mx-auto mb-2 opacity-50 text-indigo-400" />
+                                    <p className="text-xs sm:text-sm font-medium">Nenhuma música cadastrada na playlist ainda.</p>
+                                    <p className="text-[11px] text-slate-500 mt-1">Adicione um link do YouTube ou envie um arquivo MP3 abaixo.</p>
+                                </div>
+                            )}
+
+                            {/* Card 3: Lista de Faixas na Fila */}
+                            {playlist.length > 0 && (
+                                <div className="space-y-2.5">
+                                    <div className="flex items-center justify-between px-1">
+                                        <h5 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                                            Músicas na Fila ({playlist.length}/10)
+                                        </h5>
+                                        <span className="text-[11px] text-slate-400 font-mono">
+                                            Clique no Play para trocar de faixa
+                                        </span>
                                     </div>
 
-                                    {currentTrack.type === 'local' && (
-                                        <div className="flex-1 flex items-center gap-2">
-                                            <Volume2 className="w-3.5 h-3.5 text-slate-400" />
-                                            <input 
-                                                type="range" min="0" max="1" step="0.05" value={volume}
-                                                onChange={(e) => setVolume(parseFloat(e.target.value))}
-                                                className="w-full accent-indigo-500 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Playlist Area */}
-                        {playlist.length > 0 && (
-                            <div className="space-y-2">
-                                <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-1">Fila ({playlist.length}/10)</h5>
-                                <div className="space-y-1.5">
-                                    {playlist.map((track, idx) => (
-                                        <div 
-                                            key={track.id} 
-                                            className={`flex items-center gap-2 p-2 rounded-lg border ${
-                                                idx === currentIndex ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-slate-800 border-slate-700/50'
-                                            }`}
-                                        >
-                                            <button 
-                                                onClick={() => { 
-                                                    setCurrentIndex(idx); 
-                                                    setIsPlaying(true); 
-                                                    if (syncWithMusic && onSyncRequest && !isExploded && track.duration > 0) {
-                                                        onSyncRequest({
-                                                            action: 'sync_on',
-                                                            duration: track.duration,
-                                                            isPlaying: true
-                                                        });
-                                                    }
-                                                }}
-                                                className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
-                                                    idx === currentIndex ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                                    <div className="space-y-2">
+                                        {playlist.map((track, idx) => (
+                                            <div 
+                                                key={track.id} 
+                                                className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                                                    idx === currentIndex 
+                                                        ? 'bg-indigo-950/60 border-indigo-500/50 shadow-sm' 
+                                                        : 'bg-slate-800/70 border-slate-700/60 hover:bg-slate-800'
                                                 }`}
                                             >
-                                                {idx === currentIndex && isPlaying ? <Music className="w-3 h-3" /> : <Play className="w-3 h-3 ml-0.5" />}
-                                            </button>
-                                            
-                                            {editingTrackId === track.id ? (
-                                                <div className="flex-1 min-w-0 flex flex-col gap-1.5 py-1">
-                                                    <input 
-                                                        type="text" 
-                                                        value={editName}
-                                                        onChange={e => setEditName(e.target.value)}
-                                                        placeholder="Nome da música"
-                                                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"
-                                                    />
-                                                    {track.type === 'youtube' && (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => { 
+                                                        setCurrentIndex(idx); 
+                                                        setIsPlaying(true); 
+                                                        if (syncWithMusic && onSyncRequest && !isExploded && track.duration > 0) {
+                                                            onSyncRequest({
+                                                                action: 'sync_on',
+                                                                duration: track.duration,
+                                                                isPlaying: true
+                                                            });
+                                                        }
+                                                    }}
+                                                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 cursor-pointer transition-transform active:scale-90 ${
+                                                        idx === currentIndex 
+                                                            ? 'bg-indigo-600 text-white shadow-sm' 
+                                                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white'
+                                                    }`}
+                                                    title={idx === currentIndex && isPlaying ? "Tocando agora" : "Tocar esta música"}
+                                                >
+                                                    {idx === currentIndex && isPlaying ? <Music className="w-3.5 h-3.5 animate-pulse" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                                                </button>
+                                                
+                                                {editingTrackId === track.id ? (
+                                                    <div className="flex-1 min-w-0 flex flex-col gap-2 py-1">
                                                         <input 
                                                             type="text" 
-                                                            value={editUrl}
-                                                            onChange={e => setEditUrl(e.target.value)}
-                                                            placeholder="Link do YouTube"
-                                                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white"
+                                                            value={editName}
+                                                            onChange={e => setEditName(e.target.value)}
+                                                            placeholder="Nome da música..."
+                                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                                         />
-                                                    )}
-                                                    <div className="flex justify-end gap-2 mt-1">
-                                                        <button onClick={cancelEditTrack} className="text-[10px] text-slate-500 hover:text-white px-2 py-1 border border-slate-700 rounded transition-colors">Cancelar</button>
-                                                        <button onClick={() => saveEditTrack(track.id)} className="bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1 text-[10px] font-bold px-3 py-1 rounded transition-colors">
-                                                            <Save className="w-3 h-3" /> Salvar
+                                                        {track.type === 'youtube' && (
+                                                            <input 
+                                                                type="text" 
+                                                                value={editUrl}
+                                                                onChange={e => setEditUrl(e.target.value)}
+                                                                placeholder="Link do YouTube..."
+                                                                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                            />
+                                                        )}
+                                                        <div className="flex justify-end gap-2 mt-1">
+                                                            <button 
+                                                                type="button"
+                                                                onClick={cancelEditTrack} 
+                                                                className="text-xs text-slate-400 hover:text-white px-3 py-1 border border-slate-700 rounded-lg transition-colors cursor-pointer"
+                                                            >
+                                                                Cancelar
+                                                            </button>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => saveEditTrack(track.id)} 
+                                                                className="bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1 text-xs font-bold px-3.5 py-1 rounded-lg transition-colors cursor-pointer"
+                                                            >
+                                                                <Save className="w-3.5 h-3.5" /> Salvar
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="flex-1 min-w-0 flex flex-col">
+                                                            <span className={`text-xs sm:text-sm truncate ${idx === currentIndex ? 'text-indigo-200 font-bold' : 'text-slate-200 font-medium'}`}>
+                                                                {track.name}
+                                                            </span>
+                                                            <span className="text-[10px] text-slate-400 font-mono">
+                                                                {formatDuration(track.duration)} • {track.type === 'youtube' ? 'YouTube' : 'Áudio Local'}
+                                                            </span>
+                                                        </div>
+
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => startEditTrack(track)}
+                                                            className="p-2 text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-colors cursor-pointer"
+                                                            title="Editar Nome / Link"
+                                                        >
+                                                            <Edit2 className="w-4 h-4" />
                                                         </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <div className="flex-1 min-w-0 flex flex-col">
-                                                        <span className={`text-xs truncate ${idx === currentIndex ? 'text-indigo-200 font-bold' : 'text-slate-300'}`}>
-                                                            {track.name}
-                                                        </span>
-                                                        <span className="text-[9px] text-slate-500 font-mono">{formatDuration(track.duration)}</span>
-                                                    </div>
 
-                                                    <button 
-                                                        onClick={() => startEditTrack(track)}
-                                                        className="p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded transition-colors"
-                                                        title="Editar Faixa"
-                                                    >
-                                                        <Edit2 className="w-3.5 h-3.5" />
-                                                    </button>
-
-                                                    <button 
-                                                        onClick={() => removeTrack(idx)}
-                                                        className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors"
-                                                        title="Remover"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Add Media Area */}
-                        {playlist.length < 10 && (
-                            <div className="pt-2 border-t border-slate-800 space-y-3">
-                                <form onSubmit={handleYoutubeSubmit} className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block px-1">Adicionar do YouTube</label>
-                                    <div className="flex gap-2">
-                                        <input 
-                                            type="text" 
-                                            value={ytInput}
-                                            onChange={(e) => setYtInput(e.target.value)}
-                                            placeholder="Link do vídeo..."
-                                            disabled={isLoadingUrl}
-                                            className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
-                                        />
-                                        <button 
-                                            type="submit"
-                                            disabled={isLoadingUrl}
-                                            className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-slate-700 disabled:opacity-50"
-                                        >
-                                            {isLoadingUrl ? '...' : <Play className="w-3 h-3" />}
-                                        </button>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => removeTrack(idx)}
+                                                            className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                                                            title="Remover da Playlist"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
-                                </form>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block px-1">Ou Arquivo de Áudio</label>
-                                    <button 
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 font-medium transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Upload className="w-3.5 h-3.5 text-slate-400" />
-                                        Procurar no PC (.mp3)
-                                    </button>
-                                    <input type="file" accept="audio/*" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
                                 </div>
-                            </div>
-                        )}
+                            )}
+
+                            {/* Card 4: Adicionar Mídia (YouTube ou Arquivo Local) */}
+                            {playlist.length < 10 && (
+                                <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700/60 space-y-4">
+                                    <h5 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Sparkles className="w-4 h-4 text-amber-400" /> Adicionar Nova Música à Playlist
+                                    </h5>
+
+                                    <form onSubmit={handleYoutubeSubmit} className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                                            <Youtube className="w-3.5 h-3.5 text-rose-500" /> Link do YouTube
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                value={ytInput}
+                                                onChange={(e) => setYtInput(e.target.value)}
+                                                placeholder="Cole o link do YouTube aqui (ex: https://youtube.com/watch?v=...)"
+                                                disabled={isLoadingUrl}
+                                                className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:opacity-50"
+                                            />
+                                            <button 
+                                                type="submit"
+                                                disabled={isLoadingUrl || !ytInput.trim()}
+                                                className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5 shadow-sm shrink-0"
+                                            >
+                                                {isLoadingUrl ? 'Buscando...' : <><Play className="w-3.5 h-3.5 fill-white" /> Inserir</>}
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between gap-3">
+                                        <span className="text-xs text-slate-400">Ou use um arquivo de áudio do dispositivo:</span>
+                                        <button 
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-xl px-4 py-2 text-xs text-white font-bold transition-colors flex items-center gap-2 cursor-pointer shrink-0"
+                                        >
+                                            <Upload className="w-3.5 h-3.5 text-indigo-300" />
+                                            Carregar MP3
+                                        </button>
+                                        <input type="file" accept="audio/*" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
+
+                        {/* Rodapé */}
+                        <div className="p-4 bg-slate-950/80 border-t border-slate-800 flex justify-end shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setIsOpen(false)}
+                                className="px-6 py-2.5 rounded-xl font-bold text-sm text-white bg-indigo-600 hover:bg-indigo-500 transition-all shadow-md active:scale-95 cursor-pointer"
+                            >
+                                Concluído
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </div>,
+                portalNode
             )}
         </div>
     );
