@@ -71,7 +71,12 @@ export const RPGTextEditModal = ({
     };
 
     return (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+        <div 
+            className="fixed inset-0 z-[12000] flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+            onClick={(e) => {
+                if (e.target === e.currentTarget) onClose();
+            }}
+        >
             <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-250">
                 {/* Cabeçalho */}
                 <div className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 px-6 py-4 flex items-center justify-between text-white shrink-0 shadow-xs">
