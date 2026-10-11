@@ -543,22 +543,26 @@ export const RouletteBackgroundMusic = ({
 
             {/* Popover Menu */}
             {isOpen && (
-                <div className="absolute right-0 top-full mt-2 w-80 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-[100] animate-in slide-in-from-top-2 fade-in duration-200 overflow-hidden flex flex-col max-h-[70vh]">
-                    <div className="flex items-center justify-between p-4 border-b border-slate-800 shrink-0 bg-slate-900/95 sticky top-0 z-10">
+                <div className="fixed inset-x-3 sm:inset-x-auto sm:right-0 sm:absolute top-14 sm:top-full mt-1.5 w-auto sm:w-80 max-w-[340px] mx-auto bg-slate-900/98 border border-slate-700 rounded-2xl shadow-2xl z-[12000] animate-in slide-in-from-top-2 fade-in duration-200 overflow-hidden flex flex-col max-h-[70vh] backdrop-blur-md">
+                    <div className="flex items-center justify-between p-3 sm:p-4 border-b border-slate-800 shrink-0 bg-slate-900/95 sticky top-0 z-10">
                         <h4 className="text-sm font-black text-white flex items-center gap-2">
                             <Music className="w-4 h-4 text-indigo-400" /> Playlist
                         </h4>
-                        <button onClick={() => setIsOpen(false)} className="text-slate-500 hover:text-white transition-colors">
+                        <button 
+                            type="button" 
+                            onClick={() => setIsOpen(false)} 
+                            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
                             <X className="w-4 h-4" />
                         </button>
                     </div>
 
-                    <div className="p-4 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+                    <div className="p-3 sm:p-4 overflow-y-auto no-scrollbar flex-1 space-y-3">
                         {/* Settings / Sync */}
                         {playlist.length > 0 && (
-                            <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 flex items-start gap-3">
-                                <div className="flex-1">
-                                    <h5 className="text-xs font-bold text-white mb-1">Sincronizar com Cronômetro</h5>
+                            <div className="bg-slate-800/50 p-2.5 sm:p-3 rounded-xl border border-slate-700 flex items-center justify-between gap-2.5">
+                                <div className="flex-1 min-w-0">
+                                    <h5 className="text-xs font-bold text-white mb-0.5">Sincronizar com Cronômetro</h5>
                                     <p className="text-[10px] text-slate-400 leading-tight">
                                         {syncWithMusic ? 'A bomba explodirá exatamente quando a música atual acabar.' : 'A música tocará livremente no fundo.'}
                                     </p>

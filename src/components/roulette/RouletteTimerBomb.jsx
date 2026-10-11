@@ -1187,22 +1187,22 @@ export const RouletteTimerBomb = ({
             )}
 
             {/* Card Principal da Bomba */}
-            <div className={`relative w-full h-full rounded-3xl pt-10 pb-9 px-5 sm:px-6 border-[6px] transition-all duration-300 shadow-2xl flex flex-col justify-between overflow-hidden ${
+            <div className={`relative w-full h-full rounded-2xl sm:rounded-3xl pt-5 sm:pt-6 pb-5 sm:pb-6 px-3 sm:px-4 border-4 sm:border-[5px] transition-all duration-300 shadow-2xl flex flex-col justify-between overflow-hidden ${
                 isExploded 
                     ? 'bg-gradient-to-b from-red-950 via-black to-red-950 border-red-600 shadow-[0_0_120px_rgba(239,68,68,1)] animate-violent-shake scale-105 z-50'
                     : isCritical
-                        ? 'bg-gradient-to-b from-red-950/90 via-black to-red-950/80 border-red-500 shadow-[0_0_60px_rgba(239,68,68,0.8)] animate-pulse scale-[1.02]'
+                        ? 'bg-gradient-to-b from-red-950/90 via-black to-red-950/80 border-red-500 shadow-[0_0_60px_rgba(239,68,68,0.8)] animate-pulse scale-[1.01]'
                         : 'bg-gradient-to-b from-zinc-950 via-[#0a0a0a] to-zinc-950 border-zinc-800 shadow-[0_0_40px_rgba(0,0,0,0.9)]'
             }`}>
 
                 {/* Faixas de Perigo (Warning Stripes) */}
-                <div className="absolute top-0 inset-x-0 h-6 bg-[repeating-linear-gradient(45deg,#eab308_0,#eab308_20px,#000_20px,#000_40px)] shadow-lg border-b-4 border-black/90 z-10 opacity-95" />
-                <div className="absolute bottom-0 inset-x-0 h-6 bg-[repeating-linear-gradient(-45deg,#eab308_0,#eab308_20px,#000_20px,#000_40px)] shadow-lg border-t-4 border-black/90 z-10 opacity-95" />
+                <div className="absolute top-0 inset-x-0 h-3.5 sm:h-4 bg-[repeating-linear-gradient(45deg,#eab308_0,#eab308_14px,#000_14px,#000_28px)] shadow-md border-b-2 border-black/90 z-10 opacity-95" />
+                <div className="absolute bottom-0 inset-x-0 h-3.5 sm:h-4 bg-[repeating-linear-gradient(-45deg,#eab308_0,#eab308_14px,#000_14px,#000_28px)] shadow-md border-t-2 border-black/90 z-10 opacity-95" />
 
                 {/* Header do Cronômetro */}
-                <div className="w-full flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
-                    <div className="flex items-center gap-2">
-                        <div className={`w-2.5 h-2.5 rounded-full ${
+                <div className="w-full flex items-center justify-between pb-1.5 sm:pb-2 border-b border-white/10 shrink-0">
+                    <div className="flex items-center gap-1.5">
+                        <div className={`w-2 h-2 rounded-full ${
                             isExploded 
                                 ? 'bg-red-500 animate-ping' 
                                 : isCritical 
@@ -1211,8 +1211,8 @@ export const RouletteTimerBomb = ({
                                         ? 'bg-amber-400 animate-pulse' 
                                         : 'bg-emerald-400'
                         }`} />
-                        <span className="text-lg">💣</span>
-                        <h4 className="font-black text-sm uppercase tracking-widest text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]">
+                        <span className="text-base">💣</span>
+                        <h4 className="font-black text-xs sm:text-sm uppercase tracking-wider text-red-500 drop-shadow-[0_0_5px_rgba(239,68,68,0.8)]">
                             PERIGO: EXPLOSIVO
                         </h4>
                     </div>
@@ -1230,7 +1230,7 @@ export const RouletteTimerBomb = ({
                         <button
                             type="button"
                             onClick={() => changeViewMode('minimized')}
-                            className="p-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer shadow-2xs"
+                            className="p-1 sm:p-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer shadow-2xs"
                             title="Desacoplar e minimizar no canto da tela"
                         >
                             <Minus className="w-3.5 h-3.5" />
@@ -1240,7 +1240,7 @@ export const RouletteTimerBomb = ({
                         <button
                             type="button"
                             onClick={() => changeViewMode('maximized')}
-                            className="p-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer shadow-2xs"
+                            className="p-1 sm:p-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer shadow-2xs"
                             title="Maximizar cronômetro em tela cheia"
                         >
                             <Maximize2 className="w-3.5 h-3.5" />
@@ -1250,7 +1250,7 @@ export const RouletteTimerBomb = ({
                         <button
                             type="button"
                             onClick={() => setSoundEnabled(prev => !prev)}
-                            className={`p-1.5 rounded-xl border transition-colors cursor-pointer ${
+                            className={`p-1 sm:p-1.5 rounded-xl border transition-colors cursor-pointer ${
                                 soundEnabled 
                                     ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30 shadow-2xs' 
                                     : 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700'
@@ -1264,7 +1264,7 @@ export const RouletteTimerBomb = ({
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="p-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer shadow-2xs"
+                                className="p-1 sm:p-1.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer shadow-2xs"
                                 title="Ocultar cronômetro"
                             >
                                 <XCircle className="w-3.5 h-3.5" />
@@ -1274,38 +1274,38 @@ export const RouletteTimerBomb = ({
                 </div>
 
                 {/* DISPLAY CENTRAL: HUD CIRCULAR, RELÓGIO NIXIE E PAVIO */}
-                <div className="flex-1 min-h-0 py-2 w-full flex flex-col items-center justify-center overflow-y-auto custom-scrollbar">
+                <div className="flex-1 min-h-0 py-1 sm:py-2 w-full flex flex-col items-center justify-around overflow-y-auto no-scrollbar">
                     
-                    {/* Bomba Gigante Acima da Porcentagem (Sem circunferência ao redor) */}
-                    <div className="flex flex-col items-center justify-center mt-1 z-10 select-none">
-                        {/* Bomba Gigante */}
+                    {/* Bomba e Porcentagem */}
+                    <div className="flex flex-col items-center justify-center z-10 select-none">
+                        {/* Bomba */}
                         <div className="relative flex items-center justify-center">
                             {isExploded && (
-                                <div className="absolute -top-9 flex items-center gap-2 pointer-events-none z-20">
-                                    <span className="text-2xl animate-smoke-billow" style={{ animationDelay: '0s' }}>💨</span>
-                                    <span className="text-3xl animate-smoke-billow" style={{ animationDelay: '0.3s' }}>🔥</span>
-                                    <span className="text-2xl animate-smoke-billow" style={{ animationDelay: '0.6s' }}>💨</span>
+                                <div className="absolute -top-7 flex items-center gap-1.5 pointer-events-none z-20">
+                                    <span className="text-xl animate-smoke-billow" style={{ animationDelay: '0s' }}>💨</span>
+                                    <span className="text-2xl animate-smoke-billow" style={{ animationDelay: '0.3s' }}>🔥</span>
+                                    <span className="text-xl animate-smoke-billow" style={{ animationDelay: '0.6s' }}>💨</span>
                                 </div>
                             )}
 
                             <div className={`transition-transform duration-300 ${
                                 isExploded 
-                                    ? 'scale-125 rotate-12 drop-shadow-[0_0_45px_#ef4444]' 
+                                    ? 'scale-115 rotate-12 drop-shadow-[0_0_45px_#ef4444]' 
                                     : isCritical
-                                        ? 'scale-115 animate-bounce drop-shadow-[0_0_30px_#ef4444]'
+                                        ? 'scale-110 animate-bounce drop-shadow-[0_0_30px_#ef4444]'
                                         : isRunning
                                             ? 'scale-105 drop-shadow-[0_0_25px_rgba(245,158,11,0.6)]'
                                             : 'scale-100 drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]'
                             }`}>
-                                <span className="text-7xl sm:text-8xl lg:text-9xl select-none">
+                                <span className="text-4xl sm:text-5xl lg:text-6xl select-none leading-none">
                                     {isExploded ? '💥' : '💣'}
                                 </span>
                             </div>
 
                             {isCritical && !isExploded && (
-                                <span className="absolute -top-1 -right-2 flex h-7 w-7">
+                                <span className="absolute -top-1 -right-2 flex h-5 w-5">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-7 w-7 bg-red-600 text-sm font-black text-white items-center justify-center shadow-lg">!</span>
+                                    <span className="relative inline-flex rounded-full h-5 w-5 bg-red-600 text-xs font-black text-white items-center justify-center shadow-lg">!</span>
                                 </span>
                             )}
                         </div>
@@ -1316,11 +1316,11 @@ export const RouletteTimerBomb = ({
                                 type="button"
                                 onClick={toggleTimeDisplayType}
                                 title={timeDisplayType === 'elapsed' ? "Porcentagem decorrida (clique para ver restante)" : "Porcentagem restante (clique para ver decorrida)"}
-                                className={`mt-2 bg-black/95 border-4 px-6 sm:px-8 py-1.5 sm:py-2 rounded-full font-mono font-black text-3xl sm:text-5xl lg:text-6xl shadow-[0_10px_35px_rgba(0,0,0,0.95)] tracking-wider transition-all z-20 whitespace-nowrap flex items-center justify-center select-none cursor-pointer hover:opacity-90 active:scale-98 ${
+                                className={`mt-1 sm:mt-1.5 bg-black/95 border-2 sm:border-3 px-4 sm:px-6 py-0.5 sm:py-1 rounded-full font-mono font-black text-2xl sm:text-3xl lg:text-4xl shadow-[0_8px_25px_rgba(0,0,0,0.95)] tracking-wider transition-all z-20 whitespace-nowrap flex items-center justify-center select-none cursor-pointer hover:opacity-90 active:scale-98 ${
                                 isCritical 
-                                    ? 'border-red-500 text-red-400 drop-shadow-[0_0_25px_#ef4444] animate-pulse scale-105' 
+                                    ? 'border-red-500 text-red-400 drop-shadow-[0_0_20px_#ef4444] animate-pulse scale-105' 
                                     : isRunning 
-                                        ? 'border-amber-400 text-amber-300 drop-shadow-[0_0_22px_rgba(245,158,11,0.9)]' 
+                                        ? 'border-amber-400 text-amber-300 drop-shadow-[0_0_18px_rgba(245,158,11,0.9)]' 
                                         : 'border-amber-500/80 text-amber-300'
                             }`}>
                                 {Math.round(displayedPercent)}%
@@ -1329,25 +1329,25 @@ export const RouletteTimerBomb = ({
                     </div>
 
                     {/* Relógio Digital LED/Nixie */}
-                    <div className="mt-3 sm:mt-4 text-center w-full z-10">
+                    <div className="mt-1 sm:mt-2 text-center w-full z-10">
                         <button
                             type="button"
                             onClick={toggleTimeFormat}
                             title={timeFormat === 'seconds' ? "Clique para alternar para Minutos e Segundos (mm:ss)" : "Clique para alternar para apenas Segundos"}
-                            className={`font-mono font-black text-6xl sm:text-7xl lg:text-8xl tracking-widest tabular-nums transition-all cursor-pointer hover:opacity-90 active:scale-98 select-none ${
+                            className={`font-mono font-black text-4xl sm:text-5xl lg:text-6xl tracking-widest tabular-nums leading-none transition-all cursor-pointer hover:opacity-90 active:scale-98 select-none ${
                             isExploded 
-                                ? 'text-red-500 animate-pulse drop-shadow-[0_0_40px_#ef4444]' 
+                                ? 'text-red-500 animate-pulse drop-shadow-[0_0_35px_#ef4444]' 
                                 : isCritical
-                                    ? 'text-red-500 drop-shadow-[0_0_35px_#ef4444] animate-pulse'
+                                    ? 'text-red-500 drop-shadow-[0_0_30px_#ef4444] animate-pulse'
                                     : isRunning
-                                        ? 'text-cyan-400 drop-shadow-[0_0_30px_rgba(6,182,212,0.85)]'
-                                        : 'text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]'
+                                        ? 'text-cyan-400 drop-shadow-[0_0_25px_rgba(6,182,212,0.85)]'
+                                        : 'text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.6)]'
                         }`}>
                             {renderTime(activeDisplayTime)}
                         </button>
 
-                        <div className="mt-1.5 flex flex-wrap items-center justify-center gap-2">
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-2xs font-black uppercase tracking-wider border shadow-xs transition-all ${
+                        <div className="mt-1 flex flex-wrap items-center justify-center gap-1 sm:gap-1.5">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-2xs font-black uppercase tracking-wider border shadow-xs transition-all ${
                                 isExploded 
                                     ? 'bg-red-500/20 text-red-300 border-red-500/40 animate-bounce' 
                                     : isRunning 
@@ -1357,15 +1357,15 @@ export const RouletteTimerBomb = ({
                                         : 'bg-slate-800/80 text-slate-400 border-slate-700'
                             }`}>
                                 {isExploded ? (
-                                    <><span>💥</span> TEMPO ESGOTADO! A BOMBA EXPLODIU!</>
+                                    <><span>💥</span> TEMPO ESGOTADO!</>
                                 ) : isRunning ? (
                                     isCritical ? (
-                                        <><AlertTriangle className="w-3.5 h-3.5 text-red-400" /> RÁPIDO! VAI EXPLODIR!</>
+                                        <><AlertTriangle className="w-3 h-3 text-red-400" /> RÁPIDO! VAI EXPLODIR!</>
                                     ) : (
-                                        <><Flame className="w-3.5 h-3.5 text-amber-400 animate-bounce" /> {timeDisplayType === 'elapsed' ? 'TEMPO DECORRIDO • PAVIO ACESO' : 'PAVIO ACESO • CONTAGEM REGRESSIVA'}</>
+                                        <><Flame className="w-3 h-3 text-amber-400 animate-bounce" /> {timeDisplayType === 'elapsed' ? 'PAVIO ACESO' : 'REGRESSIVA'}</>
                                     )
                                 ) : (
-                                    <><Clock className="w-3.5 h-3.5 text-slate-400" /> {timeDisplayType === 'elapsed' ? 'TEMPO DECORRIDO' : 'PRONTO • AGUARDANDO INÍCIO'}</>
+                                    <><Clock className="w-3 h-3 text-slate-400" /> {timeDisplayType === 'elapsed' ? 'DECORRIDO' : 'PRONTO • AGUARDANDO'}</>
                                 )}
                             </span>
 
@@ -1373,61 +1373,39 @@ export const RouletteTimerBomb = ({
                             <button
                                 type="button"
                                 onClick={toggleTimeFormat}
-                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-slate-800/80 hover:bg-slate-700/90 text-slate-300 hover:text-cyan-300 border border-slate-700/80 hover:border-cyan-500/40 transition-all cursor-pointer shadow-xs active:scale-95 select-none"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-800/80 hover:bg-slate-700/90 text-slate-300 hover:text-cyan-300 border border-slate-700/80 transition-all cursor-pointer shadow-xs active:scale-95 select-none"
                                 title={timeFormat === 'seconds' ? "Alternar para Minutos:Segundos" : "Alternar para Apenas Segundos"}
                             >
-                                <span className="text-xs">⏱️</span>
-                                <span>{timeFormat === 'seconds' ? 'Mostrar mm:ss' : 'Apenas segundos'}</span>
+                                <span>⏱️</span>
+                                <span>{timeFormat === 'seconds' ? 'mm:ss' : 'Apenas seg'}</span>
                             </button>
 
                             {/* Botão discreto para tempo decorrido */}
                             <button
                                 type="button"
                                 onClick={toggleTimeDisplayType}
-                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold transition-all cursor-pointer shadow-xs active:scale-95 select-none ${
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold transition-all cursor-pointer shadow-xs active:scale-95 select-none ${
                                     timeDisplayType === 'elapsed'
-                                        ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-400/60 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
-                                        : 'bg-slate-800/80 hover:bg-slate-700/90 text-slate-300 hover:text-cyan-300 border border-slate-700/80 hover:border-cyan-500/40'
+                                        ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-400/60 shadow-[0_0_8px_rgba(6,182,212,0.3)]'
+                                        : 'bg-slate-800/80 hover:bg-slate-700/90 text-slate-300 hover:text-cyan-300 border border-slate-700/80'
                                 }`}
                                 title={timeDisplayType === 'elapsed' ? "Clique para voltar ao tempo restante (regressivo)" : "Clique para mostrar tempo decorrido no relógio"}
                             >
-                                <History className="w-3 h-3 text-cyan-400" />
-                                <span>{timeDisplayType === 'elapsed' ? `Restante: ${renderTime(timeLeft)}` : `Decorrido: ${renderTime(elapsedTime)}`}</span>
+                                <History className="w-2.5 h-2.5 text-cyan-400" />
+                                <span>{timeDisplayType === 'elapsed' ? `Rest: ${renderTime(timeLeft)}` : `Decorr: ${renderTime(elapsedTime)}`}</span>
                             </button>
                         </div>
                     </div>
 
-                    {/* Barra de Pavio Interativa e Ajustável (Deslize para aumentar/diminuir) */}
-                    <div className="w-full mt-3.5 select-none shrink-0">
-                        {/* Cabeçalho do Pavio com Porcentagem GIGANTE e Indicador */}
-                        <div className="w-full flex items-end justify-between px-1 mb-1.5">
-                            <div className="flex flex-col">
-                                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
-                                    <span className="text-xs">↔</span> Deslize para ajustar o tempo
-                                </span>
-                                <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
-                                    <span>{renderTime(activeDisplayTime)} / {renderTime(duration)}</span>
-                                    <span className="text-slate-600">•</span>
-                                    <span className="text-cyan-400/90 font-bold" title="Tempo decorrido">+{renderTime(elapsedTime)}</span>
-                                </span>
-                            </div>
-
-                            {/* Porcentagem Destacada ao Lado da Barra */}
-                            {!isExploded && (
-                                <button
-                                    type="button"
-                                    onClick={toggleTimeDisplayType}
-                                    title={timeDisplayType === 'elapsed' ? "Porcentagem decorrida (clique para ver restante)" : "Porcentagem restante (clique para ver decorrida)"}
-                                    className={`font-mono font-black text-2xl sm:text-3xl leading-none tracking-tight transition-all cursor-pointer hover:opacity-80 select-none ${
-                                    isCritical 
-                                        ? 'text-red-400 drop-shadow-[0_0_15px_#ef4444] animate-pulse' 
-                                        : isRunning 
-                                            ? 'text-amber-300 drop-shadow-[0_0_12px_rgba(245,158,11,0.85)]' 
-                                            : 'text-amber-400'
-                                }`}>
-                                    {Math.round(displayedPercent)}%
-                                </button>
-                            )}
+                    {/* Barra de Pavio Interativa e Ajustável */}
+                    <div className="w-full mt-1.5 sm:mt-2 select-none shrink-0">
+                        <div className="w-full flex items-center justify-between px-1 mb-1">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                                <span>↔</span> Ajustar Pavio
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+                                <span>{renderTime(activeDisplayTime)} / {renderTime(duration)}</span>
+                            </span>
                         </div>
 
                         {/* Trilho Interativo do Pavio */}
@@ -1444,29 +1422,20 @@ export const RouletteTimerBomb = ({
                             onPointerMove={(e) => handleFusePointerMove(e, fuseTrackRef.current)}
                             onPointerUp={handleFusePointerUp}
                             onPointerCancel={handleFusePointerUp}
-                            className="w-full py-2 -my-2 cursor-ew-resize group touch-none relative outline-none"
-                            title="Clique ou deslize para a esquerda ou direita para alterar o tempo!"
+                            className="w-full py-1.5 -my-1.5 cursor-ew-resize group touch-none relative outline-none"
+                            title="Clique ou deslize para alterar o tempo!"
                         >
-                            {/* Trilho base */}
-                            <div className="w-full bg-slate-900/95 h-4 sm:h-5 rounded-full border-2 border-slate-700/90 p-0.5 overflow-hidden relative shadow-inner group-hover:border-amber-500/70 transition-colors">
-                                {/* Linhas de escala de tempo no fundo */}
-                                <div className="absolute inset-0 flex justify-between px-3 pointer-events-none opacity-20">
-                                    <div className="w-0.5 h-full bg-white/40" />
-                                    <div className="w-0.5 h-full bg-white/40" />
-                                    <div className="w-0.5 h-full bg-white/40" />
-                                </div>
-
-                                {/* Preenchimento do Pavio */}
+                            <div className="w-full bg-slate-900/95 h-3 sm:h-3.5 rounded-full border border-slate-700/90 p-0.5 overflow-hidden relative shadow-inner group-hover:border-amber-500/70 transition-colors">
                                 <div 
                                     className={`h-full rounded-full relative ${
                                         isDraggingFuse ? 'transition-none' : 'transition-all duration-300'
                                     } ${
                                         isExploded 
-                                            ? 'bg-red-600 shadow-[0_0_12px_#ef4444]' 
+                                            ? 'bg-red-600 shadow-[0_0_10px_#ef4444]' 
                                             : isCritical 
-                                                ? 'bg-gradient-to-r from-red-600 to-orange-500 shadow-[0_0_12px_#ef4444]' 
+                                                ? 'bg-gradient-to-r from-red-600 to-orange-500 shadow-[0_0_10px_#ef4444]' 
                                                 : isRunning 
-                                                    ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 shadow-[0_0_10px_#f59e0b]' 
+                                                    ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 shadow-[0_0_8px_#f59e0b]' 
                                                     : 'bg-gradient-to-r from-slate-600 to-amber-500/70'
                                     }`}
                                     style={{ width: `${progressPercent}%` }}
@@ -1477,17 +1446,16 @@ export const RouletteTimerBomb = ({
                             {!isExploded && (
                                 <div 
                                     className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 pointer-events-none transition-transform z-30 flex items-center justify-center ${
-                                        isDraggingFuse ? 'scale-135' : 'group-hover:scale-120'
+                                        isDraggingFuse ? 'scale-125' : 'group-hover:scale-115'
                                     }`}
                                     style={{ left: `${Math.max(2, Math.min(98, progressPercent))}%` }}
                                 >
-                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-950 border-2 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.9)] flex items-center justify-center text-sm sm:text-base select-none">
+                                    <div className="w-6 h-6 rounded-full bg-slate-950 border border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.9)] flex items-center justify-center text-xs select-none">
                                         {isCritical ? '💥' : '🔥'}
                                     </div>
 
-                                    {/* Tooltip quando está arrastando */}
                                     {isDraggingFuse && (
-                                        <div className="absolute -top-8 px-2.5 py-0.5 rounded-lg bg-amber-400 text-slate-950 font-mono font-black text-xs shadow-lg whitespace-nowrap animate-in fade-in zoom-in-95 duration-100">
+                                        <div className="absolute -top-7 px-2 py-0.5 rounded-lg bg-amber-400 text-slate-950 font-mono font-black text-[10px] shadow-lg whitespace-nowrap animate-in fade-in duration-100">
                                             {renderTime(activeDisplayTime)} ({Math.round(displayedPercent)}%)
                                         </div>
                                     )}
@@ -1498,12 +1466,12 @@ export const RouletteTimerBomb = ({
                 </div>
 
                 {/* BOTÕES DE CONTROLE PRINCIPAIS */}
-                <div className="w-full space-y-2 shrink-0">
-                    <div className="grid grid-cols-2 gap-2">
+                <div className="w-full space-y-1.5 shrink-0 mt-1">
+                    <div className="grid grid-cols-2 gap-1.5">
                         <button
                             type="button"
                             onClick={handleTogglePlay}
-                            className={`py-3 px-4 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all transform active:scale-95 shadow-md cursor-pointer ${
+                            className={`py-2 sm:py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all transform active:scale-95 shadow-md cursor-pointer ${
                                 isExploded
                                     ? 'col-span-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white shadow-red-500/30'
                                     : isRunning
@@ -1513,17 +1481,17 @@ export const RouletteTimerBomb = ({
                         >
                             {isExploded ? (
                                 <>
-                                    <RotateCcw className="w-4 h-4" />
+                                    <RotateCcw className="w-3.5 h-3.5" />
                                     <span>Reiniciar Bomba</span>
                                 </>
                             ) : isRunning ? (
                                 <>
-                                    <Pause className="w-4 h-4 fill-slate-950" />
+                                    <Pause className="w-3.5 h-3.5 fill-slate-950" />
                                     <span>Pausar</span>
                                 </>
                             ) : (
                                 <>
-                                    <Play className="w-4 h-4 fill-slate-950" />
+                                    <Play className="w-3.5 h-3.5 fill-slate-950" />
                                     <span>Iniciar Tempo</span>
                                 </>
                             )}
@@ -1533,9 +1501,9 @@ export const RouletteTimerBomb = ({
                             <button
                                 type="button"
                                 onClick={handleReset}
-                                className="py-3 px-4 rounded-2xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                                className="py-2 sm:py-2.5 px-3 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95"
                             >
-                                <RotateCcw className="w-3.5 h-3.5" />
+                                <RotateCcw className="w-3 h-3" />
                                 <span>Resetar</span>
                             </button>
                         )}
@@ -1545,7 +1513,7 @@ export const RouletteTimerBomb = ({
                         <button
                             type="button"
                             onClick={handleManualExplode}
-                            className="w-full py-2 px-3 rounded-xl font-bold text-2xs sm:text-xs text-red-300 bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 hover:border-red-400 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-xs group"
+                            className="w-full py-1.5 px-2.5 rounded-lg font-bold text-[11px] sm:text-xs text-red-300 bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 hover:border-red-400 transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-xs group"
                             title="Se o aluno não souber responder, acione para explodir a bomba imediatamente!"
                         >
                             <span className="group-hover:scale-125 transition-transform">💥</span>
@@ -1555,21 +1523,20 @@ export const RouletteTimerBomb = ({
                 </div>
 
                 {/* PAINEL DE CONFIGURAÇÃO DE TEMPO */}
-                <div className="w-full mt-3 pt-3 border-t border-white/10 shrink-0">
-                    <div className="flex items-center justify-between gap-1 bg-slate-900/90 border border-slate-800 rounded-2xl p-1 shadow-inner mb-2">
-                        <div className="flex items-center gap-1">
-                            <button type="button" onClick={() => handleAdjustTime(-60)} disabled={duration <= 60} className="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-all active:scale-95 disabled:opacity-30 cursor-pointer" title="Diminuir 1 minuto (-60s)">-1m</button>
-                            <button type="button" onClick={() => handleAdjustTime(-10)} disabled={duration <= 10} className="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-all active:scale-95 disabled:opacity-30 cursor-pointer" title="Diminuir 10 segundos (-10s)">-10s</button>
+                <div className="w-full mt-1.5 pt-1.5 border-t border-white/10 shrink-0">
+                    <div className="flex items-center justify-between gap-1 bg-slate-900/90 border border-slate-800 rounded-xl p-0.5 sm:p-1 shadow-inner mb-1.5">
+                        <div className="flex items-center gap-0.5">
+                            <button type="button" onClick={() => handleAdjustTime(-60)} disabled={duration <= 60} className="px-1.5 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] sm:text-xs font-black transition-all active:scale-95 disabled:opacity-30 cursor-pointer" title="Diminuir 1 minuto (-60s)">-1m</button>
+                            <button type="button" onClick={() => handleAdjustTime(-10)} disabled={duration <= 10} className="px-1.5 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] sm:text-xs font-black transition-all active:scale-95 disabled:opacity-30 cursor-pointer" title="Diminuir 10 segundos (-10s)">-10s</button>
                         </div>
 
                         <div className="flex-1 flex flex-col items-center justify-center px-1 text-center">
-                            <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Duração: {formatTimeDetailed(duration)}</span>
-                            <span className="text-sm font-mono font-black text-amber-300">{renderTime(duration)}</span>
+                            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Duração: {renderTime(duration)}</span>
                         </div>
 
-                        <div className="flex items-center gap-1">
-                            <button type="button" onClick={() => handleAdjustTime(10)} disabled={duration >= 600} className="px-2 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-black transition-all active:scale-95 disabled:opacity-30 cursor-pointer" title="Aumentar 10 segundos (+10s)">+10s</button>
-                            <button type="button" onClick={() => handleAdjustTime(60)} disabled={duration >= 600} className="px-2 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-black transition-all active:scale-95 disabled:opacity-30 cursor-pointer" title="Aumentar 1 minuto (+60s)">+1m</button>
+                        <div className="flex items-center gap-0.5">
+                            <button type="button" onClick={() => handleAdjustTime(10)} disabled={duration >= 600} className="px-1.5 py-0.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[10px] sm:text-xs font-black transition-all active:scale-95 disabled:opacity-30 cursor-pointer" title="Aumentar 10 segundos (+10s)">+10s</button>
+                            <button type="button" onClick={() => handleAdjustTime(60)} disabled={duration >= 600} className="px-1.5 py-0.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[10px] sm:text-xs font-black transition-all active:scale-95 disabled:opacity-30 cursor-pointer" title="Aumentar 1 minuto (+60s)">+1m</button>
                         </div>
                     </div>
 
@@ -1582,7 +1549,7 @@ export const RouletteTimerBomb = ({
                                 key={sec}
                                 type="button"
                                 onClick={() => handleSelectDuration(sec)}
-                                className={`px-2.5 py-1 rounded-xl text-2xs font-mono font-bold transition-all cursor-pointer active:scale-95 ${
+                                className={`px-2 py-0.5 rounded-lg text-[10px] sm:text-2xs font-mono font-bold transition-all cursor-pointer active:scale-95 ${
                                     duration === sec && !showCustomInput ? 'bg-amber-400 text-slate-950 font-black shadow-xs ring-1 ring-amber-300 scale-105' : 'bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800'
                                 }`}
                             >
@@ -1593,7 +1560,7 @@ export const RouletteTimerBomb = ({
                         <button
                             type="button"
                             onClick={() => setShowCustomInput(!showCustomInput)}
-                            className={`px-2 py-1 rounded-xl text-2xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                            className={`px-2 py-0.5 rounded-lg text-[10px] sm:text-2xs font-bold transition-all cursor-pointer flex items-center gap-0.5 ${
                                 showCustomInput ? 'bg-amber-400 text-slate-950 font-black shadow-xs' : 'bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-amber-300 border border-slate-800'
                             }`}
                             title="Digitar tempo específico (ex: 90 ou 1:30)"
@@ -1604,21 +1571,21 @@ export const RouletteTimerBomb = ({
                     </div>
 
                     {showCustomInput && (
-                        <form onSubmit={handleCustomSubmit} className="flex items-center gap-1.5 mt-2 p-1.5 bg-slate-900 border border-amber-500/40 rounded-xl animate-in slide-in-from-top-1">
+                        <form onSubmit={handleCustomSubmit} className="flex items-center gap-1 mt-1.5 p-1 bg-slate-900 border border-amber-500/40 rounded-xl animate-in slide-in-from-top-1">
                             <input
                                 type="text"
                                 value={customInput}
                                 onChange={(e) => setCustomInput(e.target.value)}
                                 placeholder="Ex: 90 ou 1:30"
-                                className="flex-1 bg-transparent px-2 py-1 text-xs text-white font-mono placeholder:text-slate-500 outline-none"
+                                className="flex-1 bg-transparent px-2 py-0.5 text-xs text-white font-mono placeholder:text-slate-500 outline-none"
                                 autoFocus
                             />
-                            <button type="submit" className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-lg transition-all cursor-pointer">OK</button>
-                            <button type="button" onClick={() => setShowCustomInput(false)} className="p-1 text-slate-400 hover:text-white text-xs cursor-pointer">✕</button>
+                            <button type="submit" className="px-2.5 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-lg transition-all cursor-pointer">OK</button>
+                            <button type="button" onClick={() => setShowCustomInput(false)} className="p-0.5 text-slate-400 hover:text-white text-xs cursor-pointer">✕</button>
                         </form>
                     )}
 
-                    <div className="flex items-center justify-center mt-3 pt-2 border-t border-slate-800">
+                    <div className="flex items-center justify-center mt-1.5 pt-1 border-t border-slate-800/80">
                         <label className="flex items-center gap-1.5 cursor-pointer group" onClick={e => e.stopPropagation()}>
                             <div className="relative flex items-center">
                                 <input 
@@ -1627,9 +1594,9 @@ export const RouletteTimerBomb = ({
                                     onChange={(e) => setTickEnabled(e.target.checked)}
                                     className="peer sr-only"
                                 />
-                                <div className="w-8 h-4 bg-slate-800 border border-slate-700 rounded-full peer-checked:bg-amber-500/30 peer-checked:border-amber-500 transition-all after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-slate-500 after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4 peer-checked:after:bg-amber-400"></div>
+                                <div className="w-7 h-3.5 bg-slate-800 border border-slate-700 rounded-full peer-checked:bg-amber-500/30 peer-checked:border-amber-500 transition-all after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-slate-500 after:rounded-full after:h-2.5 after:w-2.5 after:transition-all peer-checked:after:translate-x-3.5 peer-checked:after:bg-amber-400"></div>
                             </div>
-                            <span className="text-[10px] text-slate-400 font-bold tracking-wide uppercase group-hover:text-slate-300 transition-colors select-none">
+                            <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold tracking-wide uppercase group-hover:text-slate-300 transition-colors select-none">
                                 Ouvir Batida do Cronômetro
                             </span>
                         </label>

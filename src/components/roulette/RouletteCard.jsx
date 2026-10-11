@@ -1036,7 +1036,7 @@ export const RouletteCard = ({
             {/* 2. PAINEL DIREITO: CRONÔMETRO BOMBA ACOPLADO (MESMA ALTURA) */}
             {/* ============================================================ */}
             <div className={timerViewMode === 'normal' 
-                ? 'w-full lg:w-[380px] xl:w-[415px] 2xl:w-[435px] shrink-0 h-full self-stretch flex flex-col animate-in fade-in slide-in-from-right-3 duration-300 bg-slate-900 border-l border-slate-200/20 relative z-40' 
+                ? 'w-full lg:w-[340px] xl:w-[380px] 2xl:w-[410px] shrink-0 h-full self-stretch flex flex-col animate-in fade-in slide-in-from-right-3 duration-300 bg-slate-900 border-l border-slate-200/20 relative z-40' 
                 : 'contents'
             }>
                 <RouletteTimerBomb 
