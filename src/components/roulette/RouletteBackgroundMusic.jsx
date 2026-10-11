@@ -29,18 +29,22 @@ export const RouletteBackgroundMusic = ({
     isDragging = false
 }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [portalNode, setPortalNode] = useState(null);
+    const getActivePortalNode = () => {
+        if (typeof document === 'undefined') return null;
+        const fsElement = document.fullscreenElement || 
+                          document.webkitFullscreenElement || 
+                          document.mozFullScreenElement || 
+                          document.msFullscreenElement;
+        const usableFs = fsElement && fsElement !== document.documentElement ? fsElement : null;
+        return usableFs || document.body;
+    };
+    const [portalNode, setPortalNode] = useState(getActivePortalNode);
 
     // Setup do Portal Node para renderizar na tela cheia ou no body
     useEffect(() => {
         if (typeof document !== 'undefined') {
             const updatePortalNode = () => {
-                const fsElement = document.fullscreenElement || 
-                                  document.webkitFullscreenElement || 
-                                  document.mozFullScreenElement || 
-                                  document.msFullscreenElement;
-                const usableFs = fsElement && fsElement !== document.documentElement ? fsElement : null;
-                setPortalNode(usableFs || document.body);
+                setPortalNode(getActivePortalNode());
             };
             updatePortalNode();
             const events = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
@@ -552,7 +556,10 @@ export const RouletteBackgroundMusic = ({
             {/* Botão de Acionamento da Playlist no Cronômetro */}
             <button
                 type="button"
-                onClick={() => setIsOpen(true)}
+                onClick={() => {
+                    setPortalNode(getActivePortalNode());
+                    setIsOpen(true);
+                }}
                 className={`p-1.5 sm:p-2 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 select-none shadow-2xs ${
                     currentTrack 
                         ? 'border-indigo-500 bg-indigo-600/25 text-indigo-200 hover:bg-indigo-600/35 hover:text-white shadow-[0_0_12px_rgba(99,102,241,0.4)]' 
@@ -573,7 +580,7 @@ export const RouletteBackgroundMusic = ({
             </button>
 
             {/* MODAL EXTERNO / DEDICADO DA PLAYLIST (FORA DO CRONÔMETRO, AMPLO E SUPER LEGÍVEL) */}
-            {isOpen && portalNode && createPortal(
+            {isOpen && (portalNode || (typeof document !== 'undefined' ? document.body : null)) && createPortal(
                 <div 
                     className="fixed inset-0 z-[15000] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200 select-none"
                     onClick={(e) => {
