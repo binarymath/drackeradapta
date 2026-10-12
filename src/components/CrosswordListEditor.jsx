@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Save, Sparkles, FileText, Pencil, Check, Calculator, Type, Brain } from 'lucide-react';
+import { X, Plus, Trash2, Save, Sparkles, FileText, Pencil, Check, Calculator, Type, Brain, ChevronDown, ChevronUp } from 'lucide-react';
 import { generateMathProblems } from '../utils/wordsearchGenerator';
+import { numberToPortugueseWords, formatAnswerForMathCrossword } from '../utils/numberToWords';
 import { useGemini } from '../contexts/GeminiContext';
 import { safeJSONParse } from '../utils/jsonUtils';
 
@@ -12,6 +13,7 @@ import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { LatexRenderer } from './ui/LatexRenderer';
 import { toast } from './ui/Toast';
+import { GlobalAIGeneratorPanel } from './common/GlobalAIGeneratorPanel';
 
 export const CrosswordListEditor = ({
     initialData,
@@ -25,12 +27,18 @@ export const CrosswordListEditor = ({
     const [detailsInput, setDetailsInput] = useState(lessonDetails || '');
     const [editingIndices, setEditingIndices] = useState(new Set());
     const [gameModeType, setGameModeType] = useState('text'); // 'text' ou 'math'
+    const [mathSubMode, setMathSubMode] = useState('direct'); // 'direct' (Contas Diretas) ou 'ai_problems' (Situações-Problema IA)
+    const [showAdvancedMath, setShowAdvancedMath] = useState(false);
+    const [mathAnswerFormat, setMathAnswerFormat] = useState(initialData?.mathAnswerFormat || 'text_words'); // 'text_words' (Opção 2 - Por Extenso) ou 'numeric'
     const [mathOperations, setMathOperations] = useState(['+', '-']);
     const [mathMaxOrder, setMathMaxOrder] = useState(2);
     const [mathMultMaxOrder, setMathMultMaxOrder] = useState(1);
     const [mathDivMaxOrder, setMathDivMaxOrder] = useState(1);
     const [mathSpecificDivisor, setMathSpecificDivisor] = useState('random');
     const [mathCount, setMathCount] = useState(10);
+    const [gradeLevel, setGradeLevel] = useState('Ensino Fundamental II - 6º ao 9º Ano (11 a 14 anos)');
+    const [itemCount, setItemCount] = useState(10);
+    const [difficultyDist, setDifficultyDist] = useState({ easy: 40, medium: 40, hard: 20 });
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
     const { geminiService, selectedModel } = useGemini();
@@ -39,10 +47,28 @@ export const CrosswordListEditor = ({
         if (initialData && initialData.words) {
             setWords(initialData.words);
         }
+        if (initialData?.mathAnswerFormat) {
+            setMathAnswerFormat(initialData.mathAnswerFormat);
+        }
         // Pré-carrega tema e detalhes da sidebar (igual ao Memory Game)
         setTopicInput(initialData?.topic || topic || '');
         setDetailsInput(initialData?.lessonDetails || lessonDetails || '');
     }, [initialData, topic, lessonDetails]);
+
+    const handleFormatChange = (newFormat) => {
+        setMathAnswerFormat(newFormat);
+        if (words.length > 0) {
+            const converted = words.map(w => {
+                const formatted = formatAnswerForMathCrossword(w.word, newFormat);
+                return {
+                    ...w,
+                    word: formatted,
+                    originalWord: formatted
+                };
+            });
+            setWords(converted);
+        }
+    };
 
     const handleAddWord = () => {
         const newIdx = words.length;
@@ -87,11 +113,18 @@ export const CrosswordListEditor = ({
     };
 
     const handleConfirm = () => {
-        // 1. Normaliza: trim em todos os campos
-        const trimmed = words.map(w => ({
-            word: (w.word || '').toString().trim(),
-            clue: (w.clue || '').toString().trim(),
-        }));
+        // 1. Normaliza: trim em todos os campos e formata por extenso se estiver em math + text_words
+        const trimmed = words.map(w => {
+            let finalWord = (w.word || '').toString().trim();
+            if (gameModeType === 'math' && mathAnswerFormat === 'text_words') {
+                finalWord = formatAnswerForMathCrossword(finalWord, 'text_words');
+            }
+            return {
+                word: finalWord,
+                originalWord: w.originalWord || finalWord,
+                clue: (w.clue || '').toString().trim(),
+            };
+        });
 
         // 2. Remove entradas com palavra OU dica vazia
         const nonEmpty = trimmed.filter(w => w.word !== '' && w.clue !== '');
@@ -121,7 +154,11 @@ export const CrosswordListEditor = ({
             return;
         }
 
-        onConfirm({ words: deduped, topic: topicInput || (gameModeType === 'math' ? 'CRUZADINHA NUMÉRICA' : '') });
+        onConfirm({ 
+            words: deduped, 
+            topic: topicInput || (gameModeType === 'math' ? (mathAnswerFormat === 'text_words' ? 'CRUZADINHA MATEMÁTICA' : 'CRUZADINHA NUMÉRICA') : ''),
+            mathAnswerFormat
+        });
     };
 
     const handleGenerateMath = () => {
@@ -130,10 +167,18 @@ export const CrosswordListEditor = ({
             return;
         }
         const problems = generateMathProblems(mathCount, mathMaxOrder, mathOperations, mathMultMaxOrder, mathDivMaxOrder, mathSpecificDivisor);
-        const mappedWords = problems.map(p => ({ word: p.answer.toString(), clue: p.problem }));
+        const mappedWords = problems.map(p => {
+            const formatted = formatAnswerForMathCrossword(p.answer, mathAnswerFormat);
+            return { 
+                word: formatted, 
+                originalWord: formatted, 
+                clue: p.problem 
+            };
+        });
         setWords(mappedWords);
         setEditingIndices(new Set());
-        setTopicInput('CRUZADINHA NUMÉRICA');
+        setTopicInput(mathAnswerFormat === 'text_words' ? 'CRUZADINHA MATEMÁTICA' : 'CRUZADINHA NUMÉRICA');
+        toast(`✨ ${mappedWords.length} contas geradas com respostas ${mathAnswerFormat === 'text_words' ? 'por extenso' : 'numéricas'}!`);
     };
 
     const toggleMathOp = (op) => {
@@ -151,33 +196,39 @@ export const CrosswordListEditor = ({
         setIsGeneratingAI(true);
         try {
             const contextBlock = detailsInput
-                ? `\nContexto/Detalhes adicionais: ${detailsInput}` : '';
+                ? `\nContexto pedagógico & plano de aula: ${detailsInput}` : '';
 
-            const prompt = `Você é um gerador de atividades educativas de matemática.
-Gere ${mathCount} problemas matemáticos educativos.
-Tema/Contexto: ${topicInput || 'Matemática Geral'}${contextBlock}
+            const isPorExtenso = mathAnswerFormat === 'text_words';
+            const countToGen = Number(itemCount) || Number(mathCount) || 10;
+
+            const easyP = Math.round((countToGen * (difficultyDist?.easy || 40)) / 100);
+            const medP = Math.round((countToGen * (difficultyDist?.medium || 40)) / 100);
+            const hardP = Math.max(0, countToGen - easyP - medP);
+
+            const prompt = `Você é um gerador de excelência de atividades pedagógicas de matemática para palavras cruzadas escolares.
+Gere EXATAMENTE ${countToGen} situações-problema ou desafios matemáticos educativos.
+Tema/Contexto: ${topicInput || 'Matemática do Cotidiano'}${contextBlock}
+Nível/Ano Escolar dos alunos: ${gradeLevel}.
+
+Distribuição de dificuldade pedagógica:
+- Fácil (~${easyP} problemas): enunciados curtos, diretos e números menores.
+- Médio (~${medP} problemas): situações contextualizadas do dia a dia (compras, medidas, tempo).
+- Difícil (~${hardP} problemas): desafios que exigem raciocínio dedutivo ou 2 etapas de cálculo.
 
 CRIE PROBLEMAS VARIADOS E ADEQUADOS AO CONTEXTO. Pode incluir:
 - Situações-problema com ${mathOperations.join(', ')}
-- Frações (ex: "1/2 + 1/4 = ?"), se o tema sugerir
-- Formas geométricas (ex: lados de um triângulo), se o tema sugerir
-- Tabuada, medidas, porcentagem ou sequências numéricas
-- Problemas de lógica matemática simples
+- Medidas, horas, dinheiro/compras, frações práticas ou raciocínio lógico simples
 
-REGRAS DE DIFICULDADE (para operações numéricas):
-- Adição/Subtração: números com no máximo ${mathMaxOrder} dígito(s)
-${mathOperations.includes('*') ? `- Multiplicação: multiplicando até ${mathMaxOrder} dígito(s), multiplicador até ${mathMultMaxOrder} dígito(s)` : ''}
-${mathOperations.includes('/') ? `- Divisão: dividendo até ${mathMaxOrder} dígito(s), divisor até ${mathDivMaxOrder} dígito(s), resultado exato` : ''}
+${isPorExtenso ? `REGRA CRÍTICA PARA A RESPOSTA (CRUZADINHA POR EXTENSO - OPÇÃO 2):
+A resposta ("answer") de cada problema DEVE ser o resultado numérico escrito OBRIGATORIAMENTE POR EXTENSO em português brasileiro, em LETRAS MAIÚSCULAS e sem acentos (Exemplos: "VINTE E CINCO", "DOZE", "QUATROCENTOS", "DEZ").
+NÃO retorne dígitos numéricos no campo "answer", retorne o número por extenso!` : `A resposta ("answer") de cada problema DEVE ser APENAS UM NÚMERO INTEIRO POSITIVO.`}
 
-A resposta ("answer") de cada problema DEVE ser APENAS UM NÚMERO INTEIRO POSITIVO.
-Retorne SOMENTE um array JSON:
+Retorne SOMENTE um array JSON no formato exato:
 [
-  { "answer": 25, "problem": "João tinha 10 maçãs e ganhou mais 15. Quantas maçãs ele tem agora?" },
-  { "answer": 3, "problem": "Um triângulo tem quantos lados?" }
+  { "answer": "${isPorExtenso ? 'VINTE E CINCO' : '25'}", "problem": "Dona Maria comprou 10 maçãs e ganhou mais 15. Quantas maçãs ela tem ao todo?" },
+  { "answer": "${isPorExtenso ? 'TRES' : '3'}", "problem": "Quantos lados tem um triângulo?" }
 ]`;
 
-            
-            
             const text = await geminiService.generateText(prompt, {
                 model: selectedModel,
                 maxOutputTokens: 8000,
@@ -210,13 +261,21 @@ Retorne SOMENTE um array JSON:
                 throw new Error("A IA não retornou uma lista válida.");
             }
 
-            const mappedWords = problems.map(p => ({ 
-                word: (p.answer || p.word || '').toString(), 
-                clue: p.problem || p.clue || '' 
-            }));
+            const mappedWords = problems.map(p => {
+                const rawAns = (p.answer || p.word || '').toString().trim();
+                const clueText = (p.problem || p.clue || '').toString().trim();
+                const formattedAns = formatAnswerForMathCrossword(rawAns, mathAnswerFormat);
+                return { 
+                    word: formattedAns, 
+                    originalWord: formattedAns,
+                    clue: clueText 
+                };
+            }).filter(p => p.word && p.clue);
+
             setWords(mappedWords);
             setEditingIndices(new Set());
-            if (!topicInput) setTopicInput('Cruzadinha: Situações-Problema');
+            if (!topicInput) setTopicInput(mathAnswerFormat === 'text_words' ? 'Cruzadinha Matemática (Por Extenso)' : 'Cruzadinha: Situações-Problema');
+            toast(`🎉 ${mappedWords.length} situações-problema geradas com sucesso!`);
             
         } catch (e) {
             console.error("Erro na IA:", e);
@@ -227,8 +286,8 @@ Retorne SOMENTE um array JSON:
     };
 
     const handleGenerateAIText = async () => {
-        if (!topicInput) {
-            toast("Por favor, digite um Título/Tema primeiro para a IA saber o que gerar.");
+        if (!topicInput || !topicInput.trim()) {
+            toast("Por favor, digite o tema central das palavras cruzadas primeiro.");
             return;
         }
         if (!geminiService || !geminiService.apiKey) {
@@ -238,16 +297,34 @@ Retorne SOMENTE um array JSON:
 
         setIsGeneratingAI(true);
         try {
-            const contextBlock = detailsInput
-                ? `\nContexto/Detalhes: ${detailsInput}` : '';
-            const prompt = `Você é um gerador de atividades educativas.\nGere 10 palavras cruzadas criativas e educativas para o tema: "${topicInput}".${contextBlock}\nRetorne APENAS um JSON estrito. Não use formatação markdown.\nO JSON DEVE ser um array de objetos com este formato exato:\n[{"word": "RESPOSTA", "clue": "Dica ou pergunta"}]`;
+            const countToGen = Number(itemCount) || 10;
+            const easyP = Math.round((countToGen * (difficultyDist?.easy || 40)) / 100);
+            const medP = Math.round((countToGen * (difficultyDist?.medium || 40)) / 100);
+            const hardP = Math.max(0, countToGen - easyP - medP);
 
-            
-            
+            const prompt = `Você é um gerador de excelência de atividades educativas e pedagógicas de Palavras Cruzadas.
+Gere EXATAMENTE ${countToGen} palavras cruzadas educativas de alto nível pedagógico sobre o tema: "${topicInput.trim()}".
+Nível/Ano Escolar dos alunos: ${gradeLevel}.
+${detailsInput?.trim() ? `Contexto pedagógico & delimitação do tema:\n${detailsInput.trim()}` : ''}
+
+Distribuição de dificuldade pedagógica das pistas:
+- Fácil (~${easyP} palavras): termos fundamentais, vocabulário direto e pistas claras.
+- Médio (~${medP} palavras): conceitos escolares padrão do currículo, definições precisas.
+- Difícil (~${hardP} palavras): conceitos aprofundados, termos técnicos ou raciocínio dedutivo.
+
+REGRAS OBRIGATÓRIAS:
+1. Cada "word" deve ser uma ÚNICA palavra em português, sem espaços, sem hífens e sem pontuação (ex: "FOTOSSINTESE", "PIRAMIDE", "GRAVIDADE").
+2. "clue" deve ser uma dica, definição ou enigma educativo claro e engajador.
+3. Retorne APENAS um JSON válido no formato exato:
+[
+  {"word": "PIRAMIDE", "clue": "Poliedro com base poligonal e faces triangulares que se unem em um vértice."},
+  {"word": "VERTICE", "clue": "Ponto de encontro de duas ou mais arestas."}
+]`;
+
             const text = await geminiService.generateText(prompt, {
                 model: selectedModel,
                 maxOutputTokens: 8000,
-                temperature: 0.7,
+                temperature: 0.5,
                 responseMimeType: "application/json"
             });
 
@@ -260,9 +337,14 @@ Retorne SOMENTE um array JSON:
             const list = Array.isArray(responseData) ? responseData : (responseData.words || []);
             if (!list || list.length === 0) throw new Error("A IA retornou uma lista vazia.");
 
-            const mappedWords = list.map(p => ({ word: (p.word || p.answer || '').toString().toUpperCase(), clue: p.clue || p.problem || '' }));
+            const mappedWords = list.map(p => ({ 
+                word: (p.word || p.answer || '').toString().toUpperCase().trim().replace(/[^A-ZÁÉÍÓÚÂÊÔÃÕÇ]/g, ''), 
+                clue: (p.clue || p.problem || '').toString().trim() 
+            })).filter(p => p.word.length >= 2);
+
             setWords(mappedWords);
             setEditingIndices(new Set());
+            toast(`🎉 ${mappedWords.length} palavras cruzadas geradas com sucesso!`);
             
         } catch (e) {
             console.error("Erro na IA:", e);
@@ -315,211 +397,310 @@ Retorne SOMENTE um array JSON:
                     </Button>
                 </div>
 
-                {/* Topic + Details Input — pré-carregado da sidebar */}
-                <Card className="space-y-3">
-                    <Input
-                        label="Título / Tema"
-                        value={topicInput}
-                        onChange={(e) => setTopicInput(e.target.value)}
-                        className="text-lg font-bold"
-                        placeholder={gameModeType === 'math' ? "Ex: Frações, Geometria, Tabuada..." : "Ex: Sistema Solar"}
-                    />
-                    <div>
-                        <label className="block text-sm font-semibold mb-1 text-brown-800">
-                            Contexto / Detalhes
-                            <span className="ml-2 text-xs font-normal text-brown-400">(pré-carregado da barra lateral)</span>
-                        </label>
-                        <textarea
-                            value={detailsInput}
-                            onChange={(e) => setDetailsInput(e.target.value)}
-                            rows={2}
-                            placeholder="Ex: alunos do 4º ano, foco em frações simples, relacionar com culinária..."
-                            className="w-full p-2 bg-brown-50 border border-brown-200 rounded-lg text-sm text-brown-900 placeholder:text-brown-400 resize-none outline-none focus:border-brown-500 focus:ring-1 focus:ring-brown-500 transition-all"
-                        />
-                    </div>
-                </Card>
-
+                {/* Painel Global de Geração com IA integrado localmente */}
                 {gameModeType === 'text' && (
-                    <Card className="bg-purple-50 border-purple-200">
-                        <h3 className="font-bold text-purple-900 mb-2 flex items-center gap-2">
-                            <Brain className="w-5 h-5 text-purple-600" />
-                            Gerador com Inteligência Artificial
-                        </h3>
-                        <p className="text-sm text-purple-700 mb-4">
-                            Digite um tema acima e deixe a IA criar as palavras e dicas para você.
-                        </p>
-                        <Button 
-                            onClick={handleGenerateAIText} 
-                            className="w-full bg-purple-600 hover:bg-purple-700 text-white relative overflow-hidden" 
-                            icon={Brain}
-                            disabled={isGeneratingAI}
-                        >
-                            {isGeneratingAI ? 'Gerando com IA...' : 'Gerar Palavras Cruzadas (IA)'}
-                            {isGeneratingAI && <div className="absolute inset-0 bg-white/20 animate-pulse" />}
-                        </Button>
-                    </Card>
+                    <GlobalAIGeneratorPanel
+                        itemTypeLabel="palavras cruzadas"
+                        topic={topicInput}
+                        onTopicChange={setTopicInput}
+                        context={detailsInput}
+                        onContextChange={setDetailsInput}
+                        gradeLevel={gradeLevel}
+                        onGradeLevelChange={setGradeLevel}
+                        itemCount={itemCount}
+                        onItemCountChange={setItemCount}
+                        itemCountOptions={[6, 8, 10, 12, 15]}
+                        difficultyDist={difficultyDist}
+                        onDifficultyDistChange={setDifficultyDist}
+                        onGenerate={handleGenerateAIText}
+                        isGenerating={isGeneratingAI}
+                        collapsible={true}
+                        defaultExpanded={words.length === 0}
+                    />
                 )}
 
                 {gameModeType === 'math' && (
-                    <Card className="bg-amber-50 border-amber-200">
-                        <h3 className="font-bold text-amber-900 mb-4 flex items-center gap-2">
-                            <Calculator className="w-5 h-5 text-amber-600" />
-                            Gerador de Problemas Matemáticos
-                        </h3>
-                        
-                        <div className="space-y-4 mb-4">
-                            {/* Primeira linha: Operações e Quantidade */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-white p-3 rounded-lg border border-amber-100 shadow-sm">
-                                    <label className="text-xs font-bold text-amber-800 block mb-2">Operações (Sem IA)</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        {[
-                                            { op: '+', label: 'Adição' },
-                                            { op: '-', label: 'Subtração' },
-                                            { op: '*', label: 'Multiplicação' },
-                                            { op: '/', label: 'Divisão' }
-                                        ].map(({op, label}) => (
-                                            <button
-                                                key={op}
-                                                onClick={() => toggleMathOp(op)}
-                                                className={`px-3 py-1.5 rounded-md text-sm font-bold border transition-colors ${
-                                                    mathOperations.includes(op) 
-                                                    ? 'bg-amber-100 border-amber-400 text-amber-900' 
-                                                    : 'bg-white border-brown-200 text-brown-500 hover:bg-brown-50'
-                                                }`}
-                                            >
-                                                {op} {label}
-                                            </button>
-                                        ))}
-                                    </div>
+                    <div className="space-y-4">
+                        {/* Barra Superior de Formato das Respostas (Opção 2 - Por Extenso) */}
+                        <div className="bg-gradient-to-r from-amber-50 to-orange-50/60 border border-amber-200/90 rounded-2xl p-4 shadow-2xs">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="space-y-0.5">
+                                    <span className="text-xs font-black text-amber-950 uppercase tracking-wide block">
+                                        Respostas na Grade:
+                                    </span>
+                                    <p className="text-[11px] text-amber-900/70">
+                                        {mathAnswerFormat === 'text_words'
+                                            ? 'As respostas numéricas viram palavras por extenso em letras (ex: 25 ➔ VINTE E CINCO), permitindo cruzamentos na grade.'
+                                            : 'As respostas numéricas aparecem diretamente em algarismos/dígitos (ex: 25).'}
+                                    </p>
                                 </div>
-                                
-                                <div className="bg-white p-3 rounded-lg border border-amber-100 shadow-sm">
-                                    <label className="text-xs font-bold text-amber-800 block mb-2">Quantidade (Contas ou IA)</label>
-                                    <div className="flex items-center gap-4">
-                                        <input 
-                                            type="range" min="5" max="30" step="1"
-                                            value={mathCount}
-                                            onChange={(e) => setMathCount(parseInt(e.target.value))}
-                                            className="flex-1 accent-amber-600"
-                                        />
-                                        <div className="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-md min-w-[60px] text-center">
-                                            {mathCount}
-                                        </div>
-                                    </div>
+
+                                <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-amber-200 shadow-2xs shrink-0 self-start sm:self-center">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleFormatChange('text_words')}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                            mathAnswerFormat === 'text_words'
+                                                ? 'bg-amber-600 text-white shadow-xs font-black'
+                                                : 'text-amber-900/80 hover:bg-amber-50'
+                                        }`}
+                                    >
+                                        <span>✍️ Por Extenso (Letras)</span>
+                                        <span className="text-[9px] bg-white/20 px-1 py-0.2 rounded uppercase">Padrão</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleFormatChange('numeric')}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                            mathAnswerFormat === 'numeric'
+                                                ? 'bg-amber-600 text-white shadow-xs font-black'
+                                                : 'text-amber-900/80 hover:bg-amber-50'
+                                        }`}
+                                    >
+                                        <span>🔢 Dígitos (0-9)</span>
+                                    </button>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Ordens Numéricas */}
-                            <div className="bg-white p-4 rounded-lg border border-amber-200 shadow-sm">
-                                <h4 className="text-sm font-bold text-amber-900 mb-3 border-b border-amber-100 pb-2">Controle de Dificuldade (Ordem de Dígitos)</h4>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="col-span-1 md:col-span-2 space-y-2">
-                                        <label className="text-xs font-bold text-amber-800 flex justify-between">
-                                            <span>Ordem Numérica da Resposta / Base</span>
-                                            <span className="text-amber-600 bg-amber-100 px-2 py-0.5 rounded text-[10px]">Todas as operações</span>
+                        {/* Seletor de Modo: Contas Diretas vs Situações-Problema IA */}
+                        <div className="flex p-1 bg-slate-100 rounded-xl w-full sm:w-fit gap-1 border border-slate-200">
+                            <button
+                                type="button"
+                                onClick={() => setMathSubMode('direct')}
+                                className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                                    mathSubMode === 'direct'
+                                        ? 'bg-white text-amber-900 shadow-xs border border-amber-200/80 font-black'
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                                }`}
+                            >
+                                <Calculator className="w-4 h-4 text-amber-600" />
+                                <span>⚡ Contas Diretas (Aritmética)</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setMathSubMode('ai_problems')}
+                                className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                                    mathSubMode === 'ai_problems'
+                                        ? 'bg-white text-purple-900 shadow-xs border border-purple-200/80 font-black'
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                                }`}
+                            >
+                                <Brain className="w-4 h-4 text-purple-600" />
+                                <span>✨ Situações-Problema (com IA)</span>
+                            </button>
+                        </div>
+
+                        {/* Painel 1: Contas Diretas */}
+                        {mathSubMode === 'direct' && (
+                            <Card className="bg-white border-slate-200 p-5 shadow-xs space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    {/* Operações */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                                            <span>Operações Matemáticas</span>
+                                            <span className="text-[10px] text-slate-400 font-normal">Selecione uma ou mais</span>
                                         </label>
-                                        <div className="flex items-center gap-4">
-                                            <input 
-                                                type="range" min="1" max="10" step="1"
-                                                value={mathMaxOrder}
-                                                onChange={(e) => setMathMaxOrder(parseInt(e.target.value))}
-                                                className="flex-1 accent-amber-600"
-                                            />
-                                            <div className="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-md min-w-[60px] text-center text-sm">
-                                                {mathMaxOrder} {mathMaxOrder === 1 ? 'Dígito' : 'Dígitos'}
-                                            </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {[
+                                                { op: '+', label: 'Adição', symbol: '+' },
+                                                { op: '-', label: 'Subtração', symbol: '−' },
+                                                { op: '*', label: 'Multiplicação', symbol: '×' },
+                                                { op: '/', label: 'Divisão', symbol: '÷' }
+                                            ].map(({ op, label, symbol }) => {
+                                                const active = mathOperations.includes(op);
+                                                return (
+                                                    <button
+                                                        key={op}
+                                                        type="button"
+                                                        onClick={() => toggleMathOp(op)}
+                                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+                                                            active
+                                                                ? 'bg-amber-500 text-white border-amber-600 shadow-2xs font-black'
+                                                                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                                        }`}
+                                                    >
+                                                        <span className={`w-5 h-5 rounded-md flex items-center justify-center text-xs font-black shrink-0 ${
+                                                            active ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-700'
+                                                        }`}>
+                                                            {symbol}
+                                                        </span>
+                                                        <span>{label}</span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
-                                        <p className="text-[10px] text-amber-700/70 leading-tight">Controla o limite de dígitos do resultado para Adição/Subtração, e o tamanho do multiplicando/dividendo para as outras.</p>
                                     </div>
 
-                                    {mathOperations.includes('*') && (
-                                        <div className="space-y-2 pt-2 border-t md:border-t-0 md:border-l border-amber-50 md:pl-6">
-                                            <label className="text-xs font-bold text-amber-800 flex justify-between">
-                                                <span>Ordem do Multiplicador</span>
-                                                <span className="text-amber-600 bg-amber-100 px-2 py-0.5 rounded text-[10px]">Multiplicação (x)</span>
-                                            </label>
-                                            <div className="flex items-center gap-4">
-                                                <input 
-                                                    type="range" min="1" max="10" step="1"
-                                                    value={mathMultMaxOrder}
-                                                    onChange={(e) => setMathMultMaxOrder(parseInt(e.target.value))}
-                                                    className="flex-1 accent-amber-600"
-                                                />
-                                                <div className="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-md min-w-[60px] text-center text-sm">
-                                                    {mathMultMaxOrder} {mathMultMaxOrder === 1 ? 'Dígito' : 'Dígitos'}
-                                                </div>
-                                            </div>
-                                            <p className="text-[10px] text-amber-700/70">Quantos dígitos tem o número que multiplica (Ex: x 12).</p>
+                                    {/* Quantidade */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                                            <span>Quantidade de Contas</span>
+                                            <span className="text-xs font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                                {mathCount} {mathCount === 1 ? 'conta' : 'contas'}
+                                            </span>
+                                        </label>
+                                        <div className="flex gap-1.5 pt-1">
+                                            {[6, 8, 10, 12, 15, 20].map(cnt => (
+                                                <button
+                                                    key={cnt}
+                                                    type="button"
+                                                    onClick={() => setMathCount(cnt)}
+                                                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                                                        mathCount === cnt
+                                                            ? 'bg-amber-600 text-white border-amber-700 shadow-2xs font-black'
+                                                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    {cnt}
+                                                </button>
+                                            ))}
                                         </div>
-                                    )}
+                                        <input
+                                            type="range"
+                                            min="4"
+                                            max="25"
+                                            step="1"
+                                            value={mathCount}
+                                            onChange={(e) => setMathCount(parseInt(e.target.value))}
+                                            className="w-full accent-amber-600 cursor-pointer mt-1"
+                                        />
+                                    </div>
+                                </div>
 
-                                    {mathOperations.includes('/') && (
-                                        <div className="space-y-2 pt-2 border-t md:border-t-0 md:border-l border-amber-50 md:pl-6">
-                                            <label className="text-xs font-bold text-amber-800 flex justify-between">
-                                                <span>Ordem do Divisor</span>
-                                                <span className="text-amber-600 bg-amber-100 px-2 py-0.5 rounded text-[10px]">Divisão (÷)</span>
-                                            </label>
-                                            <div className="flex flex-col gap-2">
-                                                <div className="flex items-center gap-4">
-                                                    <input 
-                                                        type="range" min="1" max="10" step="1"
-                                                        value={mathDivMaxOrder}
-                                                        onChange={(e) => {
-                                                            setMathDivMaxOrder(parseInt(e.target.value));
-                                                            if (parseInt(e.target.value) > 1) setMathSpecificDivisor('random');
-                                                        }}
-                                                        className="flex-1 accent-amber-600"
-                                                    />
-                                                    <div className="bg-amber-100 text-amber-900 font-bold px-3 py-1 rounded-md min-w-[60px] text-center text-sm">
-                                                        {mathDivMaxOrder} {mathDivMaxOrder === 1 ? 'Dígito' : 'Dígitos'}
+                                {/* Dificuldade Didática */}
+                                <div className="pt-3 border-t border-slate-100 space-y-2">
+                                    <label className="text-xs font-bold text-slate-700 block">Dificuldade dos Números</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            { id: 'easy', label: 'Fácil', desc: '1 Dígito (1 a 9)', order: 1 },
+                                            { id: 'medium', label: 'Médio', desc: 'Até 2 Dígitos (10 a 99)', order: 2 },
+                                            { id: 'hard', label: 'Avançado', desc: 'Até 3 Dígitos (100 a 999)', order: 3 },
+                                        ].map(lvl => {
+                                            const isSelected = mathMaxOrder === lvl.order;
+                                            return (
+                                                <button
+                                                    key={lvl.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setMathMaxOrder(lvl.order);
+                                                        if (lvl.order === 1) {
+                                                            setMathMultMaxOrder(1);
+                                                            setMathDivMaxOrder(1);
+                                                        } else if (lvl.order === 2) {
+                                                            setMathMultMaxOrder(1);
+                                                            setMathDivMaxOrder(1);
+                                                        } else {
+                                                            setMathMultMaxOrder(2);
+                                                            setMathDivMaxOrder(1);
+                                                        }
+                                                    }}
+                                                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                                                        isSelected
+                                                            ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-400/30'
+                                                            : 'bg-slate-50/70 border-slate-200 hover:bg-slate-100'
+                                                    }`}
+                                                >
+                                                    <div className={`text-xs font-black ${isSelected ? 'text-amber-900' : 'text-slate-800'}`}>
+                                                        {lvl.label}
                                                     </div>
+                                                    <div className="text-[10px] text-slate-500 font-medium leading-tight mt-0.5">
+                                                        {lvl.desc}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Detalhes avançados opcionais */}
+                                    <div className="pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAdvancedMath(!showAdvancedMath)}
+                                            className="text-[11px] font-bold text-slate-500 hover:text-amber-700 flex items-center gap-1 transition-colors"
+                                        >
+                                            {showAdvancedMath ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                            <span>{showAdvancedMath ? 'Ocultar ajustes finos de dígitos' : 'Ajustes finos de dígitos (multiplicador/divisor)'}</span>
+                                        </button>
+                                        {showAdvancedMath && (
+                                            <div className="mt-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                                                <div>
+                                                    <label className="font-bold text-slate-700 block mb-1">
+                                                        Dígitos Base / Resultado: <b>{mathMaxOrder}</b>
+                                                    </label>
+                                                    <input
+                                                        type="range" min="1" max="6" step="1"
+                                                        value={mathMaxOrder}
+                                                        onChange={(e) => setMathMaxOrder(parseInt(e.target.value))}
+                                                        className="w-full accent-amber-600 cursor-pointer"
+                                                    />
                                                 </div>
-                                                
-                                                {mathDivMaxOrder === 1 && (
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="text-xs font-bold text-amber-700">Dígito exato:</span>
-                                                        <select 
-                                                            value={mathSpecificDivisor} 
-                                                            onChange={(e) => setMathSpecificDivisor(e.target.value)}
-                                                            className="flex-1 text-sm p-1 rounded border border-amber-300 bg-white text-amber-900 outline-none"
-                                                        >
-                                                            <option value="random">Aleatório (2 a 9)</option>
-                                                            {[2, 3, 4, 5, 6, 7, 8, 9].map(n => (
-                                                                <option key={n} value={n.toString()}>Dividir apenas por {n}</option>
-                                                            ))}
-                                                        </select>
+                                                {mathOperations.includes('*') && (
+                                                    <div>
+                                                        <label className="font-bold text-slate-700 block mb-1">
+                                                            Dígitos do Multiplicador: <b>{mathMultMaxOrder}</b>
+                                                        </label>
+                                                        <input
+                                                            type="range" min="1" max="4" step="1"
+                                                            value={mathMultMaxOrder}
+                                                            onChange={(e) => setMathMultMaxOrder(parseInt(e.target.value))}
+                                                            className="w-full accent-amber-600 cursor-pointer"
+                                                        />
+                                                    </div>
+                                                )}
+                                                {mathOperations.includes('/') && (
+                                                    <div>
+                                                        <label className="font-bold text-slate-700 block mb-1">
+                                                            Dígitos do Divisor: <b>{mathDivMaxOrder}</b>
+                                                        </label>
+                                                        <input
+                                                            type="range" min="1" max="4" step="1"
+                                                            value={mathDivMaxOrder}
+                                                            onChange={(e) => {
+                                                                setMathDivMaxOrder(parseInt(e.target.value));
+                                                                if (parseInt(e.target.value) > 1) setMathSpecificDivisor('random');
+                                                            }}
+                                                            className="w-full accent-amber-600 cursor-pointer"
+                                                        />
                                                     </div>
                                                 )}
                                             </div>
-                                            <p className="text-[10px] text-amber-700/70">Quantos dígitos tem o número que divide (Ex: ÷ 25).</p>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                        
-                        <div className="flex gap-4 w-full">
-                            <Button 
-                                onClick={handleGenerateMath} 
-                                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white" 
-                                icon={Calculator}
-                                disabled={isGeneratingAI}
-                            >
-                                Gerar Contas Diretas
-                            </Button>
-                            <Button 
-                                onClick={handleGenerateAIProblems} 
-                                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white relative overflow-hidden" 
-                                icon={Brain}
-                                disabled={isGeneratingAI}
-                            >
-                                {isGeneratingAI ? 'Gerando com IA...' : 'Gerar Situações-Problema (IA)'}
-                                {isGeneratingAI && <div className="absolute inset-0 bg-white/20 animate-pulse" />}
-                            </Button>
-                        </div>
-                    </Card>
+
+                                <Button 
+                                    onClick={handleGenerateMath} 
+                                    className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black py-2.5 rounded-xl shadow-xs text-sm" 
+                                    icon={Calculator}
+                                >
+                                    ⚡ Gerar Contas Diretas Agora
+                                </Button>
+                            </Card>
+                        )}
+
+                        {/* Painel 2: Situações-Problema com IA */}
+                        {mathSubMode === 'ai_problems' && (
+                            <GlobalAIGeneratorPanel
+                                itemTypeLabel="situações-problema de matemática"
+                                topic={topicInput || 'Matemática do Cotidiano'}
+                                onTopicChange={setTopicInput}
+                                context={detailsInput}
+                                onContextChange={setDetailsInput}
+                                gradeLevel={gradeLevel}
+                                onGradeLevelChange={setGradeLevel}
+                                itemCount={itemCount}
+                                onItemCountChange={setItemCount}
+                                itemCountOptions={[6, 8, 10, 12, 15]}
+                                difficultyDist={difficultyDist}
+                                onDifficultyDistChange={setDifficultyDist}
+                                onGenerate={handleGenerateAIProblems}
+                                isGenerating={isGeneratingAI}
+                                collapsible={true}
+                                defaultExpanded={true}
+                            />
+                        )}
+                    </div>
                 )}
 
 
@@ -529,8 +710,14 @@ Retorne SOMENTE um array JSON:
                         <thead className="bg-brown-100/50 border-b border-brown-200">
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-bold text-brown-600 uppercase w-12">#</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-brown-600 uppercase w-1/3">{gameModeType === 'math' ? 'Fórmula / Resposta' : 'Palavra (Resposta)'}</th>
-                                <th className="px-4 py-3 text-left text-xs font-bold text-brown-600 uppercase">{gameModeType === 'math' ? 'Fórmula / Operação (LaTeX)' : 'Dica (Pergunta)'}</th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-brown-600 uppercase w-1/3">
+                                    {gameModeType === 'math' 
+                                        ? (mathAnswerFormat === 'text_words' ? 'Resposta por Extenso (Grade)' : 'Número / Resposta') 
+                                        : 'Palavra (Resposta)'}
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-bold text-brown-600 uppercase">
+                                    {gameModeType === 'math' ? 'Fórmula / Operação / Problema' : 'Dica (Pergunta)'}
+                                </th>
                                 <th className="px-4 py-3 text-center text-xs font-bold text-brown-600 uppercase w-24">Ação</th>
                             </tr>
                         </thead>
@@ -547,12 +734,25 @@ Retorne SOMENTE um array JSON:
                                                 <input
                                                     value={item.word}
                                                     onChange={(e) => handleChange(idx, 'word', e.target.value)}
+                                                    onBlur={(e) => {
+                                                        if (gameModeType === 'math' && mathAnswerFormat === 'text_words') {
+                                                            const formatted = formatAnswerForMathCrossword(e.target.value, 'text_words');
+                                                            if (formatted && formatted !== e.target.value) {
+                                                                handleChange(idx, 'word', formatted);
+                                                            }
+                                                        }
+                                                    }}
                                                     className="w-full font-bold uppercase text-brown-800 bg-white border border-brown-300 focus:border-brown-500 rounded px-2 py-1 outline-none transition-all shadow-sm"
-                                                    placeholder={gameModeType === 'math' ? "NÚMERO" : "PALAVRA"}
+                                                    placeholder={gameModeType === 'math' 
+                                                        ? (mathAnswerFormat === 'text_words' ? "Ex: VINTE E CINCO ou 25" : "Ex: 25") 
+                                                        : "PALAVRA"
+                                                    }
                                                     autoFocus
                                                 />
                                             ) : (
-                                                <span className="font-bold text-brown-800 pl-2 block">{item.word || '...'}</span>
+                                                <span className="font-bold text-brown-800 pl-2 block">
+                                                    {item.word || '...'}
+                                                </span>
                                             )}
                                         </td>
                                         <td className="px-4 py-3">
@@ -562,7 +762,7 @@ Retorne SOMENTE um array JSON:
                                                     onChange={(e) => handleChange(idx, 'clue', e.target.value)}
                                                     rows={2}
                                                     className="w-full text-brown-700 bg-white border border-brown-300 focus:border-brown-500 rounded px-2 py-1 outline-none resize-none transition-all shadow-sm"
-                                                    placeholder={gameModeType === 'math' ? "Ex: 10 + 5" : "Dica para esta palavra..."}
+                                                    placeholder={gameModeType === 'math' ? "Ex: 10 + 15 = ? ou situação-problema..." : "Dica para esta palavra..."}
                                                 />
                                             ) : (
                                                 <LatexRenderer content={item.clue || '...'} className="text-brown-600 pl-2 block leading-snug" />

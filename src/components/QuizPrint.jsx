@@ -22,7 +22,7 @@ export const QuizPrint = ({
     imageMaxHeight = 160,
     questionRepeats,
     imageBgColor = 'transparent',
-    fontSize = 12.5,
+    fontSize = 15.5,
 }) => {
     if (!quizData?.questions?.length) return null;
 
@@ -68,13 +68,18 @@ export const QuizPrint = ({
             ? 'qp-questions--text-only'
             : '';
 
-    // Estilo inline para a imagem (respeita prop imageMaxHeight)
-    const imgStyle = imageMaxHeight > 0
-        ? { maxHeight: `${imageMaxHeight}px`, width: '100%', objectFit: 'contain', display: 'block' }
-        : { width: '100%', objectFit: 'contain', display: 'block' };
+    // Estilo proporcional estrito para a imagem (respeita a altura configurada sem esticar na largura do card)
+    const imgStyle = {
+        maxHeight: imageMaxHeight > 0 ? `${imageMaxHeight}px` : 'none',
+        maxWidth: '100%',
+        width: 'auto',
+        height: 'auto',
+        display: 'block',
+        margin: '0 auto'
+    };
 
     return (
-        <div className="qp-wrap" style={{ '--qp-font-size': `${fontSize}px` }}>
+        <div className="qp-wrap dracker-print-wrap" style={{ '--qp-font-size': `${fontSize}px` }}>
 
             {/* ===== CABEÇALHO ===== */}
             <div className="qp-header">
@@ -145,14 +150,21 @@ export const QuizPrint = ({
                                 </div>
                             </div>
 
-                            {/* Imagem opcional da questão — sem overflow hidden, altura natural */}
+                            {/* Imagem opcional da questão — sem overflow hidden, altura natural proporcional */}
                             {imgSrc && (() => {
                                 // Prioridade: cor da própria questão → prop global → transparent
                                 const bg = q.image_bg_color && q.image_bg_color !== 'transparent'
                                     ? q.image_bg_color
                                     : (imageBgColor && imageBgColor !== 'transparent' ? imageBgColor : 'transparent');
+                                const isTransparent = bg === 'transparent';
                                 return (
-                                    <div className="qp-question-img-wrap" style={{ background: bg }}>
+                                    <div 
+                                        className="qp-question-img-wrap" 
+                                        style={{ 
+                                            background: bg,
+                                            border: isTransparent ? 'none' : '1px solid #e2e8f0'
+                                        }}
+                                    >
                                         <img
                                             src={imgSrc}
                                             alt="Imagem da questão"
@@ -338,15 +350,17 @@ export const QuizPrint = ({
 
                 /* Card compacto (text-only) */
                 .qp-card--text-only {
-                    padding: 8px 10px;
-                    border-radius: 9px;
+                    padding: 10px 14px;
+                    border-radius: 10px;
                 }
 
                 .qp-card-head {
                     display: flex;
                     align-items: flex-start;
-                    gap: 9px;
+                    gap: 10px;
                     margin-bottom: 8px;
+                    break-inside: avoid !important;
+                    page-break-inside: avoid !important;
                 }
                 .qp-card-head-text {
                     flex: 1;
@@ -383,17 +397,19 @@ export const QuizPrint = ({
 
                 .qp-statement {
                     font-size: var(--qp-font-size, 12.5px); font-weight: 700;
-                    color: #1c0e03; line-height: 1.4; margin: 0;
+                    color: #1c0e03; line-height: 1.45; margin: 0;
                 }
-                .qp-card--text-only .qp-statement { font-size: calc(var(--qp-font-size, 12.5px) * 0.88); }
+                .qp-card--text-only .qp-statement { font-size: calc(var(--qp-font-size, 12.5px) * 0.92); }
 
                 /* ── Imagem da questão ── */
                 .qp-question-img-wrap {
-                    margin: 6px 0 8px;
+                    margin: 8px 0 10px;
                     border-radius: 8px;
-                    border: 1px solid #fde68a;
-                    background: #fffbeb;
-                    /* SEM overflow:hidden e SEM max-height fixo aqui — controlado inline via prop */
+                    padding: 6px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 100%;
                     break-inside: avoid;
                     page-break-inside: avoid;
                     text-align: center;

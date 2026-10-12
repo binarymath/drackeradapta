@@ -18,7 +18,7 @@ export const ActivityPrintHeader = ({
                         onError={(e) => { e.target.style.display = 'none'; }}
                     />
                     <div>
-                        <div className="text-[9px] sm:text-[10px] font-extrabold tracking-[0.25em] uppercase text-amber-800 mb-0.5">
+                        <div className="text-[9px] sm:text-[10px] font-extrabold tracking-[0.25em] uppercase text-slate-600 mb-0.5">
                             {subtitle}
                         </div>
                         <h1 className="text-lg sm:text-xl md:text-2xl font-black uppercase text-slate-900 m-0 leading-tight">
@@ -42,7 +42,7 @@ export const ActivityPrintHeader = ({
             </div>
 
             {introText && (
-                <p className="text-[11.5px] text-slate-600 font-medium my-2 pl-2.5 border-l-[3px] border-amber-600 italic leading-relaxed text-left">
+                <p className="text-[11.5px] text-slate-600 font-medium my-2 pl-2.5 border-l-[3px] border-slate-800 italic leading-relaxed text-left">
                     {introText}
                 </p>
             )}
@@ -50,7 +50,7 @@ export const ActivityPrintHeader = ({
             {pills && pills.length > 0 && (
                 <div className="flex gap-1.5 flex-wrap my-2">
                     {pills.map((pill, idx) => (
-                        <span key={idx} className="text-[10.5px] font-bold text-amber-900 bg-amber-50/50 border border-amber-400 rounded-full px-2.5 py-0.5">
+                        <span key={idx} className="text-[10.5px] font-bold text-slate-800 bg-white border border-slate-300 rounded-full px-2.5 py-0.5">
                             {pill}
                         </span>
                     ))}

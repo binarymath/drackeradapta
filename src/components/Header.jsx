@@ -22,6 +22,8 @@ import {
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { useProject } from '../contexts/ActivityContext';
+import { OfficialClassHeaderButton } from './header/OfficialClassHeaderButton';
+import { StudentActivityHeaderButton } from './header/StudentActivityHeaderButton';
 
 export const Header = ({
     className,
@@ -108,7 +110,11 @@ export const Header = ({
                     <div className="flex items-center gap-2.5 sm:gap-3 text-brown-900 min-w-0">
                         <img src="/dracker_character.png" alt="Drácker Logo" className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain drop-shadow-md hover:scale-110 transition-transform duration-300 shrink-0" />
                         <div className="min-w-0">
-                            <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight leading-none font-handwritten truncate">Dracker AdaptAI</h1>
+                            <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+                                <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight leading-none font-handwritten truncate">Dracker AdaptAI</h1>
+                                <OfficialClassHeaderButton />
+                                <StudentActivityHeaderButton />
+                            </div>
                             {/* API Status Badge - Mobile Compact */}
                             <div className="flex md:hidden mt-0.5">
                                 {apiKeyStatus === 'valid' ? (

@@ -1,6 +1,17 @@
 import React from 'react';
 import { useActivity } from '../contexts/ActivityContext';
-import { Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart, BarChart3 } from 'lucide-react';
+import { 
+    Music, 
+    Play, 
+    MessageSquare, 
+    Compass, 
+    ArrowLeftRight, 
+    PieChart, 
+    BarChart3,
+    Dices,
+    FileText,
+    Grid
+} from 'lucide-react';
 
 export const Sidebar = ({
     activityType,
@@ -8,28 +19,87 @@ export const Sidebar = ({
     showSettings,
     setShowSettings,
 }) => {
-    const { activityOptions } = useActivity();
+    const { activityOptions, tabs, selectActivityTab, addActivityTab } = useActivity();
 
     const handleActivitySelect = (type) => {
+        if (type === 'simplify') {
+            const radioTab = (tabs || []).find(t => t.type === 'simplify' && !t.musicData && !t.hidden);
+            if (radioTab) {
+                selectActivityTab(radioTab.id);
+                return;
+            } else if (addActivityTab) {
+                addActivityTab({
+                    title: "Rádio Drácker",
+                    type: 'simplify',
+                    content: 'Rádio Drácker - Músicas e Ritmos Pedagógicos',
+                    data: {}
+                });
+                return;
+            }
+        }
+        if (type === 'video_gallery') {
+            const videoTab = (tabs || []).find(t => t.type === 'video_gallery' && !t.hidden);
+            if (videoTab) {
+                selectActivityTab(videoTab.id);
+                return;
+            } else if (addActivityTab) {
+                addActivityTab({
+                    title: "Galeria Drácker",
+                    type: 'video_gallery',
+                    content: 'Galeria de Vídeos',
+                    data: {}
+                });
+                return;
+            }
+        }
+        if (type === 'trading_cards' || type === 'trading_card') {
+            const cardTab = (tabs || []).find(t => (t.type === 'trading_cards' || t.type === 'trading_card') && !t.hidden);
+            if (cardTab) {
+                selectActivityTab(cardTab.id);
+                return;
+            } else if (addActivityTab) {
+                addActivityTab({
+                    title: "Criador de Cards",
+                    type: 'trading_cards',
+                    content: 'Criador de Cards Colecionáveis Didáticos',
+                    data: {}
+                });
+                return;
+            }
+        }
         setActivityType(type);
     };
 
-    const navLinks = [
+    const priorityItems = [
         { id: 'about_system', label: 'Início', icon: <span className="text-xl">ℹ️</span> },
-        { id: 'summary', label: 'Metodologia Ativa', icon: <MessageSquare className="w-5 h-5" /> },
+        { id: 'simplify', label: 'Rádio Drácker', icon: <Music className="w-5 h-5" /> },
+        { id: 'video_gallery', label: 'Vídeos Interativos', icon: <Play className="w-5 h-5" /> },
+        { id: 'roulette', label: 'Roleta', icon: <Dices className="w-5 h-5" /> },
         { id: 'rpg', label: 'RPG', icon: <Compass className="w-5 h-5" /> },
+        { id: 'quiz', label: 'Quiz', icon: <FileText className="w-5 h-5" /> },
+        { id: 'wordsearch', label: 'Caça Palavras', icon: <Grid className="w-5 h-5" /> },
+        { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-5 h-5" /> },
+    ];
+
+    const remainingPredefined = [
+        { id: 'summary', label: 'Metodologia Ativa', icon: <MessageSquare className="w-5 h-5" /> },
         { id: 'number_line', label: 'Reta Num', icon: <ArrowLeftRight className="w-5 h-5" /> },
         { id: 'fractions', label: 'Frações', icon: <PieChart className="w-5 h-5" /> },
-        ...activityOptions.filter(opt => 
-            opt.id !== 'summary' && 
-            opt.id !== 'rpg' && 
-            opt.id !== 'number_line' && 
-            opt.id !== 'fractions' && 
-            opt.id !== 'about_system' && 
-            opt.id !== 'chat_dracker' && 
-            opt.id !== 'video_gallery' && 
-            opt.id !== 'simplify'
-        )
+    ];
+
+    const handledIds = new Set([
+        ...priorityItems.map(item => item.id),
+        ...remainingPredefined.map(item => item.id),
+        'chat_dracker',
+        'reports'
+    ]);
+
+    const otherActivityOptions = (activityOptions || []).filter(opt => !handledIds.has(opt.id));
+
+    const navLinks = [
+        ...priorityItems,
+        ...remainingPredefined,
+        ...otherActivityOptions
     ];
 
     return (

@@ -1,11 +1,13 @@
 import React from 'react';
 import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 
-export const TradingCard = ({ data }) => {
+export const TradingCard = ({ data, noHoverScale = false, isPrint = false }) => {
 
     const {
         title = 'Nome do Card',
         hp = '100',
+        hideHp = false,
+        hpSize = 16,
         outerBorderColor = '#374151',
         innerBorderColor = '#9ca3af',
         cardBgColor = '#e5e7eb',
@@ -25,6 +27,9 @@ export const TradingCard = ({ data }) => {
         skillDescAlign = 'left',
         footerDescAlign = 'center',
         imageUrl = '',
+        imageHeight = 160,
+        imageFit = 'cover',
+        imageMarginTop = 0,
         skills = [],
         description = 'Descrição geral do card ou curiosidade.',
     } = data || {};
@@ -40,29 +45,66 @@ export const TradingCard = ({ data }) => {
     }
 
     const getDirectImageUrl = toDirectImageUrl;
-
     const finalImageUrl = getDirectImageUrl(imageUrl);
 
     return (
-        <div className="w-[320px] h-[440px] rounded-2xl border-[8px] p-2 flex flex-col relative shadow-xl transform transition-transform hover:scale-105" style={{ backgroundColor: cardBgColor, borderColor: outerBorderColor }}>
+        <div 
+            className={`w-[320px] h-[440px] rounded-2xl border-[8px] p-2 flex flex-col relative box-border ${
+                isPrint ? 'shadow-none' : (noHoverScale ? 'shadow-xl' : 'shadow-xl transform transition-transform hover:scale-105')
+            } print:shadow-none print:transform-none select-none`} 
+            style={{ backgroundColor: cardBgColor, borderColor: outerBorderColor }}
+        >
             {/* Card Background Layer */}
             <div className="absolute inset-0 rounded-xl m-1 opacity-95 border-[6px]" style={{ backgroundColor: innerBgColor, borderColor: innerBorderColor, backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.2) 0%, transparent 100%)' }}></div>
             
             {/* Content Container */}
-            <div className="relative z-10 flex flex-col h-full" style={{ color: textColor, fontFamily: fontFamily }}>
+            <div className="relative z-10 flex flex-col h-full px-1 pt-1.5 pb-1 box-border justify-between" style={{ color: textColor, fontFamily: fontFamily }}>
                 {/* Header */}
-                <div className="flex justify-between items-center mb-2 px-1 relative">
-                    <h2 className="font-black tracking-tight uppercase flex-1" style={{ fontSize: `${titleSize}px`, color: titleColor, textShadow: '1px 1px 0px rgba(255,255,255,0.4)', lineHeight: 1.1, textAlign: titleAlign }}>{title}</h2>
-                    <div className="flex items-center gap-1 font-bold drop-shadow-md px-2 rounded-full border shrink-0 ml-2" style={{ fontSize: `${titleSize * 0.8}px`, backgroundColor: hpBgColor, borderColor: innerBorderColor, color: hpTextColor }}>
-                        <span className="opacity-80" style={{ color: textColor, fontSize: `${titleSize * 0.5}px` }}>HP</span> {hp}
-                    </div>
+                <div className="flex justify-between items-center mb-1 px-1 relative min-h-[30px] shrink-0">
+                    <h2 
+                        className="font-black tracking-tight uppercase flex-1" 
+                        style={{ 
+                            fontSize: `${titleSize}px`, 
+                            color: titleColor, 
+                            textShadow: '1px 1px 0px rgba(255,255,255,0.4)', 
+                            lineHeight: 1.22, 
+                            textAlign: titleAlign,
+                            paddingTop: '2px',
+                            paddingBottom: '1px'
+                        }}
+                    >
+                        {title}
+                    </h2>
+                    {!hideHp && (
+                        <div className="flex items-center gap-1 font-bold drop-shadow-md px-2 py-0.5 rounded-full border shrink-0 ml-2" style={{ fontSize: `${hpSize || 16}px`, backgroundColor: hpBgColor, borderColor: innerBorderColor, color: hpTextColor }}>
+                            <span className="opacity-80" style={{ color: textColor, fontSize: `${Math.max(8, Math.round((hpSize || 16) * 0.55))}px` }}>HP</span> {hp}
+                        </div>
+                    )}
                 </div>
 
                 {/* Image */}
                 {!data?.hideImage && (
-                    <div className="w-full h-40 bg-white border-4 rounded-sm shadow-inner mb-3 overflow-hidden flex items-center justify-center relative shrink-0" style={{ borderColor: innerBorderColor }}>
+                    <div 
+                        className="w-full bg-white border-4 rounded-sm shadow-inner mb-1.5 overflow-hidden flex items-center justify-center relative shrink-0 transition-all duration-150" 
+                        style={{ 
+                            height: `${imageHeight || 160}px`, 
+                            borderColor: innerBorderColor,
+                            marginTop: imageMarginTop ? `${imageMarginTop}px` : undefined 
+                        }}
+                    >
                         {finalImageUrl ? (
-                            <img src={finalImageUrl} alt={title} className="w-full h-full object-fill" referrerPolicy="no-referrer" onError={handleDriveImageError} />
+                            <img 
+                                src={finalImageUrl} 
+                                alt={title} 
+                                crossOrigin="anonymous"
+                                className={`w-full h-full ${
+                                    imageFit === 'contain' ? 'object-contain bg-slate-900/5' :
+                                    imageFit === 'fill' ? 'object-fill' :
+                                    'object-cover'
+                                }`} 
+                                referrerPolicy="no-referrer" 
+                                onError={handleDriveImageError} 
+                            />
                         ) : (
                             <div className="text-gray-400 font-bold flex flex-col items-center">
                                 <span>Sem Imagem</span>
@@ -73,20 +115,19 @@ export const TradingCard = ({ data }) => {
                 )}
 
                 {/* Skills */}
-                <div className="flex-1 flex flex-col gap-1 px-1 overflow-y-auto overflow-x-hidden justify-start my-1 custom-scrollbar">
+                <div className={`flex-1 flex flex-col gap-1 px-1 justify-start my-1 ${isPrint ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden custom-scrollbar'}`}>
                     {displaySkills.map((skill, index) => {
                         if (!skill.name && !skill.desc && !skill.val) return null;
                         return (
-                            <div key={index} className="flex flex-col border-b border-black/10 pb-1 last:border-0" style={{ borderColor: innerBorderColor }}>
+                            <div key={index} className="flex flex-col border-b border-black/10 pb-0.5 last:border-0" style={{ borderColor: innerBorderColor }}>
                                 <div className="flex justify-between items-center">
-                                    <span className="font-bold flex items-center gap-1.5 leading-tight" style={{ fontSize: `${skillNameSize}px` }}>
-                                        <div className="w-2.5 h-2.5 rounded-full shadow-sm border border-white flex-shrink-0" style={{ backgroundColor: outerBorderColor }}></div>
+                                    <span className="font-bold flex items-center leading-tight" style={{ fontSize: `${skillNameSize}px` }}>
                                         {skill.name}
                                     </span>
-                                    <span className="font-bold ml-1" style={{ fontSize: `${skillValSize}px` }}>{skill.val}</span>
+                                    <span className="font-bold ml-1 shrink-0" style={{ fontSize: `${skillValSize}px` }}>{skill.val}</span>
                                 </div>
                                 {skill.desc && (
-                                    <span className="leading-tight opacity-90 italic mt-1 mb-1 block whitespace-pre-wrap px-1" style={{ color: textColor, fontSize: `${skillDescSize}px`, textAlign: skillDescAlign }}>{skill.desc}</span>
+                                    <span className="leading-snug opacity-90 italic mt-0.5 mb-0.5 block whitespace-pre-wrap px-0.5" style={{ color: textColor, fontSize: `${skillDescSize}px`, textAlign: skillDescAlign }}>{skill.desc}</span>
                                 )}
                             </div>
                         );
@@ -94,7 +135,7 @@ export const TradingCard = ({ data }) => {
                 </div>
 
                 {/* Flavor Text / Footer */}
-                <div className="mt-auto border-t py-2 px-2 rounded italic leading-tight min-h-[40px] flex items-center shadow-inner shrink-0" style={{ backgroundColor: footerColor, borderColor: innerBorderColor, color: textColor, fontSize: `${footerDescSize}px` }}>
+                <div className="mt-auto border-t py-1.5 px-2 rounded italic leading-normal min-h-[38px] flex items-center shadow-inner shrink-0" style={{ backgroundColor: footerColor, borderColor: innerBorderColor, color: textColor, fontSize: `${footerDescSize}px` }}>
                     <div className="w-full whitespace-pre-wrap" style={{ textAlign: footerDescAlign }}>{description}</div>
                 </div>
             </div>

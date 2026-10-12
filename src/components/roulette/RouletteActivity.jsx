@@ -225,18 +225,12 @@ export const RouletteActivity = () => {
                     
                     {/* Botões Iniciar Aula, Placar, Maximizar ao lado dos estilos */}
                     <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                        <button
-                            type="button"
-                            onClick={toggleClassStatus}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl font-bold text-xs transition-all border shadow-sm cursor-pointer ${
-                                isClassActive 
-                                    ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100' 
-                                    : 'bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-50'
-                            }`}
-                        >
-                            {isClassActive ? <Square className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                            <span>{isClassActive ? 'ENCERRAR AULA' : 'INICIAR AULA OFICIAL'}</span>
-                        </button>
+                        {isClassActive && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs font-bold shadow-2xs">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0"></span>
+                                <span>Aula Oficial Ativa</span>
+                            </span>
+                        )}
 
                         <button onClick={() => setIsSidebarOpen(true)} className="flex items-center gap-1.5 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-3 py-2 rounded-xl shadow-sm cursor-pointer">
                             <Users className="w-3.5 h-3.5 text-indigo-500" />

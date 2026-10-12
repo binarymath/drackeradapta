@@ -13,6 +13,7 @@ export const generateCrossword = (wordsWithClues, gridSize = 15) => {
         .filter(w => w.word && w.word.toString().trim() !== '' && w.clue && w.clue.toString().trim() !== '')
         .map(w => ({
             ...w,
+            originalWord: w.originalWord || w.word.toString().trim(),
             word: w.word.toString().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, ''),
             clue: w.clue.toString().trim(),
         }))

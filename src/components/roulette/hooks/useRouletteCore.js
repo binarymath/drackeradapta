@@ -15,16 +15,16 @@ export const STAGE_THEMES = {
 };
 
 export const useRouletteCore = () => {
-    const { activeActivity, classes, setClasses, updateActivityData, addActivityTab, tabs } = useActivity();
+    const { activeActivity, classes, setClasses, updateActivityData, addActivityTab, tabs, officialSession, startOfficialClass, endOfficialClass } = useActivity();
     const { geminiService, selectedModel } = useGemini();
     const [showTransitionModal, setShowTransitionModal] = useState(false);
     const [showClassesModal, setShowClassesModal] = useState(false);
     const [showGroupsModal, setShowGroupsModal] = useState(false);
     const [showClassReportModal, setShowClassReportModal] = useState(false);
     const [showSheetsModal, setShowSheetsModal] = useState(false);
-    const isClassActive = activeActivity?.isClassActive || false;
-    const currentSessionId = activeActivity?.currentSessionId || 'sess_' + Date.now();
-    const sessionStartTime = activeActivity?.sessionStartTime || Date.now();
+    const isClassActive = !!officialSession?.isClassActive || !!activeActivity?.isClassActive || false;
+    const currentSessionId = officialSession?.currentSessionId || activeActivity?.currentSessionId || 'sess_' + Date.now();
+    const sessionStartTime = officialSession?.sessionStartTime || activeActivity?.sessionStartTime || Date.now();
 
     // Histórico detalhado de ações e toques nos botões da roleta nesta aula/atividade
     const [interactionLogs, setInteractionLogs] = useState(() => {
@@ -50,22 +50,16 @@ export const useRouletteCore = () => {
     });
 
     const toggleClassStatus = useCallback(() => {
-        if (!activeActivity?.id) return;
-        if (!isClassActive) {
-            updateActivityData(activeActivity.id, {
-                isClassActive: true,
-                currentSessionId: 'sess_' + Date.now(),
-                sessionStartTime: Date.now()
-            });
+        if (officialSession?.isClassActive) {
+            endOfficialClass();
         } else {
-            updateActivityData(activeActivity.id, {
-                isClassActive: false
-            });
+            const targetCId = officialSession?.classId || activeActivity?.classId || classes?.[0]?.id;
+            startOfficialClass(targetCId, 50);
         }
-    }, [isClassActive, activeActivity?.id, updateActivityData]);
+    }, [officialSession?.isClassActive, officialSession?.classId, activeActivity?.classId, classes, startOfficialClass, endOfficialClass]);
 
-    // O ID da turma e os dados vêm da aba ativa
-    const classId = activeActivity?.classId;
+    // O ID da turma e os dados vêm da sessão oficial global ou da aba ativa
+    const classId = officialSession?.classId || activeActivity?.classId;
     
     // Procura a turma vinculada, ou usa os dados próprios da aba (classData), ou primeira turma disponível, ou gera turma automática
     const currentClass = useCurrentClass(classes, classId, activeActivity);

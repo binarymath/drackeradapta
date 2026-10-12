@@ -106,8 +106,99 @@ export const ActivityProvider = ({ children }) => {
     const [topic, setTopic] = useState('');
     const [lessonDetails, setLessonDetails] = useState('');
     const [activityType, setActivityType] = useState('about_system');
-    const [difficulty, setDifficulty] = useState('medium');
+    const [difficulty, setDifficulty] = useState('Ensino Fundamental I - 1º ao 3º Ano (6 a 8 anos)');
     const [selectedClassId, setSelectedClassId] = useState('');
+
+    // --- OFFICIAL CLASS SESSION STATE (GLOBAL) ---
+    const [officialSession, setOfficialSession] = useState(() => {
+        try {
+            const saved = safeLocalStorageGet('dracker_official_session');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed && parsed.isClassActive) return parsed;
+            }
+        } catch (_) {}
+        return {
+            isClassActive: false,
+            classId: null,
+            className: '',
+            currentSessionId: null,
+            sessionStartTime: null,
+            plannedDurationMinutes: 50
+        };
+    });
+
+    useEffect(() => {
+        try {
+            if (officialSession?.isClassActive) {
+                safeLocalStorageSet('dracker_official_session', JSON.stringify(officialSession));
+            } else {
+                safeLocalStorageRemove('dracker_official_session');
+            }
+        } catch (_) {}
+    }, [officialSession]);
+
+    const startOfficialClass = (classId, durationMinutes = 50) => {
+        const now = Date.now();
+        const newSessionId = 'sess_' + now;
+        const targetClass = (classes || []).find(c => String(c.id) === String(classId)) || null;
+        const sessionObj = {
+            isClassActive: true,
+            classId: targetClass ? targetClass.id : (classId || null),
+            className: targetClass ? targetClass.name : 'Turma Geral',
+            currentSessionId: newSessionId,
+            sessionStartTime: now,
+            plannedDurationMinutes: durationMinutes || 50
+        };
+        setOfficialSession(sessionObj);
+        safeLocalStorageSet('dracker_official_session', JSON.stringify(sessionObj));
+
+        window.dispatchEvent(new CustomEvent('dracker_official_class_started', {
+            detail: sessionObj
+        }));
+
+        if (activeActivity?.id) {
+            updateActivityData(activeActivity.id, {
+                isClassActive: true,
+                currentSessionId: newSessionId,
+                sessionStartTime: now,
+                classId: targetClass ? targetClass.id : activeActivity.classId
+            });
+        }
+        return sessionObj;
+    };
+
+    const endOfficialClass = () => {
+        const ended = { ...officialSession };
+        setOfficialSession({
+            isClassActive: false,
+            classId: null,
+            className: '',
+            currentSessionId: null,
+            sessionStartTime: null,
+            plannedDurationMinutes: 50
+        });
+        safeLocalStorageRemove('dracker_official_session');
+
+        window.dispatchEvent(new CustomEvent('dracker_official_class_ended', {
+            detail: ended
+        }));
+
+        if (activeActivity?.id) {
+            updateActivityData(activeActivity.id, {
+                isClassActive: false
+            });
+        }
+    };
+
+    const updateActiveSessionClass = (classId) => {
+        const targetClass = (classes || []).find(c => String(c.id) === String(classId));
+        setOfficialSession(prev => ({
+            ...prev,
+            classId: targetClass ? targetClass.id : classId,
+            className: targetClass ? targetClass.name : prev.className
+        }));
+    };
 
     // --- IMAGE GENERATION STATE ---
     const [imagePrompt, setImagePrompt] = useState('');
@@ -376,12 +467,17 @@ export const ActivityProvider = ({ children }) => {
     const handleTabsReorder = (reorderedTabs) => setTabs(reorderedTabs);
 
     const selectActivityTab = (tabId) => {
-        const selectedTab = tabs.find(t => t.id === tabId);
+        let selectedTab = tabs.find(t => t.id === tabId);
+        if (!selectedTab && typeof tabId === 'string') {
+            selectedTab = tabs.find(t => t.type === tabId && !t.hidden);
+        }
         if (selectedTab) {
-            setActiveTabId(tabId);
+            setActiveTabId(selectedTab.id);
             setActivityType(selectedTab.type);
             setTopic(selectedTab.title || '');
-            setTabs(prev => prev.map(t => t.id === tabId ? { ...t, lastAccessed: Date.now() } : t));
+            setTabs(prev => prev.map(t => t.id === selectedTab.id ? { ...t, lastAccessed: Date.now() } : t));
+        } else if (tabId && typeof tabId === 'string') {
+            handleActivityTypeChange(tabId);
         }
     };
 
@@ -443,10 +539,26 @@ export const ActivityProvider = ({ children }) => {
     ], []);
 
     const difficultyOptions = useMemo(() => [
-        { id: 'easy', label: 'Anos Iniciais', tooltip: 'Linguagem lúdica, infantil e muito simples.' },
-        { id: 'medium', label: 'Anos Finais', tooltip: 'Linguagem escolar padrão, clara e direta.' },
-        { id: 'hard', label: 'Ensino Médio', tooltip: 'Linguagem formal, mais aprofundada e conceitual.' },
+        { id: 'Educação Infantil (4 a 5 anos)', label: 'Educação Infantil (4 a 5 anos)' },
+        { id: 'Ensino Fundamental I - 1º ao 3º Ano (6 a 8 anos)', label: 'Fundamental I - 1º ao 3º Ano (6 a 8 anos)' },
+        { id: 'Ensino Fundamental I - 4º e 5º Ano (9 a 10 anos)', label: 'Fundamental I - 4º e 5º Ano (9 a 10 anos)' },
+        { id: 'Ensino Fundamental II - 6º ao 9º Ano (11 a 14 anos)', label: 'Fundamental II - 6º ao 9º Ano (11 a 14 anos)' },
+        { id: 'Ensino Médio - 1ª a 3ª Série (15 a 17 anos)', label: 'Ensino Médio - 1ª a 3ª Série (15 a 17 anos)' },
     ], []);
+
+    const normalizedDifficulty = useMemo(() => {
+        if (difficulty === 'easy') return 'Ensino Fundamental I - 1º ao 3º Ano (6 a 8 anos)';
+        if (difficulty === 'medium') return 'Ensino Fundamental II - 6º ao 9º Ano (11 a 14 anos)';
+        if (difficulty === 'hard') return 'Ensino Médio - 1ª a 3ª Série (15 a 17 anos)';
+        return difficulty || 'Ensino Fundamental I - 1º ao 3º Ano (6 a 8 anos)';
+    }, [difficulty]);
+
+    const setNormalizedDifficulty = (val) => {
+        if (val === 'easy') setDifficulty('Ensino Fundamental I - 1º ao 3º Ano (6 a 8 anos)');
+        else if (val === 'medium') setDifficulty('Ensino Fundamental II - 6º ao 9º Ano (11 a 14 anos)');
+        else if (val === 'hard') setDifficulty('Ensino Médio - 1ª a 3ª Série (15 a 17 anos)');
+        else setDifficulty(val);
+    };
 
     // Sync Form with Active Activity
     useEffect(() => {
@@ -525,8 +637,11 @@ export const ActivityProvider = ({ children }) => {
 
     const projectValue = useMemo(() => ({
         projectId, projectName, setProjectName, isLoadingProject,
-        classes, setClasses, saveClassUpdates, updateStudentInClass
-    }), [projectId, projectName, isLoadingProject, classes, activeActivity]);
+        classes, setClasses, saveClassUpdates, updateStudentInClass,
+        officialSession, setOfficialSession,
+        startOfficialClass, endOfficialClass, updateActiveSessionClass,
+        isClassActive: !!officialSession?.isClassActive
+    }), [projectId, projectName, isLoadingProject, classes, activeActivity, officialSession]);
 
     const tabsValue = useMemo(() => ({
         tabs, setTabs,
@@ -546,9 +661,9 @@ export const ActivityProvider = ({ children }) => {
         lessonDetails, setLessonDetails,
         selectedClassId, setSelectedClassId,
         activityType, setActivityType,
-        difficulty, setDifficulty,
+        difficulty: normalizedDifficulty, setDifficulty: setNormalizedDifficulty,
         activityOptions, difficultyOptions
-    }), [topic, lessonDetails, selectedClassId, activityType, difficulty, activityOptions, difficultyOptions]);
+    }), [topic, lessonDetails, selectedClassId, activityType, normalizedDifficulty, activityOptions, difficultyOptions]);
 
     const uiValue = useMemo(() => ({
         imagePrompt, setImagePrompt,

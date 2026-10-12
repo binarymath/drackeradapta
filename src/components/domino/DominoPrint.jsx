@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 import { LatexRenderer } from '../ui/LatexRenderer';
+import { PrintFontSizeControl } from '../ui/PrintFontSizeControl';
 
 const DominoPrint = ({ data }) => {
     const { pairs = [], isCircular = false, topic = '' } = data || {};
-    const [textFontSize, setTextFontSize] = useState(data?.textFontSize || data?.fontSizePx || 14);
-    const [mathFontSize, setMathFontSize] = useState(data?.mathFontSize || data?.fontSizePx || 18);
+    const [textFontSize, setTextFontSize] = useState(data?.textFontSize || data?.fontSizePx || 16);
+    const [mathFontSize, setMathFontSize] = useState(data?.mathFontSize || data?.fontSizePx || 20);
     
     const pieces = useMemo(() => {
         if (!pairs || pairs.length === 0) return [];
@@ -114,24 +115,18 @@ const DominoPrint = ({ data }) => {
                 <div className="mt-4 p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-sm font-semibold w-full flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
                     <span>Total de Peças a Imprimir: <strong>{pieces.length}</strong></span>
                     <div className="flex flex-wrap items-center gap-3 font-bold text-amber-900">
-                        <div className="flex items-center gap-1.5 bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs shadow-2xs">
-                            <span>📝 Texto:</span>
-                            <select
-                                value={textFontSize}
-                                onChange={(e) => setTextFontSize(Number(e.target.value))}
-                                className="bg-transparent font-black text-brown-900 cursor-pointer focus:outline-none"
-                            >
-                                <option value={12}>12 px</option>
-                                <option value={14}>14 px</option>
-                                <option value={16}>16 px</option>
-                                <option value={18}>18 px</option>
-                                <option value={20}>20 px</option>
-                                <option value={22}>22 px</option>
-                                <option value={24}>24 px</option>
-                                <option value={28}>28 px</option>
-                            </select>
-                        </div>
-                        <div className="flex items-center gap-1.5 bg-white border border-amber-300 rounded-lg px-2 py-1 text-xs shadow-2xs">
+                        <PrintFontSizeControl
+                            value={textFontSize}
+                            onChange={(val) => {
+                                setTextFontSize(val);
+                                setMathFontSize(Math.round(val * 1.25));
+                            }}
+                            min={13}
+                            max={28}
+                            step={1.5}
+                            label="Tamanho"
+                        />
+                        <div className="flex items-center gap-1.5 bg-white border border-amber-300 rounded-xl px-2 py-1 text-xs shadow-2xs">
                             <span>🧮 Fórmula:</span>
                             <select
                                 value={mathFontSize}
@@ -141,7 +136,7 @@ const DominoPrint = ({ data }) => {
                                 <option value={14}>14 px</option>
                                 <option value={16}>16 px</option>
                                 <option value={18}>18 px</option>
-                                <option value={20}>20 px</option>
+                                <option value={20}>20 px (Padrão)</option>
                                 <option value={22}>22 px</option>
                                 <option value={24}>24 px</option>
                                 <option value={28}>28 px</option>

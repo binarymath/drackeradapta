@@ -36,6 +36,34 @@ export const ChatDracker = () => {
         });
     };
 
+    const handleOpenRadio = () => {
+        const existingTab = tabs?.find(t => t.type === 'simplify' && !t.hidden);
+        if (existingTab) {
+            selectActivityTab(existingTab.id);
+        } else if (addActivityTab) {
+            addActivityTab({
+                title: "Rádio Drácker",
+                type: 'simplify',
+                content: 'Rádio Drácker - Músicas e Ritmos Pedagógicos',
+                data: {}
+            });
+        }
+    };
+
+    const handleOpenVideoGallery = () => {
+        const existingTab = tabs?.find(t => t.type === 'video_gallery' && !t.hidden);
+        if (existingTab) {
+            selectActivityTab(existingTab.id);
+        } else if (addActivityTab) {
+            addActivityTab({
+                title: "Galeria Drácker",
+                type: 'video_gallery',
+                content: 'Galeria de Vídeos',
+                data: {}
+            });
+        }
+    };
+
     const SYSTEM_PROMPT = `Você é o Drácker, um dragãozinho marrom muito curioso e aventureiro, mascote do sistema educacional "Drácker Adapta". Você é especialista em educação e metodologias ativas.
 Sua História (Lore): Você lidera missões para desvendar os mistérios da floresta com a ajuda indispensável de sua turma de amigos: a sábia Coruja, que observa tudo e guarda os segredos do lugar; o ágil Esquilo, sempre muito organizado com suas nozes; a esperta Raposa, que adora fazer truques mágicos; e o fofinho Coelho saltitante. Vocês vivem em uma floresta encantada e podem visitar outros lugares e cenários incríveis.
 Objetivo: Ajudar os professores a criar aulas engajadoras. Quando puder e fizer sentido, use exemplos práticos que envolvam você e seus amigos da floresta para ilustrar dicas lúdicas aos professores.
@@ -236,16 +264,18 @@ Não use respostas longas demais a menos que seja solicitado. Seja prático.`;
                     </div>
                     
                     <button
-                        onClick={() => selectActivityTab && selectActivityTab('simplify')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 hover:bg-pink-100 hover:border-pink-300 transition-colors text-xs font-bold shrink-0"
+                        type="button"
+                        onClick={handleOpenRadio}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 hover:bg-pink-100 hover:border-pink-300 transition-colors text-xs font-bold shrink-0 cursor-pointer"
                     >
                         <Music className="w-3.5 h-3.5" />
                         Rádio Drácker
                     </button>
 
                     <button
-                        onClick={() => selectActivityTab && selectActivityTab('video_gallery')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors text-xs font-bold shrink-0"
+                        type="button"
+                        onClick={handleOpenVideoGallery}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-colors text-xs font-bold shrink-0 cursor-pointer"
                     >
                         <Play className="w-3.5 h-3.5" />
                         Galeria de Vídeos

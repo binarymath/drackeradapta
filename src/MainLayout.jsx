@@ -9,6 +9,7 @@ import { useActivityActions } from './hooks/useActivityActions';
 
 import { useBackupSystem } from './hooks/useBackupSystem';
 import { ExportService } from './services/ExportService';
+import { exportActivityToPdf } from './utils/pdfExportHelper';
 
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
@@ -21,7 +22,7 @@ import { BackupVersionCenterModal } from './components/BackupVersionCenterModal'
 import { GoogleSheetsImportModal } from './components/roulette/GoogleSheetsImportModal';
 import { HeroGenerator } from './components/HeroGenerator';
 import { InspectorPanel } from './components/InspectorPanel';
-import { Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart } from 'lucide-react';
+import { Music, Play, MessageSquare, Compass, ArrowLeftRight, PieChart, Dices, FileText, Grid } from 'lucide-react';
 
 export const MainLayout = () => {
     // --- CONTEXTS ---
@@ -236,9 +237,159 @@ export const MainLayout = () => {
         actions.startWordsearchWizard({ editingData: editPayload });
     };
 
+    const handleLaunchActivityFromHero = (typeKey) => {
+        if (typeKey === 'quiz') {
+            setIsEditing(false);
+            actions.openEditQuiz({ questions: [] });
+            return;
+        }
+        if (typeKey === 'wordsearch') {
+            setIsEditing(false);
+            setActivityType('wordsearch');
+            actions.startWordsearchWizard();
+            return;
+        }
+        if (typeKey === 'crossword') {
+            setIsEditing(false);
+            setActivityType('crossword');
+            actions.setCrosswordEditorData({ words: [] });
+            actions.setShowCrosswordEditor(true);
+            return;
+        }
+        if (typeKey === 'simplify') {
+            setIsEditing(false);
+            setActivityType('simplify');
+            actions.setMusicEditorData({ verses: [], topic: topic || '' });
+            actions.setShowMusicEditor(true);
+            return;
+        }
+        if (typeKey === 'domino') {
+            setIsEditing(false);
+            setActivityType('domino');
+            actions.setDominoEditorData({ pairs: [], topic: topic || '', lessonDetails: lessonDetails || '', isCircular: false });
+            actions.setShowDominoEditor(true);
+            return;
+        }
+        if (typeKey === 'connect_dots') {
+            setIsEditing(false);
+            setActivityType('connect_dots');
+            actions.setConnectDotsEditorData({ pairs: [], topic: topic || '' });
+            actions.setShowConnectDotsEditor(true);
+            return;
+        }
+        if (typeKey === 'fractions') {
+            handleActivityTypeChange('fractions');
+            addActivityTab({
+                title: topic ? `Frações: ${topic}` : "Estúdio de Frações",
+                type: 'fractions',
+                content: 'Estúdio de Frações'
+            });
+            return;
+        }
+        if (typeKey === 'number_line') {
+            handleActivityTypeChange('number_line');
+            addActivityTab({
+                title: topic ? `Reta: ${topic}` : "Reta Numérica",
+                type: 'number_line',
+                content: 'Estúdio da Reta Numérica'
+            });
+            return;
+        }
+        if (typeKey === 'trading_card' || typeKey === 'trading_cards') {
+            handleActivityTypeChange('trading_cards');
+            addActivityTab({
+                title: topic ? `Card: ${topic}` : "Card Colecionável",
+                type: 'trading_cards',
+                content: 'Criador de Cards Colecionáveis Didáticos'
+            });
+            return;
+        }
+        if (typeKey === 'rpg') {
+            handleActivityTypeChange('rpg');
+            addActivityTab({
+                title: topic ? `RPG: ${topic}` : "Drácker RPG",
+                type: 'rpg',
+                content: "Aventura do Drácker"
+            });
+            return;
+        }
+        if (typeKey === 'roulette') {
+            handleActivityTypeChange('roulette');
+            addActivityTab({
+                title: topic ? `Roleta: ${topic}` : "Roleta Pedagógica",
+                type: 'roulette',
+                content: "Roleta do Drácker"
+            });
+            return;
+        }
+        if (typeKey === 'memory') {
+            handleActivityTypeChange('memory');
+            addActivityTab({
+                title: topic ? `Memória: ${topic}` : "Jogo da Memória",
+                type: 'memory',
+                content: "Jogo da Memória"
+            });
+            return;
+        }
+        if (typeKey === 'hangman') {
+            handleActivityTypeChange('hangman');
+            addActivityTab({
+                title: topic ? `Forca: ${topic}` : "Jogo da Forca",
+                type: 'hangman',
+                content: "Jogo da Forca",
+                data: {}
+            });
+            return;
+        }
+        if (typeKey === 'video_gallery') {
+            handleActivityTypeChange('video_gallery');
+            addActivityTab({
+                title: "Galeria Drácker",
+                type: 'video_gallery',
+                content: "Galeria de Vídeos",
+                data: {}
+            });
+            return;
+        }
+        if (typeKey === 'chat_dracker') {
+            handleActivityTypeChange('chat_dracker');
+            const chatTab = tabs.find(t => t.type === 'chat_dracker');
+            if (chatTab) {
+                selectActivityTab(chatTab.id);
+            } else {
+                addActivityTab({
+                    type: 'chat_dracker',
+                    title: 'Conversa com Drácker',
+                    chatData: { messages: [{
+                        role: 'model',
+                        parts: [{ text: "Olá! Que bom te encontrar por aqui!\n\nEu sou o Drácker, o dragãozinho curioso da floresta encantada e mascote do \"Drácker Adapta\"! Em que posso te ajudar hoje?" }]
+                    }] }
+                });
+            }
+            return;
+        }
+        if (typeKey === 'summary') {
+            handleActivityTypeChange('summary');
+            actions.handleGenerate();
+            return;
+        }
+    };
+
+    // Ouvinte global para criação de nova atividade de modal (+ Novo)
+    useEffect(() => {
+        const handleNewModalActivityEvent = (e) => {
+            const typeKey = e.detail?.type;
+            if (typeKey) {
+                handleLaunchActivityFromHero(typeKey);
+            }
+        };
+        window.addEventListener('dracker_open_new_modal_activity', handleNewModalActivityEvent);
+        return () => window.removeEventListener('dracker_open_new_modal_activity', handleNewModalActivityEvent);
+    }, [handleLaunchActivityFromHero]);
+
     // Exports
     const handleDownloadPdf = () => {
-        window.print();
+        exportActivityToPdf('activity-area-print', topic || 'Folha de Atividade - Drácker');
     };
     const handleDownloadGeneratedPng = () => {
         if (!imagePng) return;
@@ -288,26 +439,42 @@ export const MainLayout = () => {
         }, 30);
     }, [activityType]);
 
-    const navLinks = useMemo(() => [
-        { id: 'about_system', label: 'Início', icon: <span className="text-xl">ℹ️</span> },
-        { id: 'summary', label: 'Teoria', icon: <MessageSquare className="w-5 h-5" /> },
-        { id: 'rpg', label: 'RPG', icon: <Compass className="w-5 h-5" /> },
-        { id: 'number_line', label: 'Reta Num', icon: <ArrowLeftRight className="w-5 h-5" /> },
-        { id: 'fractions', label: 'Frações', icon: <PieChart className="w-5 h-5" /> },
-        ...activityOptions.filter(opt => 
-            opt.id !== 'summary' && 
-            opt.id !== 'rpg' && 
-            opt.id !== 'number_line' && 
-            opt.id !== 'fractions' && 
-            opt.id !== 'about_system' && 
-            opt.id !== 'chat_dracker' && 
-            opt.id !== 'video_gallery' && 
-            opt.id !== 'simplify'
-        )
-    ], [activityOptions]);
+    const navLinks = useMemo(() => {
+        const priorityItems = [
+            { id: 'about_system', label: 'Início', icon: <span className="text-xl">ℹ️</span> },
+            { id: 'simplify', label: 'Rádio Drácker', icon: <Music className="w-5 h-5" /> },
+            { id: 'video_gallery', label: 'Vídeos Interativos', icon: <Play className="w-5 h-5" /> },
+            { id: 'roulette', label: 'Roleta', icon: <Dices className="w-5 h-5" /> },
+            { id: 'rpg', label: 'RPG', icon: <Compass className="w-5 h-5" /> },
+            { id: 'quiz', label: 'Quiz', icon: <FileText className="w-5 h-5" /> },
+            { id: 'wordsearch', label: 'Caça Palavras', icon: <Grid className="w-5 h-5" /> },
+            { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-5 h-5" /> },
+        ];
+
+        const remainingPredefined = [
+            { id: 'summary', label: 'Metodologia Ativa', icon: <MessageSquare className="w-5 h-5" /> },
+            { id: 'number_line', label: 'Reta Num', icon: <ArrowLeftRight className="w-5 h-5" /> },
+            { id: 'fractions', label: 'Frações', icon: <PieChart className="w-5 h-5" /> },
+        ];
+
+        const handledIds = new Set([
+            ...priorityItems.map(item => item.id),
+            ...remainingPredefined.map(item => item.id),
+            'chat_dracker',
+            'reports'
+        ]);
+
+        const otherActivityOptions = (activityOptions || []).filter(opt => !handledIds.has(opt.id));
+
+        return [
+            ...priorityItems,
+            ...remainingPredefined,
+            ...otherActivityOptions
+        ];
+    }, [activityOptions]);
 
     const showDashboard = activityType === 'dashboard' && !activeActivity;
-    const showHero = (!activeActivity && !['merge_pdf', 'video_gallery', 'chat_dracker', 'simplify', 'dashboard', 'reports'].includes(activityType)) || activeActivity?.type === 'about_system' || activityType === 'about_system';
+    const showHero = (!activeActivity && !['merge_pdf', 'video_gallery', 'chat_dracker', 'simplify', 'dashboard', 'reports', 'trading_cards', 'trading_card'].includes(activityType)) || activeActivity?.type === 'about_system' || activityType === 'about_system';
 
     return (
         <div className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
@@ -410,6 +577,8 @@ export const MainLayout = () => {
                                     error={actions.error}
                                     navLinks={navLinks}
                                     selectActivityTab={selectActivityTab}
+                                    onOpenQuizWizard={() => actions.openEditQuiz({ questions: [] })}
+                                    onLaunchActivity={handleLaunchActivityFromHero}
                                 />
                             ) : showDashboard ? (
                                 <ActivityDashboard
@@ -417,9 +586,13 @@ export const MainLayout = () => {
                                     onSelect={(id) => {
                                         selectActivityTab(id);
                                     }}
-                                    onCreateNew={() => {
-                                        selectActivityTab(null);
-                                        handleActivityTypeChange('');
+                                    onCreateNew={(typeHint) => {
+                                        if (typeHint === 'quiz') {
+                                            actions.openEditQuiz({ questions: [] });
+                                        } else {
+                                            selectActivityTab(null);
+                                            handleActivityTypeChange(typeHint || '');
+                                        }
                                     }}
                                     onDeleteTab={(id) => {
                                         deleteTab(id);
@@ -521,6 +694,7 @@ export const MainLayout = () => {
                                     isFullWidth={isFullWidth}
                                     toggleFullWidth={() => setIsFullWidth(!isFullWidth)}
                                     openManualMusicEditor={actions.openManualMusicEditor}
+                                    onNewActivity={handleLaunchActivityFromHero}
                                 />
                             )}
                         </div>

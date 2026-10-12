@@ -68,7 +68,13 @@ function ensureDrackerStory(rawStory, topic) {
 }
 
 export async function generateDrackerActivity({ topic, lessonDetails, difficulty, model, geminiService }) {
-  const levelLabel = difficulty === 'hard' ? 'Ensino Médio (Avançado - linguagem mais aprofundada)' : difficulty === 'easy' ? 'Anos Iniciais (Fácil - linguagem lúdica, fantasia e muito simples)' : 'Anos Finais (Médio - linguagem escolar e prática)';
+  const levelLabel = typeof difficulty === 'string' && difficulty.length > 10
+    ? difficulty
+    : difficulty === 'hard'
+    ? 'Ensino Médio (Avançado - linguagem mais aprofundada)'
+    : difficulty === 'easy'
+    ? 'Anos Iniciais (Fácil - linguagem lúdica, fantasia e muito simples)'
+    : 'Anos Finais (Médio - linguagem escolar e prática)';
 
   const prompt = buildDrackerPrompt(topic, lessonDetails, levelLabel);
   const raw = await geminiService.generateText(prompt, {

@@ -27,9 +27,11 @@ export async function generateQuizActivity({
   questionCount = 10, difficultyDist = { easy: 40, medium: 40, hard: 20 }
 }) {
   const levelLabel =
-    difficulty === 'hard' ? 'High School Advanced - formal and conceptual language' :
-    difficulty === 'easy' ? 'Early Elementary - playful, simple and child-friendly language' :
-                            'Middle School - standard educational language';
+    difficulty === 'hard' || difficulty?.includes('Médio') ? 'Ensino Médio (15 a 17 anos) - linguagem aprofundada e formal' :
+    difficulty?.includes('Infantil') ? 'Educação Infantil (4 a 5 anos) - linguagem lúdica, infantil e muito simples' :
+    difficulty === 'easy' || difficulty?.includes('1º ao 3º') ? 'Ensino Fundamental I (6 a 8 anos) - linguagem simples e acessível' :
+    difficulty?.includes('4º e 5º') ? 'Ensino Fundamental I (9 a 10 anos) - linguagem clara e direta' :
+    'Ensino Fundamental II (11 a 14 anos) - linguagem escolar padrão';
 
   const prompt = buildQuizPrompt(topic, lessonDetails, levelLabel, questionCount, difficultyDist);
   const maxTokens = BASE_TOKENS + questionCount * TOKENS_PER_QUESTION;
