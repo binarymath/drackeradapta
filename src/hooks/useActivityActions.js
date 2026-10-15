@@ -9,6 +9,7 @@ import { useGemini } from '../contexts/GeminiContext';
 import { useAudio } from '../contexts/AudioContext';
 import { shuffleInPlace } from '../utils/array';
 import { toast } from '../components/ui/Toast';
+import { saveToMusicLibrary } from '../utils/musicStorage';
 
 export const useActivityActions = () => {
     const {
@@ -144,18 +145,12 @@ export const useActivityActions = () => {
             return;
         }
 
-        if (activityType === 'trading_card') {
+        if (activityType === 'trading_card' || activityType === 'trading_cards') {
             addActivityTab({
                 title: topic ? `Card: ${topic}` : "Card Colecionável",
-                type: 'trading_card',
-                content: 'Estúdio de Cards'
+                type: 'trading_cards',
+                content: 'Criador de Cards Colecionáveis Didáticos'
             });
-            return;
-        }
-
-        if (activityType === 'quiz') {
-            setQuizEditorData({ questions: [], topic: topic });
-            setShowQuizEditor(true);
             return;
         }
 
@@ -177,7 +172,49 @@ export const useActivityActions = () => {
         setIsEditing(false);
 
         try {
+            if (activityType === 'quiz') {
+                setSystemStatus('Criando questões pedagógicas do Quiz com Inteligência Artificial...');
+                const parsedQuiz = await generateQuizActivity({
+                    topic,
+                    lessonDetails,
+                    difficulty,
+                    model: selectedModel,
+                    geminiService,
+                    questionCount: questionCount || 10,
+                    difficultyDist
+                });
 
+                let formattedOutput = `${parsedQuiz.intro_text || `Aqui está um quiz sobre ${topic || 'o conteúdo'}!`}\n\n`;
+                let gabaritoOutput = `\n\n### Gabarito\n`;
+                const letters = ['a', 'b', 'c', 'd', 'e'];
+
+                parsedQuiz.questions.forEach((q, index) => {
+                    const options = [q.correct_answer, ...(q.distractors || [])].slice(0, 5);
+                    const optionsToDisplay = shuffleInPlace(options);
+                    q.ordered_options = optionsToDisplay;
+
+                    formattedOutput += `${index + 1}. ${q.statement}\n`;
+                    optionsToDisplay.forEach((opt, idx) => {
+                        formattedOutput += `${letters[idx]}) ${opt}\n`;
+                        if (opt === q.correct_answer) {
+                            gabaritoOutput += `${index + 1}. ${letters[idx]}) ${opt}\n`;
+                        }
+                    });
+                    formattedOutput += `\n`;
+                });
+
+                const text = formattedOutput + gabaritoOutput;
+
+                addActivityTab({
+                    title: topic ? `Quiz: ${topic}` : "Quiz",
+                    type: 'quiz',
+                    content: text,
+                    quizData: parsedQuiz
+                });
+                generateAudio(text);
+                setIsLoading(false);
+                return;
+            }
 
             if (activityType === 'rpg') {
                 addActivityTab({
@@ -242,7 +279,9 @@ export const useActivityActions = () => {
                 
                 const activeNames = activeStudents.map(s => s.name).join('\n');
                 
-                const levelLabel = difficulty === 'hard' ? 'Avançado' : difficulty === 'easy' ? 'Fácil' : 'Média';
+                const levelLabel = typeof difficulty === 'string' && difficulty.length > 10
+                    ? difficulty
+                    : (difficulty?.includes('Médio') || difficulty === 'hard') ? 'Avançado' : (difficulty?.includes('Infantil') || difficulty === 'easy') ? 'Fácil' : 'Média';
                 
                 // Gera perguntas apenas para os alunos ativos
                 const generatedQuestions = await geminiService.generateRouletteQuestions(topic, activeNames, lessonDetails, levelLabel);
@@ -328,7 +367,7 @@ export const useActivityActions = () => {
 
             text = formattedOutput + gabaritoOutput;
 
-            if (activeTabId) {
+            if (activeTabId && isEditing) {
                 setTabs(prev => prev.map(t => {
                     if (t.id === activeTabId) {
                         return { ...t, content: text, quizData: editedData, type: 'quiz' };
@@ -354,6 +393,7 @@ export const useActivityActions = () => {
     const handleMusicConfirm = (editedData) => {
         try {
             const letters = ['a', 'b', 'c', 'd', 'e'];
+            const songTitle = editedData.title || topic || "Música do Drácker";
             const normalizedQuestions = (editedData.questions || []).map((q, idx) => {
                 const text = typeof q === 'string' ? q : (q.text || q.question || `Pergunta ${idx + 1}`);
                 const correct = typeof q === 'object' ? (q.correctAnswer || q.correct_answer || q.answer || q.correct_option || '') : '';
@@ -371,12 +411,13 @@ export const useActivityActions = () => {
                         [options[i], options[j]] = [options[j], options[i]];
                     }
                 }
-                return { text, correctAnswer: correct, distractors, options, ordered_options: options };
+                return { text, correctAnswer: correct, distractors, options, ordered_options: options, difficulty: q.difficulty || '' };
             });
 
-            let formattedOutput = `# 🎵 Música do Drácker: ${topic}\n\n`;
+            let formattedOutput = `# 🎵 Música do Drácker: ${songTitle}\n\n`;
             formattedOutput += `## Lyrics\n${editedData.lyrics}\n\n`;
             if (editedData.style) formattedOutput += `## Style\n${editedData.style}\n\n`;
+            if (editedData.synopsis) formattedOutput += `> *${editedData.synopsis}*\n\n`;
             formattedOutput += `\n---\n**📝 Perguntas de Interpretação:**\n\n`;
 
             normalizedQuestions.forEach((q, index) => {
@@ -389,22 +430,36 @@ export const useActivityActions = () => {
                 formattedOutput += `\n`;
             });
 
+            const finalMusicData = {
+                ...editedData,
+                title: songTitle,
+                questions: normalizedQuestions
+            };
+
+            saveToMusicLibrary({
+                ...finalMusicData,
+                content: formattedOutput
+            });
+
             if (isEditing) {
                 setTabs(prev => prev.map(t => {
                     if (t.id === activeTabId) {
-                        return { ...t, content: formattedOutput, musicData: { ...editedData, questions: normalizedQuestions } };
+                        return { ...t, title: songTitle, content: formattedOutput, musicData: finalMusicData };
                     }
                     return t;
                 }));
             } else {
                 addActivityTab({
-                    title: topic || "Música do Drácker",
+                    title: songTitle,
                     type: 'simplify',
                     content: formattedOutput,
-                    musicData: { ...editedData, questions: normalizedQuestions }
+                    musicData: finalMusicData
                 });
             }
-            generateAudio(editedData.lyrics);
+            if (editedData.lyrics) {
+                generateAudio(editedData.lyrics);
+            }
+            toast(`Canção "${songTitle}" salva com sucesso!`);
         } catch (e) {
             console.error("Error formatting music", e);
             setError("Erro ao formatar música.");
@@ -413,15 +468,25 @@ export const useActivityActions = () => {
     };
 
     const handleConnectDotsConfirm = (newData) => {
-        if (activeTabId) {
+        const pairs = Array.isArray(newData) ? newData : (newData?.pairs || []);
+        const chosenTopic = (!Array.isArray(newData) && newData?.topic) ? newData.topic : topic;
+        if (isEditing && activeTabId) {
             setTabs(prev => prev.map(t => {
                 if (t.id === activeTabId) {
-                    return { ...t, data: newData };
+                    return { ...t, data: pairs, title: chosenTopic ? `Ligar Pontos: ${chosenTopic}` : t.title };
                 }
                 return t;
             }));
+        } else {
+            addActivityTab({
+                title: chosenTopic ? `Ligar Pontos: ${chosenTopic}` : "Ligar os Pontos",
+                type: 'connect_dots',
+                content: '',
+                data: pairs
+            });
         }
         setShowConnectDotsEditor(false);
+        setConnectDotsEditorData(null);
     };
 
     const handleCrosswordConfirm = async (editedData) => {
@@ -493,11 +558,13 @@ export const useActivityActions = () => {
 
 
     const openEditMusic = (data) => {
+        setIsEditing(true);
         setMusicEditorData(data);
         setShowMusicEditor(true);
     };
 
     const openEditConnectDots = (data) => {
+        setIsEditing(true);
         setConnectDotsEditorData(data);
         setShowConnectDotsEditor(true);
     };
@@ -508,11 +575,11 @@ export const useActivityActions = () => {
     };
 
     const openManualMusicEditor = () => {
-        if (!topic) {
-            setError('Por favor, digite um tema para a atividade.');
-            return;
-        }
+        setIsEditing(false);
         setMusicEditorData({
+            title: topic ? `Música do Drácker: ${topic}` : '',
+            topic: topic || '',
+            lessonDetails: lessonDetails || '',
             lyrics: '',
             questions: []
         });
@@ -535,12 +602,12 @@ export const useActivityActions = () => {
         difficultyDist, setDifficultyDist,
 
         // Editor States & Setters
-        showQuizEditor, setShowQuizEditor, quizEditorData, openEditQuiz, handleQuizConfirm,
+        showQuizEditor, setShowQuizEditor, quizEditorData, setQuizEditorData, openEditQuiz, handleQuizConfirm,
 
-        showMusicEditor, setShowMusicEditor, musicEditorData, openEditMusic, handleMusicConfirm, openManualMusicEditor,
-        showConnectDotsEditor, setShowConnectDotsEditor, connectDotsEditorData, openEditConnectDots, handleConnectDotsConfirm,
-        showCrosswordEditor, setShowCrosswordEditor, crosswordEditorData, handleCrosswordConfirm,
-        showDominoEditor, setShowDominoEditor, dominoEditorData, openEditDomino, handleDominoConfirm,
+        showMusicEditor, setShowMusicEditor, musicEditorData, setMusicEditorData, openEditMusic, handleMusicConfirm, openManualMusicEditor,
+        showConnectDotsEditor, setShowConnectDotsEditor, connectDotsEditorData, setConnectDotsEditorData, openEditConnectDots, handleConnectDotsConfirm,
+        showCrosswordEditor, setShowCrosswordEditor, crosswordEditorData, setCrosswordEditorData, handleCrosswordConfirm,
+        showDominoEditor, setShowDominoEditor, dominoEditorData, setDominoEditorData, openEditDomino, handleDominoConfirm,
 
         // Wordsearch
         wordsearchTrigger,

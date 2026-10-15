@@ -91,6 +91,8 @@ export const AppModals = ({
                 onClose={() => setShowQuizEditor(false)}
                 onSave={handleQuizConfirm}
                 initialData={quizEditorData}
+                initialTopic={topic}
+                initialDifficulty={difficulty}
             />
 
 
@@ -128,6 +130,9 @@ export const AppModals = ({
                 onClose={() => setShowMusicEditor(false)}
                 onSave={handleMusicConfirm}
                 initialData={musicEditorData}
+                defaultTopic={topic}
+                defaultLessonDetails={lessonDetails}
+                defaultDifficulty={difficulty}
             />
 
             <WordsearchWizard
@@ -168,6 +173,9 @@ export const AppModals = ({
                 onClose={() => setShowConnectDotsEditor(false)}
                 initialData={connectDotsEditorData}
                 onConfirm={handleConnectDotsConfirm}
+                topic={topic}
+                lessonDetails={lessonDetails}
+                geminiService={geminiService}
             />
 
             <AudioRecorderModal

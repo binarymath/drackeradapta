@@ -1,17 +1,40 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, Check, Pencil, Maximize2, Minimize2, PenSquare, Printer, Dices, Sparkles, XCircle, Compass, Users, Play, Square, Key } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { 
+    FileText, 
+    Check, 
+    Pencil, 
+    Maximize2, 
+    Minimize2, 
+    PenSquare, 
+    Sparkles, 
+    XCircle, 
+    Compass, 
+    Key, 
+    Copy, 
+    Download, 
+    ChevronDown, 
+    CheckCircle2,
+    Gamepad2,
+    Plus 
+} from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { toast } from '../ui/Toast';
 import { useActivity } from '../../contexts/ActivityContext';
 import { useGemini } from '../../contexts/GeminiContext';
 import { RPGDocGuideModal } from '../rpg/RPGDocGuideModal';
 import { countAllBuiltMissions } from '../../utils/rpgStorage';
+import { getAllCreatedSongs } from '../../utils/musicStorage';
+import { exportActivityToPdf } from '../../utils/pdfExportHelper';
+
+const MODAL_ACTIVITY_TYPES = ['wordsearch', 'crossword', 'quiz', 'connect_dots', 'domino', 'simplify'];
 
 export const ActivityHeader = ({
     hasContent,
     activityType,
     onEdit,
+    onNewActivity,
     showAnswers,
     setShowAnswers,
     handleDownloadPdf,
@@ -21,34 +44,67 @@ export const ActivityHeader = ({
     openManualMusicEditor,
     activityTitle,
     setActivityTitle,
-    onPlayInRoulette
+    onPlayInRoulette,
+    isGameMode = false,
+    onToggleGameMode
 }) => {
-    const { activeActivity, tabs, activeTabId, classes } = useActivity();
+    const { activeActivity, tabs, activeTabId, classes, selectActivityTab, addActivityTab } = useActivity();
     const { apiKeyStatus, setShowSettings } = useGemini();
     const [showRPGDocModal, setShowRPGDocModal] = useState(false);
     const [showRelicsModal, setShowRelicsModal] = useState(false);
     const [missionsVersion, setMissionsVersion] = useState(0);
-    const [rpgSessionState, setRpgSessionState] = useState(() => ({
-        isClassActive: !!activeActivity?.rpgData?.isClassActive,
-        elapsedTimeStr: '',
-        selectedClassId: activeActivity?.classId || ''
-    }));
+    const [musicLibVersion, setMusicLibVersion] = useState(0);
 
-    useEffect(() => {
-        const handleSessionState = (e) => {
-            if (e.detail) {
-                setRpgSessionState(prev => ({ ...prev, ...e.detail }));
-            }
-        };
-        window.addEventListener('dracker_rpg_session_state', handleSessionState);
-        return () => window.removeEventListener('dracker_rpg_session_state', handleSessionState);
-    }, []);
+    const isModalActivity = MODAL_ACTIVITY_TYPES.includes(activityType);
+
+    const handleOpenNewModalActivity = () => {
+        if (activityType === 'simplify' && openManualMusicEditor) {
+            openManualMusicEditor();
+            return;
+        }
+        if (onNewActivity) {
+            onNewActivity(activityType);
+            return;
+        }
+        window.dispatchEvent(new CustomEvent('dracker_open_new_modal_activity', {
+            detail: { type: activityType }
+        }));
+    };
 
     useEffect(() => {
         const handleUpdate = () => setMissionsVersion(v => v + 1);
         window.addEventListener('dracker_rpg_missions_updated', handleUpdate);
         return () => window.removeEventListener('dracker_rpg_missions_updated', handleUpdate);
     }, []);
+
+    useEffect(() => {
+        const handleMusicUpdate = () => setMusicLibVersion(v => v + 1);
+        window.addEventListener('dracker_music_library_updated', handleMusicUpdate);
+        return () => window.removeEventListener('dracker_music_library_updated', handleMusicUpdate);
+    }, []);
+
+    const createdSongsCount = useMemo(() => {
+        return getAllCreatedSongs(tabs).length;
+    }, [tabs, musicLibVersion]);
+
+    const handleOpenCreatedLyrics = () => {
+        const currentTab = (tabs || []).find(t => t.id === activeTabId);
+        if (currentTab?.musicData) {
+            const radioTab = (tabs || []).find(t => t.type === 'simplify' && !t.musicData && !t.hidden);
+            if (radioTab) {
+                selectActivityTab(radioTab.id);
+            } else if (addActivityTab) {
+                addActivityTab({
+                    title: 'Rádio Drácker',
+                    type: 'simplify',
+                    content: ''
+                });
+            }
+        }
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('dracker_open_created_music'));
+        }, 50);
+    };
 
     const rpgData = activeActivity?.rpgData;
     const stages = rpgData?.currentData?.etapas || [];
@@ -60,6 +116,148 @@ export const ActivityHeader = ({
     const builtMissionsCount = useMemo(() => {
         return countAllBuiltMissions(tabs, activeTabId, activeActivity);
     }, [tabs, activeTabId, activeActivity, missionsVersion]);
+
+    const [isCopyMenuOpen, setIsCopyMenuOpen] = useState(false);
+    const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+    const copyMenuRef = useRef(null);
+    const downloadMenuRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (copyMenuRef.current && !copyMenuRef.current.contains(e.target)) {
+                setIsCopyMenuOpen(false);
+            }
+            if (downloadMenuRef.current && !downloadMenuRef.current.contains(e.target)) {
+                setIsDownloadMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const hasAnswersAvailable = useMemo(() => {
+        return ['quiz', 'wordsearch', 'crossword', 'domino'].includes(activityType);
+    }, [activityType]);
+
+    const handleCopyActivity = (withAnswers = false) => {
+        setIsCopyMenuOpen(false);
+        try {
+            const title = activityTitle || activeActivity?.title || 'Atividade';
+
+            if (activityType === 'quiz') {
+                const quizData = activeActivity?.quizData;
+                const questions = quizData?.questions || [];
+                if (questions.length > 0) {
+                    let out = `${title}\n\n`;
+                    if (quizData.intro_text) out += `${quizData.intro_text}\n\n`;
+                    questions.forEach((q, idx) => {
+                        const statement = q.statement || q.question || `Questão ${idx + 1}`;
+                        out += `${idx + 1}. ${statement}\n`;
+                        const opts = [q.correct_answer, ...(q.distractors || [])].filter(Boolean);
+                        const letters = ['A', 'B', 'C', 'D', 'E'];
+                        opts.forEach((opt, oIdx) => {
+                            const isCorrect = withAnswers && opt === q.correct_answer;
+                            out += `   ${letters[oIdx]}) ${opt}${isCorrect ? ' ✓ (Gabarito)' : ''}\n`;
+                        });
+                        out += '\n';
+                    });
+                    if (withAnswers) {
+                        out += '----------------------------------------\n';
+                        out += 'GABARITO OFICIAL:\n';
+                        questions.forEach((q, idx) => {
+                            out += `${idx + 1}. ${q.correct_answer}\n`;
+                        });
+                    }
+                    navigator.clipboard.writeText(out.trim());
+                    toast(withAnswers ? 'Quiz copiado com gabarito!' : 'Questões do quiz copiadas!');
+                    return;
+                }
+            }
+
+            if (activityType === 'wordsearch') {
+                let out = `${title}\n\n`;
+                if (foundWords && foundWords.length > 0) {
+                    out += 'PALAVRAS PARA ENCONTRAR:\n';
+                    foundWords.forEach(w => {
+                        const word = typeof w === 'string' ? w : (w.word || '');
+                        const clue = typeof w === 'object' && w.clue ? ` - ${w.clue}` : '';
+                        out += `• ${word}${clue}\n`;
+                    });
+                }
+                if (withAnswers && activeActivity?.content) {
+                    out += `\nConteúdo:\n${activeActivity.content.replace(/<[^>]+>/g, '')}`;
+                }
+                navigator.clipboard.writeText(out.trim());
+                toast(withAnswers ? 'Caça-palavras copiado com respostas!' : 'Palavras copiadas!');
+                return;
+            }
+
+            if (activityType === 'crossword' && activeActivity?.crosswordData) {
+                const cw = activeActivity.crosswordData;
+                let out = `${title}\n\n`;
+                if (cw.clues?.horizontal?.length > 0) {
+                    out += 'HORIZONTAIS:\n';
+                    cw.clues.horizontal.forEach(c => {
+                        out += `${c.number}. ${c.clue}${withAnswers ? ` (Resposta: ${c.answer})` : ''}\n`;
+                    });
+                    out += '\n';
+                }
+                if (cw.clues?.vertical?.length > 0) {
+                    out += 'VERTICAIS:\n';
+                    cw.clues.vertical.forEach(c => {
+                        out += `${c.number}. ${c.clue}${withAnswers ? ` (Resposta: ${c.answer})` : ''}\n`;
+                    });
+                }
+                navigator.clipboard.writeText(out.trim());
+                toast(withAnswers ? 'Cruzadinha copiada com respostas!' : 'Dicas copiadas!');
+                return;
+            }
+
+            const rawContent = activeActivity?.content || '';
+            const cleanContent = rawContent.replace(/<[^>]+>/g, '').trim();
+            const fullText = `${title}\n\n${cleanContent}`;
+            navigator.clipboard.writeText(fullText.trim());
+            toast('Conteúdo copiado com sucesso!');
+        } catch (err) {
+            console.error('[handleCopyActivity] Erro:', err);
+            toast('Erro ao copiar conteúdo.');
+        }
+    };
+
+    const handleDownloadDirectPdf = async (withAnswers = false) => {
+        setIsDownloadMenuOpen(false);
+
+        const currentShowAnswers = showAnswers;
+        if (hasAnswersAvailable && setShowAnswers && currentShowAnswers !== withAnswers) {
+            setShowAnswers(withAnswers);
+            await new Promise(r => setTimeout(r, 120));
+        }
+
+        const title = activityTitle || activeActivity?.title || 'Atividade';
+        const suffix = withAnswers ? '_Gabarito' : '_Folha';
+        const filename = `${title}${hasAnswersAvailable ? suffix : ''}`;
+
+        await exportActivityToPdf('activity-area-print', filename);
+
+        if (hasAnswersAvailable && setShowAnswers && currentShowAnswers !== withAnswers) {
+            setShowAnswers(currentShowAnswers);
+        }
+    };
+
+    const NON_PRINTABLE_HEADER_TYPES = useMemo(() => [
+        'simplify',       // Rádio Drácker (possui download próprio discreto de letras/questões na sua barra)
+        'rpg',            // DetectiveRPG (jogo interativo)
+        'memory',         // Jogo da Memória (possui prévia de impressão própria)
+        'roulette',       // Roleta Pedagógica (jogo em tempo real)
+        'video_gallery',  // Vídeos Interativos
+        'chat_dracker',   // Chat
+        'about_system',   // Sobre o Sistema
+        'dashboard',      // Dashboard
+        'reports',        // Relatórios
+        'merge_pdf'       // Unir PDF
+    ], []);
+
+    const canExportActivity = hasContent && !NON_PRINTABLE_HEADER_TYPES.includes(activityType);
 
     return (
         <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white no-print rounded-t-[2.5rem]">
@@ -82,10 +280,31 @@ export const ActivityHeader = ({
                                 ? 'Nova Atividade'
                                 : activityType === 'merge_pdf'
                                 ? 'Unir PDF'
+                                : activityType === 'simplify'
+                                ? 'Rádio Drácker'
+                                : activityType === 'video_gallery'
+                                ? 'Vídeos Interativos'
                                 : hasContent
                                 ? 'Atividade Pronta'
                                 : 'Aguardando Geração'}
                         </span>
+
+                        {/* Botão discreto para alternar entre modo folha/impressão e jogar online */}
+                        {(['crossword', 'wordsearch', 'domino', 'connect_dots', 'quiz'].includes(activityType)) && hasContent && onToggleGameMode && (
+                            <button
+                                type="button"
+                                onClick={onToggleGameMode}
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer shadow-2xs border ${
+                                    isGameMode
+                                        ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-xs'
+                                        : 'bg-blue-50 hover:bg-blue-100 text-blue-900 border-blue-200'
+                                }`}
+                                title={isGameMode ? "Voltar para o modo de folha para impressão/PDF" : "Jogar online de forma interativa"}
+                            >
+                                <Gamepad2 className={`w-3.5 h-3.5 ${isGameMode ? 'text-white' : 'text-blue-700'}`} />
+                                <span>{isGameMode ? 'Voltar para Folha' : 'Jogar Online'}</span>
+                            </button>
+                        )}
 
                         {/* Aviso/Ação de Chave de API se não inserida */}
                         {(!apiKeyStatus || apiKeyStatus === 'empty' || apiKeyStatus === 'invalid') && (
@@ -97,55 +316,6 @@ export const ActivityHeader = ({
                             >
                                 <Key className="w-3 h-3 text-amber-200" />
                                 <span>Inserir Chave API</span>
-                            </button>
-                        )}
-
-                        {/* Nome da Turma ao lado do título de Atividade Pronta (conforme solicitado) */}
-                        {activityType === 'rpg' && classes && classes.length > 0 && (
-                            <div className="flex items-center gap-1 bg-amber-50 border border-amber-300 rounded-lg px-2 py-0.5 shadow-2xs">
-                                <Users className="w-3 h-3 text-amber-700 shrink-0" />
-                                <select
-                                    value={rpgSessionState.selectedClassId || activeActivity?.classId || classes[0]?.id || ''}
-                                    onChange={(e) => {
-                                        const newCId = e.target.value;
-                                        setRpgSessionState(prev => ({ ...prev, selectedClassId: newCId }));
-                                        window.dispatchEvent(new CustomEvent('change_rpg_class', { detail: { classId: newCId } }));
-                                    }}
-                                    className="text-xs font-black text-amber-950 bg-transparent border-none outline-none cursor-pointer pr-1"
-                                    title="Turma ativa para esta missão"
-                                >
-                                    {classes.map(c => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-
-                        {/* Iniciar Aula Oficial ao lado direito de Atividade Pronta (conforme solicitado) */}
-                        {activityType === 'rpg' && (
-                            <button
-                                type="button"
-                                onClick={() => window.dispatchEvent(new CustomEvent('toggle_rpg_official_class'))}
-                                className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg font-black text-xs transition-all border shadow-2xs cursor-pointer whitespace-nowrap ${
-                                    (rpgSessionState.isClassActive || rpgData?.isClassActive)
-                                        ? 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100 ring-2 ring-rose-400/30' 
-                                        : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-                                }`}
-                                title={(rpgSessionState.isClassActive || rpgData?.isClassActive) ? 'Encerrar aula oficial e consolidar registros' : 'Iniciar aula oficial com a turma ativa'}
-                            >
-                                {(rpgSessionState.isClassActive || rpgData?.isClassActive) ? (
-                                    <>
-                                        <Square className="w-3 h-3 fill-current text-rose-600" />
-                                        <span>ENCERRAR AULA {rpgSessionState.elapsedTimeStr ? `(${rpgSessionState.elapsedTimeStr})` : ''}</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Play className="w-3 h-3 fill-current text-indigo-600" />
-                                        <span>INICIAR AULA OFICIAL</span>
-                                    </>
-                                )}
                             </button>
                         )}
                     </div>
@@ -163,35 +333,50 @@ export const ActivityHeader = ({
             </div>
 
             <div className="flex gap-2 items-center shrink-0 flex-wrap">
-                {/* Manual Input Trigger for Music Activity */}
+                {/* Ações da Rádio Drácker: Letras Criadas e Compor Música */}
                 {activityType === 'simplify' && (
-                    <Button
-                        onClick={openManualMusicEditor}
-                        variant="secondary"
-                        className="h-8 text-sm px-3 border-dashed border-brown-300 hover:border-brown-400"
-                        icon={PenSquare}
-                        title="Criar Manualmente"
-                    >
-                        Criar Novo
-                    </Button>
+                    <>
+                        <Button
+                            onClick={handleOpenCreatedLyrics}
+                            variant="secondary"
+                            className="h-8 text-sm px-3 font-bold cursor-pointer"
+                            icon={Sparkles}
+                            title="Ver canções e letras didáticas criadas"
+                        >
+                            Letras Criadas {createdSongsCount > 0 ? `(${createdSongsCount})` : ''}
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleOpenNewModalActivity}
+                            variant="secondary"
+                            className="h-8 text-sm px-3 font-bold cursor-pointer shrink-0"
+                            icon={Plus}
+                            title="Compor Nova Música Didática (+ Novo)"
+                            aria-label="+ Novo"
+                        >
+                            Novo
+                        </Button>
+                    </>
                 )}
 
-                {/* Manual Input Trigger for empty Quiz */}
-                {activityType === 'quiz' && !hasContent && (
+                {/* Gatilho para atividades de modal vazias */}
+                {!hasContent && isModalActivity && activityType !== 'simplify' && (
                     <Button
-                        onClick={onEdit}
+                        type="button"
+                        onClick={handleOpenNewModalActivity}
                         variant="secondary"
-                        className="h-8 text-sm px-3 border-dashed border-brown-300 hover:border-brown-400 bg-amber-50 text-amber-700"
-                        icon={PenSquare}
-                        title="Criar ou Importar Quiz"
+                        className="h-8 text-sm px-3 font-bold cursor-pointer shrink-0"
+                        icon={Plus}
+                        title="Criar Nova Atividade (+ Novo)"
+                        aria-label="+ Novo"
                     >
-                        Criar Quiz / Importar
+                        Novo
                     </Button>
                 )}
 
                 {hasContent && (
                     <>
-                        {(activityType === 'quiz' || activityType === 'simplify' || activityType === 'domino') && (
+                        {(activityType === 'quiz' || activityType === 'domino') && (
                             <Button
                                 onClick={onEdit}
                                 variant="secondary"
@@ -202,39 +387,17 @@ export const ActivityHeader = ({
                             </Button>
                         )}
                         {activityType === 'quiz' && (
-                            <>
-                                <Button
-                                    onClick={() => setShowAnswers(!showAnswers)}
-                                    variant={showAnswers ? "primary" : "secondary"}
-                                    className={`h-8 text-sm px-3 ${showAnswers ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
-                                    icon={showAnswers ? Check : undefined}
-                                >
-                                    {showAnswers ? 'Gabarito ✓' : 'Gabarito'}
-                                </Button>
-                                {onPlayInRoulette && (
-                                    <Button
-                                        onClick={onPlayInRoulette}
-                                        variant="secondary"
-                                        className="h-8 text-sm px-3 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 text-amber-900 border-amber-300 font-bold shadow-2xs transition-all"
-                                        icon={Dices}
-                                        title="Jogar estas questões na Roleta Pedagógica para sortear alunos e acionar a bomba"
-                                    >
-                                        Jogar na Roleta
-                                    </Button>
-                                )}
-                            </>
-                        )}
-                        {activityType === 'wordsearch' && foundWords && foundWords.length > 0 && (
                             <Button
                                 onClick={() => setShowAnswers(!showAnswers)}
                                 variant={showAnswers ? "primary" : "secondary"}
                                 className={`h-8 text-sm px-3 ${showAnswers ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
                                 icon={showAnswers ? Check : undefined}
                             >
-                                {showAnswers ? 'Respostas' : 'Respostas'}
+                                {showAnswers ? 'Gabarito ✓' : 'Gabarito'}
                             </Button>
                         )}
-                        {activityType === 'rpg' ? (
+
+                        {activityType === 'rpg' && (
                             <>
                                 {totalStages > 0 && (
                                     <button
@@ -267,10 +430,110 @@ export const ActivityHeader = ({
                                     Guia do RPG
                                 </Button>
                             </>
-                        ) : (
-                            activityType !== 'memory' && (
-                                <Button onClick={handleDownloadPdf} variant="ghost" className="h-8 w-8 p-0" icon={Printer} title="Imprimir" />
-                            )
+                        )}
+                        {canExportActivity && (
+                            <>
+                                {/* Botão Novo idêntico a Editar e Gabarito para atividades de modal */}
+                                {isModalActivity && (
+                                    <Button
+                                        type="button"
+                                        onClick={handleOpenNewModalActivity}
+                                        variant="secondary"
+                                        className="h-8 text-sm px-3 font-bold cursor-pointer shrink-0"
+                                        icon={Plus}
+                                        title="Criar nova atividade deste tipo (+ Novo)"
+                                        aria-label="+ Novo"
+                                    >
+                                        Novo
+                                    </Button>
+                                )}
+
+                                {/* Menu Discreto: Copiar */}
+                                <div className="relative" ref={copyMenuRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsCopyMenuOpen(prev => !prev);
+                                            setIsDownloadMenuOpen(false);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-stone-700 hover:text-stone-900 bg-white hover:bg-stone-100/80 border border-stone-200 shadow-2xs transition-all cursor-pointer"
+                                        title="Copiar texto ou gabarito da atividade"
+                                    >
+                                        <Copy className="w-3.5 h-3.5 text-stone-500" />
+                                        <span>Copiar</span>
+                                        <ChevronDown className={`w-3 h-3 text-stone-400 transition-transform duration-200 ${isCopyMenuOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {isCopyMenuOpen && (
+                                        <div className="absolute right-0 top-full mt-1.5 w-56 bg-white border border-stone-200 rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                                            <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-stone-400">
+                                                Copiar Conteúdo
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCopyActivity(false)}
+                                                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-stone-700 hover:text-amber-900 hover:bg-amber-50/70 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                            >
+                                                <FileText className="w-3.5 h-3.5 text-amber-600" />
+                                                <span>Copiar Atividade</span>
+                                            </button>
+                                            {hasAnswersAvailable && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCopyActivity(true)}
+                                                    className="w-full text-left px-3.5 py-2 text-xs font-semibold text-stone-700 hover:text-emerald-900 hover:bg-emerald-50/70 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-stone-100 mt-1 pt-1.5"
+                                                >
+                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                    <span>Copiar com Gabarito</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Menu Discreto: Baixar PDF */}
+                                <div className="relative" ref={downloadMenuRef}>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsDownloadMenuOpen(prev => !prev);
+                                            setIsCopyMenuOpen(false);
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-stone-700 hover:text-stone-900 bg-white hover:bg-stone-100/80 border border-stone-200 shadow-2xs transition-all cursor-pointer"
+                                        title="Baixar atividade diretamente em PDF"
+                                    >
+                                        <Download className="w-3.5 h-3.5 text-stone-500" />
+                                        <span>Baixar PDF</span>
+                                        <ChevronDown className={`w-3 h-3 text-stone-400 transition-transform duration-200 ${isDownloadMenuOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {isDownloadMenuOpen && (
+                                        <div className="absolute right-0 top-full mt-1.5 w-60 bg-white border border-stone-200 rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                                            <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-stone-400">
+                                                Baixar em PDF
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDownloadDirectPdf(false)}
+                                                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-stone-700 hover:text-amber-900 hover:bg-amber-50/70 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                            >
+                                                <FileText className="w-3.5 h-3.5 text-amber-600" />
+                                                <span>Folha de Atividade (Aluno)</span>
+                                            </button>
+                                            {hasAnswersAvailable && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDownloadDirectPdf(true)}
+                                                    className="w-full text-left px-3.5 py-2 text-xs font-semibold text-stone-700 hover:text-emerald-900 hover:bg-emerald-50/70 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-stone-100 mt-1 pt-1.5"
+                                                >
+                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                    <span>Folha com Gabarito</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </>
                         )}
                     </>
                 )}

@@ -9,20 +9,77 @@ import { ActivityPrintHeader } from './ui/ActivityPrintHeader';
 import { LatexRenderer } from './ui/LatexRenderer';
 import { toast } from './ui/Toast';
 
-const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], foundPlacements = [], hideText = false, hideGrid = false, title = null }) => {
-    const [textFontSize, setTextFontSize] = useState(16);
-    const [mathFontSize, setMathFontSize] = useState(18);
+const RichTextRenderer = ({
+    content,
+    showAnswers = false,
+    foundWords = [],
+    foundPlacements = [],
+    hideText = false,
+    hideGrid = false,
+    title = null,
+    fontSize = 15.5,
+    storyFirst = true
+}) => {
+    const [textFontSize, setTextFontSize] = useState(fontSize || 15.5);
+    const [mathFontSize, setMathFontSize] = useState(Math.round((fontSize || 15.5) * 1.2));
+
+    React.useEffect(() => {
+        if (fontSize) {
+            setTextFontSize(fontSize);
+            setMathFontSize(Math.round(fontSize * 1.2));
+        }
+    }, [fontSize]);
+
     if (!content) return null;
 
     const renderInlineStyles = (text) => {
         if (!text && text !== 0) return null;
-        if (/\$|\\frac|\\sqrt|\^|_|\\sin|\\cos|\\pi|\\alpha|\\beta|\\times|\\cdot|[+\-x÷=]\s*\d/.test(text.toString())) {
-            return <LatexRenderer content={text} mathFontSize={mathFontSize} textFontSize={textFontSize} />;
+        const str = text.toString();
+
+        // Se for uma fórmula matemática pura curta (ex: item de lista ou cálculo isolado "3x + 5 = 14", "\frac{1}{2}")
+        // e NÃO for um parágrafo longo de leitura (mais de 60 caracteres ou com múltiplas palavras):
+        const isPureShortFormula = str.length < 60 && !/[a-zA-ZÀ-Úà-ú]{4,}\s+[a-zA-ZÀ-Úà-ú]{4,}\s+[a-zA-ZÀ-Úà-ú]{4,}/.test(str) &&
+            (/\$|\\frac|\\sqrt|\^|_|\\sin|\\cos|\\pi|\\alpha|\\beta|\\times|\\cdot/.test(str) || /^[0-9xXyYzZ\s+\-/*÷=.,\(\)\[\]]+$/.test(str.trim()));
+
+        if (isPureShortFormula) {
+            return <LatexRenderer content={str} mathFontSize={mathFontSize} textFontSize={textFontSize} />;
         }
-        const parts = text.toString().split(/(\*\*.*?\*\*)/g);
+
+        // Para textos corridos e parágrafos normais:
+        // Tokeniza apenas expressões matemáticas delimitadas ($...$, $$...$$, \frac, \sqrt) e negritos (**...**)
+        const regex = /(\$\$[\s\S]*?\$\$|\$[^\$]+?\$|\\frac\{[^{}]*\}\{[^{}]*\}|\\sqrt\{[^{}]*\}|\*\*[\s\S]*?\*\*)/g;
+        const parts = str.split(regex);
+
         return parts.map((part, index) => {
+            if (!part) return null;
             if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={index} className="text-brown-700 font-extrabold">{part.slice(2, -2)}</strong>;
+                return (
+                    <strong key={index} className="text-stone-900 font-extrabold">
+                        {part.slice(2, -2)}
+                    </strong>
+                );
+            }
+            if (part.startsWith('$$') && part.endsWith('$$')) {
+                return (
+                    <LatexRenderer
+                        key={index}
+                        content={part}
+                        mathFontSize={mathFontSize}
+                        textFontSize={textFontSize}
+                        defaultDisplayMode={true}
+                    />
+                );
+            }
+            if ((part.startsWith('$') && part.endsWith('$')) || part.startsWith('\\frac') || part.startsWith('\\sqrt')) {
+                return (
+                    <LatexRenderer
+                        key={index}
+                        content={part}
+                        mathFontSize={mathFontSize}
+                        textFontSize={textFontSize}
+                        defaultDisplayMode={false}
+                    />
+                );
             }
             return part;
         });
@@ -30,89 +87,119 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
 
     const lines = content.split('\n');
     const elements = [];
-    if (title) {
-        elements.push(
+
+    // Helper para gerar o cabeçalho oficial de avaliação
+    const renderActivityHeader = (key = 'header') => {
+        if (!title) return null;
+        return (
             <ActivityPrintHeader
-                key="print-header"
+                key={key}
                 title={title}
                 subtitle="ATIVIDADE DE AVALIAÇÃO"
                 pills={foundWords?.length ? [`📝 ${foundWords.length} Palavras`] : []}
             />
         );
-    }
-    // Lista desativada: não renderizamos marcadores
-    let listBuffer = [];
-    let gridBuffer = [];
-    let columnBuffer = [];
-    let questionBuffer = [];
-
-    let answerBuffer = [];
-    let storyBuffer = [];
-    let titleRendered = false;
-    let wordListBuffer = [];
-
-    const flushList = () => {
-        // No-op: removemos marcadores de lista
-        listBuffer = [];
     };
 
-    const flushGameCard = () => {
-        // Renderiza se tiver Grid OU Lista de Palavras (Game Mode)
-        if (gridBuffer.length > 0 || wordListBuffer.length > 0) {
+    let gridBuffer = [];
+    let wordListBuffer = [];
+    let columnBuffer = [];
+    let questionBuffer = [];
+    const questionNodes = [];
+    let answerBuffer = [];
+    let storyBuffer = [];
+    let inWordListSection = false;
+    let textStarted = false;
 
-            // Só renderiza a estrutura se não estiver tudo oculto
-            if (hideGrid) {
-                gridBuffer = [];
-                wordListBuffer = [];
-                return;
-            }
+    // Helper: constrói o card de leitura (sem o título 'TEXTO DE APOIO / CONTEXTUALIZAÇÃO')
+    const buildStoryCard = () => {
+        if (hideText || storyBuffer.length === 0) return null;
+        const currentStoryText = storyBuffer.join('\n').replace(/\*\*/g, '');
 
-            const cardContent = [];
+        return (
+            <div
+                key="story-card"
+                className="dracker-print-card bg-white border border-slate-300 rounded-2xl p-5 sm:p-6 my-2 print:my-1 print:border-black print:shadow-none break-inside-avoid overflow-visible"
+                style={{ fontSize: `${Math.max(14, Math.round(textFontSize * 0.95))}px` }}
+            >
+                {title && !hideText && (
+                    <div className="flex justify-end pb-2 mb-3 border-b border-slate-200 no-print">
+                        <Button
+                            onClick={() => {
+                                navigator.clipboard.writeText(currentStoryText);
+                                toast('Texto copiado!');
+                            }}
+                            variant="secondary"
+                            className="h-7 text-xs px-2.5 text-stone-600 bg-stone-100 hover:bg-stone-200 shadow-2xs"
+                            icon={Copy}
+                        >
+                            Copiar Texto
+                        </Button>
+                    </div>
+                )}
 
-            // 1. RENDER GRID
-            if (gridBuffer.length > 0) {
-                const processedRows = gridBuffer.map(row => {
-                    const trimmed = row.trim();
-                    let letters = trimmed.split(/\s+/).filter(l => l.length > 0);
-                    if (letters.length === 1 && trimmed.length > 1) {
-                        letters = trimmed.split('').filter(l => /[A-ZÀ-Ú0-9]/i.test(l));
-                    }
-                    return letters;
-                });
+                <div className="font-sans text-stone-800 print:text-black text-left">
+                    {storyBuffer.map((line, idx) => (
+                        <p
+                            key={idx}
+                            className="indent-5 mb-4 last:mb-0 leading-[1.65] text-left break-words"
+                            style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
+                        >
+                            {renderInlineStyles(line)}
+                        </p>
+                    ))}
+                </div>
+            </div>
+        );
+    };
 
-                const cols = processedRows[0]?.length || 0;
+    // Helper: constrói o card do Caça-Palavras dimensionado para utilizar exatamente uma folha A4 inteira
+    const buildGameCard = () => {
+        if (hideGrid) return null;
+        if (gridBuffer.length === 0 && wordListBuffer.length === 0) return null;
 
-                if (cols > 0) {
-                    // Check if it's a numeric grid (only numbers and symbols)
-                    const isNumericGrid = processedRows.every(row => row.every(l => /^[0-9,\.\-=+*xX÷\/%]$/.test(l)));
+        const cardContent = [];
 
-                    // Logic to highlight words
-                    const wordPositions = new Set();
-                    if (showAnswers) {
-                        if (foundPlacements && foundPlacements.length > 0) {
-                            for (const p of foundPlacements) {
-                                const cells = p?.positions || p?.cells || [];
-                                for (const cell of cells) {
-                                    if (Array.isArray(cell) && cell.length === 2) {
-                                        const [r, c] = cell;
-                                        wordPositions.add(`${r}-${c}`);
-                                    } else if (typeof cell === 'string') {
-                                        wordPositions.add(cell);
-                                    }
+        // 1. GRADE DO CAÇA-PALAVRAS
+        if (gridBuffer.length > 0) {
+            const processedRows = gridBuffer.map(row => {
+                const trimmed = row.trim();
+                let letters = trimmed.split(/\s+/).filter(l => l.length > 0);
+                if (letters.length === 1 && trimmed.length > 1) {
+                    letters = trimmed.split('').filter(l => /[A-ZÀ-Ú0-9]/i.test(l));
+                }
+                return letters;
+            });
+
+            const cols = processedRows[0]?.length || 0;
+
+            if (cols > 0) {
+                // Identifica posições de palavras para gabarito
+                const wordPositions = new Set();
+                if (showAnswers) {
+                    if (foundPlacements && foundPlacements.length > 0) {
+                        for (const p of foundPlacements) {
+                            const cells = p?.positions || p?.cells || [];
+                            for (const cell of cells) {
+                                if (Array.isArray(cell) && cell.length === 2) {
+                                    const [r, c] = cell;
+                                    wordPositions.add(`${r}-${c}`);
+                                } else if (typeof cell === 'string') {
+                                    wordPositions.add(cell);
                                 }
                             }
-                        } else if (foundWords && foundWords.length > 0) {
-                            const targetNorms = foundWords.map(w => typeof w === 'string' ? w.toUpperCase() : (w.word || '').toUpperCase());
-                            for (let row = 0; row < processedRows.length; row++) {
-                                for (let col = 0; col < processedRows[row].length; col++) {
-                                    for (const word of targetNorms) {
-                                        const len = word.length;
-                                        if (col + len <= processedRows[row].length) {
-                                            const candidate = processedRows[row].slice(col, col + len).join('');
-                                            if (candidate === word) {
-                                                for (let i = 0; i < len; i++) {
-                                                    wordPositions.add(`${row}-${col + i}`);
-                                                }
+                        }
+                    } else if (foundWords && foundWords.length > 0) {
+                        const targetNorms = foundWords.map(w => typeof w === 'string' ? w.toUpperCase() : (w.word || '').toUpperCase());
+                        for (let row = 0; row < processedRows.length; row++) {
+                            for (let col = 0; col < processedRows[row].length; col++) {
+                                for (const word of targetNorms) {
+                                    const len = word.length;
+                                    if (col + len <= processedRows[row].length) {
+                                        const candidate = processedRows[row].slice(col, col + len).join('');
+                                        if (candidate === word) {
+                                            for (let i = 0; i < len; i++) {
+                                                wordPositions.add(`${row}-${col + i}`);
                                             }
                                         }
                                     }
@@ -120,225 +207,178 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
                             }
                         }
                     }
-
-                    // Adaptive Sizing
-                    let cellSize = '38px';
-                    if (cols > 10 && cols <= 12) cellSize = '36px';
-                    else if (cols > 12 && cols <= 16) cellSize = '30px';
-                    else if (cols > 16) cellSize = '24px';
-
-                    cardContent.push(
-                        <div key="grid-content" className="flex justify-center mb-6 print:mb-4">
-                            <div className={`inline-block p-4 print:p-0 rounded-xl print:rounded-none border shadow-inner print:shadow-none 
-                                ${isNumericGrid ? 'bg-slate-50 border-slate-200 print:bg-transparent print:border-none' : 'bg-brown-50 border-brown-200 print:bg-transparent print:border-none'}`}>
-                                
-                                <div
-                                    className="grid"
-                                    style={{ 
-                                        gridTemplateColumns: `repeat(${cols}, auto)`, 
-                                        gap: isNumericGrid ? '0px' : '0px' // Could use gap for alphabetic, but let's handle via padding
-                                    }}
-                                >
-                                    {processedRows.map((letters, rowIndex) =>
-                                        letters.map((letter, colIndex) => {
-                                            const isHighlighted = wordPositions.has(`${rowIndex}-${colIndex}`);
-                                            
-                                            // Dynamic classes for print vs screen, numeric vs alphabetic
-                                            let cellClass = 'flex items-center justify-center text-sm sm:text-base print:text-base font-bold transition-colors select-none ';
-                                            
-                                            if (isNumericGrid) {
-                                                // NUMERIC: Monospace, visible grid lines like a math sheet
-                                                cellClass += 'font-mono border border-slate-200 print:border-slate-300 print:border-dashed ';
-                                                if (isHighlighted) {
-                                                    cellClass += 'bg-blue-600 text-white shadow-sm z-10 print:bg-slate-200 print:text-black print:border-slate-800 print:border-solid ';
-                                                } else {
-                                                    cellClass += 'text-slate-800 print:text-slate-900 bg-white hover:bg-slate-100 ';
-                                                }
-                                            } else {
-                                                // ALPHABETIC: Sans-serif, cleaner, rounded for screen, no borders for print
-                                                cellClass += 'font-sans rounded-md print:rounded-none border border-brown-100/40 print:border-none ';
-                                                if (isHighlighted) {
-                                                    cellClass += 'bg-amber-500 text-white shadow-sm scale-110 z-10 print:bg-transparent print:text-black print:scale-100 print:border print:border-slate-800 print:border-solid print:rounded-full ';
-                                                } else {
-                                                    cellClass += 'text-brown-900 print:text-slate-900 bg-white hover:bg-brown-100 ';
-                                                }
-                                            }
-
-                                            return (
-                                                <div
-                                                    key={`${rowIndex}-${colIndex}`}
-                                                    className={cellClass}
-                                                    style={{ 
-                                                        width: cellSize, 
-                                                        height: cellSize,
-                                                        minWidth: cellSize, 
-                                                        minHeight: cellSize,
-                                                        margin: isNumericGrid ? '0' : '1px' // Slight margin for alphabetic tiles
-                                                    }}
-                                                >
-                                                    {letter.toUpperCase()}
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    );
                 }
-            }
 
-            // 2. RENDER WORD LIST
-            if (wordListBuffer.length > 0) {
-                const isMathList = wordListBuffer.some(part => (/[+\-x÷=]/.test(part) && /\d/.test(part)) || /\\frac|\\sqrt|\^|_|\\sin|\\cos|\\pi|\$/.test(part));
-                const isClueList = wordListBuffer.some(part => part.length > 25);
-                
-                if (isMathList || isClueList) {
-                    cardContent.push(
-                        <div key="word-list-content" className="mt-8 pt-6 print:mt-3 print:pt-3 border-t border-slate-200">
-                            <h4 className="text-center text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-6 print:mb-4">
-                                {isMathList ? "📝 Desafios para Resolver" : "📝 Pistas para Encontrar"}
-                            </h4>
-                            <div className="flex flex-col gap-1 w-full max-w-2xl mx-auto">
-                                {wordListBuffer.map((part, pIdx) => (
-                                    <div key={pIdx} className="flex items-start gap-4 py-3 print:py-2 border-b border-slate-100 print:border-slate-300 print:border-dashed last:border-0 text-left">
-                                        <div className="print:hidden hidden print:block w-4 h-4 mt-0.5 border border-slate-400 rounded-sm shrink-0"></div>
-                                        <span className="font-black text-sm text-slate-400 mt-0.5 print:text-slate-800">{String(pIdx + 1).padStart(2, '0')}.</span>
-                                        <div className="min-w-0 flex-1 leading-relaxed text-base print:text-sm font-medium text-slate-800 print:text-black">
-                                            <LatexRenderer content={part.trim().replace('?', '')} mathFontSize={mathFontSize} textFontSize={textFontSize} />
-                                        </div>
-                                    </div>
-                                ))}
+                // Escala de fonte baseada no seletor do usuário (base normal = 15.5px)
+                const fontScale = (textFontSize || 15.5) / 15.5;
+
+                // Dimensionamento áureo para preencher exatamente a folha A4 (~580px a 600px de altura de grade)
+                let baseCellPx = 37.5;
+                if (cols <= 8) baseCellPx = 65;        // 8 * 65 = 520px
+                else if (cols <= 10) baseCellPx = 58;  // 10 * 58 = 580px
+                else if (cols <= 12) baseCellPx = 49;  // 12 * 49 = 588px
+                else if (cols <= 14) baseCellPx = 42;  // 14 * 42 = 588px
+                else if (cols <= 16) baseCellPx = 37.5;// 16 * 37.5 = 600px
+                else if (cols <= 18) baseCellPx = 33;  // 18 * 33 = 594px
+                else if (cols <= 20) baseCellPx = 30;  // 20 * 30 = 600px
+                else if (cols <= 22) baseCellPx = 27;  // 22 * 27 = 594px
+                else baseCellPx = 25;                  // 24 * 25 = 600px
+
+                const computedCellPx = Math.round(baseCellPx * fontScale);
+                const cellSize = `${computedCellPx}px`;
+
+                // Tamanho da letra: grande, nítida e super legível (58% da célula)
+                const letterFontSizePx = Math.max(14, Math.round(computedCellPx * 0.58));
+
+                cardContent.push(
+                    <div key="grid-content" className="flex justify-center my-2 print:my-1 w-full">
+                        <div className="inline-block p-1 bg-stone-100 border border-stone-300 print:border-black rounded-xl overflow-hidden mx-auto shadow-2xs print:shadow-none">
+                            <div
+                                className="grid border border-stone-300 print:border-black bg-stone-300 print:bg-black gap-[1px]"
+                                style={{
+                                    gridTemplateColumns: `repeat(${cols}, ${cellSize})`,
+                                    width: 'fit-content'
+                                }}
+                            >
+                                {processedRows.map((letters, rowIndex) =>
+                                    letters.map((letter, colIndex) => {
+                                        const isHighlighted = wordPositions.has(`${rowIndex}-${colIndex}`);
+
+                                        let cellBg = isHighlighted
+                                            ? 'bg-amber-200 text-stone-900 print:bg-stone-300 print:text-black font-black'
+                                            : 'bg-white hover:bg-stone-50 text-stone-900 print:text-black font-black';
+
+                                        return (
+                                            <div
+                                                key={`${rowIndex}-${colIndex}`}
+                                                className={`flex items-center justify-center font-black select-none tracking-normal ${cellBg}`}
+                                                style={{
+                                                    width: cellSize,
+                                                    height: cellSize,
+                                                    minWidth: cellSize,
+                                                    minHeight: cellSize,
+                                                    fontSize: `${letterFontSizePx}px`,
+                                                    lineHeight: 1
+                                                }}
+                                            >
+                                                {letter.toUpperCase()}
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
                         </div>
-                    );
-                } else {
-                    cardContent.push(
-                        <div key="word-list-content" className="mt-4 pt-4 border-t-2 border-dashed border-brown-200 print:border-slate-200">
-                            <h4 className="text-center text-sm font-bold text-brown-500 print:text-slate-600 uppercase tracking-widest mb-4">Palavras para Encontrar</h4>
-                            <div className="flex flex-wrap justify-center gap-3 px-4">
-                                {wordListBuffer.map((part, pIdx) => (
-                                    <div key={pIdx} className="flex items-center gap-2">
-                                        <div className="hidden print:block w-3 h-3 border border-slate-600 rounded-sm"></div>
-                                        <Badge variant="outline" className="text-sm font-bold uppercase tracking-wider cursor-help print:border-none print:shadow-none print:bg-transparent print:p-0 print:text-black">
-                                            {part.trim()}
-                                        </Badge>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    );
-                }
+                    </div>
+                );
             }
-
-            // Wrapper Card
-            elements.push(
-                <Card key={`game-card-${elements.length}`} className="my-8 print:my-0 print:shadow-none print:border-none print:overflow-visible print:block">
-                    {cardContent}
-                </Card>
-            );
-
-            gridBuffer = [];
-            wordListBuffer = [];
         }
-    };
 
-    const flushColumn = () => {
-        if (columnBuffer.length > 0) {
-            if (!hideGrid) {
-                elements.push(
-                    <div key={`col-${elements.length}`} className="my-6">
-                        <div className="grid grid-cols-2 gap-6 items-start">
-                            {columnBuffer.map((row, idx) => (
-                                <React.Fragment key={idx}>
-                                    <div className="text-left font-medium text-slate-800">{renderInlineStyles(row.left)}</div>
-                                    <div className="text-right font-medium text-slate-800">{renderInlineStyles(row.right)}</div>
-                                </React.Fragment>
+        // 2. LISTA DE PALAVRAS / DESAFIOS PARA ENCONTRAR
+        if (wordListBuffer.length > 0) {
+            const isMathList = wordListBuffer.some(part => (/[+\-x÷=]/.test(part) && /\d/.test(part)) || /\\frac|\\sqrt|\^|_|\\sin|\\cos|\\pi|\$/.test(part));
+            const isClueList = wordListBuffer.some(part => part.length > 25);
+
+            if (isMathList || isClueList) {
+                cardContent.push(
+                    <div key="word-list-content" className="mt-4 pt-3 print:mt-2 print:pt-2 border-t border-stone-200 print:border-stone-400">
+                        <h4 className="text-center text-xs sm:text-sm font-bold text-stone-700 print:text-black uppercase tracking-wider mb-2.5">
+                            {isMathList ? "📝 Desafios para Resolver" : "📝 Pistas para Encontrar"}
+                        </h4>
+                        <div className="flex flex-col gap-1.5 w-full max-w-2xl mx-auto">
+                            {wordListBuffer.map((part, pIdx) => (
+                                <div key={pIdx} className="flex items-start gap-2 py-1 border-b border-stone-200 print:border-stone-400 print:border-dashed last:border-0 text-left">
+                                    <div className="w-3.5 h-3.5 mt-0.5 border border-stone-400 print:border-black rounded-xs shrink-0"></div>
+                                    <span className="font-bold text-xs sm:text-sm text-stone-500 print:text-black">{String(pIdx + 1).padStart(2, '0')}.</span>
+                                    <div
+                                        className="min-w-0 flex-1 leading-snug font-semibold text-stone-900 print:text-black"
+                                        style={{ fontSize: `${Math.max(13, Math.round(textFontSize * 0.92))}px` }}
+                                    >
+                                        <LatexRenderer content={part.trim().replace('?', '')} mathFontSize={Math.round(textFontSize * 1.15)} textFontSize={textFontSize} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            } else {
+                cardContent.push(
+                    <div key="word-list-content" className="mt-4 pt-3 border-t border-stone-200 print:border-stone-400">
+                        <div className="text-center mb-2">
+                            <h4 className="text-xs sm:text-sm font-bold text-stone-700 print:text-black uppercase tracking-wider inline-flex items-center gap-1.5">
+                                <span>📝 Palavras para Encontrar</span>
+                                <span className="text-xs font-semibold text-stone-500 print:text-stone-700">({wordListBuffer.length})</span>
+                            </h4>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-2 px-2 max-w-3xl mx-auto">
+                            {wordListBuffer.map((part, pIdx) => (
+                                <div
+                                    key={pIdx}
+                                    className="inline-flex items-center gap-1.5 bg-stone-50 border border-stone-300 print:border-stone-700 rounded-lg px-3 py-1 shadow-2xs print:bg-white print:shadow-none"
+                                    style={{ fontSize: `${Math.max(13, Math.round(textFontSize * 0.92))}px` }}
+                                >
+                                    <span className="w-3.5 h-3.5 rounded-xs border-2 border-stone-400 print:border-black flex items-center justify-center shrink-0"></span>
+                                    <span className="font-extrabold text-stone-900 print:text-black uppercase tracking-wide">
+                                        {part.trim()}
+                                    </span>
+                                </div>
                             ))}
                         </div>
                     </div>
                 );
             }
-            columnBuffer = [];
         }
+
+        return (
+            <div key="game-card" className="dracker-print-card bg-white border border-slate-300 rounded-2xl p-3.5 sm:p-5 my-2 print:my-1 print:border-black print:shadow-none break-inside-avoid">
+                {cardContent}
+            </div>
+        );
     };
 
     const flushQuestion = () => {
         if (questionBuffer.length > 0) {
-            elements.push(
-                <div key={`q-${elements.length}`} className="mb-6 pl-2 border-l-4 border-slate-200 print:border-slate-300">
-                    {questionBuffer.map((qLine, qIdx) => {
-                        const isEnunciado = /^\d+\./.test(qLine);
-                        return (
-                            <div key={qIdx} className={`${isEnunciado ? 'font-bold text-slate-800 text-lg mt-4 mb-2' : 'ml-4 py-1.5 text-slate-700 flex items-start'}`}>
-                                {isEnunciado ? (
-                                    <span className="leading-relaxed">{renderInlineStyles(qLine)}</span>
-                                ) : (
-                                    <span className="w-full leading-relaxed">{renderInlineStyles(qLine)}</span>
-                                )}
-                            </div>
-                        );
-                    })}
+            const lines = questionBuffer;
+            const enunciadoLine = lines.find(l => /^\d+[.)]/.test(l.trim())) || lines[0];
+            const otherLines = lines.filter(l => l !== enunciadoLine);
+            const numMatch = enunciadoLine.trim().match(/^(\d+)[.)]\s*(.*)/);
+            const num = numMatch ? numMatch[1] : null;
+            const statement = numMatch ? numMatch[2] : enunciadoLine;
+
+            questionNodes.push(
+                <div key={`q-${questionNodes.length}`} className="dracker-print-card bg-white border-2 border-slate-300 rounded-xl p-3.5 sm:p-4 shadow-none break-inside-avoid print:border-black print:shadow-none mb-3 flex flex-col">
+                    <div className="dracker-card-head flex items-start gap-2.5 mb-2 break-inside-avoid">
+                        {num && (
+                            <span className="dracker-card-num shrink-0 w-6 h-6 rounded-full bg-slate-800 text-white font-black text-xs flex items-center justify-center shadow-none print:bg-black">
+                                {num}
+                            </span>
+                        )}
+                        <div className="dracker-card-statement flex-1 font-bold text-slate-900 text-sm sm:text-base leading-snug">
+                            {renderInlineStyles(statement)}
+                        </div>
+                    </div>
+                    {otherLines.length > 0 && (
+                        <div className="dracker-card-options space-y-1 mt-1.5">
+                            {otherLines.map((line, lIdx) => (
+                                <div key={lIdx} className="dracker-card-option flex items-center gap-2 bg-white border border-slate-200 print:border-slate-300 rounded-lg p-2 text-xs sm:text-sm text-slate-900">
+                                    {renderInlineStyles(line)}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             );
             questionBuffer = [];
         }
     };
 
-    const flushStory = () => {
-        if (storyBuffer.length > 0) {
-            const currentStoryText = storyBuffer.join('\n').replace(/\*\*/g, '');
-            elements.push(
-                <Card key={`story-${elements.length}`} className="relative mb-6 overflow-hidden print:overflow-visible print:block">
-
-                    {/* Copy button inside Card (only for the first story block) */}
-                    {title && !hideText && !titleRendered && (
-                        <div className="pb-2 mb-4 flex justify-end">
-                            <Button
-                                onClick={() => {
-                                    navigator.clipboard.writeText(currentStoryText);
-                                    toast('História copiada!');
-                                }}
-                                variant="secondary"
-                                className="h-8 text-xs px-2 text-brown-600 bg-brown-50 hover:bg-brown-100 print:hidden"
-                                icon={Copy}
-                            >
-                                Copiar Texto
-                            </Button>
-                        </div>
-                    )}
-
-                    {/* Story Content */}
-                    <div className="prose prose-lg max-w-none text-brown-900 leading-loose font-serif print:text-black">
-                        {storyBuffer.map((line, idx) => (
-                            <p key={idx} className="indent-8 mb-6 text-justify">
-                                {renderInlineStyles(line)}
-                            </p>
-                        ))}
-                    </div>
-                </Card>
-            );
-            storyBuffer = [];
-            if (title) titleRendered = true;
-        }
-    };
-
     const flushAnswerKey = () => {
         if (answerBuffer.length > 0) {
-            elements.push(<AnswerKeyCard key={`ans-${elements.length}`} lines={answerBuffer} renderInlineStyles={renderInlineStyles} showAnswers={showAnswers} />);
+            elements.push(<AnswerKeyCard key="ans-card" lines={answerBuffer} renderInlineStyles={renderInlineStyles} showAnswers={showAnswers} />);
             answerBuffer = [];
         }
     };
 
-    let pastWordList = false;
-    let inWordListSection = false;
-    let textStarted = false;
-
-    // Render Title if provided and Text NOT hidden -> Now handled inside flushStory for the first block
-    // to include it in the card. If no story text exists but title does, we might miss it?
-    // We should allow flushing an empty story with title if title exists? 
-    // Usually there is text. If not, we can force a flush at the end.
-
+    // Processamento linha a linha do conteúdo
     lines.forEach((line, index) => {
         const trimmedLine = line.trim();
         const isEmpty = trimmedLine === '';
@@ -347,11 +387,7 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
         const isGabaritoHeader = /^(##|###|\*\*)\s*Gabarito|answers|respostas/i.test(trimmedLine);
 
         if (isGabaritoHeader || answerBuffer.length > 0) {
-            // Se encontrou cabeçalho ou já está no buffer de gabarito
-            // Mas cuidado para não pegar coisa errada. Geralmente é o final.
-            // Vamos assumir que se começou, vai até o fim ou até próximo header forte.
-            flushList(); flushGameCard(); flushColumn(); flushQuestion(); flushStory();
-
+            flushQuestion();
             if (!isEmpty) {
                 answerBuffer.push(trimmedLine.replace(/^(##|###|\*\*)\s*/, '').replace(/\*\*/g, ''));
             }
@@ -360,35 +396,31 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
 
         // --- DETECÇÃO DE QUESTÕES ---
         const isQuestionStart = /^\d+\.\s/.test(trimmedLine);
-        // Permite "a)" seguido de espaço OU fim de linha (caso de opção vazia)
         const isAlternative = /^[a-e]\)(\s|$)/i.test(trimmedLine);
 
         if (isQuestionStart) {
-            flushList(); flushGameCard(); flushColumn(); flushQuestion(); flushStory();
+            flushQuestion();
             questionBuffer.push(trimmedLine);
             return;
         }
 
         if (questionBuffer.length > 0) {
-            if (isEmpty) return; // Ignora linhas vazias dentro do bloco de questões para manter compacto
+            if (isEmpty) return;
             if (isAlternative) {
                 questionBuffer.push(trimmedLine);
                 return;
             } else {
-                // Se encontrou algo que não é alternativa e nem vazio, fecha a questão
                 flushQuestion();
             }
         }
 
-        // Identificação preliminar do tipo de linha
+        // --- IDENTIFICAÇÃO DE SEÇÃO DE PALAVRAS ---
         const isWordListHeader = /palavras.*encontrar|desafios.*encontrar|pistas.*encontrar/i.test(trimmedLine);
 
-        // 1. Detecta linhas de GRADE e LISTAS (Estrutura)
-        let isStructure = false;
+        // --- DETECÇÃO DE GRADE E LISTAS ---
         let isGridRow = false;
-        let isListRow = false; // Pipe ou Hifen
+        let isListRow = false;
         let listParts = [];
-        let listSeparator = '';
 
         // Check Grid
         if (trimmedLine.length >= 3) {
@@ -408,243 +440,161 @@ const RichTextRenderer = ({ content, showAnswers = false, foundWords = [], found
 
         if (hasPipe || hasHyphenList || hasBullet) {
             isListRow = true;
-            if (hasPipe) listSeparator = '|';
-            else if (hasBullet) listSeparator = '•';
-            else listSeparator = '-';
-
+            let listSeparator = hasPipe ? '|' : (hasBullet ? '•' : '-');
             listParts = line.split(listSeparator);
         }
 
-        isStructure = isGridRow || isListRow;
-
-        // CORREÇÃO: Se estamos na seção de Lista de Palavras, NÃO pode ser grid.
+        // Se estamos na seção de lista de palavras, evita falso-positivo de grade
         if (inWordListSection && isGridRow) {
-            isGridRow = false; // Desativa detecção de grid
+            isGridRow = false;
             if (!isListRow && /[A-ZÀ-Ú0-9]/.test(trimmedLine)) {
                 isListRow = true;
-                if (trimmedLine.includes('  ')) {
-                    listParts = trimmedLine.split(/\s{2,}/);
-                } else if (trimmedLine.includes('•')) {
-                    listParts = trimmedLine.split('•');
-                } else {
-                    listParts = [trimmedLine];
-                }
+                listParts = trimmedLine.includes('  ') ? trimmedLine.split(/\s{2,}/) : (trimmedLine.includes('•') ? trimmedLine.split('•') : [trimmedLine]);
             }
-            isStructure = isListRow;
         } else if (inWordListSection && !isListRow && !isWordListHeader && trimmedLine.length > 0) {
-            // Se estamos na seção de palavras, assume que qualquer linha não vazia (antes do divisor) é lista!
-            // Isso evita que palavras isoladas ou matemáticas cancelem a seção.
             if (!/^_{3,}$/.test(trimmedLine) && !/^-{3,}$/.test(trimmedLine)) {
                 isListRow = true;
-                if (trimmedLine.includes('  ')) {
-                    listParts = trimmedLine.split(/\s{2,}/);
-                } else if (trimmedLine.includes('•')) {
-                    listParts = trimmedLine.split('•');
-                } else {
-                    listParts = [trimmedLine];
-                }
-                isStructure = true;
+                listParts = trimmedLine.includes('  ') ? trimmedLine.split(/\s{2,}/) : (trimmedLine.includes('•') ? trimmedLine.split('•') : [trimmedLine]);
             }
         }
 
-        // Atualiza Estado
+        // Atualiza estado da seção de palavras
         if (inWordListSection) {
-            if (!isStructure && !isEmpty && !isWordListHeader) {
+            if (!isGridRow && !isListRow && !isEmpty && !isWordListHeader) {
                 inWordListSection = false;
-                pastWordList = true;
             }
         } else if (isWordListHeader) {
             inWordListSection = true;
+            return; // Suprime texto bruto do header de palavras
         }
 
-        if (hideText && pastWordList) {
-            return;
-        }
-
-        // --- RENDERIZAÇÃO ---
-
+        // --- ENCAMINHAMENTO PARA BUFFERS ---
         if (isGridRow) {
-            flushList();
-            flushColumn();
-            flushStory(); // End story before grid
             gridBuffer.push(trimmedLine);
             return;
-        } else {
-            // Se não é linha de grid, não flusha imediatamente! 
-            // O grid pode ser seguido por palavras
         }
 
         if (isListRow && listParts.length >= 1) {
-            flushList(); // Clear bullet buffer
-            // flushGrid(); -> REMOVIDO: não queremos flushar o grid ainda se estamos acumulando lista
-
-            // Se for Word List Section, acumula
             if (inWordListSection || gridBuffer.length > 0) {
-                if (hasPipe && listParts.length >= 2) {
-                    // Pipes também podem ser usados para lista de palavras
-                    listParts.forEach(p => wordListBuffer.push(p));
-                } else {
-                    listParts.forEach(p => wordListBuffer.push(p));
-                }
+                listParts.forEach(p => {
+                    const clean = p.trim();
+                    if (clean) wordListBuffer.push(clean);
+                });
                 return;
             }
-
-            // Se for lista normal (fora do contexto do jogo), flusha o jogo anterior e renderiza normal
-            flushGameCard();
-
             if (hasPipe && listParts.length >= 2) {
                 columnBuffer.push({ left: listParts[0].trim(), right: listParts[1].trim() });
-            } else if (!hasPipe) {
-                // Renderização Estilizada para Lista de Palavras (com Bolinha ou Hifen ou Únicas)
-                if (!hideGrid) {
-                    elements.push(
-                        <div key={`wl-${index}`} className="flex flex-wrap justify-center gap-3 my-2 px-4">
-                            {listParts.map((part, pIdx) => (
-                                <Badge key={pIdx} variant="secondary" className="px-3 py-1 text-sm font-bold shadow-sm uppercase tracking-wider">
-                                    {part.trim()}
-                                </Badge>
-                            ))}
-                        </div>
-                    );
-                }
-                return;
-            }
-            return;
-        } else {
-            flushColumn();
-        }
-
-        // Filtro de Texto
-        if (hideText) {
-            const isStruct = /^[A-Z0-9\s]{3,}$/.test(trimmedLine) || /\d+\.\s/.test(trimmedLine) || isListRow;
-            if (!isWordListHeader && !isStruct && trimmedLine.length > 5) {
                 return;
             }
         }
 
-        // Regra Hide Grid para Header
-        if (hideGrid && isWordListHeader) {
-            return;
-        }
-
-        // Se é header de lista de palavras, SUPRIME o output de texto e prepara o buffer
-        if (isWordListHeader) {
-            flushStory();
-            // Não flusha grid/game aqui, pois o header vem antes ou depois do grid e queremos eles juntos
-            return;
-        }
-
-        // 4. Renderiza Parágrafos e Títulos (Acumula no Buffer de História)
-        if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
-            textStarted = true;
-            // Listas / Bullets na história também entram no card
-            storyBuffer.push(trimmedLine);
-            return;
-        } else {
-            flushList();
-        }
-
+        // Linhas de divisor estético (ignora para evitar linhas estranhas no print)
         if (/^_{3,}$/.test(trimmedLine) || /^-{3,}$/.test(trimmedLine)) {
-            flushGameCard(); // Garante que o Grid e as Palavras sejam renderizados ANTES do texto da história!
-            flushStory();
-            elements.push(
-                <div key={index} className="my-6 text-center">
-                    <div className="inline-block text-slate-300 tracking-[0.5em] font-light text-sm">__________________________________________________</div>
-                </div>
-            );
             return;
         }
 
-        if (trimmedLine.startsWith('[[TITULO]]')) {
-            // Ignora titulo inline se já temos o title prop ou trata como header
-            // Melhor tratar como flushStory para começar novo bloco
-            flushStory();
+        // Títulos inline (suprime se já houver ActivityPrintHeader com título oficial)
+        if (trimmedLine.startsWith('[[TITULO]]') || (trimmedLine.startsWith('# ') && title)) {
             textStarted = true;
-            titleRendered = true;
-            const t = trimmedLine.replace('[[TITULO]]', '').trim();
+            if (title) return;
+            const t = trimmedLine.replace('[[TITULO]]', '').replace(/^#\s*/, '').trim();
             elements.push(
-                <div key={index} className={`relative mt-8 mb-6 print:mt-0 print:mb-2 text-center ${title ? 'print:hidden' : ''}`}>
-                    <h1 className="text-3xl print:text-xl font-black text-brown-900 tracking-tight uppercase relative z-10 inline-block px-4 bg-brown-50 print:bg-transparent rounded-lg">
+                <div key={index} className="relative mt-4 mb-3 print:mt-0 print:mb-2 text-center">
+                    <h1 className="text-2xl print:text-xl font-black text-brown-900 tracking-tight uppercase relative z-10 inline-block px-4 bg-brown-50 print:bg-transparent rounded-lg">
                         {t}
                     </h1>
-                    <div className="absolute top-1/2 left-0 w-full h-1 bg-brown-100 print:hidden -z-0"></div>
                 </div>
             );
             return;
         }
+
         if (trimmedLine.startsWith('### ')) {
-            flushStory();
             textStarted = true;
-            elements.push(<h3 key={index} className="text-xl font-bold text-brown-700 mt-8 mb-3 flex items-center gap-2"><div className="w-2 h-6 bg-brown-400 rounded-full"></div>{trimmedLine.slice(4)}</h3>);
+            elements.push(<h3 key={index} className="text-lg font-bold text-stone-800 mt-4 mb-2 flex items-center gap-2"><div className="w-2 h-5 bg-amber-500 rounded-full"></div>{trimmedLine.slice(4)}</h3>);
+            return;
         } else if (trimmedLine.startsWith('## ')) {
-            flushStory();
             textStarted = true;
-            elements.push(<h2 key={index} className="text-2xl font-bold text-brown-800 mt-10 mb-4 pb-2 border-b-2 border-brown-100">{trimmedLine.slice(3)}</h2>);
+            elements.push(<h2 key={index} className="text-xl font-bold text-stone-900 mt-5 mb-3 pb-1 border-b border-stone-200">{trimmedLine.slice(3)}</h2>);
+            return;
         } else if (trimmedLine.startsWith('# ')) {
-            flushStory();
             textStarted = true;
-            elements.push(<h1 key={index} className="text-3xl font-extrabold text-brown-900 mt-6 mb-6 text-center">{trimmedLine.slice(2)}</h1>);
-        } else if (trimmedLine === '') {
-            // Linha vazia na história pode ser só espaço. Não flusha, só ignora ou adiciona <br/> se quiser.
-            // Para Wordsearch, quebras de linha duplas marcam parágrafos.
-            // Como estamos acumulando em storyBuffer, strings vazias podem ser ignoradas ou usadas para separar.
-            // O split('\n') do RichTextRenderer já quebra linhas.
-            // Se for vazia e estivermos em story mode, ignoramos (para não criar <p> vazio).
-            if (!hideGrid || textStarted) {
-                // elements.push(<div key={index} className="h-4"></div>); // Antigo espaçador
-            }
+            elements.push(<h1 key={index} className="text-2xl font-extrabold text-stone-900 mt-4 mb-3 text-center">{trimmedLine.slice(2)}</h1>);
+            return;
+        }
+
+        // Parágrafos e texto da história
+        if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+            textStarted = true;
+            storyBuffer.push(trimmedLine);
+            return;
         } else if (trimmedLine) {
             textStarted = true;
-            // Acumula parágrafo normal
             storyBuffer.push(line);
         }
     });
 
-    flushList();
-    flushGameCard(); // Flusha Game Card final
-    flushColumn();
+    // Finaliza buffers
     flushQuestion();
-    flushStory(); // Flusha o resto da história
-    flushAnswerKey();
-    
-    return (
-        <div style={{ fontSize: `${textFontSize}px` }}>
-            <div className="flex items-center justify-end gap-2 mb-4 no-print">
-                <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-1 bg-white border border-slate-200 px-2.5 py-1 rounded-xl text-xs font-bold text-slate-700 shadow-2xs">
-                        <span>📝 Texto:</span>
-                        <select
-                            value={textFontSize}
-                            onChange={(e) => setTextFontSize(Number(e.target.value))}
-                            className="bg-slate-50 border border-slate-300 rounded-lg px-2 py-0.5 text-xs font-black text-brown-900 cursor-pointer focus:outline-none"
-                        >
-                            <option value={12}>12 px</option>
-                            <option value={14}>14 px</option>
-                            <option value={16}>16 px (Padrão)</option>
-                            <option value={18}>18 px</option>
-                            <option value={20}>20 px</option>
-                            <option value={22}>22 px</option>
-                            <option value={24}>24 px</option>
-                        </select>
-                    </div>
-                    <div className="flex items-center gap-1 bg-white border border-slate-200 px-2.5 py-1 rounded-xl text-xs font-bold text-slate-700 shadow-2xs">
-                        <span>🧮 Fórmula:</span>
-                        <select
-                            value={mathFontSize}
-                            onChange={(e) => setMathFontSize(Number(e.target.value))}
-                            className="bg-slate-50 border border-slate-300 rounded-lg px-2 py-0.5 text-xs font-black text-brown-900 cursor-pointer focus:outline-none"
-                        >
-                            <option value={14}>14 px</option>
-                            <option value={16}>16 px</option>
-                            <option value={18}>18 px (Padrão)</option>
-                            <option value={20}>20 px</option>
-                            <option value={22}>22 px</option>
-                            <option value={24}>24 px</option>
-                            <option value={28}>28 px</option>
-                        </select>
-                    </div>
+
+    // Colunas extras caso existam
+    if (columnBuffer.length > 0 && !hideGrid) {
+        elements.push(
+            <div key="extra-cols" className="my-4">
+                <div className="grid grid-cols-2 gap-4 items-start">
+                    {columnBuffer.map((row, idx) => (
+                        <React.Fragment key={idx}>
+                            <div className="text-left font-medium text-slate-800">{renderInlineStyles(row.left)}</div>
+                            <div className="text-right font-medium text-slate-800">{renderInlineStyles(row.right)}</div>
+                        </React.Fragment>
+                    ))}
                 </div>
             </div>
+        );
+        columnBuffer = [];
+    }
+
+    // CONSTRUÇÃO ESTRUTURADA DOS CARDS PRINCIPAIS:
+    // O Caça-Palavras utiliza exatamente o tamanho de uma folha inteira A4.
+    // Se houver texto de leitura e não estiver oculto, é separado por quebra explícita de página
+    // para que ambos tenham 1 folha completa sem sobreposições ou quebras no meio.
+    const storyCard = buildStoryCard();
+    const gameCard = buildGameCard();
+    const headerElement = renderActivityHeader('main-header');
+
+    // Apenas UM cabeçalho oficial no topo da folha
+    if (headerElement) {
+        elements.push(headerElement);
+    }
+
+    if (storyCard && gameCard) {
+        if (storyFirst) {
+            elements.push(storyCard);
+            elements.push(
+                <div key="page-break" className="dracker-page-break html2pdf__page-break my-4 print:my-0" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
+            );
+            elements.push(gameCard);
+        } else {
+            elements.push(gameCard);
+            elements.push(
+                <div key="page-break" className="dracker-page-break html2pdf__page-break my-4 print:my-0" style={{ pageBreakBefore: 'always', breakBefore: 'page' }} />
+            );
+            elements.push(storyCard);
+        }
+    } else {
+        if (gameCard) elements.push(gameCard);
+        if (storyCard) elements.push(storyCard);
+    }
+
+    // Questões de fixação caso existam
+    if (questionNodes.length > 0) {
+        elements.push(...questionNodes);
+    }
+
+    // Gabarito da atividade
+    flushAnswerKey();
+
+    return (
+        <div className="dracker-print-wrap max-w-[800px] mx-auto w-full" style={{ fontSize: `${textFontSize}px` }}>
             {elements}
         </div>
     );
@@ -660,48 +610,42 @@ const AnswerKeyCard = ({ lines, renderInlineStyles, showAnswers }) => {
         }
     }, [showAnswers]);
 
-    // Se estiver oculto (isVisible = false), NÃO renderiza o conteúdo detalhado,
-    // garantindo que não saia no cloneNode do ExportService.
-
     return (
         <Card
-            className={`mt-8 mb-4 pt-6 ${isVisible ? '' : 'no-print'}`}
+            className={`mt-6 mb-4 pt-4 ${isVisible ? '' : 'no-print'}`}
             style={isVisible ? { pageBreakBefore: 'always', breakBefore: 'page' } : {}}
         >
             <div
                 onClick={() => setIsVisible(!isVisible)}
-                className="flex items-center justify-between cursor-pointer bg-brown-50 hover:bg-brown-100 p-4 rounded-xl transition-colors border border-brown-200"
+                className="flex items-center justify-between cursor-pointer bg-stone-50 hover:bg-stone-100 p-3.5 rounded-xl transition-colors border border-stone-200"
             >
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-brown-200 flex items-center justify-center text-brown-700">
-                        <Key className="w-5 h-5" />
+                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-800">
+                        <Key className="w-4 h-4" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold text-brown-900">Gabarito da Atividade</h3>
-                        <p className="text-xs text-brown-700">Clique para mostrar/ocultar as respostas</p>
+                        <h3 className="text-base font-bold text-stone-900">Gabarito da Atividade</h3>
+                        <p className="text-xs text-stone-600">Clique para mostrar/ocultar as respostas</p>
                     </div>
                 </div>
-                {isVisible ? <ChevronUp className="text-brown-600" /> : <ChevronDown className="text-brown-600" />}
+                {isVisible ? <ChevronUp className="text-stone-600" /> : <ChevronDown className="text-stone-600" />}
             </div>
 
             {isVisible && (
-                <div className="mt-3 p-5 bg-white border-2 border-brown-100 rounded-xl shadow-sm">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="mt-3 p-4 bg-white border border-stone-200 rounded-xl shadow-xs">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {lines.map((line, idx) => {
-                            // Tenta formatar bonito se for "1. a"
                             const match = line.match(/^(\d+)[.)]\s*([a-eA-E].*)/);
                             if (match) {
                                 return (
-                                    <div key={idx} className="flex items-center gap-2 p-2 border-b border-brown-50">
-                                        <span className="font-bold text-brown-700 w-8">{match[1]}.</span>
-                                        <span className="font-medium text-brown-700">{match[2]}</span>
+                                    <div key={idx} className="flex items-center gap-2 p-1.5 border-b border-stone-100">
+                                        <span className="font-bold text-stone-700 w-7">{match[1]}.</span>
+                                        <span className="font-medium text-stone-700">{match[2]}</span>
                                     </div>
                                 );
                             }
-                            // Exclui o titulo se acabou entrando no buffer
                             if (/gabarito/i.test(line)) return null;
-
-                            return <p key={idx} className="text-brown-700 border-b border-brown-50 py-1">{renderInlineStyles(line)}</p>;
+                            return <p key={idx} className="text-stone-700 border-b border-stone-100 py-1">{renderInlineStyles(line)}</p>;
                         })}
                     </div>
                 </div>

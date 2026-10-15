@@ -4,7 +4,7 @@ import {
     RefreshCw, Award, BookOpen, Map, Sparkles, AlertTriangle, 
     Search, Wand2, Tent, ShieldCheck, Target, Flag, Rocket, Crown, Waves, Compass, 
     TreePine, GraduationCap, Shuffle, Layers, Lightbulb, Gift, Trophy, Check, Eye, EyeOff,
-    RotateCcw, Video, Image as ImageIcon, Trash2, UserX, Key
+    RotateCcw, Video, Image as ImageIcon, Trash2, UserX, Key, ClipboardCheck
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -101,7 +101,8 @@ export function DetectiveRPG({ topic, context, isFullWidth }) {
         setActiveTabId,
         classes,
         saveClassUpdates,
-        updateStudentInClass
+        updateStudentInClass,
+        officialSession
     } = useActivity();
     
     const savedData = activeActivity?.rpgData || {};
@@ -159,12 +160,13 @@ export function DetectiveRPG({ topic, context, isFullWidth }) {
 
     // Estados de Aula Oficial e Duração Planejada
     const [isClassActive, setIsClassActive] = useState(() => {
+        if (officialSession?.isClassActive) return true;
         if (activeClassProgress?.isClassActive !== undefined) return activeClassProgress.isClassActive;
         return !!activeActivity?.isClassActive || !!savedData.isClassActive;
     });
     // Duração planejada da aula em minutos: 50 (1 aula) ou 100 (2 aulas)
     const [plannedDurationMinutes, setPlannedDurationMinutes] = useState(() => {
-        return activeClassProgress?.plannedDurationMinutes || savedData.plannedDurationMinutes || 50;
+        return officialSession?.plannedDurationMinutes || activeClassProgress?.plannedDurationMinutes || savedData.plannedDurationMinutes || 50;
     });
     // Flag de Modo Teste / Demonstração (sem gravar pontos nem frequência oficial)
     const [isTestMode, setIsTestMode] = useState(false);
@@ -175,10 +177,10 @@ export function DetectiveRPG({ topic, context, isFullWidth }) {
     const [pendingLaunchConfig, setPendingLaunchConfig] = useState(null);
 
     const [currentSessionId, setCurrentSessionId] = useState(() => {
-        return activeClassProgress?.currentSessionId || activeActivity?.currentSessionId || savedData.currentSessionId || null;
+        return officialSession?.currentSessionId || activeClassProgress?.currentSessionId || activeActivity?.currentSessionId || savedData.currentSessionId || null;
     });
     const [sessionStartTime, setSessionStartTime] = useState(() => {
-        return activeClassProgress?.sessionStartTime || activeActivity?.sessionStartTime || savedData.sessionStartTime || null;
+        return officialSession?.sessionStartTime || activeClassProgress?.sessionStartTime || activeActivity?.sessionStartTime || savedData.sessionStartTime || null;
     });
     const [elapsedTimeStr, setElapsedTimeStr] = useState('+00:00');
 
@@ -431,13 +433,48 @@ export function DetectiveRPG({ topic, context, isFullWidth }) {
                 handleClassChange(e.detail.classId);
             }
         };
+        const handleGlobalClassStarted = (e) => {
+            if (e.detail) {
+                setIsClassActive(true);
+                setIsTestMode(false);
+                if (e.detail.sessionStartTime) setSessionStartTime(e.detail.sessionStartTime);
+                if (e.detail.currentSessionId) setCurrentSessionId(e.detail.currentSessionId);
+                if (e.detail.plannedDurationMinutes) setPlannedDurationMinutes(e.detail.plannedDurationMinutes);
+                if (e.detail.classId && String(e.detail.classId) !== String(selectedClassId)) {
+                    handleClassChange(e.detail.classId);
+                }
+            }
+        };
+        const handleGlobalClassEnded = () => {
+            setIsClassActive(false);
+        };
         window.addEventListener('toggle_rpg_official_class', handleToggleClassFromHeader);
         window.addEventListener('change_rpg_class', handleClassChangeFromHeader);
+        window.addEventListener('dracker_official_class_started', handleGlobalClassStarted);
+        window.addEventListener('dracker_official_class_ended', handleGlobalClassEnded);
         return () => {
             window.removeEventListener('toggle_rpg_official_class', handleToggleClassFromHeader);
             window.removeEventListener('change_rpg_class', handleClassChangeFromHeader);
+            window.removeEventListener('dracker_official_class_started', handleGlobalClassStarted);
+            window.removeEventListener('dracker_official_class_ended', handleGlobalClassEnded);
         };
     }, [isClassActive, sessionStartTime, plannedDurationMinutes, selectedClassId, currentClass]);
+
+    // Sincronização em tempo real caso a sessão oficial mude no contexto global
+    useEffect(() => {
+        if (officialSession?.isClassActive) {
+            setIsClassActive(true);
+            setIsTestMode(false);
+            if (officialSession.sessionStartTime) setSessionStartTime(officialSession.sessionStartTime);
+            if (officialSession.currentSessionId) setCurrentSessionId(officialSession.currentSessionId);
+            if (officialSession.plannedDurationMinutes) setPlannedDurationMinutes(officialSession.plannedDurationMinutes);
+            if (officialSession.classId && String(officialSession.classId) !== String(selectedClassId)) {
+                handleClassChange(officialSession.classId);
+            }
+        } else if (officialSession && !officialSession.isClassActive && isClassActive) {
+            setIsClassActive(false);
+        }
+    }, [officialSession]);
 
     // Rolagem automática para o topo sempre que avançar de rodada/capítulo ou mudar de tela
     useEffect(() => {
@@ -2946,6 +2983,16 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                 >
                                     {isClassActive ? <Square className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
                                     <span>{isClassActive ? `ENCERRAR AULA (${elapsedTimeStr})` : 'INICIAR AULA OFICIAL'}</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => window.dispatchEvent(new CustomEvent('dracker_open_student_activity_modal'))}
+                                    className="flex items-center gap-1.5 px-3 py-2 rounded-2xl font-bold text-xs transition-all border border-slate-200 bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-800 shadow-xs cursor-pointer select-none active:scale-95"
+                                    title="Cadastrar / Marcar atividades realizadas pelos alunos (online, impressas ou no caderno)"
+                                >
+                                    <ClipboardCheck className="w-3.5 h-3.5 text-indigo-600" />
+                                    <span>Atividade</span>
                                 </button>
                             </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
-import { RefreshCw, Trophy, PartyPopper, Check, X, UserPlus, Trash2 } from 'lucide-react';
+import { RefreshCw, Trophy, PartyPopper, Check, X, UserPlus, Trash2, Play } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { LatexRenderer } from './ui/LatexRenderer';
 import { formatMs } from '../utils/time';
@@ -313,21 +313,28 @@ export const WordSearchGame = ({ content, wordsToFind = [], cluesList = [], onRe
                         </div>
                     </div>
 
-                    <input
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
-                        placeholder="Seu nome"
-                        className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
-
-                    <Button
-                        onClick={startGame}
-                        disabled={!playerName.trim()}
-                        className="w-full bg-amber-600 hover:bg-amber-700 text-white shadow-lg disabled:opacity-50"
-                        icon={PartyPopper}
-                    >
-                        Começar Jogo
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                            value={playerName}
+                            onChange={(e) => setPlayerName(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && playerName.trim()) {
+                                    startGame();
+                                }
+                            }}
+                            placeholder="Seu nome para jogar"
+                            className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                            autoFocus
+                        />
+                        <Button
+                            onClick={startGame}
+                            disabled={!playerName.trim()}
+                            className="bg-amber-600 hover:bg-amber-700 text-white shadow-md disabled:opacity-50 whitespace-nowrap"
+                            icon={Play}
+                        >
+                            Começar Jogo
+                        </Button>
+                    </div>
 
                     <Button
                         onClick={() => setShowRanking(!showRanking)}

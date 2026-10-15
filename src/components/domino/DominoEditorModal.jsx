@@ -10,14 +10,16 @@ import { LatexRenderer } from '../ui/LatexRenderer';
 import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 import { safeJSONParse } from '../../utils/jsonUtils';
 import { toast } from '../ui/Toast';
+import { GlobalAIGeneratorPanel } from '../common/GlobalAIGeneratorPanel';
 export { toDirectImageUrl, handleDriveImageError };
-
-
 
 export const DominoEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
     const [pairs, setPairs] = useState([]);
     const [topicInput, setTopicInput] = useState('');
     const [lessonDetailsInput, setLessonDetailsInput] = useState('');
+    const [gradeLevel, setGradeLevel] = useState('Ensino Fundamental II - 6º ao 9º Ano (11 a 14 anos)');
+    const [itemCount, setItemCount] = useState(28);
+    const [difficultyDist, setDifficultyDist] = useState({ easy: 40, medium: 40, hard: 20 });
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
     const [isCircular, setIsCircular] = useState(false);
     const [textFontSize, setTextFontSize] = useState(initialData?.textFontSize || initialData?.fontSizePx || 14);
@@ -71,8 +73,8 @@ export const DominoEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
     };
 
     const handleGenerateAI = async () => {
-        if (!topicInput) {
-            toast("Por favor, digite um Tema primeiro para a Inteligência Artificial saber o que gerar.");
+        if (!topicInput || !topicInput.trim()) {
+            toast("Por favor, digite o tema central do dominó primeiro.");
             return;
         }
         if (!geminiService || !geminiService.apiKey) {
@@ -82,27 +84,35 @@ export const DominoEditorModal = ({ isOpen, onClose, onSave, initialData }) => {
 
         setIsGeneratingAI(true);
         try {
-            const prompt = `Você é um gerador de atividades educativas de excelência.
-Gere EXATAMENTE ${requiredPairs} pares de pergunta e resposta para um jogo de Dominó Educativo sobre o tema: "${topicInput}".
-${lessonDetailsInput ? `Utilize este contexto/texto base para formular as perguntas e respostas:\n${lessonDetailsInput}` : ''}
-É OBRIGATÓRIO gerar exatamente ${requiredPairs} itens para que o jogo tenha perfeitamente 28 peças no total. 
-Cada par deve ser independente e ter uma resposta curta e direta.
+            const targetCount = Number(itemCount) || requiredPairs;
+            const easyP = Math.round((targetCount * (difficultyDist?.easy || 40)) / 100);
+            const medP = Math.round((targetCount * (difficultyDist?.medium || 40)) / 100);
+            const hardP = Math.max(0, targetCount - easyP - medP);
+
+            const prompt = `Você é um gerador de excelência de Dominó Pedagógico e Atividades Educativas.
+Gere EXATAMENTE ${targetCount} pares de pergunta e resposta conectados para um jogo de Dominó Educativo sobre o tema: "${topicInput.trim()}".
+Nível/Ano Escolar dos alunos: ${gradeLevel}.
+${lessonDetailsInput?.trim() ? `Contexto pedagógico & delimitação:\n${lessonDetailsInput.trim()}` : ''}
+
+Distribuição de dificuldade pedagógica das peças:
+- Fácil (~${easyP} peças): correspondências diretas, vocabulário objetivo e perguntas simples.
+- Médio (~${medP} peças): conceitos padrão do currículo, definições e cálculos intermediários.
+- Difícil (~${hardP} peças): relações dedutivas, fórmulas avançadas ou conceitos interdisciplinares.
+
 IMPORTANTE - FORMATAÇÃO MATEMÁTICA E CIENTÍFICA (LaTeX):
-Se o tema envolver matemática, física, química, ciências exatas ou cálculos, você DEVE formatar todas as fórmulas, equações, frações, raízes, potências e funções utilizando a sintaxe oficial LaTeX (ex: \\frac{3}{4}, \\sqrt{16}, x^2 + 2x + 1 = 0, \\sin(\\theta), etc.).
+Se o tema envolver matemática, física, química, ciências exatas ou cálculos, você DEVE formatar todas as fórmulas, equações, frações, raízes e potências utilizando a sintaxe oficial LaTeX (ex: \\frac{3}{4}, \\sqrt{16}, x^2 + 2x + 1 = 0, \\sin(\\theta), etc.).
 Quando um par ou item contiver fórmula matemática ou notação científica, defina o campo "type" como "formula".
 
-Retorne APENAS um array JSON com exatamente ${requiredPairs} objetos, sem formatação markdown extra, neste formato exato:
+Retorne APENAS um array JSON com exatamente ${targetCount} objetos no formato exato:
 [
   { "question": "\\frac{1}{2} + \\frac{1}{2}", "answer": "1", "type": "formula" },
   { "question": "Qual é a capital do Brasil?", "answer": "Brasília", "type": "text" }
 ]`;
 
-            
-            
             const text = await geminiService.generateText(prompt, {
                 model: selectedModel,
                 maxOutputTokens: 8000,
-                temperature: 0.7,
+                temperature: 0.5,
                 responseMimeType: "application/json"
             });
 
@@ -116,11 +126,8 @@ Retorne APENAS um array JSON com exatamente ${requiredPairs} objetos, sem format
             else if (responseData.pairs) list = responseData.pairs;
             else if (responseData.data) list = responseData.data;
 
-            if (list.length > requiredPairs) {
-                list = list.slice(0, requiredPairs);
-            }
-            if (list.length < requiredPairs) {
-                toast(`A IA gerou apenas ${list.length} pares. Precisamos de exatamente ${requiredPairs}. Adicione os faltantes manualmente na lista abaixo.`);
+            if (list.length > targetCount) {
+                list = list.slice(0, targetCount);
             }
 
             const mappedPairs = list.map((p, idx) => {
@@ -136,6 +143,7 @@ Retorne APENAS um array JSON com exatamente ${requiredPairs} objetos, sem format
             });
             
             setPairs(mappedPairs);
+            toast(`🎉 ${mappedPairs.length} peças de dominó geradas com sucesso!`);
         } catch (e) {
             console.error("Erro na IA:", e);
             toast("Erro ao gerar com IA: " + e.message);
@@ -358,113 +366,79 @@ Retorne APENAS um array JSON com exatamente ${requiredPairs} objetos, sem format
             footer={footer}
         >
             <div className="space-y-8 pb-4">
-                {/* Painel Superior Hero - Estúdio */}
-                <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-indigo-500/30 flex flex-col gap-6 relative overflow-hidden">
-                    <div className="absolute -right-10 -top-10 w-60 h-60 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                    <div className="absolute -left-10 -bottom-10 w-60 h-60 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                {/* Painel Global de Geração com IA integrado localmente */}
+                <GlobalAIGeneratorPanel
+                    itemTypeLabel="peças de dominó"
+                    topic={topicInput}
+                    onTopicChange={setTopicInput}
+                    context={lessonDetailsInput}
+                    onContextChange={setLessonDetailsInput}
+                    gradeLevel={gradeLevel}
+                    onGradeLevelChange={setGradeLevel}
+                    itemCount={itemCount}
+                    onItemCountChange={setItemCount}
+                    itemCountOptions={[7, 14, 21, 28]}
+                    difficultyDist={difficultyDist}
+                    onDifficultyDistChange={setDifficultyDist}
+                    onGenerate={handleGenerateAI}
+                    isGenerating={isGeneratingAI}
+                    collapsible={true}
+                    defaultExpanded={pairs.length <= 1}
+                />
 
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
-                        <div>
-                            <span className="bg-indigo-500/20 text-indigo-300 text-xs font-black px-3 py-1 rounded-full border border-indigo-400/30 uppercase tracking-widest inline-block mb-2">
-                                ✨ Design & Lógica Pedagógica
+                {/* Barra de Configurações Técnicas do Dominó (Circular & Fontes) */}
+                <div className="bg-white p-4 rounded-3xl border-2 border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                        <input 
+                            type="checkbox" 
+                            checked={isCircular}
+                            onChange={(e) => setIsCircular(e.target.checked)}
+                            className="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 accent-indigo-600"
+                        />
+                        <div className="flex flex-col">
+                            <span className="font-black text-slate-800 text-sm">Dominó Circular (Ciclo Fechado)</span>
+                            <span className="text-xs text-slate-500 font-medium">
+                                {isCircular 
+                                    ? '♻️ A última resposta conectará de volta com a primeira pergunta do jogo.' 
+                                    : '➡️ Cadeia linear com peças explícitas de INÍCIO e FIM nas pontas.'}
                             </span>
-                            <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Estúdio de Dominó Interativo</h2>
-                            <p className="text-sm text-slate-300 font-medium mt-1 max-w-2xl">
-                                Configure conexões dinâmicas! No dominó, o <strong className="text-emerald-400 font-bold">Lado B (Resposta)</strong> de uma peça se conectará perfeitamente com o <strong className="text-blue-400 font-bold">Lado A (Pergunta)</strong> da próxima peça.
-                            </p>
                         </div>
-                        <div className="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/10 text-center shrink-0">
-                            <span className="text-xs text-slate-300 font-bold block uppercase tracking-wider">Total Necessário</span>
-                            <span className="text-2xl font-black text-amber-400">{requiredPairs} Peças</span>
-                        </div>
-                    </div>
+                    </label>
 
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-5 relative z-10 pt-2 border-t border-white/10">
-                        <div className="md:col-span-6 space-y-2">
-                            <label className="block text-xs font-bold text-indigo-200 uppercase tracking-wider">1. Disciplina / Tema da Aula</label>
-                            <input
-                                type="text"
-                                value={topicInput}
-                                onChange={(e) => setTopicInput(e.target.value)}
-                                placeholder="Ex: Equações de 1º Grau, Geometria Básica, Sinônimos..."
-                                className="w-full text-base font-bold p-3.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-400 outline-none focus:border-amber-400 focus:bg-white/15 transition-all shadow-inner"
-                            />
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-2xl border border-slate-200 text-xs font-bold text-slate-700">
+                            <span>📝 Tamanho Texto:</span>
+                            <select
+                                value={textFontSize}
+                                onChange={(e) => setTextFontSize(Number(e.target.value))}
+                                className="bg-white border border-slate-300 rounded-lg px-2 py-0.5 text-xs font-black text-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                            >
+                                <option value={12}>12 px</option>
+                                <option value={14}>14 px</option>
+                                <option value={16}>16 px</option>
+                                <option value={18}>18 px</option>
+                                <option value={20}>20 px</option>
+                                <option value={22}>22 px</option>
+                                <option value={24}>24 px</option>
+                            </select>
                         </div>
-                        <div className="md:col-span-6 space-y-2">
-                            <label className="block text-xs font-bold text-indigo-200 uppercase tracking-wider">2. Texto Base ou Regras (Para a IA)</label>
-                            <textarea
-                                value={lessonDetailsInput}
-                                onChange={(e) => setLessonDetailsInput(e.target.value)}
-                                placeholder="Opcional. Cole regras específicas, contexto ou o texto base que a Inteligência Artificial deve utilizar..."
-                                className="w-full text-xs font-medium p-3.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-slate-400 outline-none focus:border-amber-400 focus:bg-white/15 transition-all h-[52px] resize-none shadow-inner"
-                            />
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-2xl border border-slate-200 text-xs font-bold text-slate-700">
+                            <span>🧮 Tamanho Fórmula:</span>
+                            <select
+                                value={mathFontSize}
+                                onChange={(e) => setMathFontSize(Number(e.target.value))}
+                                className="bg-white border border-slate-300 rounded-lg px-2 py-0.5 text-xs font-black text-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                            >
+                                <option value={14}>14 px</option>
+                                <option value={16}>16 px</option>
+                                <option value={18}>18 px</option>
+                                <option value={20}>20 px</option>
+                                <option value={22}>22 px</option>
+                                <option value={24}>24 px</option>
+                                <option value={28}>28 px</option>
+                                <option value={32}>32 px</option>
+                            </select>
                         </div>
-                    </div>
-
-                    <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 pt-2 border-t border-white/10 relative z-10">
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3.5 bg-white/5 rounded-2xl border border-white/10 flex-1 justify-between">
-                            <label className="flex items-center gap-3 cursor-pointer select-none">
-                                <input 
-                                    type="checkbox" 
-                                    checked={isCircular}
-                                    onChange={(e) => setIsCircular(e.target.checked)}
-                                    className="w-5 h-5 text-amber-500 border-white/30 rounded focus:ring-amber-400 accent-amber-500"
-                                />
-                                <div className="flex flex-col">
-                                    <span className="font-black text-white text-sm">Dominó Circular (Ciclo Fechado)</span>
-                                    <span className="text-xs text-slate-300">
-                                        {isCircular 
-                                            ? '♻️ A última resposta conectará de volta com a primeira pergunta do jogo.' 
-                                            : '➡️ Cadeia linear com peças explícitas de INÍCIO e FIM nas pontas.'}
-                                    </span>
-                                </div>
-                            </label>
-
-                            <div className="flex flex-wrap items-center gap-2">
-                                <div className="flex items-center gap-1.5 bg-slate-900/80 px-2.5 py-1 rounded-xl border border-white/10 text-xs font-bold text-slate-200">
-                                    <span>📝 Texto:</span>
-                                    <select
-                                        value={textFontSize}
-                                        onChange={(e) => setTextFontSize(Number(e.target.value))}
-                                        className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-0.5 text-xs font-black text-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer"
-                                    >
-                                        <option value={12}>12 px</option>
-                                        <option value={14}>14 px</option>
-                                        <option value={16}>16 px</option>
-                                        <option value={18}>18 px</option>
-                                        <option value={20}>20 px</option>
-                                        <option value={22}>22 px</option>
-                                        <option value={24}>24 px</option>
-                                    </select>
-                                </div>
-                                <div className="flex items-center gap-1.5 bg-slate-900/80 px-2.5 py-1 rounded-xl border border-white/10 text-xs font-bold text-slate-200">
-                                    <span>🧮 Fórmula:</span>
-                                    <select
-                                        value={mathFontSize}
-                                        onChange={(e) => setMathFontSize(Number(e.target.value))}
-                                        className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-0.5 text-xs font-black text-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 cursor-pointer"
-                                    >
-                                        <option value={14}>14 px</option>
-                                        <option value={16}>16 px</option>
-                                        <option value={18}>18 px</option>
-                                        <option value={20}>20 px</option>
-                                        <option value={22}>22 px</option>
-                                        <option value={24}>24 px</option>
-                                        <option value={28}>28 px</option>
-                                        <option value={32}>32 px</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <Button 
-                            onClick={handleGenerateAI} 
-                            className="bg-gradient-to-r from-purple-500 via-indigo-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-black px-8 py-4 rounded-2xl shadow-lg hover:shadow-purple-500/30 transition-all flex items-center justify-center gap-2.5 text-base shrink-0 border border-white/20"
-                            icon={Sparkles}
-                            disabled={isGeneratingAI}
-                        >
-                            {isGeneratingAI ? '⚡ IA Gerando Peças...' : "✨ Gerar 28 Peças Automaticamente (IA)"}
-                        </Button>
                     </div>
                 </div>
 

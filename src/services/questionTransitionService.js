@@ -31,18 +31,31 @@ export const convertQuizQuestionsToRoulette = (quizQuestions = [], options = {})
         let allOptions = [];
         if (q.ordered_options && Array.isArray(q.ordered_options) && q.ordered_options.length > 0) {
             allOptions = q.ordered_options;
-        } else if (q.correct_answer || (q.distractors && q.distractors.length > 0)) {
-            const rawOpts = [q.correct_answer, ...(q.distractors || [])].filter(Boolean);
+        } else if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+            allOptions = q.options;
+        } else if (q.alternatives && Array.isArray(q.alternatives) && q.alternatives.length > 0) {
+            allOptions = q.alternatives;
+        } else if (q.correct_answer || q.correctAnswer || (q.distractors && q.distractors.length > 0)) {
+            const correct = q.correct_answer || q.correctAnswer || q.answer;
+            const rawOpts = [correct, ...(q.distractors || q.incorrect_options || [])].filter(Boolean);
             allOptions = shuffleInPlace(rawOpts);
         }
 
+        const questionStatement = typeof q === 'string'
+            ? q
+            : (q.statement || q.text || q.question || `Pergunta ${idx + 1}`);
+
+        const correctAnswer = typeof q === 'string'
+            ? ''
+            : (q.correct_answer || q.correctAnswer || q.answer || '');
+
         return {
             id: `roulette-q-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 6)}`,
-            question: (q.statement || '').replace(/^\d+[.)]\s*/, '').trim(),
-            answer: (q.correct_answer || '').trim(),
+            question: (questionStatement || '').replace(/^\d+[.)]\s*/, '').trim(),
+            answer: (correctAnswer || '').trim(),
             difficulty: normalizeDifficultyToRoulette(q.difficulty),
-            imageUrl: q.image_url || '',
-            imageBgColor: q.image_bg_color || 'transparent',
+            imageUrl: q.imageUrl || q.image_url || '',
+            imageBgColor: q.imageBgColor || q.image_bg_color || 'transparent',
             options: includeOptions && allOptions.length > 0 ? allOptions : undefined
         };
     });

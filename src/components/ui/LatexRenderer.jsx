@@ -139,14 +139,27 @@ export const LatexRenderer = ({ content, className = '', defaultDisplayMode = fa
 
     const combinedStyle = {
         ...(mSize ? { '--katex-font-size': typeof mSize === 'number' ? `${mSize}px` : mSize } : {}),
-        ...(tSize ? { '--text-font-size': typeof tSize === 'number' ? `${tSize}px` : tSize } : {}),
+        ...(tSize ? { 
+            '--text-font-size': typeof tSize === 'number' ? `${tSize}px` : tSize,
+            fontSize: typeof tSize === 'number' ? `${tSize}px` : tSize
+        } : {}),
         ...(!mSize && !tSize && fontSize ? { fontSize: typeof fontSize === 'number' ? `${fontSize}px` : fontSize } : {}),
         ...style
     };
 
+    if (!defaultDisplayMode) {
+        return (
+            <span 
+                className={`latex-renderer inline align-baseline leading-normal ${className}`}
+                style={combinedStyle}
+                dangerouslySetInnerHTML={{ __html: html }}
+            />
+        );
+    }
+
     return (
         <div 
-            className={`latex-renderer inline-block max-w-full overflow-x-auto custom-scrollbar leading-normal ${className}`}
+            className={`latex-renderer block text-center my-2 max-w-full overflow-x-auto custom-scrollbar leading-normal ${className}`}
             style={combinedStyle}
             dangerouslySetInnerHTML={{ __html: html }}
         />

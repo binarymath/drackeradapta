@@ -8,6 +8,8 @@ import { AboutSystem } from './AboutSystem';
 import { DrackerSummaryRenderer } from './activity-area/DrackerSummaryRenderer';
 import { TransitionQuestionsModal } from './modals/TransitionQuestionsModal';
 import { ReportsDashboard } from './reports/ReportsDashboard';
+import { exportActivityToPdf } from '../utils/pdfExportHelper';
+import { PrintFontSizeControl } from './ui/PrintFontSizeControl';
 
 // Módulos carregados sob demanda via ActivityRegistry (React.lazy + code splitting)
 const {
@@ -89,7 +91,8 @@ export const ActivityArea = ({
 
     isFullWidth,
     toggleFullWidth,
-    openManualMusicEditor
+    openManualMusicEditor,
+    onNewActivity
 }) => {
     const { topic, lessonDetails, activeTabId, classes, addActivityTab } = useActivity();
     // --- State ---
@@ -101,7 +104,9 @@ export const ActivityArea = ({
     const [quizShowDifficulty, setQuizShowDifficulty] = useState(true);
     const [quizImageMaxHeight, setQuizImageMaxHeight] = useState(160); // px
     const [quizImageBgColor, setQuizImageBgColor] = useState('#ffffff');
-    const [quizFontSize, setQuizFontSize] = useState(12.5); // px
+    const [quizFontSize, setQuizFontSize] = useState(15.5); // px (padrão aumentado para legibilidade)
+    const [wordsearchFontSize, setWordsearchFontSize] = useState(15.5); // px (padrão 15.5px para equilíbrio estético e dimensional)
+    const [wordsearchStoryFirst, setWordsearchStoryFirst] = useState(true); // Exibe texto de apoio no topo por padrão para contextualização pedagógica
     // null = todas as questões; Set<number> = índices selecionados
     const [selectedQuizIndexes, setSelectedQuizIndexes] = useState(null);
     const [showQuestionPicker, setShowQuestionPicker] = useState(false);
@@ -117,13 +122,14 @@ export const ActivityArea = ({
         (activityType === 'crossword' && crosswordData) ||
         (activityType === 'connect_dots' && connectDotsData) ||
         (activityType === 'video_gallery') ||
+        (activityType === 'simplify') ||
         (activityType === 'merge_pdf') ||
         (activityType === 'about_system') ||
         (activityType === 'dashboard') ||
         (activityType === 'reports') ||
 
         (activityType === 'hangman') ||
-        (activityType === 'trading_cards') ||
+        (activityType === 'trading_cards' || activityType === 'trading_card') ||
         (activityType === 'chat_dracker') ||
         (activityType === 'number_line') ||
         (activityType === 'fractions') ||
@@ -145,28 +151,10 @@ export const ActivityArea = ({
 
     // Used by MusicActivityRenderer
     const handleDirectDownload = async (elementId, filename) => {
-        const element = document.getElementById(elementId);
-        if (!element) return;
-
-        const opt = {
-            margin: 10, // mm
-            filename: filename,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        element.classList.add('pdf-capture-mode');
-        if (pdfShowAlternatives && elementId === 'questions-card') {
-            element.classList.add('pdf-show-alternatives');
-        }
-
-        const html2pdf = await loadHtml2pdf();
-
-        html2pdf().set(opt).from(element).save().then(() => {
-            element.classList.remove('pdf-capture-mode');
-            element.classList.remove('pdf-show-alternatives');
-        });
+        const extraClass = pdfShowAlternatives && (elementId === 'questions-card' || elementId === 'music-complete-content')
+            ? 'pdf-show-alternatives'
+            : '';
+        await exportActivityToPdf(elementId, filename, { extraClass });
     };
 
     // --- Render Logic ---
@@ -190,6 +178,9 @@ export const ActivityArea = ({
                         activityTitle={activityTitle}
                         setActivityTitle={setActivityTitle}
                         onPlayInRoulette={() => setShowQuizToRouletteModal(true)}
+                        isGameMode={isGameMode}
+                        onToggleGameMode={() => setIsGameMode(!isGameMode)}
+                        onNewActivity={onNewActivity}
                     />
                 )}
 
@@ -198,30 +189,9 @@ export const ActivityArea = ({
                         <>
                             {/* --- SETUP / TOGGLE CARDS --- */}
 
-                            {/* Wordsearch Customization Card */}
-                            {activityType === 'wordsearch' && (
-                                <GameToggleCard
-                                    title="Personalizar & Jogar"
-                                    description="Configure a impressão ou jogue online."
-                                    isGameMode={isWordsearchGame}
-                                    onToggle={() => setIsGameMode(!isGameMode)}
-                                    color="amber"
-                                />
-                            )}
-
-                            {/* Quiz Toggle */}
-                            {activityType === 'quiz' && quizData && (
-                                <>
-                                    <GameToggleCard
-                                        isGameMode={isGameMode}
-                                        onToggle={() => setIsGameMode(!isGameMode)}
-                                        color="blue"
-                                        toggleLabel="Jogar Online"
-                                    />
-
-                                    {/* Controles de formatação de impressão – Painel dedicado abaixo do card */}
-                                    {!isGameMode && (
-                                        <div className="flex flex-col gap-4 p-4 bg-slate-50/90 border border-slate-200/80 rounded-2xl no-print mb-6 shadow-sm">
+                            {/* Controles de formatação de impressão do Quiz – Painel dedicado */}
+                            {activityType === 'quiz' && quizData && !isGameMode && (
+                                <div className="flex flex-col gap-4 p-4 bg-slate-50/90 border border-slate-200/80 rounded-2xl no-print mb-6 shadow-sm">
                                             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/60 pb-3">
                                                 <div className="flex items-center gap-2">
                                                     <span className="flex items-center gap-1.5 bg-white border border-slate-200 px-3 py-1 rounded-lg shadow-2xs text-slate-800 text-xs font-bold">
@@ -265,21 +235,11 @@ export const ActivityArea = ({
                                                         </button>
                                                     </div>
 
-                                                    <label className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs">
-                                                        <span className="text-xs font-bold text-slate-700" title="Tamanho da fonte">A</span>
-                                                        <select
-                                                            value={quizFontSize}
-                                                            onChange={e => setQuizFontSize(Number(e.target.value))}
-                                                            className="text-xs border-none bg-transparent focus:ring-0 font-semibold text-blue-700 outline-none p-0 cursor-pointer"
-                                                        >
-                                                            <option value={10}>Pequena</option>
-                                                            <option value={12.5}>Normal</option>
-                                                            <option value={15}>Média</option>
-                                                            <option value={18}>Grande</option>
-                                                            <option value={22}>Gigante</option>
-                                                            <option value={28}>Máxima</option>
-                                                        </select>
-                                                    </label>
+                                                    <PrintFontSizeControl
+                                                        value={quizFontSize}
+                                                        onChange={setQuizFontSize}
+                                                        label="Fonte da Avaliação"
+                                                    />
 
                                                     <label className="flex items-center gap-2 cursor-pointer select-none bg-white border border-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-50 transition-all shadow-2xs whitespace-nowrap">
                                                         <input
@@ -460,21 +420,9 @@ export const ActivityArea = ({
                                                     </div>
                                                 </div>
                                             )}
-                                        </div>
-                                    )}
-                                </>
+                                </div>
                             )}
 
-                            {/* Crossword Toggle */}
-                            {activityType === 'crossword' && crosswordData && (
-                                <GameToggleCard
-                                    title="Palavras Cruzadas"
-                                    description="Impressão primeiro; jogue online se quiser."
-                                    isGameMode={isGameMode}
-                                    onToggle={() => setIsGameMode(!isGameMode)}
-                                    color="blue"
-                                />
-                            )}
 
                             {/* Connect Dots Toggle */}
                             {activityType === 'connect_dots' && connectDotsData && !isGameMode && ( // Show card only slightly different logic? No, let's keep it consistent
@@ -545,16 +493,24 @@ export const ActivityArea = ({
                                     onRestart={() => setIsGameMode(true)}
                                     onExitToPrint={() => setIsGameMode(false)}
                                 />
-                            ) : activityType === 'simplify' && musicData ? (
-                                <MusicActivityRenderer
-                                    musicData={musicData}
-                                    printMode={printMode}
-                                    isGameMode={isGameMode}
-                                    setIsGameMode={setIsGameMode}
-                                    pdfShowAlternatives={pdfShowAlternatives}
-                                    setPdfShowAlternatives={setPdfShowAlternatives}
-                                    handleDirectDownload={handleDirectDownload}
-                                />
+                            ) : activityType === 'simplify' ? (
+                                musicData ? (
+                                    <MusicActivityRenderer
+                                        musicData={musicData}
+                                        printMode={printMode}
+                                        isGameMode={isGameMode}
+                                        setIsGameMode={setIsGameMode}
+                                        pdfShowAlternatives={pdfShowAlternatives}
+                                        setPdfShowAlternatives={setPdfShowAlternatives}
+                                        handleDirectDownload={handleDirectDownload}
+                                        onPlayInRoulette={() => setShowQuizToRouletteModal(true)}
+                                        openManualMusicEditor={openManualMusicEditor}
+                                    />
+                                ) : (
+                                    <div className="w-full py-2 animate-in fade-in zoom-in duration-300">
+                                        <SunoNativePlayer onOpenMusicEditor={openManualMusicEditor} />
+                                    </div>
+                                )
                             ) : activityType === 'video_gallery' ? (
                                 <DrackerVideoGallery />
                             ) : activityType === 'rpg' ? (
@@ -582,7 +538,7 @@ export const ActivityArea = ({
                                 <MemoryGame key={activeTabId || 'new_memory'} isFullWidth={isFullWidth} />
                             ) : activityType === 'chat_dracker' ? (
                                 <ChatDracker key={activeTabId || 'new_chat'} />
-                            ) : activityType === 'trading_cards' ? (
+                            ) : (activityType === 'trading_cards' || activityType === 'trading_card') ? (
                                 <TradingCardMaker key={activeTabId || 'new_trading'} />
                             ) : activityType === 'number_line' ? (
                                 <NumberLineMaker key={activeTabId || 'new_number'} />
@@ -628,6 +584,20 @@ export const ActivityArea = ({
                                                     />
                                                     <span>Esconder Grade</span>
                                                 </label>
+                                                <label className="flex items-center gap-1.5 cursor-pointer bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs" title="Exibir o texto de contextualização no topo antes da grade para melhor leitura pedagógica">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={wordsearchStoryFirst}
+                                                        onChange={(e) => setWordsearchStoryFirst(e.target.checked)}
+                                                        className="w-3.5 h-3.5 rounded text-amber-600 focus:ring-amber-500 accent-amber-600"
+                                                    />
+                                                    <span>Texto no Topo</span>
+                                                </label>
+                                                <PrintFontSizeControl
+                                                    value={wordsearchFontSize}
+                                                    onChange={setWordsearchFontSize}
+                                                    compact
+                                                />
                                             </div>
                                             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap ml-auto">
                                                 <Button
@@ -659,6 +629,8 @@ export const ActivityArea = ({
                                         hideText={activityType === 'wordsearch' && wordsearchHideText}
                                         hideGrid={activityType === 'wordsearch' && wordsearchHideGrid}
                                         title={activityType === 'wordsearch' ? wordsearchTitle : null}
+                                        fontSize={wordsearchFontSize}
+                                        storyFirst={wordsearchStoryFirst}
                                     />
                                 </>
                             )}
@@ -667,12 +639,6 @@ export const ActivityArea = ({
                     ) : (
                         /* --- EMPTY / LOADING STATE --- */
                         <div className="h-full flex flex-col items-center justify-center text-slate-400 p-8">
-                            {!isLoading && activityType === 'simplify' && (
-                                <div className="w-full mb-8 animate-in fade-in zoom-in duration-300">
-                                    <SunoNativePlayer />
-                                </div>
-                            )}
-
                             {isLoading ? (
                                 <div className="flex flex-col items-center gap-4">
                                     <img src="/dracker_character.png" alt="Loading" className="w-16 h-16 animate-bounce" />
@@ -692,13 +658,23 @@ export const ActivityArea = ({
                 </div >
             </div >
 
-            {/* Modal de Transição de Quiz para Roleta */}
+            {/* Modal de Transição de Quiz ou Música para Roleta */}
             <TransitionQuestionsModal
                 isOpen={showQuizToRouletteModal}
                 onClose={() => setShowQuizToRouletteModal(false)}
                 mode="quiz_to_roulette"
-                sourceQuestions={quizData?.questions || []}
-                sourceTopic={activityTitle || topic || 'Quiz'}
+                sourceQuestions={
+                    (activityType === 'simplify' ? musicData?.questions : quizData?.questions) || []
+                }
+                sourceTopic={
+                    activityTitle ||
+                    (activityType === 'simplify' ? musicData?.title : topic) ||
+                    (activityType === 'simplify' ? 'Interpretação Musical' : 'Quiz')
+                }
+                sourceSongId={activityType === 'simplify' ? musicData?.id : undefined}
+                sourceSongTitle={activityType === 'simplify' ? musicData?.title : undefined}
+                sourceTabId={activeTabId}
+                originType={activityType === 'simplify' ? 'music' : 'quiz'}
                 classes={classes}
                 addActivityTab={addActivityTab}
             />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, Minus, Check, MessageSquare } from 'lucide-react';
 
 const POSITIVE_PRESETS = [
@@ -62,8 +63,8 @@ export const PointJustificationModal = ({
         onClose();
     };
 
-    return (
-        <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in select-none">
+    const modalContent = (
+        <div className="fixed inset-0 z-[14000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in select-none">
             <div 
                 className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden transform transition-all duration-200 scale-100"
                 onClick={(e) => e.stopPropagation()}
@@ -200,5 +201,8 @@ export const PointJustificationModal = ({
             </div>
         </div>
     );
+
+    if (typeof document === 'undefined') return modalContent;
+    return createPortal(modalContent, document.body);
 };
 

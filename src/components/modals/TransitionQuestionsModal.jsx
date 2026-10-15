@@ -22,7 +22,11 @@ export const TransitionQuestionsModal = ({
     geminiService = null,
     selectedModel = null,
     addActivityTab,
-    onSuccess
+    onSuccess,
+    sourceSongId = null,
+    sourceSongTitle = null,
+    sourceTabId = null,
+    originType = null
 }) => {
     // Título da nova atividade gerada
     const [targetTitle, setTargetTitle] = useState('');
@@ -155,7 +159,11 @@ export const TransitionQuestionsModal = ({
                     classId: selectedClassId || undefined,
                     classData: targetClass,
                     questions: rouletteQuestions,
-                    topic: sourceTopic || 'Geral'
+                    topic: sourceTopic || 'Geral',
+                    sourceSongId: sourceSongId || undefined,
+                    sourceSongTitle: sourceSongTitle || (mode === 'quiz_to_roulette' ? sourceTopic : undefined),
+                    sourceTabId: sourceTabId || undefined,
+                    originType: originType || (mode === 'quiz_to_roulette' ? 'music' : 'roulette')
                 });
 
                 gameAudio?.playSuccess?.();
@@ -397,9 +405,9 @@ export const TransitionQuestionsModal = ({
                             <div className="max-h-60 overflow-y-auto space-y-2 p-1 custom-scrollbar border border-brown-200/60 rounded-xl bg-slate-50/50">
                                 {sourceQuestions.map((q, idx) => {
                                     const isSelected = selectedIndices.has(idx);
-                                    const statement = q.question || q.statement || `Questão ${idx + 1}`;
-                                    const answer = q.answer || q.correct_answer || '';
-                                    const diff = q.difficulty || 'Média';
+                                    const statement = typeof q === 'string' ? q : (q.text || q.question || q.statement || `Questão ${idx + 1}`);
+                                    const answer = typeof q === 'string' ? '' : (q.correctAnswer || q.answer || q.correct_answer || '');
+                                    const diff = typeof q === 'string' ? 'Média' : (q.difficulty || 'Média');
 
                                     return (
                                         <div

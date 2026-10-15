@@ -12,6 +12,7 @@ import { Input, TextArea } from './ui/Input';
 import { Card } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { shuffle } from '../utils/array';
+import { GlobalAIGeneratorPanel } from './common/GlobalAIGeneratorPanel';
 
 /**
  * Componente para gerenciar o fluxo em etapas do caça-palavras
@@ -53,6 +54,13 @@ export default function WordsearchWizard({
   const [gameModeType, setGameModeType] = useState('text'); // 'text' | 'clues' | 'math'
   const [mathSubtopic, setMathSubtopic] = useState('equacoes1'); // 'equacoes1' | 'equacoes2' | 'decimais' | 'operacoes' | 'custom_ai'
   const [mathAnswerFormat, setMathAnswerFormat] = useState('text_words'); // 'text_words' (por extenso) | 'numeric' (dígitos 0-9)
+
+  // Configurações Pedagógicas e de IA Locais
+  const [topicInput, setTopicInput] = useState(topic || defaultTitle || (initialData?.title || ''));
+  const [lessonDetailsInput, setLessonDetailsInput] = useState(lessonDetails || '');
+  const [gradeLevel, setGradeLevel] = useState('Ensino Fundamental I - 1º ao 3º Ano (6 a 8 anos)');
+  const [itemCount, setItemCount] = useState(10);
+  const [difficultyDist, setDifficultyDist] = useState({ easy: 40, medium: 40, hard: 20 });
 
   // Configurações de Operações para Modo de Operações Numéricas
   const [mathOperations, setMathOperations] = useState(['+', '-']);
@@ -129,12 +137,36 @@ export default function WordsearchWizard({
     setStep('INTRO');
   }, [triggerStart, isEditSession, initialData, maxSelectableWords, setDirections]);
 
+  const handleManualMode = () => {
+    if (gameModeType === 'text') {
+      const defaultStory = editableText || `Era uma vez uma incrível jornada de aprendizado sobre ${topicInput || topic || 'o tema'}...\n\nOs alunos exploraram conceitos fantásticos e descobriram novos saberes.\n\nTodos comemoraram com muita alegria e conhecimento!`;
+      setEditableText(defaultStory);
+      setGeneratedText(defaultStory);
+      setStep(1);
+    } else {
+      const sample = [
+        { clue: 'Exemplo de Pergunta 1', word: 'APRENDER' },
+        { clue: 'Exemplo de Pergunta 2', word: 'ESTUDO' },
+        { clue: 'Exemplo de Pergunta 3', word: 'CONHECIMENTO' }
+      ];
+      setAvailableWords(sample);
+      setSelectedWords(sample);
+      setEditableText('Responda às perguntas e encontre as respostas na grade!');
+      setStep(2);
+    }
+  };
+
   // Função principal de geração conforme o modo selecionado
   const handleStartWordsearch = async () => {
     if (isEditSession) {
       setStep(1);
       return;
     }
+
+    const countToGen = Number(itemCount) || 10;
+    const easyP = Math.round((countToGen * (difficultyDist?.easy || 40)) / 100);
+    const medP = Math.round((countToGen * (difficultyDist?.medium || 40)) / 100);
+    const hardP = Math.max(0, countToGen - easyP - medP);
 
     // 1. MODO MATEMÁTICA (OPERAÇÕES ARITMÉTICAS BÁSICAS)
     if (gameModeType === 'math' && mathSubtopic === 'operacoes') {
@@ -145,7 +177,7 @@ export default function WordsearchWizard({
       setStep('LOADING');
       setIsLoading(true);
       setTimeout(() => {
-        const problems = generateMathProblems(20, mathMaxOrder, mathOperations, mathMultMaxOrder, mathDivMaxOrder);
+        const problems = generateMathProblems(countToGen * 2, mathMaxOrder, mathOperations, mathMultMaxOrder, mathDivMaxOrder);
         const mappedWords = problems.map(p => ({ 
             word: mathAnswerFormat === 'numeric' 
                 ? p.problem.replace(' ?', p.answer).replace(/\s+/g, '') // e.g. "2+2=4"
@@ -153,7 +185,7 @@ export default function WordsearchWizard({
             clue: p.problem 
         }));
         setAvailableWords(mappedWords);
-        setSelectedWords(mappedWords.slice(0, Math.min(maxSelectableWords, mappedWords.length)));
+        setSelectedWords(mappedWords.slice(0, Math.min(countToGen, maxSelectableWords, mappedWords.length)));
         setEditableText(`Resolva as operações e encontre a conta completa no caça-palavras!`);
         setStep(2);
         setIsLoading(false);
@@ -178,18 +210,24 @@ export default function WordsearchWizard({
 
         let subtopicText = '';
         if (mathSubtopic === 'equacoes1') {
-          subtopicText = 'Crie 10 problemas e equações do 1º grau (ex: 2x + 4 = 10 ➔ x = ?).';
+          subtopicText = `Crie ${countToGen} problemas e equações do 1º grau (ex: 2x + 4 = 10 ➔ x = ?).`;
         } else if (mathSubtopic === 'equacoes2') {
-          subtopicText = 'Crie 10 perguntas e desafios sobre Equações do 2º Grau e Fórmula de Bhaskara (ex: calcular valor do Delta Δ, raízes x1/x2 ou coeficientes).';
+          subtopicText = `Crie ${countToGen} perguntas e desafios sobre Equações do 2º Grau e Fórmula de Bhaskara (ex: calcular valor do Delta Δ, raízes x1/x2 ou coeficientes).`;
         } else if (mathSubtopic === 'decimais') {
-          subtopicText = 'Crie 10 desafios e problemas sobre Números Decimais, Frações e Porcentagens (ex: 0,25 + 0,75 = ? ou 50% de 200).';
+          subtopicText = `Crie ${countToGen} desafios e problemas sobre Números Decimais, Frações e Porcentagens (ex: 0,25 + 0,75 = ? ou 50% de 200).`;
         } else {
-          subtopicText = `Crie 10 desafios matemáticos pedagógicos sobre o tema "${topic || 'Matemática'}".`;
+          subtopicText = `Crie ${countToGen} desafios matemáticos pedagógicos sobre o tema "${topicInput || topic || 'Matemática'}".`;
         }
 
         const prompt = `Você é um professor de matemática especialista. ${subtopicText}
+Nível/Ano Escolar dos alunos: ${gradeLevel}.
 ${formatGuide}
-Dica do plano de aula: "${lessonDetails || 'Foque nos conceitos essenciais.'}"
+${lessonDetailsInput || lessonDetails ? `Dica do plano de aula / Contexto: "${lessonDetailsInput || lessonDetails}"` : ''}
+
+Distribuição de dificuldade pedagógica:
+- Fácil (~${easyP} desafios): operações diretas e números menores.
+- Médio (~${medP} desafios): problemas com raciocínio intermediário.
+- Difícil (~${hardP} desafios): desafios que exigem raciocínio crítico ou múltiplos passos.
 
 SEJA EXTREMAMENTE RIGOROSO NO FORMATO JSON E RETORNE APENAS O JSON EM TEXTO PURO:
 [
@@ -220,7 +258,7 @@ SEJA EXTREMAMENTE RIGOROSO NO FORMATO JSON E RETORNE APENAS O JSON EM TEXTO PURO
           })).filter(p => p.word.length >= (mathAnswerFormat === 'numeric' ? 3 : 2));
 
           setAvailableWords(mapped);
-          setSelectedWords(mapped.slice(0, Math.min(maxSelectableWords, mapped.length)));
+          setSelectedWords(mapped.slice(0, Math.min(countToGen, maxSelectableWords, mapped.length)));
           setEditableText(`Resolva os desafios matemáticos e encontre a resposta completa no caça-palavras!`);
           setStep(2);
         } else {
@@ -241,7 +279,7 @@ SEJA EXTREMAMENTE RIGOROSO NO FORMATO JSON E RETORNE APENAS O JSON EM TEXTO PURO
         onError('Configure sua API Key');
         return;
       }
-      if (!topic) {
+      if (!topicInput && !topic) {
         onError('Informe um tema');
         return;
       }
@@ -250,11 +288,17 @@ SEJA EXTREMAMENTE RIGOROSO NO FORMATO JSON E RETORNE APENAS O JSON EM TEXTO PURO
       setIsLoading(true);
 
       try {
-        const safeTopic = (topic || '').slice(0, 60);
-        const safeDetails = (lessonDetails || '').slice(0, 80);
+        const safeTopic = (topicInput || topic || '').slice(0, 80);
+        const safeDetails = (lessonDetailsInput || lessonDetails || '').slice(0, 200);
 
-        const prompt = `Você é um professor experiente. Crie exatamente 10 perguntas pedagógicas inteligentes, claras e educativas com respostas diretas sobre o tema "${safeTopic}".
-Contexto: "${safeDetails || 'Aborde conceitos principais.'}"
+        const prompt = `Você é um professor experiente e criativo. Crie EXATAMENTE ${countToGen} perguntas pedagógicas inteligentes, claras e educativas com respostas diretas sobre o tema "${safeTopic}".
+Nível/Ano Escolar dos alunos: ${gradeLevel}.
+${safeDetails ? `Contexto pedagógico & delimitação: "${safeDetails}"` : ''}
+
+Distribuição de dificuldade pedagógica das perguntas:
+- Fácil (~${easyP} perguntas): perguntas introdutórias com respostas conhecidas e diretas.
+- Médio (~${medP} perguntas): conceitos essenciais do currículo escolar.
+- Difícil (~${hardP} perguntas): perguntas instigantes, raciocínio dedutivo ou termos técnicos.
 
 REGRAS RÍGIDAS:
 - Cada resposta ("word") deve ter APENAS UMA PALAVRA (sem espaços, de 3 a 12 letras).
@@ -280,8 +324,8 @@ REGRAS RÍGIDAS:
           })).filter(p => p.word.length >= 2);
 
           setAvailableWords(mapped);
-          setSelectedWords(mapped.slice(0, Math.min(maxSelectableWords, mapped.length)));
-          setEditableText(`Responda às perguntas e encontre as respostas no caça-palavras sobre ${topic}!`);
+          setSelectedWords(mapped.slice(0, Math.min(countToGen, maxSelectableWords, mapped.length)));
+          setEditableText(`Responda às perguntas e encontre as respostas no caça-palavras sobre ${topicInput || topic}!`);
           setStep(2);
         } else {
           throw new Error('Formato JSON inválido');
@@ -300,7 +344,7 @@ REGRAS RÍGIDAS:
       onError('Configure sua API Key');
       return;
     }
-    if (!topic) {
+    if (!topicInput && !topic) {
       onError('Informe um tema');
       return;
     }
@@ -309,17 +353,18 @@ REGRAS RÍGIDAS:
     setIsLoading(true);
 
     try {
-      const safeTopic = (topic || '').slice(0, 60);
-      const safeDetails = (lessonDetails || '').slice(0, 80);
+      const safeTopic = (topicInput || topic || '').slice(0, 80);
+      const safeDetails = (lessonDetailsInput || lessonDetails || '').slice(0, 200);
 
-      const prompt = `Escreva um texto educativo SUPER DIVERTIDO e FÁCIL sobre "${safeTopic}".
+      const prompt = `Escreva um texto educativo SUPER DIVERTIDO, envolvente e pedagógico sobre "${safeTopic}".
+Nível/Ano Escolar dos alunos: ${gradeLevel}.
+${safeDetails ? `Contexto pedagógico obrigatório: "${safeDetails}"` : ''}
 
-  REGRAS:
-- Escreva 3 parágrafos curtos.
-- Use linguagem simples para crianças.
-- Baseie-se ESTRITAMENTE neste contexto: "${safeDetails || 'Fale coisas interessantes.'}"
+REGRAS:
+- Escreva 3 parágrafos curtos com linguagem cativante.
+- O texto DEVE conter vocabulário balanceado (~${easyP} termos simples, ~${medP} intermediários e ~${hardP} enriquecedores) adequados ao ${gradeLevel}.
 - O texto DEVE incorporar o contexto acima de forma muito clara.
-- Destaque palavras legais.
+- Destaque termos importantes para as crianças encontrarem depois no caça-palavras.
 - O texto deve estar completo.
 
 Texto divertido: `;
@@ -351,9 +396,10 @@ Texto divertido: `;
   };
 
   const handleTextConfirm = () => {
-    const words = extractWords(editableText, 25);
+    const words = extractWords(editableText, 30);
     setAvailableWords(words);
-    setSelectedWords(words.slice(0, Math.min(maxSelectableWords, words.length)));
+    const countToGen = Number(itemCount) || 10;
+    setSelectedWords(words.slice(0, Math.min(countToGen, maxSelectableWords, words.length)));
     setStep(2);
   };
 
@@ -429,7 +475,8 @@ Texto divertido: `;
       );
 
       const gridText = grid.map(row => row.join(' ')).join('\n');
-      const title = (topic ? topic.toUpperCase() : 'CAÇA-PALAVRAS');
+      const chosenTopic = topicInput || topic || 'CAÇA-PALAVRAS';
+      const title = chosenTopic.toUpperCase();
 
       const finalWordsObj = isObjectMode
         ? placedWords.map(pw => {
@@ -466,6 +513,7 @@ Texto divertido: `;
         words: finalWordsObj,
         placements: placements || [],
         title,
+        topic: chosenTopic,
         story: editableText,
         rows,
         cols,
@@ -545,182 +593,250 @@ Texto divertido: `;
       onClose={handleClose}
       title={modalTitle}
       icon={step === 'LOADING' ? Loader2 : undefined}
-      size="lg"
+      size="xl"
       footer={footer}
     >
       <div className="space-y-6">
 
         {/* INTRO: Escolha do Modo Universal */}
         {step === 'INTRO' && (
-          <div className="flex flex-col items-center justify-center py-6 space-y-6 text-center">
-            <div className="w-20 h-20 bg-brown-100 rounded-full flex items-center justify-center mb-1 animate-bounce">
-              <div className="text-4xl">🔮</div>
+          <div className="w-full space-y-6 text-left">
+            {/* Cabeçalho Compacto & Elegante */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-indigo-500/10 border border-slate-200/80 p-4 rounded-2xl shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-2xl shadow-md shrink-0">
+                  ✨
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 leading-tight">Como você quer montar o jogo?</h3>
+                  <p className="text-xs text-slate-500 font-medium">Escolha a dinâmica pedagógica do seu caça-palavras</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="text-[11px] font-bold text-slate-600 bg-white/90 px-3 py-1.5 rounded-full border border-slate-200 shadow-2xs">
+                  Passo 1 de 2 • Modo de Criação
+                </span>
+              </div>
             </div>
-            <div className="space-y-4 max-w-lg w-full">
-              <h3 className="text-2xl font-black text-brown-900">Como você quer montar o jogo?</h3>
-              
-              {/* Seletor de Modo Universal (3 Grandes Cards Animados) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
-                <div 
-                  onClick={() => setGameModeType('text')}
-                  className={`relative p-5 rounded-3xl cursor-pointer transition-all duration-300 flex flex-col items-center gap-3 overflow-hidden group ${
-                    gameModeType === 'text' 
-                      ? 'bg-gradient-to-br from-amber-50 to-orange-100 shadow-xl ring-4 ring-orange-400 scale-105' 
-                      : 'bg-white border-2 border-slate-100 hover:border-orange-200 hover:shadow-md'
-                  }`}
-                >
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${gameModeType === 'text' ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-500'}`}>
-                    <BookOpen className="w-7 h-7" />
-                  </div>
-                  <div className="text-center">
-                    <h4 className={`font-black text-sm mb-1 ${gameModeType === 'text' ? 'text-orange-950' : 'text-slate-700'}`}>📖 História / Texto</h4>
-                    <p className={`text-[10px] font-bold leading-tight ${gameModeType === 'text' ? 'text-orange-700' : 'text-slate-400'}`}>O aluno lê uma historinha e procura as palavras nela.</p>
-                  </div>
-                </div>
 
-                <div 
-                  onClick={() => setGameModeType('clues')}
-                  className={`relative p-5 rounded-3xl cursor-pointer transition-all duration-300 flex flex-col items-center gap-3 overflow-hidden group ${
-                    gameModeType === 'clues' 
-                      ? 'bg-gradient-to-br from-indigo-50 to-blue-100 shadow-xl ring-4 ring-indigo-400 scale-105' 
-                      : 'bg-white border-2 border-slate-100 hover:border-indigo-200 hover:shadow-md'
-                  }`}
-                >
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${gameModeType === 'clues' ? 'bg-indigo-500 text-white' : 'bg-indigo-100 text-indigo-500'}`}>
-                    <Target className="w-7 h-7" />
-                  </div>
-                  <div className="text-center">
-                    <h4 className={`font-black text-sm mb-1 ${gameModeType === 'clues' ? 'text-indigo-950' : 'text-slate-700'}`}>🎯 Perguntas</h4>
-                    <p className={`text-[10px] font-bold leading-tight ${gameModeType === 'clues' ? 'text-indigo-700' : 'text-slate-400'}`}>O aluno lê uma pergunta e procura a resposta na grade.</p>
-                  </div>
+            {/* Seletor de Modo Universal (3 Grandes Cards Elegantes e Compactos) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 w-full">
+              {/* Modo 1: História / Texto */}
+              <div 
+                onClick={() => setGameModeType('text')}
+                className={`relative p-4 rounded-2xl cursor-pointer transition-all duration-200 flex items-start gap-3.5 border-2 ${
+                  gameModeType === 'text' 
+                    ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-orange-500 shadow-md ring-2 ring-orange-400/20' 
+                    : 'bg-white border-slate-200/80 hover:border-orange-300 hover:bg-orange-50/20'
+                }`}
+              >
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  gameModeType === 'text' ? 'bg-orange-500 text-white shadow-xs' : 'bg-orange-100 text-orange-600'
+                }`}>
+                  <BookOpen className="w-5 h-5" />
                 </div>
-
-                <div 
-                  onClick={() => setGameModeType('math')}
-                  className={`relative p-5 rounded-3xl cursor-pointer transition-all duration-300 flex flex-col items-center gap-3 overflow-hidden group ${
-                    gameModeType === 'math' 
-                      ? 'bg-gradient-to-br from-purple-50 to-fuchsia-100 shadow-xl ring-4 ring-purple-400 scale-105' 
-                      : 'bg-white border-2 border-slate-100 hover:border-purple-200 hover:shadow-md'
-                  }`}
-                >
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${gameModeType === 'math' ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-500'}`}>
-                    <Calculator className="w-7 h-7" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h4 className={`font-black text-sm ${gameModeType === 'text' ? 'text-orange-950' : 'text-slate-800'}`}>
+                      História / Texto
+                    </h4>
+                    {gameModeType === 'text' && (
+                      <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shrink-0"></span>
+                    )}
                   </div>
-                  <div className="text-center">
-                    <h4 className={`font-black text-sm mb-1 ${gameModeType === 'math' ? 'text-purple-950' : 'text-slate-700'}`}>🔢 Desafios Math</h4>
-                    <p className={`text-[10px] font-bold leading-tight ${gameModeType === 'math' ? 'text-purple-700' : 'text-slate-400'}`}>O aluno resolve uma conta e procura o resultado!</p>
-                  </div>
+                  <p className={`text-[11px] font-medium leading-snug mt-1 ${gameModeType === 'text' ? 'text-orange-900/80' : 'text-slate-500'}`}>
+                    O aluno lê uma historinha temática e encontra as palavras-chave no caça-palavras.
+                  </p>
                 </div>
               </div>
 
-              {/* MODO 1: TEXTO / HISTÓRIA */}
-              {gameModeType === 'text' && (
-                <div className="bg-white p-4 rounded-xl border border-brown-200 text-left space-y-2">
-                  <p className="text-brown-700 text-sm font-medium">
-                    Tema da Aula: <span className="font-bold text-brown-900">"{topic || 'Geral'}"</span>
-                  </p>
-                  {lessonDetails && (
-                    <p className="text-xs text-brown-500 italic bg-brown-50 p-2.5 rounded-lg border border-brown-100">
-                      "{lessonDetails.slice(0, 120)}{lessonDetails.length > 120 ? '...' : ''}"
-                    </p>
-                  )}
-                  <p className="text-xs text-brown-400">A IA criará um pequeno texto narrativo e extrairá as palavras chaves.</p>
+              {/* Modo 2: Perguntas / Pistas */}
+              <div 
+                onClick={() => setGameModeType('clues')}
+                className={`relative p-4 rounded-2xl cursor-pointer transition-all duration-200 flex items-start gap-3.5 border-2 ${
+                  gameModeType === 'clues' 
+                    ? 'bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-500 shadow-md ring-2 ring-indigo-400/20' 
+                    : 'bg-white border-slate-200/80 hover:border-indigo-300 hover:bg-indigo-50/20'
+                }`}
+              >
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  gameModeType === 'clues' ? 'bg-indigo-500 text-white shadow-xs' : 'bg-indigo-100 text-indigo-600'
+                }`}>
+                  <Target className="w-5 h-5" />
                 </div>
-              )}
-
-              {/* MODO 2: PERGUNTAS & PISTAS (MULTIDISCIPLINAR) */}
-              {gameModeType === 'clues' && (
-                <div className="bg-indigo-50/70 p-4 rounded-xl border border-indigo-200 text-left space-y-2">
-                  <p className="text-indigo-900 text-sm font-bold flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-indigo-600" /> Caça-Palavras Investigativo de Perguntas
-                  </p>
-                  <p className="text-xs text-indigo-800 leading-relaxed">
-                    A IA criará perguntas curtas sobre <strong>"{topic || 'o tema da aula'}"</strong>. O estudante lê a pergunta, descobre a resposta e a procura na grade!
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h4 className={`font-black text-sm ${gameModeType === 'clues' ? 'text-indigo-950' : 'text-slate-800'}`}>
+                      Perguntas & Pistas
+                    </h4>
+                    {gameModeType === 'clues' && (
+                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 shrink-0"></span>
+                    )}
+                  </div>
+                  <p className={`text-[11px] font-medium leading-snug mt-1 ${gameModeType === 'clues' ? 'text-indigo-900/80' : 'text-slate-500'}`}>
+                    O aluno lê perguntas ou enigmas e procura as respostas escondidas na grade.
                   </p>
                 </div>
-              )}
+              </div>
 
-              {/* MODO 3: DESAFIOS MATEMÁTICOS GERAIS */}
-              {gameModeType === 'math' && (
-                <div className="space-y-4 text-left">
-                  {/* Sub-tópico de Matemática */}
-                  <div className="bg-white p-4 rounded-xl border border-purple-200 space-y-3">
-                    <label className="text-xs font-black text-purple-900 uppercase tracking-wider block">Tópico de Matemática</label>
+              {/* Modo 3: Desafios Math */}
+              <div 
+                onClick={() => setGameModeType('math')}
+                className={`relative p-4 rounded-2xl cursor-pointer transition-all duration-200 flex items-start gap-3.5 border-2 ${
+                  gameModeType === 'math' 
+                    ? 'bg-gradient-to-br from-purple-50 to-fuchsia-50 border-purple-500 shadow-md ring-2 ring-purple-400/20' 
+                    : 'bg-white border-slate-200/80 hover:border-purple-300 hover:bg-purple-50/20'
+                }`}
+              >
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  gameModeType === 'math' ? 'bg-purple-500 text-white shadow-xs' : 'bg-purple-100 text-purple-600'
+                }`}>
+                  <Calculator className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h4 className={`font-black text-sm ${gameModeType === 'math' ? 'text-purple-950' : 'text-slate-800'}`}>
+                      Desafios Matemáticos
+                    </h4>
+                    {gameModeType === 'math' && (
+                      <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0"></span>
+                    )}
+                  </div>
+                  <p className={`text-[11px] font-medium leading-snug mt-1 ${gameModeType === 'math' ? 'text-purple-900/80' : 'text-slate-500'}`}>
+                    O aluno resolve contas ou equações e procura o resultado na grade de números ou palavras.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Opções Específicas do Modo Matemática */}
+            {gameModeType === 'math' && (
+              <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50/50 p-4 rounded-2xl border border-purple-200/90 shadow-2xs space-y-3.5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Tópico de Matemática */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-purple-900 uppercase tracking-wider block">
+                      Tópico Matemático
+                    </label>
                     <select
                       value={mathSubtopic}
                       onChange={(e) => setMathSubtopic(e.target.value)}
-                      className="w-full bg-purple-50/60 border border-purple-300 rounded-xl p-2.5 text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                      className="w-full bg-white border border-purple-300 rounded-xl p-2.5 text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer shadow-2xs"
                     >
                       <option value="equacoes1">Equações do 1º Grau (ex: 2x + 4 = 10 ➔ x = ?)</option>
-                      <option value="equacoes2">Equações do 2º Grau & Bhaskara (ex: Delta Δ, raízes x1/x2)</option>
-                      <option value="decimais">Números Decimais, Frações & Porcentagens (ex: 0,25 + 0,75 ou 50%)</option>
-                      <option value="operacoes">Operações Numéricas Básicas (+, -, x, ÷)</option>
-                      <option value="custom_ai">Outro Tópico / Gerar via IA sobre "{topic || 'Matemática'}"</option>
+                      <option value="equacoes2">Equações do 2º Grau & Bhaskara (Delta, raízes)</option>
+                      <option value="decimais">Números Decimais, Frações & Porcentagens (ex: 0,25 + 0,75)</option>
+                      <option value="operacoes">Operações Numéricas Básicas (+, -, ×, ÷)</option>
+                      <option value="custom_ai">Outro Tópico / Gerar via IA sobre "{topicInput || topic || 'Matemática'}"</option>
                     </select>
-
-                    {/* Opção de Formato da Resposta */}
-                    <div className="pt-2 border-t border-purple-100 flex items-center justify-between gap-2 flex-wrap">
-                      <span className="text-xs font-bold text-purple-900">Formato das Respostas no Grid:</span>
-                      <div className="flex bg-purple-100 p-1 rounded-lg gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setMathAnswerFormat('text_words')}
-                          className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${
-                            mathAnswerFormat === 'text_words' 
-                              ? 'bg-purple-600 text-white shadow-2xs font-black' 
-                              : 'text-purple-700 hover:bg-purple-200'
-                          }`}
-                        >
-                          Por Extenso (Letras)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setMathAnswerFormat('numeric')}
-                          className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${
-                            mathAnswerFormat === 'numeric' 
-                              ? 'bg-purple-600 text-white shadow-2xs font-black' 
-                              : 'text-purple-700 hover:bg-purple-200'
-                          }`}
-                        >
-                          Dígitos (0-9)
-                        </button>
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Opções específicas se operacoes */}
-                  {mathSubtopic === 'operacoes' && (
-                    <div className="bg-white p-4 rounded-xl border border-brown-200 space-y-3">
-                      <label className="text-xs font-bold text-brown-700 block">Operações Incluídas</label>
-                      <div className="flex flex-wrap gap-2">
-                        {[{id: '+', label: 'Adição (+)'}, {id: '-', label: 'Subtração (-)'}, {id: '*', label: 'Multiplicação (x)'}, {id: '/', label: 'Divisão (÷)'}].map(op => (
-                          <label key={op.id} className="flex items-center gap-2 bg-brown-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-brown-100 border border-brown-200 transition-colors text-xs font-semibold text-brown-800">
-                            <input 
-                              type="checkbox"
-                              checked={mathOperations.includes(op.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) setMathOperations([...mathOperations, op.id]);
-                                else setMathOperations(mathOperations.filter(o => o !== op.id));
-                              }}
-                              className="rounded border-brown-300 text-brown-600 focus:ring-brown-500"
-                            />
-                            <span>{op.label}</span>
-                          </label>
-                        ))}
-                      </div>
+                  {/* Formato das Respostas */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-purple-900 uppercase tracking-wider block">
+                      Formato das Respostas no Caça-Palavras
+                    </label>
+                    <div className="flex bg-white p-1 rounded-xl border border-purple-300 gap-1 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => setMathAnswerFormat('text_words')}
+                        className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                          mathAnswerFormat === 'text_words' 
+                            ? 'bg-purple-600 text-white shadow-xs font-black' 
+                            : 'text-purple-800 hover:bg-purple-50'
+                        }`}
+                      >
+                        ✍️ Por Extenso (Letras)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMathAnswerFormat('numeric')}
+                        className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                          mathAnswerFormat === 'numeric' 
+                            ? 'bg-purple-600 text-white shadow-xs font-black' 
+                            : 'text-purple-800 hover:bg-purple-50'
+                        }`}
+                      >
+                        🔢 Dígitos (0-9)
+                      </button>
                     </div>
-                  )}
+                  </div>
                 </div>
-              )}
+
+                {/* Operações se operacoes básicas */}
+                {mathSubtopic === 'operacoes' && (
+                  <div className="pt-2 border-t border-purple-200/60 flex items-center justify-between gap-3 flex-wrap">
+                    <span className="text-xs font-bold text-purple-900">Operações incluídas:</span>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: '+', label: '+ Adição' },
+                        { id: '-', label: '− Subtração' },
+                        { id: '*', label: '× Multiplicação' },
+                        { id: '/', label: '÷ Divisão' }
+                      ].map(op => {
+                        const active = mathOperations.includes(op.id);
+                        return (
+                          <button
+                            key={op.id}
+                            type="button"
+                            onClick={() => {
+                              if (active) setMathOperations(mathOperations.filter(o => o !== op.id));
+                              else setMathOperations([...mathOperations, op.id]);
+                            }}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
+                              active
+                                ? 'bg-purple-600 text-white border-purple-700 shadow-2xs font-black'
+                                : 'bg-white border-purple-200 text-purple-800 hover:bg-purple-50'
+                            }`}
+                          >
+                            {op.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* PAINEL GLOBAL DE IA DRÁCKER */}
+            <div className="w-full">
+              <GlobalAIGeneratorPanel
+                itemTypeLabel={
+                  gameModeType === 'clues' 
+                    ? 'perguntas e desafios' 
+                    : gameModeType === 'math' 
+                      ? 'desafios de matemática' 
+                      : 'caça-palavras'
+                }
+                topic={topicInput}
+                onTopicChange={setTopicInput}
+                context={lessonDetailsInput}
+                onContextChange={setLessonDetailsInput}
+                gradeLevel={gradeLevel}
+                onGradeLevelChange={setGradeLevel}
+                itemCount={itemCount}
+                onItemCountChange={setItemCount}
+                itemCountOptions={[6, 8, 10, 12, 15]}
+                difficultyDist={difficultyDist}
+                onDifficultyDistChange={setDifficultyDist}
+                onGenerate={handleStartWordsearch}
+                isGenerating={isLoading}
+                collapsible={true}
+                defaultExpanded={true}
+              />
             </div>
 
-            <Button
-              onClick={() => handleStartWordsearch()}
-              className="px-8 py-3.5 text-base font-bold shadow-xl hover:scale-105"
-              icon={Play}
-            >
-              Criar Caça-Palavras
-            </Button>
+            {/* Opção Manual / Sem IA */}
+            <div className="pt-1 flex justify-center">
+              <button
+                type="button"
+                onClick={handleManualMode}
+                className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-white px-4 py-2 rounded-xl border border-slate-200 hover:border-slate-300 shadow-2xs flex items-center gap-2 transition-all cursor-pointer"
+              >
+                <span>✏️ Prefiro Montar Manualmente (Sem Inteligência Artificial)</span>
+              </button>
+            </div>
           </div>
         )}
 

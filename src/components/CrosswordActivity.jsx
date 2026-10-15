@@ -10,6 +10,7 @@ import { Input, Select, TextArea } from './ui/Input';
 import { Modal } from './ui/Modal';
 import { ActivityPrintHeader } from './ui/ActivityPrintHeader';
 import { LatexRenderer } from './ui/LatexRenderer';
+import { PrintFontSizeControl } from './ui/PrintFontSizeControl';
 import { formatMs } from '../utils/time';
 import { toast } from './ui/Toast';
 
@@ -27,8 +28,8 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
     const [showRanking, setShowRanking] = useState(false);
     const [showSolution, setShowSolution] = useState(false);
     const [isCompleted, setIsCompleted] = useState(false);
-    const [textFontSize, setTextFontSize] = useState(data?.textFontSize || data?.fontSizePx || 14);
-    const [mathFontSize, setMathFontSize] = useState(data?.mathFontSize || data?.fontSizePx || 18);
+    const [textFontSize, setTextFontSize] = useState(data?.textFontSize || data?.fontSizePx || 15.5);
+    const [mathFontSize, setMathFontSize] = useState(data?.mathFontSize || data?.fontSizePx || 19);
 
     const displayTopic = topic || data?.topic || "Palavras Cruzadas";
 
@@ -457,7 +458,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
     // Função para re-gerar posição das palavras
     const regenerateLayout = () => {
         // Usa apenas words com clues, ignora posições atuais
-        const cleanList = words.map(w => ({ word: w.word, clue: w.clue }));
+        const cleanList = words.map(w => ({ word: w.word, clue: w.clue, originalWord: w.originalWord }));
         const result = generateCrossword(cleanList, gridSize);
 
         // Renumera
@@ -482,7 +483,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
 
         // Limpa posições para forçar regeração inteligente se quiser, 
         // ou tenta só posicionar ? Melhor regenerar tudo para otimizar espaço.
-        const cleanList = updatedList.map(w => ({ word: w.word, clue: w.clue }));
+        const cleanList = updatedList.map(w => ({ word: w.word, clue: w.clue, originalWord: w.originalWord }));
 
         const result = generateCrossword(cleanList, gridSize);
         if (result.words.length < cleanList.length) {
@@ -508,7 +509,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
         setEditingIndices(newSet);
 
         // Regenera para fechar buracos
-        const cleanList = newList.map(w => ({ word: w.word, clue: w.clue }));
+        const cleanList = newList.map(w => ({ word: w.word, clue: w.clue, originalWord: w.originalWord }));
         const result = generateCrossword(cleanList, gridSize);
         const placedWithNum = result.words.map((w, i) => ({ ...w, num: i + 1 }));
 
@@ -563,36 +564,20 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                             • {words.length} palavras na grade
                         </span>
                         <div className="flex flex-wrap items-center gap-2">
-                            <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
-                                <span>📝 Texto:</span>
-                                <select
-                                    value={textFontSize}
-                                    onChange={(e) => setTextFontSize(Number(e.target.value))}
-                                    className="bg-slate-50 border border-slate-300 rounded px-1 py-0.5 text-xs font-black text-brown-900 cursor-pointer focus:outline-none"
-                                >
-                                    <option value={12}>12 px</option>
-                                    <option value={14}>14 px (Padrão)</option>
-                                    <option value={16}>16 px</option>
-                                    <option value={18}>18 px</option>
-                                    <option value={20}>20 px</option>
-                                    <option value={24}>24 px</option>
-                                </select>
-                            </div>
-                            <div className="flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
-                                <span>🧮 Fórmula:</span>
-                                <select
-                                    value={mathFontSize}
-                                    onChange={(e) => setMathFontSize(Number(e.target.value))}
-                                    className="bg-slate-50 border border-slate-300 rounded px-1 py-0.5 text-xs font-black text-brown-900 cursor-pointer focus:outline-none"
-                                >
-                                    <option value={14}>14 px</option>
-                                    <option value={16}>16 px</option>
-                                    <option value={18}>18 px (Padrão)</option>
-                                    <option value={20}>20 px</option>
-                                    <option value={24}>24 px</option>
-                                    <option value={28}>28 px</option>
-                                </select>
-                            </div>
+                            <PrintFontSizeControl
+                                value={textFontSize}
+                                onChange={(val) => {
+                                    setTextFontSize(val);
+                                    setMathFontSize(Math.round(val * 1.25));
+                                    if (onUpdate && data) {
+                                        onUpdate({ ...data, textFontSize: val, mathFontSize: Math.round(val * 1.25) });
+                                    }
+                                }}
+                                min={13}
+                                max={28}
+                                step={1.5}
+                                label="Tamanho"
+                            />
                         </div>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap ml-auto">
@@ -625,7 +610,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                     pills={[`📝 ${words.length} Palavras`]}
                 />
 
-                <Card className="w-full flex flex-col items-center bg-transparent border-none shadow-none print:shadow-none print:border-none print:bg-transparent p-2 sm:p-4 print:p-0 print:m-0 print:mb-6">
+                <div className="dracker-print-card w-full flex flex-col items-center bg-white border-2 border-slate-300 rounded-2xl shadow-none p-4 sm:p-6 mb-6 break-inside-avoid print:border-black print:shadow-none">
                     <div
                         className="grid gap-0 bg-transparent p-0 rounded print:bg-transparent print:!gap-0 print:!p-0 print:!shadow-none print:!border-none mx-auto"
                         style={{
@@ -642,7 +627,7 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                                 return (
                                     <div
                                         key={`${cx}-${cy}`}
-                                        className={`relative ${printCellSize} flex items-center justify-center bg-white shadow-sm print:shadow-none transition-all`}
+                                        className={`relative ${printCellSize} flex items-center justify-center bg-white shadow-none print:shadow-none transition-all`}
                                         style={{ 
                                             printColorAdjust: 'exact', 
                                             WebkitPrintColorAdjust: 'exact',
@@ -653,11 +638,17 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                                         }}
                                     >
                                         {cell.num && (
-                                            <span className={`absolute top-[2px] left-[3px] ${printNumSize} font-black text-slate-800 leading-none pointer-events-none print:text-black z-20`}>
+                                            <span 
+                                                className="absolute top-[2px] left-[3px] font-black text-slate-800 leading-none pointer-events-none print:text-black z-20"
+                                                style={{ fontSize: `${Math.max(9, Math.round(textFontSize * 0.65))}px` }}
+                                            >
                                                 {cell.num}
                                             </span>
                                         )}
-                                        <span className={`${printFontSize} font-black uppercase ${showSolution ? 'text-slate-900 print:text-black' : 'text-transparent print:text-transparent'}`}>
+                                        <span 
+                                            className={`font-black uppercase ${showSolution ? 'text-slate-900 print:text-black' : 'text-transparent print:text-transparent'}`}
+                                            style={{ fontSize: `${Math.max(14, Math.round(textFontSize * 1.15))}px` }}
+                                        >
                                             {showSolution ? cell.char : ''}
                                         </span>
                                     </div>
@@ -665,39 +656,133 @@ export const CrosswordActivity = ({ data, topic, apiKey, onUpdate, isGameMode, o
                             })
                         ))}
                     </div>
-                </Card>
+                </div>
 
                 {/* Clues Section - Two columns on print to save vertical space */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full print:grid-cols-2 print:gap-6 print:mt-4">
-                    <Card className="print:shadow-none print:border-none print:p-0 print:m-0">
-                        <h3 className="font-bold text-brown-900 mb-4 print:mb-4 flex items-center gap-2 text-lg print:text-base border-b border-brown-100 print:border-black pb-2 print:pb-1.5">
-                            <Badge variant="secondary" className="print:hidden">HORIZONTAIS</Badge>
-                            <span className="hidden print:inline font-black text-black">HORIZONTAIS</span>
-                        </h3>
-                        <ul className="space-y-3 print:space-y-2 text-sm print:text-[13px] print:leading-snug">
-                            {words.filter(w => w.dir === 'H').sort((a, b) => a.num - b.num).map(w => (
-                                <li key={w.num} className="flex items-start gap-3 print:gap-2">
-                                    <span className="font-black text-brown-600 print:text-black min-w-[1.5rem] print:min-w-[1.2rem] text-right">{w.num}.</span>
-                                    <LatexRenderer content={w.clue} mathFontSize={mathFontSize} textFontSize={textFontSize} className="text-brown-700 print:text-black font-medium flex-1 whitespace-normal break-normal hyphens-none" />
-                                </li>
-                            ))}
-                        </ul>
-                    </Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full print:grid-cols-2 print:gap-4 print:mt-4">
+                    <div 
+                        className="dracker-print-card bg-white border-2 border-slate-300 rounded-xl p-4 sm:p-5 shadow-none break-inside-avoid print:border-black print:shadow-none flex flex-col"
+                        style={{ '--qp-font-size': `${textFontSize}px` }}
+                    >
+                        <div className="dracker-card-head flex items-center justify-between border-b border-slate-200 pb-2.5 mb-3 break-inside-avoid">
+                            <span className="font-black text-slate-900 flex items-center gap-2 text-sm sm:text-base">
+                                <span className="w-6 h-6 rounded-full bg-slate-100 border border-slate-300 text-slate-800 flex items-center justify-center text-xs font-black">↔</span>
+                                PISTAS HORIZONTAIS
+                            </span>
+                            <span className="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200">
+                                {words.filter(w => w.dir === 'H').length} palavras
+                            </span>
+                        </div>
+                        <div className="space-y-2.5">
+                            {words.filter(w => w.dir === 'H').sort((a, b) => a.num - b.num).map(w => {
+                                const badgeSize = Math.max(22, Math.round(textFontSize * 1.45));
+                                const badgeFontSize = Math.max(10, Math.round(textFontSize * 0.72));
+                                const metaFontSize = Math.max(10, Math.round(textFontSize * 0.75));
 
-                    <Card className="print:shadow-none print:border-none print:p-0 print:m-0">
-                        <h3 className="font-bold text-brown-900 mb-4 print:mb-4 flex items-center gap-2 text-lg print:text-base border-b border-brown-100 print:border-black pb-2 print:pb-1.5">
-                            <Badge className="bg-brown-800 text-white border-none print:hidden">VERTICAIS</Badge>
-                            <span className="hidden print:inline font-black text-black">VERTICAIS</span>
-                        </h3>
-                        <ul className="space-y-3 print:space-y-2 text-sm print:text-[13px] print:leading-snug">
-                            {words.filter(w => w.dir === 'V').sort((a, b) => a.num - b.num).map(w => (
-                                <li key={w.num} className="flex items-start gap-3 print:gap-2">
-                                    <span className="font-black text-brown-800 print:text-black min-w-[1.5rem] print:min-w-[1.2rem] text-right">{w.num}.</span>
-                                    <LatexRenderer content={w.clue} mathFontSize={mathFontSize} textFontSize={textFontSize} className="text-brown-700 print:text-black font-medium flex-1 whitespace-normal break-normal hyphens-none" />
-                                </li>
-                            ))}
-                        </ul>
-                    </Card>
+                                return (
+                                    <div 
+                                        key={w.num} 
+                                        className="dracker-card-option flex items-start gap-2.5 bg-white border border-slate-200 print:border-slate-300 rounded-lg p-2.5 break-inside-avoid shadow-none"
+                                        style={{ fontSize: `${textFontSize}px` }}
+                                    >
+                                        <span 
+                                            className="dracker-card-num shrink-0 rounded-full bg-slate-800 text-white flex items-center justify-center font-black shadow-none print:bg-black print:text-white"
+                                            style={{ 
+                                                width: `${badgeSize}px`, 
+                                                height: `${badgeSize}px`, 
+                                                minWidth: `${badgeSize}px`, 
+                                                fontSize: `${badgeFontSize}px` 
+                                            }}
+                                        >
+                                            {w.num}
+                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                            <LatexRenderer 
+                                                content={w.clue} 
+                                                mathFontSize={mathFontSize} 
+                                                textFontSize={textFontSize} 
+                                                style={{ fontSize: `${textFontSize}px` }}
+                                                className="text-slate-900 font-semibold leading-snug block" 
+                                            />
+                                            <div 
+                                                className="font-bold text-slate-500 mt-1 flex items-center gap-2"
+                                                style={{ fontSize: `${metaFontSize}px` }}
+                                            >
+                                                <span>({w.word?.length || 0} letras)</span>
+                                                {showSolution && (
+                                                    <span className="text-emerald-700 font-black uppercase bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                                        Resposta: {w.originalWord || w.word}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div 
+                        className="dracker-print-card bg-white border-2 border-slate-300 rounded-xl p-4 sm:p-5 shadow-none break-inside-avoid print:border-black print:shadow-none flex flex-col"
+                        style={{ '--qp-font-size': `${textFontSize}px` }}
+                    >
+                        <div className="dracker-card-head flex items-center justify-between border-b border-slate-200 pb-2.5 mb-3 break-inside-avoid">
+                            <span className="font-black text-slate-900 flex items-center gap-2 text-sm sm:text-base">
+                                <span className="w-6 h-6 rounded-full bg-slate-100 border border-slate-300 text-slate-800 flex items-center justify-center text-xs font-black">↕</span>
+                                PISTAS VERTICAIS
+                            </span>
+                            <span className="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200">
+                                {words.filter(w => w.dir === 'V').length} palavras
+                            </span>
+                        </div>
+                        <div className="space-y-2.5">
+                            {words.filter(w => w.dir === 'V').sort((a, b) => a.num - b.num).map(w => {
+                                const badgeSize = Math.max(22, Math.round(textFontSize * 1.45));
+                                const badgeFontSize = Math.max(10, Math.round(textFontSize * 0.72));
+                                const metaFontSize = Math.max(10, Math.round(textFontSize * 0.75));
+
+                                return (
+                                    <div 
+                                        key={w.num} 
+                                        className="dracker-card-option flex items-start gap-2.5 bg-white border border-slate-200 print:border-slate-300 rounded-lg p-2.5 break-inside-avoid shadow-none"
+                                        style={{ fontSize: `${textFontSize}px` }}
+                                    >
+                                        <span 
+                                            className="dracker-card-num shrink-0 rounded-full bg-slate-800 text-white flex items-center justify-center font-black shadow-none print:bg-black print:text-white"
+                                            style={{ 
+                                                width: `${badgeSize}px`, 
+                                                height: `${badgeSize}px`, 
+                                                minWidth: `${badgeSize}px`, 
+                                                fontSize: `${badgeFontSize}px` 
+                                            }}
+                                        >
+                                            {w.num}
+                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                            <LatexRenderer 
+                                                content={w.clue} 
+                                                mathFontSize={mathFontSize} 
+                                                textFontSize={textFontSize} 
+                                                style={{ fontSize: `${textFontSize}px` }}
+                                                className="text-slate-900 font-semibold leading-snug block" 
+                                            />
+                                            <div 
+                                                className="font-bold text-slate-500 mt-1 flex items-center gap-2"
+                                                style={{ fontSize: `${metaFontSize}px` }}
+                                            >
+                                                <span>({w.word?.length || 0} letras)</span>
+                                                {showSolution && (
+                                                    <span className="text-emerald-700 font-black uppercase bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                                        Resposta: {w.originalWord || w.word}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
                 </div>
             </div>
         );

@@ -167,8 +167,8 @@ export const MusicGame = ({ musicData, onRestart, onExitToPrint }) => {
     if (!hasStarted && !isFinished) {
         return (
             <div className="space-y-4">
-                {/* Destaque da Playlist Oficial com Player Nativo */}
-                <SunoNativePlayer />
+                {/* Destaque da Playlist Oficial com Player Nativo Compacto */}
+                <SunoNativePlayer compact={true} />
 
                 <Card className="max-w-2xl mx-auto border-2 border-amber-200 shadow-xl overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-amber-100 rounded-bl-full opacity-50 -z-10 pointer-events-none"></div>
