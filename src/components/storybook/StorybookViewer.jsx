@@ -19,7 +19,8 @@ import {
     AlignCenter,
     AlignRight,
     AlignJustify,
-    Type
+    Type,
+    Copy
 } from 'lucide-react';
 import { toast } from '../ui/Toast';
 
@@ -223,6 +224,31 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
         toast(ytId ? 'Vídeo do YouTube e QR Code vinculados com sucesso!' : 'Imagem atualizada com sucesso!');
         setIsMediaModalOpen(false);
+    };
+
+    // Copiar todo o texto da página ativa (disponível somente no modo online/tela)
+    const handleCopyPageText = async () => {
+        if (!currentPage) return;
+        const parts = [];
+        if (currentPage.title) parts.push(currentPage.title);
+        if (currentPage.text) parts.push(currentPage.text);
+        if (currentPage.dialogue) parts.push(`"${currentPage.dialogue}"`);
+        if (currentPage.interactiveQuestion) parts.push(`Desafio de Atenção: ${currentPage.interactiveQuestion}`);
+
+        const fullText = parts.join('\n\n');
+        try {
+            await navigator.clipboard.writeText(fullText);
+            toast(`Texto da página ${currentPage.pageNumber} copiado para a área de transferência!`);
+        } catch {
+            // Fallback para ambientes restritos
+            const textArea = document.createElement('textarea');
+            textArea.value = fullText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            toast(`Texto da página ${currentPage.pageNumber} copiado!`);
+        }
     };
 
     // Imprimir o livro no navegador em modo A4 Paisagem direto (fiel às customizações e sem páginas em branco)
@@ -753,13 +779,25 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                                 {currentPage.title || `Capítulo ${currentPage.pageNumber}`}
                                             </h3>
                                         )}
-                                        <div className="flex flex-col items-center justify-center bg-white border border-stone-200/90 px-3 py-1 rounded-2xl shadow-2xs shrink-0 select-none leading-tight min-w-[54px]">
-                                            <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
-                                                Página
-                                            </span>
-                                            <span className="text-xs font-black text-stone-800">
-                                                {currentPage.pageNumber}
-                                            </span>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={handleCopyPageText}
+                                                className="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition-all cursor-pointer border border-transparent hover:border-stone-200 active:scale-95 shadow-2xs"
+                                                title={`Copiar todo o texto da Página ${currentPage.pageNumber}`}
+                                                aria-label={`Copiar texto da Página ${currentPage.pageNumber}`}
+                                            >
+                                                <Copy className="w-4 h-4 text-stone-600" />
+                                            </button>
+
+                                            <div className="flex flex-col items-center justify-center bg-white border border-stone-200/90 px-3 py-1 rounded-2xl shadow-2xs shrink-0 select-none leading-tight min-w-[54px]">
+                                                <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
+                                                    Página
+                                                </span>
+                                                <span className="text-xs font-black text-stone-800">
+                                                    {currentPage.pageNumber}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
 
