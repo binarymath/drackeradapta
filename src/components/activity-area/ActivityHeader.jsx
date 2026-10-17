@@ -245,6 +245,7 @@ export const ActivityHeader = ({
     };
 
     const NON_PRINTABLE_HEADER_TYPES = useMemo(() => [
+        'storybook',      // Livro Infantil (possui visualizador próprio com impressão nativa A4 paisagem 50/50 e controles dedicados)
         'simplify',       // Rádio Drácker (possui download próprio discreto de letras/questões na sua barra)
         'rpg',            // DetectiveRPG (jogo interativo)
         'memory',         // Jogo da Memória (possui prévia de impressão própria)
@@ -683,15 +684,19 @@ export const ActivityHeader = ({
                 {/* Modal do Guia Pedagógico de RPG */}
                 <RPGDocGuideModal isOpen={showRPGDocModal} onClose={() => setShowRPGDocModal(false)} />
 
-                <div className="h-6 w-px bg-brown-200 mx-1"></div>
+                {activityType !== 'storybook' && (
+                    <>
+                        <div className="h-6 w-px bg-brown-200 mx-1"></div>
 
-                <Button
-                    onClick={toggleFullWidth}
-                    variant="ghost"
-                    className="h-8 w-8 p-0 hover:bg-brown-100 text-brown-500"
-                    icon={isFullWidth ? Minimize2 : Maximize2}
-                    title={isFullWidth ? "Restaurar Visão" : "Expandir Tela"}
-                />
+                        <Button
+                            onClick={toggleFullWidth}
+                            variant="ghost"
+                            className="h-8 w-8 p-0 hover:bg-brown-100 text-brown-500"
+                            icon={isFullWidth ? Minimize2 : Maximize2}
+                            title={isFullWidth ? "Restaurar Visão" : "Expandir Tela"}
+                        />
+                    </>
+                )}
             </div>
         </div>
     );
