@@ -170,6 +170,81 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                    {/* Barra de Formatação e Edição Rápida (Idêntica ao layout desejado) */}
+                    <div className="flex items-center gap-2 bg-stone-50 border border-stone-200/90 rounded-xl p-1 shadow-2xs">
+                        {/* Controle de Fonte */}
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold text-stone-700">
+                            <span className="text-stone-400 font-semibold text-[11px] hidden sm:inline">Fonte:</span>
+                            <button
+                                type="button"
+                                onClick={() => setFontScale(prev => Math.max(90, prev - 10))}
+                                className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
+                                title="Diminuir fonte"
+                            >
+                                A-
+                            </button>
+                            <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[36px] text-center">
+                                {fontScale}%
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setFontScale(prev => Math.min(200, prev + 10))}
+                                className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
+                                title="Aumentar fonte"
+                            >
+                                A+
+                            </button>
+                        </div>
+
+                        {/* Alinhamentos */}
+                        <div className="flex items-center gap-0.5 border-l border-stone-200 pl-1">
+                            <button
+                                type="button"
+                                onClick={() => setTextAlign('left')}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'left' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                title="Alinhar à esquerda"
+                            >
+                                <AlignLeft className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setTextAlign('center')}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'center' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                title="Centralizar texto"
+                            >
+                                <AlignCenter className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setTextAlign('right')}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'right' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                title="Alinhar à direita"
+                            >
+                                <AlignRight className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setTextAlign('justify')}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'justify' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                title="Justificar texto"
+                            >
+                                <AlignJustify className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+
+                        {/* Botão de Edição Lápis */}
+                        <div className="border-l border-stone-200 pl-1">
+                            <button
+                                type="button"
+                                onClick={() => setIsEditingText(prev => !prev)}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${isEditingText ? 'bg-amber-500 text-white shadow-2xs' : 'text-indigo-600 hover:bg-indigo-50'}`}
+                                title={isEditingText ? 'Concluir edição' : 'Editar texto da história'}
+                            >
+                                {isEditingText ? <Check className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Botão de Tela Cheia 100% */}
                     <button
                         onClick={() => setIsFullscreen(prev => !prev)}
@@ -184,7 +259,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         ) : (
                             <>
                                 <Maximize2 className="w-3.5 h-3.5 text-stone-600" />
-                                <span className="hidden sm:inline">100% da Tela</span>
+                                <span className="hidden sm:inline">100% Tela</span>
                             </>
                         )}
                     </button>
@@ -196,7 +271,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         title="Imprimir todas as páginas em A4 Paisagem"
                     >
                         <Printer className="w-3.5 h-3.5 text-amber-900" />
-                        <span className="hidden sm:inline">Imprimir Livro (A4 Paisagem)</span>
+                        <span className="hidden sm:inline">Imprimir (A4 Paisagem)</span>
                         <span className="sm:hidden">Imprimir</span>
                     </button>
                 </div>
@@ -556,16 +631,6 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                             alt={`Página ${currentPage.pageNumber}`} 
                                             className="w-full h-full max-h-[85vh] object-contain rounded-2xl border border-stone-200 shadow-2xs"
                                         />
-                                        {/* Botão de Play se for vídeo do YouTube */}
-                                        {currentPage.videoUrl && (
-                                            <button
-                                                onClick={() => setIsPlayingVideo(true)}
-                                                className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-red-600/90 hover:bg-red-600 text-white shadow-xl flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 cursor-pointer z-10 group-hover:scale-105"
-                                                title="Assistir ao vídeo do YouTube"
-                                            >
-                                                <Play className="w-8 h-8 fill-current ml-1" />
-                                            </button>
-                                        )}
                                         {/* Botão de Play se for vídeo do YouTube */}
                                         {currentPage.videoUrl && (
                                             <button
