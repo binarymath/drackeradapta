@@ -1013,6 +1013,141 @@ IMPORTANTE: Retorne APENAS o JSON (array de 20 objetos), sem markdown (\`\`\`jso
 
     return chunks.length ? chunks : (text ? [text.slice(0, maxLen)] : []);
   }
+
+  /**
+   * Gera imagem utilizando o modelo Imagen 3 do Google AI Studio com a mesma API Key
+   */
+  async generateImageWithImagen(prompt, options = {}) {
+    if (!this.apiKey) {
+      throw new Error('Chave de API não informada.');
+    }
+
+    const {
+      aspectRatio = '1:1', // '1:1', '3:4', '4:3', '16:9'
+      numberOfImages = 1,
+      safetyFilterLevel = 'block_medium_and_above',
+      personGeneration = 'ALLOW_ADULT'
+    } = options;
+
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${this.apiKey}`;
+
+    const requestBody = {
+      instances: [{ prompt }],
+      parameters: {
+        sampleCount: numberOfImages,
+        aspectRatio: aspectRatio,
+        safetySetting: safetyFilterLevel,
+        personGeneration: personGeneration
+      }
+    };
+
+    try {
+      this.reportStatus('generating_image', 'Gerando ilustração com Imagen 3...');
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.warn('[GeminiService] Falha na chamada do Imagen 3:', errorData);
+        throw new Error(errorData?.error?.message || `Erro HTTP ${response.status} ao gerar imagem.`);
+      }
+
+      const data = await response.json();
+      const base64Bytes = data?.predictions?.[0]?.bytesBase64Encoded;
+
+      if (!base64Bytes) {
+        throw new Error('Nenhuma imagem retornada pelo modelo Imagen 3.');
+      }
+
+      return `data:image/jpeg;base64,${base64Bytes}`;
+    } catch (err) {
+      console.error('[GeminiService] Erro ao gerar imagem:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Transforma uma conversa com o Drácker em um livro infantil estruturado
+   */
+  async generateStorybookFromChat(chatHistory = []) {
+    if (!this.apiKey) {
+      throw new Error('Chave de API não informada.');
+    }
+
+    const conversationText = chatHistory
+      .map(m => `${m.role === 'user' ? 'PROFESSOR' : 'DRÁCKER'}: ${m.parts?.map(p => p.text).join(' ')}`)
+      .join('\n\n');
+
+    const prompt = `Você é um autor premiado de literatura infantil e especialista em metodologias ativas pedagógicas do sistema "Drácker Adapta".
+Sua tarefa é analisar a conversa pedagógica abaixo entre um professor e o mascote Drácker (o dragãozinho marrom aventureiro da floresta encantada) e transformá-la em um LIVRO INFANTIL ILUSTRADO COMPLETO (6 a 8 páginas).
+
+CONVERSA DE ORIGEM:
+"""
+${conversationText}
+"""
+
+REGRAS OBRIGATÓRIAS DO LIVRO:
+1. Personagens principais: Drácker (dragão marrom bonzinho e curioso) e sua turma mágica da floresta (a sábia Coruja, o ágil Esquilo, a esperta Raposa e o fofinho Coelho).
+2. O livro deve ensinar de forma lúdica, divertida e encantadora o tema discutido na conversa.
+3. Cada página deve conter:
+   - "pageNumber": número da página (1 a N).
+   - "title": título do capítulo/página.
+   - "text": narrativa fluida, calorosa e comovente para crianças (2 a 4 parágrafos curtos, excelente para leitura em voz alta).
+   - "dialogue": fala marcante de um dos personagens na cena.
+   - "interactiveQuestion": uma pergunta para a criança interagir durante a leitura (ex: "Você consegue contar quantos galhos têm na árvore?").
+   - "imagePrompt": prompt em inglês detalhado no estilo "children's storybook illustration, cute 3D cartoon style, enchanted forest, friendly brown dragon named Drácker, colorful, soft daylight, warm palette, high quality".
+4. Retorne ESTRITAMENTE um objeto JSON válido, sem cercas de markdown extras ou comentários.
+
+FORMATO JSON ESPERADO:
+{
+  "title": "Título Incrível do Livro",
+  "subtitle": "Uma aventura com o Drácker e a Turma da Floresta",
+  "theme": "Tema abordado (ex: Frações, Ciências, Amizade)",
+  "targetAge": "6 a 10 anos",
+  "synopsis": "Breve sinopse cativante da história.",
+  "moralLesson": "Mensagem positiva e lição de aprendizado do livro.",
+  "cover": {
+    "title": "Título do Livro",
+    "subtitle": "Subtítulo lúdico",
+    "imagePrompt": "Children's storybook cover illustration, cute brown dragon Drácker holding a magical glowing pedagogical object in fairy woodland, vibrant joyful colors, masterwork"
+  },
+  "pages": [
+    {
+      "pageNumber": 1,
+      "title": "O Despertar da Curiosidade",
+      "text": "Texto da página...",
+      "dialogue": "Fala de personagem...",
+      "interactiveQuestion": "Pergunta interativa...",
+      "imagePrompt": "Prompt em inglês..."
+    }
+  ],
+  "backCover": {
+    "summary": "Resumo da contracapa...",
+    "activity": "Desafio de desenho ou brincadeira para fazer depois da leitura"
+  }
+}`;
+
+    try {
+      this.reportStatus('generating_storybook', 'Estruturando Livro Infantil com o Gemini...');
+      const responseText = await this.generateText(prompt, {
+        temperature: 0.7,
+        maxOutputTokens: 8192
+      });
+
+      const parsed = safeJSONParse(responseText);
+      if (!parsed || !parsed.title || !parsed.pages) {
+        throw new Error('A resposta da IA não gerou a estrutura esperada do livro infantil.');
+      }
+
+      return parsed;
+    } catch (err) {
+      console.error('[GeminiService] Erro ao gerar livro infantil:', err);
+      throw err;
+    }
+  }
 }
 
 // Factory function para criar instância do serviço

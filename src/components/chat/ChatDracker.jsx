@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, Copy, Check, PlusCircle, Play, Music } from 'lucide-react';
+import { Send, Loader2, Copy, Check, PlusCircle, Play, Music, BookOpen, Sparkles } from 'lucide-react';
 import { useGemini } from '../../contexts/GeminiContext';
 import { useActivity } from '../../contexts/ActivityContext';
+import { toast } from '../ui/Toast';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -14,6 +15,7 @@ export const ChatDracker = () => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [isGeneratingBook, setIsGeneratingBook] = useState(false);
     const [copiedIndex, setCopiedIndex] = useState(null);
     const messagesEndRef = useRef(null);
 
@@ -137,7 +139,39 @@ Não use respostas longas demais a menos que seja solicitado. Seja prático.`;
         }
     };
 
+    const handleGenerateStorybook = async () => {
+        if (!apiKey) {
+            toast('Por favor, configure sua Chave de API nas configurações antes de criar o livro.');
+            return;
+        }
 
+        if (messages.length < 2) {
+            toast('Converse um pouquinho mais com o Drácker antes de criar o livro infantil!');
+            return;
+        }
+
+        try {
+            setIsGeneratingBook(true);
+            toast('O Drácker e a Coruja estão escrevendo o Livro Infantil... Aguarde um instante!');
+            
+            const storybookData = await geminiService.generateStorybookFromChat(messages);
+            
+            if (addActivityTab) {
+                addActivityTab({
+                    type: 'storybook',
+                    title: storybookData.title ? `Livro: ${storybookData.title}` : 'Livro Infantil do Drácker',
+                    content: storybookData.synopsis || 'Livro Infantil Ilustrado do Drácker',
+                    storybookData: storybookData
+                });
+                toast('Livro Infantil criado com sucesso!');
+            }
+        } catch (error) {
+            console.error('Erro ao gerar livro infantil:', error);
+            toast(`Erro ao criar livro: ${error.message || 'Tente novamente.'}`);
+        } finally {
+            setIsGeneratingBook(false);
+        }
+    };
 
     return (
         <div className="flex flex-col h-[calc(100vh-95px)] min-h-[640px] w-full bg-gradient-to-b from-[#fdfbf7] via-[#faf6ef] to-[#f5ede4] rounded-3xl overflow-hidden border border-brown-200/70 shadow-2xl relative">
@@ -156,14 +190,41 @@ Não use respostas longas demais a menos que seja solicitado. Seja prático.`;
                         <span className="text-xs text-brown-500 font-semibold hidden sm:inline">Seu companheiro de expedições e metodologias pedagógicas</span>
                     </div>
                 </div>
-                <button
-                    onClick={handleNewChat}
-                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-brown-800 bg-white hover:bg-brown-100/80 rounded-xl transition-all border border-brown-300 shadow-xs cursor-pointer active:scale-95"
-                    title="Iniciar nova conversa do zero"
-                >
-                    <PlusCircle className="w-4 h-4 text-amber-600" />
-                    <span>Nova Conversa</span>
-                </button>
+                
+                <div className="flex items-center gap-2">
+                    {/* Botão de Criação de Livro Infantil */}
+                    <button
+                        onClick={handleGenerateStorybook}
+                        disabled={isGeneratingBook || messages.length < 2}
+                        className={`flex items-center gap-1.5 px-4 py-2 text-xs font-black rounded-xl shadow-xs transition-all cursor-pointer active:scale-95 ${
+                            messages.length >= 2
+                                ? 'bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-500 text-white hover:brightness-110 shadow-amber-600/20'
+                                : 'bg-brown-100 text-brown-400 opacity-60 cursor-not-allowed border border-brown-200'
+                        }`}
+                        title="Transformar esta conversa pedagógica em um Livro Infantil Ilustrado"
+                    >
+                        {isGeneratingBook ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                <span>Criando Livro...</span>
+                            </>
+                        ) : (
+                            <>
+                                <BookOpen className="w-4 h-4 text-amber-200" />
+                                <span>Gerar Livro Infantil</span>
+                            </>
+                        )}
+                    </button>
+
+                    <button
+                        onClick={handleNewChat}
+                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-brown-800 bg-white hover:bg-brown-100/80 rounded-xl transition-all border border-brown-300 shadow-xs cursor-pointer active:scale-95"
+                        title="Iniciar nova conversa do zero"
+                    >
+                        <PlusCircle className="w-4 h-4 text-amber-600" />
+                        <span>Nova Conversa</span>
+                    </button>
+                </div>
             </div>
 
             {/* Main Chat Area - Leitura Ampla, Fluida e Altura Total */}

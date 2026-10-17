@@ -30,7 +30,8 @@ const {
     trading_cards: TradingCardMaker,
     number_line: NumberLineMaker,
     fractions: FractionsMaker,
-    roulette: RouletteActivity
+    roulette: RouletteActivity,
+    storybook: StorybookViewer
 } = ActivityRegistry;
 
 const ActivityLoadingFallback = () => (
@@ -546,6 +547,16 @@ export const ActivityArea = ({
                                 <FractionsMaker key={activeTabId || 'new_fractions'} />
                             ) : activityType === 'roulette' ? (
                                 <RouletteActivity key={activeTabId || 'new_roulette'} />
+                            ) : activityType === 'storybook' ? (
+                                <StorybookViewer 
+                                    key={activeTabId || 'new_storybook'} 
+                                    data={activeActivity?.storybookData || activeActivity?.data || {}} 
+                                    onUpdate={(updatedData) => {
+                                        if (updateActivityData && activeTabId) {
+                                            updateActivityData(activeTabId, { storybookData: updatedData });
+                                        }
+                                    }}
+                                />
                             ) : activityType === 'summary' && drackerData ? (
                                 <DrackerSummaryRenderer data={drackerData} title={activityTitle} />
                             ) : (
