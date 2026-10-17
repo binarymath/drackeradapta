@@ -102,7 +102,7 @@ export const Header = ({
 
     return (
         <header className={`sticky top-4 z-50 no-print ${className || ''}`}>
-            <div className="mx-2 sm:mx-4 md:mx-6 px-3 sm:px-4 md:px-6 min-h-[4rem] h-auto flex flex-col md:flex-row md:items-center justify-between bg-white/95 backdrop-blur-md shadow-md border-2 border-slate-100 rounded-[2rem] py-2 md:py-0 gap-2">
+            <div className="mx-2 sm:mx-4 md:mx-6 px-3 sm:px-4 md:px-6 h-16 flex flex-row items-center justify-between bg-white/95 backdrop-blur-md shadow-md border-2 border-slate-100 rounded-[2rem] gap-2 flex-nowrap">
 
                 {/* Left Side: Logo & Mobile API Status */}
                 <div className="flex items-center justify-between w-full md:w-auto gap-2 sm:gap-3">
@@ -110,10 +110,12 @@ export const Header = ({
                     <div className="flex items-center gap-2.5 sm:gap-3 text-brown-900 min-w-0">
                         <img src="/dracker_character.png" alt="Drácker Logo" className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain drop-shadow-md hover:scale-110 transition-transform duration-300 shrink-0" />
                         <div className="min-w-0">
-                            <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
-                                <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight leading-none font-handwritten truncate">Dracker AdaptAI</h1>
-                                <OfficialClassHeaderButton />
-                                <StudentActivityHeaderButton />
+                            <div className="flex items-center gap-2 sm:gap-2.5 flex-nowrap">
+                                <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight leading-none font-handwritten truncate whitespace-nowrap">Dracker AdaptAI</h1>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    <OfficialClassHeaderButton />
+                                    <StudentActivityHeaderButton />
+                                </div>
                             </div>
                             {/* API Status Badge - Mobile Compact */}
                             <div className="flex md:hidden mt-0.5">
@@ -164,55 +166,62 @@ export const Header = ({
                 </div>
 
                 {/* Right Side: Desktop & Tablet Controls & Action Buttons */}
-                <div className="hidden md:flex items-center gap-2 lg:gap-3 flex-wrap justify-end">
+                <div className="hidden md:flex items-center gap-1.5 lg:gap-2.5 shrink-0 flex-nowrap">
                     {/* Botão de API Key em Destaque */}
                     <button 
                         onClick={() => setShowSettings(true)}
-                        className="mr-1 flex items-center group relative cursor-pointer"
+                        className="flex items-center group relative cursor-pointer shrink-0"
                         title="Configurar Chave API Gemini"
                     >
                         {apiKeyStatus === 'valid' ? (
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100/50 border border-green-300 text-green-800 text-xs font-bold transition-all group-hover:bg-green-100 group-hover:border-green-400 group-hover:shadow-sm">
-                                <CheckCircle className="w-3.5 h-3.5 text-green-600" />
-                                <span className="group-hover:hidden transition-all">API OK</span>
-                                <span className="hidden group-hover:inline transition-all">Trocar API</span>
+                            <div className="flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-full bg-green-100/60 border border-green-300 text-green-800 text-xs font-bold transition-all group-hover:bg-green-100 group-hover:border-green-400 group-hover:shadow-sm">
+                                <CheckCircle className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                                <span className="hidden xl:inline">API OK</span>
                             </div>
                         ) : apiKeyStatus === 'validating' ? (
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-100/80 border border-yellow-300 text-yellow-800 text-xs font-bold shadow-xs">
-                                <Loader2 className="w-3.5 h-3.5 animate-spin text-yellow-600" />
-                                <span>Verificando...</span>
+                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-yellow-100/80 border border-yellow-300 text-yellow-800 text-xs font-bold shadow-xs">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-yellow-600 shrink-0" />
+                                <span className="hidden xl:inline">Verificando...</span>
                             </div>
                         ) : (
-                            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 text-white border-2 border-rose-400 text-xs sm:text-sm font-black shadow-lg shadow-rose-500/30 animate-pulse group-hover:animate-none group-hover:brightness-110 group-hover:shadow-xl transition-all group-hover:-translate-y-0.5">
-                                <Key className="w-4 h-4 text-amber-200" />
-                                <span className="tracking-wide">Inserir Chave de API</span>
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 text-white border border-rose-400 text-xs font-black shadow-md shadow-rose-500/20 animate-pulse group-hover:animate-none group-hover:brightness-110 transition-all">
+                                <Key className="w-3.5 h-3.5 text-amber-200 shrink-0" />
+                                <span className="tracking-wide hidden lg:inline">Inserir Chave API</span>
+                                <span className="tracking-wide lg:hidden">API</span>
                             </div>
                         )}
                     </button>
                     
-                    <AudioControls />
-                    <SystemControls />
+                    <div className="shrink-0">
+                        <AudioControls />
+                    </div>
+                    
+                    <div className="shrink-0">
+                        <SystemControls />
+                    </div>
 
-                    <div className="w-px h-8 bg-brown-200 mx-1"></div>
+                    <div className="w-px h-6 bg-brown-200 mx-0.5 shrink-0"></div>
 
+                    {/* Botão Workspace sempre em linha */}
                     <Button
                         onClick={() => onOpenBackupCenter ? onOpenBackupCenter('timeline') : onBackup()}
                         variant="ghost"
-                        className="group flex items-center px-3.5 lg:px-4 py-2.5 rounded-[1.25rem] text-xs lg:text-sm font-black bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20 border-b-[3px] border-indigo-800 hover:-translate-y-0.5 hover:shadow-lg transition-all active:translate-y-0 active:border-b-0 whitespace-nowrap flex-shrink-0"
+                        className="group flex items-center px-3 lg:px-4 py-2 rounded-xl text-xs lg:text-sm font-black bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm shadow-indigo-500/20 border-b-2 border-indigo-800 hover:-translate-y-0.5 hover:shadow-md transition-all active:translate-y-0 active:border-b-0 whitespace-nowrap shrink-0"
                         title="Gerenciador de Workspace e Histórico"
                     >
-                        <FolderTree className="w-4 h-4 mr-1.5 lg:mr-2 text-indigo-200 group-hover:text-white transition-all duration-500" /> 
-                        <span>Workspace</span>
+                        <FolderTree className="w-4 h-4 mr-1 lg:mr-1.5 text-indigo-200 group-hover:text-white transition-all shrink-0" /> 
+                        <span className="hidden sm:inline">Workspace</span>
                     </Button>
 
                     {!hideAtividadesButton && (
                         <button
                             onClick={onOpenDashboard}
-                            className="flex items-center justify-center gap-1.5 lg:gap-2 px-4 lg:px-5 py-2.5 rounded-[1.25rem] bg-brown-900 hover:bg-brown-950 text-white text-xs lg:text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all border border-brown-800 shrink-0 group"
+                            className="flex items-center justify-center gap-1.5 px-3 lg:px-4 py-2 rounded-xl bg-brown-900 hover:bg-brown-950 text-white text-xs lg:text-sm font-extrabold shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all border border-brown-800 shrink-0 whitespace-nowrap group cursor-pointer"
                             title="Ver Minhas Atividades"
                         >
-                            <LayoutGrid className="w-4 h-4 lg:w-5 lg:h-5 text-amber-300 group-hover:scale-110 transition-transform" />
-                            <span className="tracking-wide">Minhas Atividades</span>
+                            <LayoutGrid className="w-4 h-4 text-amber-300 group-hover:scale-110 transition-transform shrink-0" />
+                            <span className="tracking-wide hidden xl:inline">Minhas Atividades</span>
+                            <span className="tracking-wide xl:hidden">Atividades</span>
                         </button>
                     )}
                 </div>
