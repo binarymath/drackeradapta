@@ -382,28 +382,29 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 </button>
                             </div>
 
-                            {/* Texto de Capa Limpo */}
-                            <div className="flex-1 p-6 sm:p-10 md:p-12 flex flex-col justify-between bg-white text-stone-900 overflow-y-auto">
+                            {/* Texto de Capa Fluido e Equilibrado */}
+                            <div className="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-center bg-white text-stone-900 overflow-y-auto">
                                 <div className="flex flex-col gap-3">
                                     <span className="text-[11px] font-black uppercase tracking-wider border border-stone-300 text-stone-600 px-3 py-1 rounded-md self-start">
                                         {book.theme || 'História Pedagógica'}
                                     </span>
-                                    <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-stone-950 font-serif leading-tight">
+                                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-stone-950 font-serif leading-tight">
                                         {book.title}
                                     </h1>
-                                    <p className="text-sm sm:text-base md:text-lg text-stone-600 font-medium italic">
+                                    <p className="text-base sm:text-lg text-stone-600 font-medium italic">
                                         {book.subtitle}
                                     </p>
                                 </div>
 
-                                <div className="mt-6 pt-5 border-t border-stone-200 flex flex-col gap-2">
-                                    <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Sinopse:</span>
-                                    <p className="text-xs sm:text-sm text-stone-700 leading-relaxed font-sans">
+                                <div className="mt-6 pt-5 border-t border-stone-200 flex flex-col gap-2.5">
+                                    <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Sinopse da Aventura:</span>
+                                    <p className="text-sm sm:text-base text-stone-700 leading-relaxed font-sans text-justify">
                                         {book.synopsis || 'Uma jornada inesquecível de descobertas com o Drácker e seus grandes amigos da floresta!'}
                                     </p>
-                                    <span className="text-xs font-semibold text-stone-500 mt-2">
-                                        Drácker Adapta • Livro Didático Infantil
-                                    </span>
+                                    <div className="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500 font-semibold">
+                                        <span>Drácker Adapta • Livro Didático</span>
+                                        <span className="bg-amber-100/70 text-amber-900 px-2.5 py-0.5 rounded-full font-bold">Edição Ilustrada</span>
+                                    </div>
                                 </div>
                             </div>
                         </>
@@ -488,27 +489,27 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 </button>
                             </div>
 
-                            {/* Lado Direito: Texto da História em Fundo Branco Limpo */}
-                            <div className="flex-1 p-6 sm:p-10 md:p-12 flex flex-col justify-between bg-white text-stone-900 overflow-y-auto">
+                            {/* Lado Direito: Texto da História em Fundo Branco Limpo e Fluido */}
+                            <div className="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-between bg-white text-stone-900 overflow-y-auto">
                                 <div>
-                                    <div className="flex justify-between items-center mb-3 pb-2 border-b border-stone-100">
-                                        <h3 className="text-lg sm:text-2xl font-black text-stone-900 font-serif">
+                                    <div className="flex justify-between items-center mb-4 pb-2.5 border-b border-stone-200">
+                                        <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-stone-900 font-serif">
                                             {currentPage.title || `Capítulo ${currentPage.pageNumber}`}
                                         </h3>
-                                        <span className="text-xs font-bold text-stone-500 bg-stone-100 px-2.5 py-0.5 rounded-full font-mono">
+                                        <span className="text-xs font-mono font-bold text-stone-600 bg-amber-100/60 border border-amber-300 px-3 py-1 rounded-full">
                                             Página {currentPage.pageNumber}
                                         </span>
                                     </div>
 
-                                    {/* Texto da narrativa */}
-                                    <div className="text-sm sm:text-base text-stone-800 leading-relaxed font-serif space-y-3 whitespace-pre-line">
+                                    {/* Texto da narrativa com excelente ritmo e preenchimento */}
+                                    <div className="text-base sm:text-lg md:text-[19px] text-stone-800 leading-relaxed font-serif space-y-4 whitespace-pre-line text-justify">
                                         {currentPage.text}
                                     </div>
 
                                     {/* Fala Marcante do Personagem */}
                                     {currentPage.dialogue && (
-                                        <div className="mt-4 p-3 rounded-xl bg-stone-50 border-l-4 border-stone-400 text-xs sm:text-sm italic text-stone-800 flex items-start gap-2.5">
-                                            <MessageCircle className="w-4 h-4 text-stone-500 shrink-0 mt-0.5" />
+                                        <div className="mt-5 p-3.5 rounded-xl bg-amber-50/70 border-l-4 border-amber-500 text-sm sm:text-base italic text-stone-800 flex items-start gap-2.5 shadow-2xs">
+                                            <MessageCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
                                             <span>"{currentPage.dialogue}"</span>
                                         </div>
                                     )}
@@ -516,11 +517,11 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
                                 {/* Pergunta Interativa para o Aluno (Desafio de Atenção) */}
                                 {currentPage.interactiveQuestion && (
-                                    <div className="mt-5 pt-3 border-t border-stone-200 flex items-start gap-2 text-xs font-bold text-stone-800 bg-amber-50/60 p-3 rounded-xl border border-amber-200">
-                                        <HelpCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                                    <div className="mt-6 pt-3.5 border-t border-stone-200 flex items-start gap-3 text-xs sm:text-sm font-bold text-stone-900 bg-amber-50/80 p-3.5 rounded-2xl border border-amber-300 shadow-2xs">
+                                        <HelpCircle className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
                                         <div>
-                                            <span className="uppercase text-[10px] text-amber-800 tracking-wider block font-black">Desafio de Atenção:</span>
-                                            <span>{currentPage.interactiveQuestion}</span>
+                                            <span className="uppercase text-[11px] text-amber-900 tracking-wider block font-black mb-0.5">Desafio de Atenção:</span>
+                                            <span className="leading-snug">{currentPage.interactiveQuestion}</span>
                                         </div>
                                     </div>
                                 )}
@@ -629,26 +630,27 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             </div>
                         )}
                     </div>
-                    <div className="print-half-page p-8 flex flex-col justify-between h-full">
+                    <div className="print-half-page p-8 sm:p-10 flex flex-col justify-center h-full">
                         <div>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 border border-stone-400 px-2.5 py-0.5 rounded">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600 border border-stone-400 px-3 py-1 rounded">
                                 {book.theme || 'História Pedagógica'}
                             </span>
-                            <h1 className="text-3xl font-black font-serif text-black mt-3 leading-tight">
+                            <h1 className="text-4xl sm:text-5xl font-black font-serif text-black mt-4 leading-tight">
                                 {book.title}
                             </h1>
-                            <p className="text-base text-stone-600 font-medium italic mt-1.5">
+                            <p className="text-lg sm:text-xl text-stone-700 font-medium italic mt-2">
                                 {book.subtitle}
                             </p>
                         </div>
-                        <div className="border-t border-stone-300 pt-3">
-                            <span className="text-[10px] font-bold text-stone-500 uppercase">Sinopse da Aventura:</span>
-                            <p className="text-xs text-stone-800 mt-1 leading-relaxed">
+                        <div className="border-t border-stone-300 pt-5 mt-6">
+                            <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Sinopse da Aventura:</span>
+                            <p className="text-sm sm:text-base text-stone-800 mt-2 leading-relaxed text-justify">
                                 {book.synopsis}
                             </p>
-                            <span className="text-[10px] text-stone-500 block mt-3">
-                                Drácker Adapta • Livro Infantil
-                            </span>
+                            <div className="mt-6 pt-3 border-t border-stone-200 flex items-center justify-between text-xs text-stone-500 font-bold">
+                                <span>Drácker Adapta • Livro Infantil</span>
+                                <span className="border border-stone-400 px-2 py-0.5 rounded">Edição Escolar</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -691,24 +693,24 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             )}
                         </div>
 
-                        {/* Texto e Desafio de Atenção à Direita (50%) */}
-                        <div className="print-half-page p-8 flex flex-col justify-between h-full">
+                        {/* Texto e Desafio de Atenção à Direita (50% - Fluido e Bem Preenchido) */}
+                        <div className="print-half-page p-8 sm:p-10 flex flex-col justify-between h-full">
                             <div>
-                                <div className="flex justify-between items-center border-b border-stone-300 pb-2 mb-3">
-                                    <h2 className="text-xl font-black font-serif text-black">
+                                <div className="flex justify-between items-center border-b border-stone-300 pb-2.5 mb-4">
+                                    <h2 className="text-2xl sm:text-3xl font-black font-serif text-black">
                                         {p.title || `Capítulo ${p.pageNumber}`}
                                     </h2>
-                                    <span className="text-xs font-mono font-bold text-stone-600 border border-stone-300 px-2 py-0.5 rounded">
+                                    <span className="text-xs font-mono font-bold text-stone-700 border border-stone-400 px-3 py-1 rounded-full">
                                         Página {p.pageNumber}
                                     </span>
                                 </div>
 
-                                <div className="text-sm font-serif text-stone-900 leading-relaxed whitespace-pre-line">
+                                <div className="text-base sm:text-lg font-serif text-stone-900 leading-relaxed whitespace-pre-line text-justify">
                                     {p.text}
                                 </div>
 
                                 {p.dialogue && (
-                                    <div className="mt-3 p-2.5 bg-stone-50 border-l-4 border-stone-400 text-xs italic text-stone-800">
+                                    <div className="mt-4 p-3 bg-stone-50 border-l-4 border-stone-500 text-sm italic text-stone-800">
                                         "{p.dialogue}"
                                     </div>
                                 )}
@@ -716,11 +718,11 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
                             {/* Desafio de Atenção Obrigatório */}
                             {p.interactiveQuestion && (
-                                <div className="mt-4 p-3 border border-stone-300 rounded-xl bg-stone-50">
-                                    <span className="text-[10px] font-black uppercase text-stone-600 block mb-0.5">
+                                <div className="mt-5 p-4 border border-stone-400 rounded-2xl bg-stone-50">
+                                    <span className="text-xs font-black uppercase text-stone-700 block mb-1">
                                         🔍 Desafio de Atenção do Aluno:
                                     </span>
-                                    <p className="text-xs font-bold text-stone-900">
+                                    <p className="text-sm font-bold text-stone-950">
                                         {p.interactiveQuestion}
                                     </p>
                                 </div>
