@@ -315,107 +315,44 @@ export const StorybookPrintBooklet = ({
         </div>
     );
 
-    const renderBlank = (label = 'Página para anotações do aluno') => (
-        <div className="print-half-page p-6 flex flex-col justify-center items-center h-full text-center border-r border-stone-200 bg-stone-50/30">
-            <img src="/dracker_character.png" alt="Drácker" className="w-16 h-16 object-contain opacity-40 mb-2" />
-            <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">{label}</span>
-        </div>
-    );
-
     return (
         <div className="storybook-print-container">
             {(() => {
                 // ==========================================
                 // 1. MODO LIVRETO GRAMPEADO (BOOKLET OCIDENTAL / BRASIL)
                 // ==========================================
-                // Em um livreto impresso e dobrado ao meio:
-                // - A folha externa tem [ Contracapa (Esquerda) | Capa (Direita) ]
-                // - Ao abrir a capa para a esquerda, vemos as páginas internas com Ilustração na Esquerda e Texto na Direita.
-                // - As unidades lógicas A5 são:
-                //   Página 0: Capa Esquerda (Ilustração da Capa)
-                //   Página 1: Capa Direita (Título da Capa)
-                //   Páginas do Miolo: Para cada página p -> [ story_left (ilustração), story_right (texto) ]
-                //   Contracapa: [ back_left (logo/imagem), back_right (conclusão) ]
-                // - Total de páginas A5 = 2 + (pages.length * 2) + 2.
-                // - Como cada página de história tem 2 metades (ilustração + texto), para 1 história (ou 3, 5, etc.),
-                //   o total já é múltiplo de 4: 2 + 2*N + 2 = 4 + 2*N.
-                //   Quando N é par (ex: 2 páginas): 4 + 4 = 8 páginas A5 = 2 folhas A4 exatas, sem páginas em branco!
-                //   Quando N é ímpar (ex: 1 página): 4 + 2 = 6 páginas A5 -> preenche 2 páginas em branco no centro para fechar 8 (2 folhas).
+                // Em um mini-livro infantil grampeado no centro:
+                // Cada folha A4 paisagem é dobrada no meio e contém:
+                // - Folha 1 (Capa / Contracapa):
+                //     Lado de Fora: Contracapa (Esquerda) | Capa (Direita)
+                //     Lado de Dentro (Verso): Conclusão da História (Esquerda) | Sinopse/Apresentação (Direita)
+                // - Folhas Internas:
+                //     Cada folha interna contém a Ilustração na Esquerda e a História/Narrativa na Direita.
+                // Isso elimina completamente quaisquer páginas em branco ou páginas de anotações soltas!
                 if (printLayoutMode === 'booklet') {
-                    const logicalPages = [];
-                    // Capa (Frente e Verso da Capa)
-                    logicalPages.push({ type: 'cover_left' });
-                    logicalPages.push({ type: 'cover_right' });
-                    
-                    // Miolo: Ilustração e Texto das páginas internas
-                    pages.forEach(p => {
-                        logicalPages.push({ type: 'story_left', page: p });
-                        logicalPages.push({ type: 'story_right', page: p });
-                    });
-                    
-                    // Contracapa final
-                    logicalPages.push({ type: 'back_left' });
-                    logicalPages.push({ type: 'back_right' });
+                    return (
+                        <>
+                            {/* FOLHA 1 - FRENTE (EXTERNA): [ Contracapa (Final) | Capa (Início) ] */}
+                            <div className="storybook-print-page relative">
+                                {renderBackLeft()}
+                                {renderCoverLeft()}
+                            </div>
 
-                    // Para encadernação de livreto dobrado ao meio, o número de páginas A5 deve ser múltiplo de 4
-                    const remainder = logicalPages.length % 4;
-                    if (remainder !== 0) {
-                        const paddingCount = 4 - remainder;
-                        // Insere as páginas de anotações no miolo antes da contracapa, mantendo a contracapa no final
-                        const insertIdx = logicalPages.length - 2;
-                        for (let i = 0; i < paddingCount; i++) {
-                            logicalPages.splice(insertIdx, 0, { type: 'blank', index: i + 1 });
-                        }
-                    }
+                            {/* FOLHA 1 - VERSO (INTERNA DA CAPA): [ Conclusão | Apresentação da Capa ] */}
+                            <div className="storybook-print-page relative">
+                                {renderBackRight()}
+                                {renderCoverRight()}
+                            </div>
 
-                    // Algoritmo clássico de imposição de livreto (Saddle-Stitch Booklet)
-                    // Folha s Frente: Esquerda = Página (totalUnits - 1 - 2*s) | Direita = Página (2*s)
-                    // Folha s Verso: Esquerda = Página (2*s + 1) | Direita = Página (totalUnits - 2 - 2*s)
-                    const totalUnits = logicalPages.length;
-                    const totalSheets = totalUnits / 4;
-                    const imposedSheets = [];
-
-                    for (let s = 0; s < totalSheets; s++) {
-                        // Frente da folha s
-                        const frontLeftIdx = totalUnits - 1 - (2 * s);
-                        const frontRightIdx = 2 * s;
-                        imposedSheets.push({
-                            sheetNumber: s + 1,
-                            side: 'Frente',
-                            left: logicalPages[frontLeftIdx],
-                            right: logicalPages[frontRightIdx]
-                        });
-
-                        // Verso da folha s (Ao virar no eixo longo/horizontal da impressora)
-                        const backLeftIdx = (2 * s) + 1;
-                        const backRightIdx = totalUnits - 2 - (2 * s);
-                        imposedSheets.push({
-                            sheetNumber: s + 1,
-                            side: 'Verso',
-                            left: logicalPages[backLeftIdx],
-                            right: logicalPages[backRightIdx]
-                        });
-                    }
-
-                    const renderPageItem = (item) => {
-                        if (!item) return renderBlank();
-                        switch (item.type) {
-                            case 'cover_left': return renderCoverLeft();
-                            case 'cover_right': return renderCoverRight();
-                            case 'story_left': return renderStoryLeft(item.page);
-                            case 'story_right': return renderStoryRight(item.page);
-                            case 'back_left': return renderBackLeft();
-                            case 'back_right': return renderBackRight();
-                            default: return renderBlank();
-                        }
-                    };
-
-                    return imposedSheets.map((sheet, idx) => (
-                        <div key={`sheet-${idx}`} className="storybook-print-page relative">
-                            {renderPageItem(sheet.left)}
-                            {renderPageItem(sheet.right)}
-                        </div>
-                    ));
+                            {/* FOLHAS DO MIOLO (HISTÓRIAS INTERNAS): [ Ilustração (Esquerda) | Texto (Direita) ] */}
+                            {pages.map(p => (
+                                <div key={`booklet-page-${p.pageNumber}`} className="storybook-print-page relative">
+                                    {renderStoryLeft(p)}
+                                    {renderStoryRight(p)}
+                                </div>
+                            ))}
+                        </>
+                    );
                 }
 
                 // ==========================================
