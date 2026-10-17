@@ -196,7 +196,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
         <div className={`transition-all duration-300 w-full ${
             isFullscreen 
                 ? 'fixed inset-0 z-50 bg-amber-50/70 backdrop-blur-md flex flex-col justify-between p-3 sm:p-5 h-screen w-screen overflow-hidden' 
-                : 'flex flex-col gap-4 max-w-5xl mx-auto py-2'
+                : 'flex flex-col gap-4 max-w-7xl w-full mx-auto py-2'
         }`}>
             
             {/* Barra de Ferramentas Superior (Clean e Discreta) */}
@@ -310,25 +310,6 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         </div>
                     </div>
 
-                    {/* Botão de Tela Cheia 100% */}
-                    <button
-                        onClick={() => setIsFullscreen(prev => !prev)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-xl border border-stone-200 transition-all cursor-pointer active:scale-95"
-                        title={isFullscreen ? 'Restaurar visualização normal (Esc)' : 'Ocupar 100% da tela'}
-                    >
-                        {isFullscreen ? (
-                            <>
-                                <Minimize2 className="w-3.5 h-3.5 text-stone-600" />
-                                <span className="hidden sm:inline">Restaurar</span>
-                            </>
-                        ) : (
-                            <>
-                                <Maximize2 className="w-3.5 h-3.5 text-stone-600" />
-                                <span className="hidden sm:inline">100% Tela</span>
-                            </>
-                        )}
-                    </button>
-
                     {/* Botão de Impressão */}
                     <button
                         onClick={handlePrint}
@@ -338,6 +319,20 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         <Printer className="w-3.5 h-3.5 text-amber-900" />
                         <span className="hidden sm:inline">Imprimir (A4 Paisagem)</span>
                         <span className="sm:hidden">Imprimir</span>
+                    </button>
+
+                    {/* Símbolo de Tela Cheia discreto ao lado direito de Imprimir (sem texto) */}
+                    <button
+                        onClick={() => setIsFullscreen(prev => !prev)}
+                        className="p-2 text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-xl border border-stone-200 shadow-2xs transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0"
+                        title={isFullscreen ? 'Restaurar visualização normal (Esc)' : 'Ocupar 100% da tela'}
+                        aria-label={isFullscreen ? 'Restaurar visualização' : 'Tela cheia'}
+                    >
+                        {isFullscreen ? (
+                            <Minimize2 className="w-4 h-4 text-stone-700" />
+                        ) : (
+                            <Maximize2 className="w-4 h-4 text-stone-700" />
+                        )}
                     </button>
                 </div>
             </div>
