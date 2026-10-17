@@ -752,9 +752,14 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                                 {currentPage.title || `Capítulo ${currentPage.pageNumber}`}
                                             </h3>
                                         )}
-                                        <span className="text-xs font-medium text-stone-600 bg-white border border-stone-200/80 px-3 py-1 rounded-full shadow-2xs shrink-0 whitespace-nowrap">
-                                            Página {currentPage.pageNumber}
-                                        </span>
+                                        <div className="flex flex-col items-center justify-center bg-white border border-stone-200/90 px-3 py-1 rounded-2xl shadow-2xs shrink-0 select-none leading-tight min-w-[54px]">
+                                            <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
+                                                Página
+                                            </span>
+                                            <span className="text-xs font-black text-stone-800">
+                                                {currentPage.pageNumber}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     {/* Texto da narrativa com controle fluido de fonte e alinhamento */}
@@ -1061,9 +1066,14 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                     >
                                         {p.title || `Capítulo ${p.pageNumber}`}
                                     </h2>
-                                    <span className="text-xs font-medium text-stone-600 bg-white border border-stone-300 px-3 py-1 rounded-full shrink-0 whitespace-nowrap">
-                                        Página {p.pageNumber}
-                                    </span>
+                                    <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
+                                        <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
+                                            Página
+                                        </span>
+                                        <span className="text-xs font-black text-stone-800">
+                                            {p.pageNumber}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div 
