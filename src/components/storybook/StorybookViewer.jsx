@@ -752,7 +752,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                                 {currentPage.title || `Capítulo ${currentPage.pageNumber}`}
                                             </h3>
                                         )}
-                                        <span className="text-xs font-mono font-bold text-stone-600 bg-amber-100/60 border border-amber-300 px-3 py-1 rounded-full shrink-0">
+                                        <span className="text-xs font-medium text-stone-600 bg-white border border-stone-200/80 px-3 py-1 rounded-full shadow-2xs shrink-0 whitespace-nowrap">
                                             Página {currentPage.pageNumber}
                                         </span>
                                     </div>
@@ -1061,7 +1061,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                     >
                                         {p.title || `Capítulo ${p.pageNumber}`}
                                     </h2>
-                                    <span className="text-xs font-mono font-bold text-stone-700 border border-stone-400 px-3 py-1 rounded-full">
+                                    <span className="text-xs font-medium text-stone-600 bg-white border border-stone-300 px-3 py-1 rounded-full shrink-0 whitespace-nowrap">
                                         Página {p.pageNumber}
                                     </span>
                                 </div>
