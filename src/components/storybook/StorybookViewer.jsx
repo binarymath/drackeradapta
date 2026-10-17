@@ -62,19 +62,21 @@ export const StorybookViewer = ({ data, onUpdate }) => {
     // Barra de ferramentas de texto (Tamanho da fonte por elemento, Alinhamento e Edição de Texto POR PÁGINA)
     const [targetTextPart, setTargetTextPart] = useState('text'); // 'text' | 'title' | 'dialogue' | 'question' | 'all'
     const DEFAULT_FONT_SCALES = {
-        text: 140,      // Texto principal / narrativa / sinopse
+        text: 140,      // Texto principal / narrativa / sinopse / lição
         title: 120,     // Título e subtítulo
         dialogue: 110,  // Fala do personagem
-        question: 110   // Pergunta ou desafio de atenção
+        question: 110,  // Pergunta ou desafio de atenção
+        image: 100      // Logo / Imagem / Ilustração
     };
     const DEFAULT_TEXT_ALIGNS = {
-        text: 'justify',    // Texto principal / narrativa / sinopse
+        text: 'justify',    // Texto principal / narrativa / sinopse / lição
         title: 'left',      // Título e subtítulo
         dialogue: 'left',   // Fala do personagem
-        question: 'left'    // Pergunta ou desafio de atenção
+        question: 'left',   // Pergunta ou desafio de atenção
+        image: 'center'     // Posição da imagem / logo
     };
 
-    // Mapas de estilos por página: chave ('cover' | 1 | 2 | ... | 'backcover') -> { text, title, dialogue, question }
+    // Mapas de estilos por página: chave ('cover' | 1 | 2 | ... | 'backcover') -> { text, title, dialogue, question, image }
     const [pageFontScales, setPageFontScales] = useState({});
     const [pageTextAligns, setPageTextAligns] = useState({});
 
@@ -110,7 +112,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         text: align,
                         title: align,
                         dialogue: align,
-                        question: align
+                        question: align,
+                        image: align
                     }
                 };
             }
@@ -124,7 +127,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
         });
     };
 
-    // Ajusta o tamanho da fonte para o elemento selecionado ou para todos na PÁGINA ATIVA
+    // Ajusta o tamanho da fonte ou imagem para o elemento selecionado ou para todos na PÁGINA ATIVA
     const adjustFontScale = (delta) => {
         setPageFontScales(prev => {
             const pageScale = { ...DEFAULT_FONT_SCALES, ...(prev[activePageKey] || {}) };
@@ -135,15 +138,18 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         text: Math.min(220, Math.max(80, pageScale.text + delta)),
                         title: Math.min(220, Math.max(80, pageScale.title + delta)),
                         dialogue: Math.min(220, Math.max(80, pageScale.dialogue + delta)),
-                        question: Math.min(220, Math.max(80, pageScale.question + delta))
+                        question: Math.min(220, Math.max(80, pageScale.question + delta)),
+                        image: Math.min(300, Math.max(50, (pageScale.image || 100) + delta))
                     }
                 };
             }
+            const maxVal = targetTextPart === 'image' ? 300 : 220;
+            const minVal = targetTextPart === 'image' ? 50 : 80;
             return {
                 ...prev,
                 [activePageKey]: {
                     ...pageScale,
-                    [targetTextPart]: Math.min(220, Math.max(80, (pageScale[targetTextPart] || 100) + delta))
+                    [targetTextPart]: Math.min(maxVal, Math.max(minVal, (pageScale[targetTextPart] || 100) + delta))
                 }
             };
         });
@@ -327,6 +333,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 <option value="title">🏷️ Título</option>
                                 <option value="dialogue">💬 Falas dos Personagens</option>
                                 <option value="question">❓ Desafio de Atenção</option>
+                                <option value="image">🖼️ Logo / Imagem</option>
                                 <option value="all">✨ Todos os Textos</option>
                             </select>
 
@@ -336,12 +343,12 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 type="button"
                                 onClick={() => adjustFontScale(-10)}
                                 className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
-                                title="Diminuir tamanho da fonte selecionada"
+                                title="Diminuir tamanho da fonte ou imagem selecionada"
                             >
                                 A-
                             </button>
-                            <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[36px] text-center" title="Percentual da fonte selecionada">
-                                {targetTextPart === 'all' ? `${currentFontScales.text}%` : `${currentFontScales[targetTextPart]}%`}
+                            <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[36px] text-center" title="Percentual da fonte ou imagem selecionada">
+                                {targetTextPart === 'all' ? `${currentFontScales.text}%` : `${currentFontScales[targetTextPart] || 100}%`}
                             </span>
                             <button
                                 type="button"
@@ -552,9 +559,13 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                 isFullscreen ? 'h-full min-h-0' : 'aspect-[16/10] min-h-[520px]'
             }`}>
                 
-                {/* Linha discreta de Vinco Central com Sombreamento de Livro Aberto */}
-                <div className="absolute inset-y-0 left-1/2 w-6 -ml-3 bg-gradient-to-r from-stone-200/0 via-stone-300/40 to-stone-200/0 pointer-events-none z-30 hidden md:block" />
-                <div className="absolute inset-y-0 left-1/2 w-px bg-stone-200 pointer-events-none z-30 hidden md:block" />
+                {/* Linha discreta de Vinco Central com Sombreamento de Livro Aberto (oculta na contracapa única) */}
+                {!isBackCover && (
+                    <>
+                        <div className="absolute inset-y-0 left-1/2 w-6 -ml-3 bg-gradient-to-r from-stone-200/0 via-stone-300/40 to-stone-200/0 pointer-events-none z-30 hidden md:block" />
+                        <div className="absolute inset-y-0 left-1/2 w-px bg-stone-200 pointer-events-none z-30 hidden md:block" />
+                    </>
+                )}
 
                 {/* Conteúdo Dinâmico com Transição Suave */}
                 <div className={`flex-1 flex flex-col md:flex-row h-full overflow-hidden ${
@@ -988,26 +999,128 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="max-w-2xl mx-auto flex flex-col items-center">
-                                <img src="/dracker_character.png" alt="Drácker" className="w-16 h-16 sm:w-20 sm:h-20 object-contain mb-3" />
-                                <h2 className="text-xl sm:text-3xl font-black text-stone-900 font-serif mb-2">
-                                    Fim da Nossa Expedição!
-                                </h2>
-                                <p className="text-sm sm:text-base text-stone-600 italic max-w-lg mb-5">
-                                    "{book.moralLesson || 'Aprender juntos na floresta mágica transforma qualquer dúvida em pura descoberta!'}"
-                                </p>
+
+                            <div className="max-w-2xl mx-auto w-full flex flex-col my-auto">
+                                {/* Logo / Imagem com redimensionamento e alinhamento individual por página */}
+                                <div 
+                                    className={`w-full flex mb-3 ${
+                                        currentTextAligns.image === 'left' ? 'justify-start' :
+                                        currentTextAligns.image === 'right' ? 'justify-end' : 'justify-center'
+                                    }`}
+                                >
+                                    <img 
+                                        src="/dracker_character.png" 
+                                        alt="Drácker" 
+                                        style={{
+                                            width: `${(72 * (currentFontScales.image || 100)) / 100}px`,
+                                            height: `${(72 * (currentFontScales.image || 100)) / 100}px`
+                                        }}
+                                        className="object-contain transition-all" 
+                                    />
+                                </div>
+
+                                {/* Título da Conclusão */}
+                                {isEditingText ? (
+                                    <div className="mb-3 text-left">
+                                        <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Título da Conclusão:</label>
+                                        <input
+                                            type="text"
+                                            value={book.backCover?.title ?? 'Fim da Nossa Expedição!'}
+                                            onChange={(e) => {
+                                                const updatedBook = {
+                                                    ...book,
+                                                    backCover: {
+                                                        ...(book.backCover || {}),
+                                                        title: e.target.value
+                                                    }
+                                                };
+                                                if (onUpdate) onUpdate(updatedBook);
+                                            }}
+                                            className="w-full text-xl sm:text-2xl font-black font-serif text-stone-900 border border-amber-300 rounded-lg p-2 bg-amber-50/50 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                            placeholder="Título da Conclusão..."
+                                        />
+                                    </div>
+                                ) : (
+                                    <h2 
+                                        className="font-black text-stone-900 font-serif mb-2 leading-tight"
+                                        style={{
+                                            fontSize: `${(26 * currentFontScales.title) / 100}px`,
+                                            textAlign: currentTextAligns.title || 'center'
+                                        }}
+                                    >
+                                        {book.backCover?.title || 'Fim da Nossa Expedição!'}
+                                    </h2>
+                                )}
+
+                                {/* Mensagem / Lição Moral */}
+                                {isEditingText ? (
+                                    <div className="mb-4 text-left">
+                                        <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Lição Pedagógica / Mensagem de Amizade:</label>
+                                        <textarea
+                                            rows={3}
+                                            value={book.moralLesson || ''}
+                                            onChange={(e) => {
+                                                if (onUpdate) onUpdate({ ...book, moralLesson: e.target.value });
+                                            }}
+                                            className="w-full text-sm font-serif italic p-2.5 border border-amber-300 rounded-xl bg-amber-50/40 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                            placeholder="Digite a mensagem pedagógica final..."
+                                        />
+                                    </div>
+                                ) : (
+                                    <p 
+                                        className="text-stone-600 italic mb-5 leading-relaxed"
+                                        style={{
+                                            fontSize: `${(16 * currentFontScales.text) / 100}px`,
+                                            textAlign: currentTextAligns.text || 'center'
+                                        }}
+                                    >
+                                        "{book.moralLesson || 'Aprender juntos na floresta mágica transforma qualquer dúvida em pura descoberta!'}"
+                                    </p>
+                                )}
 
                                 {/* Desafio de Atividade Final */}
-                                {book.backCover?.activity && (
-                                    <div className="w-full bg-amber-50/60 p-5 rounded-2xl border-2 border-dashed border-amber-300 text-left">
+                                {isEditingText ? (
+                                    <div className="w-full bg-amber-50/60 p-4 rounded-2xl border-2 border-dashed border-amber-300 text-left">
+                                        <label className="text-xs font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5 mb-1.5">
+                                            ✏️ Desafio Prático do Aluno:
+                                        </label>
+                                        <textarea
+                                            rows={3}
+                                            value={book.backCover?.activity || ''}
+                                            onChange={(e) => {
+                                                const updatedBook = {
+                                                    ...book,
+                                                    backCover: {
+                                                        ...(book.backCover || {}),
+                                                        activity: e.target.value
+                                                    }
+                                                };
+                                                if (onUpdate) onUpdate(updatedBook);
+                                            }}
+                                            className="w-full text-xs sm:text-sm font-semibold text-stone-800 p-2.5 border border-amber-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                            placeholder="Digite o desafio prático para a criança..."
+                                        />
+                                    </div>
+                                ) : book.backCover?.activity ? (
+                                    <div 
+                                        className="w-full bg-amber-50/60 p-5 rounded-2xl border-2 border-dashed border-amber-300"
+                                        style={{
+                                            textAlign: currentTextAligns.question || 'left'
+                                        }}
+                                    >
                                         <span className="text-xs font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5 mb-2">
                                             ✏️ Desafio Prático do Aluno:
                                         </span>
-                                        <p className="text-xs sm:text-sm font-semibold text-stone-800 leading-relaxed">
+                                        <p 
+                                            className="font-semibold text-stone-800 leading-relaxed"
+                                            style={{
+                                                fontSize: `${(13.5 * currentFontScales.question) / 100}px`
+                                            }}
+                                        >
                                             {book.backCover.activity}
                                         </p>
                                     </div>
-                                )}
+                                ) : null}
                             </div>
 
                             <div className="text-xs text-stone-400 font-semibold mt-6 pt-3 border-t border-stone-200">
@@ -1268,61 +1381,106 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                 })}
 
                 {/* 3. Última Página: Fim da Missão / Expedição (Contracapa no PDF e Impressão) */}
-                <div className="storybook-print-page">
-                    {/* Ilustração / Drácker à Esquerda */}
-                    <div className="print-half-page p-6 flex flex-col items-center justify-center border-r border-stone-300 relative h-full text-center">
-                        <img src="/dracker_character.png" alt="Drácker" className="w-32 h-32 object-contain mx-auto mb-4" />
-                        <h3 className="text-base font-black font-serif text-stone-900">
-                            Drácker Adapta
-                        </h3>
-                        <p className="text-xs text-stone-500 mt-1">
-                            Histórias que ensinam, inspiram e transformam.
-                        </p>
-                    </div>
+                {(() => {
+                    const backScales = getPageScales('backcover');
+                    const backAligns = getPageAligns('backcover');
+                    const backLogoWidth = Math.round((128 * (backScales.image || 100)) / 100);
 
-                    {/* Fim da Missão / Expedição à Direita */}
-                    <div className="print-half-page p-8 sm:p-10 flex flex-col justify-between h-full">
-                        <div>
-                            <div className="border-b border-stone-300 pb-2.5 mb-4 flex justify-between items-center">
-                                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 border border-amber-400 bg-amber-50 px-3 py-1 rounded">
-                                    Conclusão da História
-                                </span>
-                                <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
-                                    <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
-                                        Página
-                                    </span>
-                                    <span className="text-xs font-black text-stone-800">
-                                        {pages.length + 2}
-                                    </span>
+                    return (
+                        <div className="storybook-print-page">
+                            {/* Ilustração / Drácker à Esquerda */}
+                            <div className="print-half-page p-6 flex flex-col justify-center border-r border-stone-300 relative h-full text-center">
+                                <div 
+                                    className={`w-full flex mb-4 ${
+                                        backAligns.image === 'left' ? 'justify-start' :
+                                        backAligns.image === 'right' ? 'justify-end' : 'justify-center'
+                                    }`}
+                                >
+                                    <img 
+                                        src="/dracker_character.png" 
+                                        alt="Drácker" 
+                                        style={{
+                                            width: `${backLogoWidth}px`,
+                                            height: `${backLogoWidth}px`
+                                        }}
+                                        className="object-contain" 
+                                    />
                                 </div>
+                                <h3 className="text-base font-black font-serif text-stone-900">
+                                    Drácker Adapta
+                                </h3>
+                                <p className="text-xs text-stone-500 mt-1">
+                                    Histórias que ensinam, inspiram e transformam.
+                                </p>
                             </div>
 
-                            <h2 className="text-2xl font-black font-serif text-black leading-tight mb-3">
-                                Fim da Nossa Expedição!
-                            </h2>
-                            <p className="text-sm font-serif italic text-stone-800 leading-relaxed bg-stone-50 p-3.5 rounded-xl border-l-4 border-amber-500 mb-5">
-                                "{book.moralLesson || 'Aprender juntos na floresta mágica transforma qualquer dúvida em pura descoberta!'}"
-                            </p>
+                            {/* Fim da Missão / Expedição à Direita */}
+                            <div className="print-half-page p-8 sm:p-10 flex flex-col justify-between h-full">
+                                <div>
+                                    <div className="border-b border-stone-300 pb-2.5 mb-4 flex justify-between items-center">
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 border border-amber-400 bg-amber-50 px-3 py-1 rounded">
+                                            Conclusão da História
+                                        </span>
+                                        <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
+                                            <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
+                                                Página
+                                            </span>
+                                            <span className="text-xs font-black text-stone-800">
+                                                {pages.length + 2}
+                                            </span>
+                                        </div>
+                                    </div>
 
-                            {/* Desafio de Atividade Final */}
-                            {book.backCover?.activity && (
-                                <div className="p-4 border-2 border-dashed border-stone-400 rounded-2xl bg-stone-50">
-                                    <span className="text-xs font-black uppercase text-stone-800 block mb-1">
-                                        ✏️ Desafio Prático do Aluno:
-                                    </span>
-                                    <p className="text-xs font-semibold text-stone-900 leading-relaxed">
-                                        {book.backCover.activity}
+                                    <h2 
+                                        className="font-black font-serif text-black leading-tight mb-3"
+                                        style={{
+                                            fontSize: `${Math.round((24 * backScales.title) / 100)}px`,
+                                            textAlign: backAligns.title || 'left'
+                                        }}
+                                    >
+                                        {book.backCover?.title || 'Fim da Nossa Expedição!'}
+                                    </h2>
+                                    <p 
+                                        className="font-serif italic text-stone-800 leading-relaxed bg-stone-50 p-3.5 rounded-xl border-l-4 border-amber-500 mb-5"
+                                        style={{
+                                            fontSize: `${Math.round((14 * backScales.text) / 100)}px`,
+                                            textAlign: backAligns.text || 'left'
+                                        }}
+                                    >
+                                        "{book.moralLesson || 'Aprender juntos na floresta mágica transforma qualquer dúvida em pura descoberta!'}"
                                     </p>
-                                </div>
-                            )}
-                        </div>
 
-                        <div className="border-t border-stone-200 pt-3 flex items-center justify-between text-xs text-stone-500 font-bold">
-                            <span>Drácker Adapta • Livro Pedagógico</span>
-                            <span className="border border-stone-400 px-2 py-0.5 rounded">Edição Concluída</span>
+                                    {/* Desafio de Atividade Final */}
+                                    {book.backCover?.activity && (
+                                        <div 
+                                            className="p-4 border-2 border-dashed border-stone-400 rounded-2xl bg-stone-50"
+                                            style={{
+                                                textAlign: backAligns.question || 'left'
+                                            }}
+                                        >
+                                            <span className="text-xs font-black uppercase text-stone-800 block mb-1">
+                                                ✏️ Desafio Prático do Aluno:
+                                            </span>
+                                            <p 
+                                                className="font-semibold text-stone-900 leading-relaxed"
+                                                style={{
+                                                    fontSize: `${Math.round((12.5 * backScales.question) / 100)}px`
+                                                }}
+                                            >
+                                                {book.backCover.activity}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="border-t border-stone-200 pt-3 flex items-center justify-between text-xs text-stone-500 font-bold">
+                                    <span>Drácker Adapta • Livro Pedagógico</span>
+                                    <span className="border border-stone-400 px-2 py-0.5 rounded">Edição Concluída</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    );
+                })()}
             </div>
 
             {/* --- MODAL DISCRETO PARA INSERIR URL DE IMAGEM OU YOUTUBE --- */}
