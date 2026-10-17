@@ -724,8 +724,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             </div>
 
                             {/* Lado Direito: Texto da História em Fundo Branco Limpo e Fluido */}
-                            <div className="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-start gap-4 bg-white text-stone-900 overflow-y-auto">
-                                <div className="flex flex-col gap-3.5">
+                            <div className={`flex-1 p-6 sm:p-8 md:p-10 flex flex-col ${isFullscreen ? 'justify-center' : 'justify-start'} gap-4 bg-white text-stone-900 overflow-y-auto`}>
+                                <div className="flex flex-col gap-3.5 my-auto">
                                     {/* Cabeçalho da Página */}
                                     <div className="flex justify-between items-center pb-2 border-b border-stone-200">
                                         {isEditingText ? (
