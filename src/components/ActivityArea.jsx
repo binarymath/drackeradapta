@@ -95,7 +95,7 @@ export const ActivityArea = ({
     openManualMusicEditor,
     onNewActivity
 }) => {
-    const { topic, lessonDetails, activeTabId, classes, addActivityTab } = useActivity();
+    const { topic, lessonDetails, activeTabId, activeActivity, updateActivityData, classes, addActivityTab } = useActivity();
     // --- State ---
     const [showQuizToRouletteModal, setShowQuizToRouletteModal] = useState(false);
     const [printMode, setPrintMode] = useState('all'); // 'all', 'lyrics', 'questions'
