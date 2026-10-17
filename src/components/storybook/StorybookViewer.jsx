@@ -13,7 +13,13 @@ import {
     X,
     Check,
     Play,
-    Pause
+    Pause,
+    Edit3,
+    AlignLeft,
+    AlignCenter,
+    AlignRight,
+    AlignJustify,
+    Type
 } from 'lucide-react';
 import { toast } from '../ui/Toast';
 
@@ -42,6 +48,11 @@ export const StorybookViewer = ({ data, onUpdate }) => {
     const [editingTarget, setEditingTarget] = useState(null); // 'cover' ou número da página
     const [inputMediaUrl, setInputMediaUrl] = useState('');
     const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+
+    // Barra de ferramentas de texto (Tamanho da fonte, Alinhamento e Edição de Texto)
+    const [fontScale, setFontScale] = useState(140); // porcentagem (ex: 140%)
+    const [textAlign, setTextAlign] = useState('justify'); // 'left' | 'center' | 'right' | 'justify'
+    const [isEditingText, setIsEditingText] = useState(false);
 
     const totalViews = pages.length + 2; // Capa + Páginas + Contracapa
     const isCover = currentPageIndex === 0;
@@ -344,20 +355,6 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                                 <Play className="w-8 h-8 fill-current ml-1" />
                                             </button>
                                         )}
-                                        {/* QR Code discreto se houver vídeo do YouTube */}
-                                        {book.cover.videoUrl && (
-                                            <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm p-1.5 rounded-xl border border-stone-300 shadow-md flex items-center gap-1.5 z-10">
-                                                <img 
-                                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(book.cover.videoUrl)}`} 
-                                                    alt="QR Code Vídeo" 
-                                                    className="w-12 h-12 rounded-lg"
-                                                />
-                                                <div className="text-[9px] font-black text-stone-700 leading-tight pr-1">
-                                                    <span className="flex items-center gap-0.5 text-red-600 font-bold"><Youtube className="w-3 h-3" /> Vídeo</span>
-                                                    <span>Escaneie</span>
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center text-center p-6 bg-white rounded-2xl border-2 border-dashed border-stone-300 w-full h-full max-h-[85vh]">
@@ -382,28 +379,148 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 </button>
                             </div>
 
-                            {/* Texto de Capa Fluido e Equilibrado */}
+                            {/* Texto de Capa Fluido e Equilibrado com Edição */}
                             <div className="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-center bg-white text-stone-900 overflow-y-auto">
-                                <div className="flex flex-col gap-3">
-                                    <span className="text-[11px] font-black uppercase tracking-wider border border-stone-300 text-stone-600 px-3 py-1 rounded-md self-start">
-                                        {book.theme || 'História Pedagógica'}
-                                    </span>
-                                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-stone-950 font-serif leading-tight">
-                                        {book.title}
-                                    </h1>
-                                    <p className="text-base sm:text-lg text-stone-600 font-medium italic">
-                                        {book.subtitle}
-                                    </p>
-                                </div>
+                                <div>
+                                    {/* Barra de Formatação e Edição Exclusiva da Tela (Oculta no PDF/Impressão) */}
+                                    <div className="flex items-center justify-between pb-3 mb-4 border-b border-stone-100 no-print select-none">
+                                        {/* Controle de Tamanho de Fonte: A- 140% A+ */}
+                                        <div className="flex items-center gap-1.5 bg-stone-100/80 hover:bg-stone-100 px-2.5 py-1 rounded-xl border border-stone-200/80 text-xs font-bold text-stone-700">
+                                            <span className="text-stone-400 font-semibold text-[11px]">Fonte:</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFontScale(prev => Math.max(90, prev - 10))}
+                                                className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
+                                                title="Diminuir fonte"
+                                            >
+                                                A-
+                                            </button>
+                                            <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[38px] text-center">
+                                                {fontScale}%
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFontScale(prev => Math.min(200, prev + 10))}
+                                                className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
+                                                title="Aumentar fonte"
+                                            >
+                                                A+
+                                            </button>
+                                        </div>
 
-                                <div className="mt-6 pt-5 border-t border-stone-200 flex flex-col gap-2.5">
-                                    <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Sinopse da Aventura:</span>
-                                    <p className="text-sm sm:text-base text-stone-700 leading-relaxed font-sans text-justify">
-                                        {book.synopsis || 'Uma jornada inesquecível de descobertas com o Drácker e seus grandes amigos da floresta!'}
-                                    </p>
-                                    <div className="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500 font-semibold">
-                                        <span>Drácker Adapta • Livro Didático</span>
-                                        <span className="bg-amber-100/70 text-amber-900 px-2.5 py-0.5 rounded-full font-bold">Edição Ilustrada</span>
+                                        {/* Controles de Alinhamento e Botão de Edição */}
+                                        <div className="flex items-center gap-1 bg-stone-100/80 p-0.5 rounded-xl border border-stone-200/80">
+                                            <button
+                                                type="button"
+                                                onClick={() => setTextAlign('left')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'left' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title="Alinhar à esquerda"
+                                            >
+                                                <AlignLeft className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTextAlign('center')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'center' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title="Centralizar texto"
+                                            >
+                                                <AlignCenter className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTextAlign('right')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'right' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title="Alinhar à direita"
+                                            >
+                                                <AlignRight className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTextAlign('justify')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'justify' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title="Justificar texto"
+                                            >
+                                                <AlignJustify className="w-3.5 h-3.5" />
+                                            </button>
+
+                                            <div className="w-px h-4 bg-stone-300 mx-0.5" />
+
+                                            {/* Alternar Edição do Texto da Capa */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditingText(prev => !prev)}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${isEditingText ? 'bg-amber-500 text-white shadow-2xs' : 'text-indigo-600 hover:bg-indigo-50'}`}
+                                                title={isEditingText ? 'Concluir edição' : 'Editar texto da história'}
+                                            >
+                                                {isEditingText ? <Check className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col gap-3">
+                                        <span className="text-[11px] font-black uppercase tracking-wider border border-stone-300 text-stone-600 px-3 py-1 rounded-md self-start">
+                                            {book.theme || 'História Pedagógica'}
+                                        </span>
+                                        {isEditingText ? (
+                                            <div className="flex flex-col gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={book.title || ''}
+                                                    onChange={(e) => {
+                                                        if (onUpdate) onUpdate({ ...book, title: e.target.value });
+                                                    }}
+                                                    className="text-2xl sm:text-3xl font-black text-stone-900 font-serif border border-amber-300 rounded-lg p-2 bg-amber-50/50"
+                                                    placeholder="Título do Livro..."
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={book.subtitle || ''}
+                                                    onChange={(e) => {
+                                                        if (onUpdate) onUpdate({ ...book, subtitle: e.target.value });
+                                                    }}
+                                                    className="text-base text-stone-700 italic border border-stone-300 rounded-lg p-2 bg-stone-50"
+                                                    placeholder="Subtítulo..."
+                                                />
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-stone-950 font-serif leading-tight">
+                                                    {book.title}
+                                                </h1>
+                                                <p className="text-base sm:text-lg text-stone-600 font-medium italic">
+                                                    {book.subtitle}
+                                                </p>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-6 pt-5 border-t border-stone-200 flex flex-col gap-2.5">
+                                        <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Sinopse da Aventura:</span>
+                                        {isEditingText ? (
+                                            <textarea
+                                                rows={4}
+                                                value={book.synopsis || ''}
+                                                onChange={(e) => {
+                                                    if (onUpdate) onUpdate({ ...book, synopsis: e.target.value });
+                                                }}
+                                                className="w-full text-sm font-sans p-2 border border-amber-300 rounded-lg bg-amber-50/40"
+                                                placeholder="Sinopse da história..."
+                                            />
+                                        ) : (
+                                            <p 
+                                                className="text-stone-700 leading-relaxed font-sans"
+                                                style={{
+                                                    fontSize: `${(15 * fontScale) / 100}px`,
+                                                    textAlign: textAlign
+                                                }}
+                                            >
+                                                {book.synopsis || 'Uma jornada inesquecível de descobertas com o Drácker e seus grandes amigos da floresta!'}
+                                            </p>
+                                        )}
+                                        <div className="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500 font-semibold">
+                                            <span>Drácker Adapta • Livro Didático</span>
+                                            <span className="bg-amber-100/70 text-amber-900 px-2.5 py-0.5 rounded-full font-bold">Edição Ilustrada</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -449,19 +566,15 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                                 <Play className="w-8 h-8 fill-current ml-1" />
                                             </button>
                                         )}
-                                        {/* QR Code discreto se houver vídeo do YouTube */}
+                                        {/* Botão de Play se for vídeo do YouTube */}
                                         {currentPage.videoUrl && (
-                                            <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm p-1.5 rounded-xl border border-stone-300 shadow-md flex items-center gap-1.5 z-10">
-                                                <img 
-                                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(currentPage.videoUrl)}`} 
-                                                    alt="QR Code Vídeo" 
-                                                    className="w-12 h-12 rounded-lg"
-                                                />
-                                                <div className="text-[9px] font-black text-stone-700 leading-tight pr-1">
-                                                    <span className="flex items-center gap-0.5 text-red-600 font-bold"><Youtube className="w-3 h-3" /> Vídeo</span>
-                                                    <span>Escaneie</span>
-                                                </div>
-                                            </div>
+                                            <button
+                                                onClick={() => setIsPlayingVideo(true)}
+                                                className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-red-600/90 hover:bg-red-600 text-white shadow-xl flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 cursor-pointer z-10 group-hover:scale-105"
+                                                title="Assistir ao vídeo do YouTube"
+                                            >
+                                                <Play className="w-8 h-8 fill-current ml-1" />
+                                            </button>
                                         )}
                                     </div>
                                 ) : (
@@ -492,31 +605,182 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             {/* Lado Direito: Texto da História em Fundo Branco Limpo e Fluido */}
                             <div className="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-between bg-white text-stone-900 overflow-y-auto">
                                 <div>
+                                    {/* Barra de Formatação e Edição Exclusiva da Tela (Oculta no PDF/Impressão) */}
+                                    <div className="flex items-center justify-between pb-3 mb-4 border-b border-stone-100 no-print select-none">
+                                        {/* Controle de Tamanho de Fonte: A- 140% A+ */}
+                                        <div className="flex items-center gap-1.5 bg-stone-100/80 hover:bg-stone-100 px-2.5 py-1 rounded-xl border border-stone-200/80 text-xs font-bold text-stone-700">
+                                            <span className="text-stone-400 font-semibold text-[11px]">Fonte:</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFontScale(prev => Math.max(90, prev - 10))}
+                                                className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
+                                                title="Diminuir fonte"
+                                            >
+                                                A-
+                                            </button>
+                                            <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[38px] text-center">
+                                                {fontScale}%
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFontScale(prev => Math.min(200, prev + 10))}
+                                                className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
+                                                title="Aumentar fonte"
+                                            >
+                                                A+
+                                            </button>
+                                        </div>
+
+                                        {/* Controles de Alinhamento e Botão de Edição */}
+                                        <div className="flex items-center gap-1 bg-stone-100/80 p-0.5 rounded-xl border border-stone-200/80">
+                                            <button
+                                                type="button"
+                                                onClick={() => setTextAlign('left')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'left' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title="Alinhar à esquerda"
+                                            >
+                                                <AlignLeft className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTextAlign('center')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'center' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title="Centralizar texto"
+                                            >
+                                                <AlignCenter className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTextAlign('right')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'right' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title="Alinhar à direita"
+                                            >
+                                                <AlignRight className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTextAlign('justify')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'justify' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title="Justificar texto"
+                                            >
+                                                <AlignJustify className="w-3.5 h-3.5" />
+                                            </button>
+
+                                            <div className="w-px h-4 bg-stone-300 mx-0.5" />
+
+                                            {/* Alternar Edição do Texto */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsEditingText(prev => !prev)}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1 ${isEditingText ? 'bg-amber-500 text-white shadow-2xs' : 'text-indigo-600 hover:bg-indigo-50'}`}
+                                                title={isEditingText ? 'Concluir edição' : 'Editar texto da história'}
+                                            >
+                                                {isEditingText ? <Check className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Cabeçalho da Página */}
                                     <div className="flex justify-between items-center mb-4 pb-2.5 border-b border-stone-200">
-                                        <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-stone-900 font-serif">
-                                            {currentPage.title || `Capítulo ${currentPage.pageNumber}`}
-                                        </h3>
-                                        <span className="text-xs font-mono font-bold text-stone-600 bg-amber-100/60 border border-amber-300 px-3 py-1 rounded-full">
+                                        {isEditingText ? (
+                                            <input
+                                                type="text"
+                                                value={currentPage.title || `Capítulo ${currentPage.pageNumber}`}
+                                                onChange={(e) => {
+                                                    const updatedPages = [...pages];
+                                                    updatedPages[currentPageIndex - 1] = {
+                                                        ...currentPage,
+                                                        title: e.target.value
+                                                    };
+                                                    if (onUpdate) onUpdate({ ...book, pages: updatedPages });
+                                                }}
+                                                className="text-xl sm:text-2xl font-black text-stone-900 font-serif border border-amber-300 rounded-lg px-2 py-1 bg-amber-50/50 w-full mr-3"
+                                            />
+                                        ) : (
+                                            <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-stone-900 font-serif">
+                                                {currentPage.title || `Capítulo ${currentPage.pageNumber}`}
+                                            </h3>
+                                        )}
+                                        <span className="text-xs font-mono font-bold text-stone-600 bg-amber-100/60 border border-amber-300 px-3 py-1 rounded-full shrink-0">
                                             Página {currentPage.pageNumber}
                                         </span>
                                     </div>
 
-                                    {/* Texto da narrativa com excelente ritmo e preenchimento */}
-                                    <div className="text-base sm:text-lg md:text-[19px] text-stone-800 leading-relaxed font-serif space-y-4 whitespace-pre-line text-justify">
-                                        {currentPage.text}
-                                    </div>
+                                    {/* Texto da narrativa com controle fluido de fonte e alinhamento */}
+                                    {isEditingText ? (
+                                        <textarea
+                                            rows={8}
+                                            value={currentPage.text}
+                                            onChange={(e) => {
+                                                const updatedPages = [...pages];
+                                                updatedPages[currentPageIndex - 1] = {
+                                                    ...currentPage,
+                                                    text: e.target.value
+                                                };
+                                                if (onUpdate) onUpdate({ ...book, pages: updatedPages });
+                                            }}
+                                            className="w-full text-base sm:text-lg font-serif leading-relaxed p-3 border border-amber-300 rounded-xl bg-amber-50/30 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                            placeholder="Digite ou ajuste o texto da história..."
+                                        />
+                                    ) : (
+                                        <div 
+                                            className="text-stone-800 leading-relaxed font-serif space-y-4 whitespace-pre-line"
+                                            style={{
+                                                fontSize: `${(17 * fontScale) / 100}px`,
+                                                textAlign: textAlign
+                                            }}
+                                        >
+                                            {currentPage.text}
+                                        </div>
+                                    )}
 
                                     {/* Fala Marcante do Personagem */}
-                                    {currentPage.dialogue && (
+                                    {isEditingText ? (
+                                        <div className="mt-4">
+                                            <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Fala do Personagem:</label>
+                                            <input
+                                                type="text"
+                                                value={currentPage.dialogue || ''}
+                                                onChange={(e) => {
+                                                    const updatedPages = [...pages];
+                                                    updatedPages[currentPageIndex - 1] = {
+                                                        ...currentPage,
+                                                        dialogue: e.target.value
+                                                    };
+                                                    if (onUpdate) onUpdate({ ...book, pages: updatedPages });
+                                                }}
+                                                placeholder="Fala marcante do personagem..."
+                                                className="w-full text-sm italic p-2 border border-stone-300 rounded-lg bg-stone-50"
+                                            />
+                                        </div>
+                                    ) : currentPage.dialogue ? (
                                         <div className="mt-5 p-3.5 rounded-xl bg-amber-50/70 border-l-4 border-amber-500 text-sm sm:text-base italic text-stone-800 flex items-start gap-2.5 shadow-2xs">
                                             <MessageCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
                                             <span>"{currentPage.dialogue}"</span>
                                         </div>
-                                    )}
+                                    ) : null}
                                 </div>
 
                                 {/* Pergunta Interativa para o Aluno (Desafio de Atenção) */}
-                                {currentPage.interactiveQuestion && (
+                                {isEditingText ? (
+                                    <div className="mt-5 pt-3 border-t border-stone-200">
+                                        <label className="text-[11px] font-black text-amber-900 uppercase tracking-wider block mb-1">Desafio de Atenção:</label>
+                                        <input
+                                            type="text"
+                                            value={currentPage.interactiveQuestion || ''}
+                                            onChange={(e) => {
+                                                const updatedPages = [...pages];
+                                                updatedPages[currentPageIndex - 1] = {
+                                                    ...currentPage,
+                                                    interactiveQuestion: e.target.value
+                                                };
+                                                if (onUpdate) onUpdate({ ...book, pages: updatedPages });
+                                            }}
+                                            placeholder="Pergunta ou desafio de atenção para a criança..."
+                                            className="w-full text-xs font-bold p-2 border border-amber-300 rounded-lg bg-amber-50/40"
+                                        />
+                                    </div>
+                                ) : currentPage.interactiveQuestion ? (
                                     <div className="mt-6 pt-3.5 border-t border-stone-200 flex items-start gap-3 text-xs sm:text-sm font-bold text-stone-900 bg-amber-50/80 p-3.5 rounded-2xl border border-amber-300 shadow-2xs">
                                         <HelpCircle className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
                                         <div>
@@ -524,7 +788,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                             <span className="leading-snug">{currentPage.interactiveQuestion}</span>
                                         </div>
                                     </div>
-                                )}
+                                ) : null}
                             </div>
                         </>
                     )}
