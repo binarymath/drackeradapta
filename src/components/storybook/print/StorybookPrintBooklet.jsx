@@ -45,10 +45,7 @@ export const StorybookPrintBooklet = ({
 
     const renderCoverRight = () => (
         <div className="print-half-page p-8 sm:p-10 flex flex-col justify-center h-full">
-            <div className="flex justify-between items-center border-b border-stone-300 pb-2 mb-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600 border border-stone-400 px-3 py-1 rounded">
-                    {book.theme || 'História Pedagógica'}
-                </span>
+            <div className="flex items-center gap-3 border-b border-stone-300 pb-2 mb-3">
                 <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
                     <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
                         Início
@@ -57,6 +54,9 @@ export const StorybookPrintBooklet = ({
                         Capa
                     </span>
                 </div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600 border border-stone-400 px-3 py-1 rounded">
+                    {book.theme || 'História Pedagógica'}
+                </span>
             </div>
             <div>
                 <h1 
@@ -143,17 +143,8 @@ export const StorybookPrintBooklet = ({
         return (
             <div className="print-half-page p-8 sm:p-10 flex flex-col justify-between h-full">
                 <div>
-                    <div className="flex justify-between items-center border-b border-stone-300 pb-2.5 mb-4">
-                        <h2 
-                            className="sb-print-chapter-title font-black font-serif text-black flex-1 pr-3"
-                            style={{
-                                fontSize: `${(26 * pScales.title) / 100}px`,
-                                textAlign: pAligns.title || 'left',
-                                lineHeight: 1.25
-                            }}
-                        >
-                            {p.title || `Capítulo ${p.pageNumber}`}
-                        </h2>
+                    {/* Cabeçalho da página: Paginação à esquerda, próxima ao centro da folha A4 em paisagem */}
+                    <div className="flex items-center gap-3 border-b border-stone-300 pb-2.5 mb-4">
                         <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
                             <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
                                 Página
@@ -162,6 +153,16 @@ export const StorybookPrintBooklet = ({
                                 {p.pageNumber}
                             </span>
                         </div>
+                        <h2 
+                            className="sb-print-chapter-title font-black font-serif text-black flex-1"
+                            style={{
+                                fontSize: `${(26 * pScales.title) / 100}px`,
+                                textAlign: pAligns.title || 'left',
+                                lineHeight: 1.25
+                            }}
+                        >
+                            {p.title || `Capítulo ${p.pageNumber}`}
+                        </h2>
                     </div>
 
                     <div 
@@ -252,10 +253,7 @@ export const StorybookPrintBooklet = ({
     const renderBackRight = () => (
         <div className="print-half-page p-8 sm:p-10 flex flex-col justify-between h-full">
             <div>
-                <div className="border-b border-stone-300 pb-2.5 mb-4 flex justify-between items-center">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 border border-amber-400 bg-amber-50 px-3 py-1 rounded">
-                        Conclusão da História
-                    </span>
+                <div className="border-b border-stone-300 pb-2.5 mb-4 flex items-center gap-3">
                     <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
                         <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
                             Final
@@ -264,6 +262,9 @@ export const StorybookPrintBooklet = ({
                             Contracapa
                         </span>
                     </div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 border border-amber-400 bg-amber-50 px-3 py-1 rounded">
+                        Conclusão da História
+                    </span>
                 </div>
 
                 <h2 
@@ -325,17 +326,22 @@ export const StorybookPrintBooklet = ({
         <div className="storybook-print-container">
             {(() => {
                 // ==========================================
-                // 1. MODO LIVRETO GRAMPEADO (BOOKLET)
+                // 1. MODO LIVRETO GRAMPEADO (BOOKLET OCIDENTAL / BRASIL)
                 // ==========================================
+                // No Brasil / Ocidente, a dobra (lombada) fica à ESQUERDA e a abertura da DIREITA para a ESQUERDA.
+                // Na folha externa dobrada ao meio:
+                // [ Contracapa (Esquerda) | Capa (Direita) ]
+                // Ao abrir virando a capa para a esquerda, revelam-se as páginas internas do miolo.
                 if (printLayoutMode === 'booklet') {
                     const logicalPages = [];
-                    logicalPages.push({ type: 'cover_left' });
+                    // Capa (Página 1 do livreto)
                     logicalPages.push({ type: 'cover_right' });
+                    // Miolo: Ilustração e Texto das páginas internas
                     pages.forEach(p => {
                         logicalPages.push({ type: 'story_left', page: p });
                         logicalPages.push({ type: 'story_right', page: p });
                     });
-                    logicalPages.push({ type: 'back_left' });
+                    // Contracapa final
                     logicalPages.push({ type: 'back_right' });
 
                     // Para encadernação de livreto dobrado ao meio, o número de páginas A5 deve ser múltiplo de 4
@@ -348,6 +354,11 @@ export const StorybookPrintBooklet = ({
                     }
 
                     // Algoritmo clássico de imposição de livreto (Saddle-Stitch Booklet)
+                    // Folha s Frente: Esquerda = Página (totalUnits - 1 - 2*s) | Direita = Página (2*s)
+                    // Para s=0 (Folha externa):
+                    // Esquerda = última página (Contracapa)
+                    // Direita = primeira página (Capa)
+                    // Exatamente o padrão brasileiro e ocidental de leitura!
                     const totalUnits = logicalPages.length;
                     const totalSheets = totalUnits / 4;
                     const imposedSheets = [];
@@ -363,7 +374,7 @@ export const StorybookPrintBooklet = ({
                             right: logicalPages[frontRightIdx]
                         });
 
-                        // Verso da folha s (Ao virar no eixo longo)
+                        // Verso da folha s (Ao virar no eixo longo/horizontal da impressora)
                         const backLeftIdx = (2 * s) + 1;
                         const backRightIdx = totalUnits - 2 - (2 * s);
                         imposedSheets.push({
