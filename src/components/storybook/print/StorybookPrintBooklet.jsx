@@ -45,7 +45,10 @@ export const StorybookPrintBooklet = ({
 
     const renderCoverRight = () => (
         <div className="print-half-page p-8 sm:p-10 flex flex-col justify-center h-full">
-            <div className="flex items-center gap-3 border-b border-stone-300 pb-2 mb-3">
+            <div className="flex justify-between items-center border-b border-stone-300 pb-2 mb-3">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600 border border-stone-400 px-3 py-1 rounded">
+                    {book.theme || 'História Pedagógica'}
+                </span>
                 <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
                     <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
                         Início
@@ -140,18 +143,9 @@ export const StorybookPrintBooklet = ({
         return (
             <div className="print-half-page p-8 sm:p-10 flex flex-col justify-between h-full">
                 <div>
-                    {/* Cabeçalho da página: Paginação à esquerda, próxima ao centro da folha A4 em paisagem */}
-                    <div className="flex items-center gap-3 border-b border-stone-300 pb-2.5 mb-4">
-                        <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
-                            <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
-                                Página
-                            </span>
-                            <span className="text-xs font-black text-stone-800">
-                                {p.pageNumber}
-                            </span>
-                        </div>
+                    <div className="flex justify-between items-center border-b border-stone-300 pb-2.5 mb-4">
                         <h2 
-                            className="sb-print-chapter-title font-black font-serif text-black flex-1"
+                            className="sb-print-chapter-title font-black font-serif text-black flex-1 pr-3"
                             style={{
                                 fontSize: `${(26 * pScales.title) / 100}px`,
                                 textAlign: pAligns.title || 'left',
@@ -160,6 +154,14 @@ export const StorybookPrintBooklet = ({
                         >
                             {p.title || `Capítulo ${p.pageNumber}`}
                         </h2>
+                        <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
+                            <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
+                                Página
+                            </span>
+                            <span className="text-xs font-black text-stone-800">
+                                {p.pageNumber}
+                            </span>
+                        </div>
                     </div>
 
                     <div 
@@ -231,7 +233,10 @@ export const StorybookPrintBooklet = ({
                     />
                 </div>
             ) : (
-                <div className="w-full flex-1" />
+                <div className="w-full flex-1 flex flex-col justify-center items-center">
+                    <img src="/dracker_character.png" alt="Drácker" className="w-20 h-20 object-contain opacity-30 mb-2" />
+                    <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Espaço para Anotações do Aluno</span>
+                </div>
             )}
             <div className="mt-2 shrink-0">
                 <h3 className="text-base font-black font-serif text-stone-900">
@@ -247,7 +252,10 @@ export const StorybookPrintBooklet = ({
     const renderBackRight = () => (
         <div className="print-half-page p-8 sm:p-10 flex flex-col justify-between h-full">
             <div>
-                <div className="border-b border-stone-300 pb-2.5 mb-4 flex items-center gap-3">
+                <div className="border-b border-stone-300 pb-2.5 mb-4 flex justify-between items-center">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 border border-amber-400 bg-amber-50 px-3 py-1 rounded">
+                        Conclusão da História
+                    </span>
                     <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
                         <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
                             Final
@@ -256,9 +264,6 @@ export const StorybookPrintBooklet = ({
                             Contracapa
                         </span>
                     </div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 border border-amber-400 bg-amber-50 px-3 py-1 rounded">
-                        Conclusão da História
-                    </span>
                 </div>
 
                 <h2 
@@ -309,41 +314,85 @@ export const StorybookPrintBooklet = ({
         </div>
     );
 
+    const renderBlank = (label = 'Página para anotações do aluno') => (
+        <div className="print-half-page p-6 flex flex-col justify-center items-center h-full text-center border-r border-stone-200 bg-stone-50/30">
+            <img src="/dracker_character.png" alt="Drácker" className="w-16 h-16 object-contain opacity-40 mb-2" />
+            <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">{label}</span>
+        </div>
+    );
+
     return (
         <div className="storybook-print-container">
             {(() => {
                 // ==========================================
                 // 1. MODO LIVRETO GRAMPEADO (BOOKLET)
                 // ==========================================
-                // Cada folha A4 dobrada ao meio é uma página dupla do livro:
-                // - Folha 1: [ Ilustração da Capa | Apresentação e Sinopse da Capa ]
-                // - Folhas do Miolo: Para cada capítulo -> [ Ilustração da Página | Texto e Desafio ]
-                // - Folha Final: [ Imagem da Contracapa | Conclusão da História ]
-                // Isso elimina totalmente a folha duplicada desnecessária de anotações no início!
                 if (printLayoutMode === 'booklet') {
-                    return (
-                        <>
-                            {/* CAPA DO LIVRO: [ Ilustração da Capa (Esquerda) | Título e Sinopse (Direita) ] */}
-                            <div className="storybook-print-page relative">
-                                {renderCoverLeft()}
-                                {renderCoverRight()}
-                            </div>
+                    const logicalPages = [];
+                    logicalPages.push({ type: 'cover_left' });
+                    logicalPages.push({ type: 'cover_right' });
+                    pages.forEach(p => {
+                        logicalPages.push({ type: 'story_left', page: p });
+                        logicalPages.push({ type: 'story_right', page: p });
+                    });
+                    logicalPages.push({ type: 'back_left' });
+                    logicalPages.push({ type: 'back_right' });
 
-                            {/* PÁGINAS DO MIOLO: [ Ilustração (Esquerda) | Texto e Desafio (Direita) ] */}
-                            {pages.map(p => (
-                                <div key={`booklet-page-${p.pageNumber}`} className="storybook-print-page relative">
-                                    {renderStoryLeft(p)}
-                                    {renderStoryRight(p)}
-                                </div>
-                            ))}
+                    // Para encadernação de livreto dobrado ao meio, o número de páginas A5 deve ser múltiplo de 4
+                    const remainder = logicalPages.length % 4;
+                    if (remainder !== 0) {
+                        const paddingCount = 4 - remainder;
+                        for (let i = 0; i < paddingCount; i++) {
+                            logicalPages.push({ type: 'blank', index: i + 1 });
+                        }
+                    }
 
-                            {/* CONTRACAPA DO LIVRO: [ Logo/Imagem (Esquerda) | Conclusão da História (Direita) ] */}
-                            <div className="storybook-print-page relative">
-                                {renderBackLeft()}
-                                {renderBackRight()}
-                            </div>
-                        </>
-                    );
+                    // Algoritmo clássico de imposição de livreto (Saddle-Stitch Booklet)
+                    const totalUnits = logicalPages.length;
+                    const totalSheets = totalUnits / 4;
+                    const imposedSheets = [];
+
+                    for (let s = 0; s < totalSheets; s++) {
+                        // Frente da folha s
+                        const frontLeftIdx = totalUnits - 1 - (2 * s);
+                        const frontRightIdx = 2 * s;
+                        imposedSheets.push({
+                            sheetNumber: s + 1,
+                            side: 'Frente',
+                            left: logicalPages[frontLeftIdx],
+                            right: logicalPages[frontRightIdx]
+                        });
+
+                        // Verso da folha s (Ao virar no eixo longo)
+                        const backLeftIdx = (2 * s) + 1;
+                        const backRightIdx = totalUnits - 2 - (2 * s);
+                        imposedSheets.push({
+                            sheetNumber: s + 1,
+                            side: 'Verso',
+                            left: logicalPages[backLeftIdx],
+                            right: logicalPages[backRightIdx]
+                        });
+                    }
+
+                    const renderPageItem = (item) => {
+                        if (!item) return renderBlank();
+                        switch (item.type) {
+                            case 'cover_left': return renderCoverLeft();
+                            case 'cover_right': return renderCoverRight();
+                            case 'story_left': return renderStoryLeft(item.page);
+                            case 'story_right': return renderStoryRight(item.page);
+                            case 'back_left': return renderBackLeft();
+                            case 'back_right': return renderBackRight();
+                            default: return renderBlank();
+                        }
+                    };
+
+                    return imposedSheets.map((sheet, idx) => (
+                        <div key={`sheet-${idx}`} className="storybook-print-page relative">
+                            {renderPageItem(sheet.left)}
+                            {renderPageItem(sheet.right)}
+                        </div>
+                    ));
                 }
 
                 // ==========================================
