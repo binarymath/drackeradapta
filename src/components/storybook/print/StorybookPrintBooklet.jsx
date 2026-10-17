@@ -328,37 +328,49 @@ export const StorybookPrintBooklet = ({
                 // ==========================================
                 // 1. MODO LIVRETO GRAMPEADO (BOOKLET OCIDENTAL / BRASIL)
                 // ==========================================
-                // No Brasil / Ocidente, a dobra (lombada) fica à ESQUERDA e a abertura da DIREITA para a ESQUERDA.
-                // Na folha externa dobrada ao meio:
-                // [ Contracapa (Esquerda) | Capa (Direita) ]
-                // Ao abrir virando a capa para a esquerda, revelam-se as páginas internas do miolo.
+                // Em um livreto impresso e dobrado ao meio:
+                // - A folha externa tem [ Contracapa (Esquerda) | Capa (Direita) ]
+                // - Ao abrir a capa para a esquerda, vemos as páginas internas com Ilustração na Esquerda e Texto na Direita.
+                // - As unidades lógicas A5 são:
+                //   Página 0: Capa Esquerda (Ilustração da Capa)
+                //   Página 1: Capa Direita (Título da Capa)
+                //   Páginas do Miolo: Para cada página p -> [ story_left (ilustração), story_right (texto) ]
+                //   Contracapa: [ back_left (logo/imagem), back_right (conclusão) ]
+                // - Total de páginas A5 = 2 + (pages.length * 2) + 2.
+                // - Como cada página de história tem 2 metades (ilustração + texto), para 1 história (ou 3, 5, etc.),
+                //   o total já é múltiplo de 4: 2 + 2*N + 2 = 4 + 2*N.
+                //   Quando N é par (ex: 2 páginas): 4 + 4 = 8 páginas A5 = 2 folhas A4 exatas, sem páginas em branco!
+                //   Quando N é ímpar (ex: 1 página): 4 + 2 = 6 páginas A5 -> preenche 2 páginas em branco no centro para fechar 8 (2 folhas).
                 if (printLayoutMode === 'booklet') {
                     const logicalPages = [];
-                    // Capa (Página 1 do livreto)
+                    // Capa (Frente e Verso da Capa)
+                    logicalPages.push({ type: 'cover_left' });
                     logicalPages.push({ type: 'cover_right' });
+                    
                     // Miolo: Ilustração e Texto das páginas internas
                     pages.forEach(p => {
                         logicalPages.push({ type: 'story_left', page: p });
                         logicalPages.push({ type: 'story_right', page: p });
                     });
+                    
                     // Contracapa final
+                    logicalPages.push({ type: 'back_left' });
                     logicalPages.push({ type: 'back_right' });
 
                     // Para encadernação de livreto dobrado ao meio, o número de páginas A5 deve ser múltiplo de 4
                     const remainder = logicalPages.length % 4;
                     if (remainder !== 0) {
                         const paddingCount = 4 - remainder;
+                        // Insere as páginas de anotações no miolo antes da contracapa, mantendo a contracapa no final
+                        const insertIdx = logicalPages.length - 2;
                         for (let i = 0; i < paddingCount; i++) {
-                            logicalPages.push({ type: 'blank', index: i + 1 });
+                            logicalPages.splice(insertIdx, 0, { type: 'blank', index: i + 1 });
                         }
                     }
 
                     // Algoritmo clássico de imposição de livreto (Saddle-Stitch Booklet)
                     // Folha s Frente: Esquerda = Página (totalUnits - 1 - 2*s) | Direita = Página (2*s)
-                    // Para s=0 (Folha externa):
-                    // Esquerda = última página (Contracapa)
-                    // Direita = primeira página (Capa)
-                    // Exatamente o padrão brasileiro e ocidental de leitura!
+                    // Folha s Verso: Esquerda = Página (2*s + 1) | Direita = Página (totalUnits - 2 - 2*s)
                     const totalUnits = logicalPages.length;
                     const totalSheets = totalUnits / 4;
                     const imposedSheets = [];
