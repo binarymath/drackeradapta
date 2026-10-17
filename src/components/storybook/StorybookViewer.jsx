@@ -144,128 +144,143 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                 </div>
             </div>
 
-            {/* Visualizador de Páginas Interativo (3D Flipbook Effect) */}
-            <div className="relative w-full aspect-[4/3] sm:aspect-[16/10] md:min-h-[580px] bg-[#faf6f0] rounded-3xl border-4 border-amber-900/10 shadow-[0_20px_50px_rgba(60,35,20,0.15)] overflow-hidden flex flex-col justify-between">
-                
-                {/* Linha de Vinco Central do Livro (Efeito Dobradura de Papel) */}
-                <div className="absolute inset-y-0 left-1/2 w-8 -translate-x-1/2 bg-gradient-to-r from-black/5 via-black/10 to-transparent pointer-events-none z-30 hidden md:block" />
+            {/* Estilo Especial de Impressão Ultra-Clean (Economia Máxima de Tinta) */}
+            <style>{`
+                @media print {
+                    body {
+                        background: white !important;
+                    }
+                    .no-print {
+                        display: none !important;
+                    }
+                    .storybook-print-page {
+                        page-break-after: always;
+                        break-after: page;
+                        width: 100% !important;
+                        min-height: 100vh !important;
+                        background: white !important;
+                        color: black !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                    }
+                }
+            `}</style>
 
-                {/* --- CONTEÚDO: CAPA --- */}
+            {/* Visualizador de Páginas Ultra-Clean (Fundo Branco Limpo - Economia de Tinta) */}
+            <div className="relative w-full aspect-[4/3] sm:aspect-[16/10] md:min-h-[580px] bg-white rounded-3xl border-2 border-stone-200 shadow-lg overflow-hidden flex flex-col justify-between">
+                
+                {/* Linha discreta de Vinco Central */}
+                <div className="absolute inset-y-0 left-1/2 w-px bg-stone-200 pointer-events-none z-30 hidden md:block" />
+
+                {/* --- CONTEÚDO: CAPA LIMPA --- */}
                 {isCover && (
-                    <div className="flex-1 flex flex-col md:flex-row h-full">
-                        {/* Imagem de Capa */}
-                        <div className="flex-1 bg-amber-100/50 p-6 sm:p-8 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-amber-200/60 overflow-hidden">
+                    <div className="flex-1 flex flex-col md:flex-row h-full storybook-print-page">
+                        {/* Imagem de Capa em Linha Limpa / Ilustração */}
+                        <div className="flex-1 bg-white p-6 sm:p-8 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-stone-200 overflow-hidden">
                             {book.cover?.imageUrl ? (
                                 <img 
                                     src={book.cover.imageUrl} 
                                     alt="Capa do Livro" 
-                                    className="w-full h-full max-h-[440px] object-cover rounded-2xl shadow-md border-2 border-white"
+                                    className="w-full h-full max-h-[440px] object-contain rounded-2xl border border-stone-200"
                                 />
                             ) : (
-                                <div className="flex flex-col items-center justify-center text-center p-6 bg-white/70 backdrop-blur-sm rounded-2xl border-2 border-dashed border-amber-300 w-full h-full max-h-[440px]">
-                                    <img src="/dracker_character.png" alt="Drácker" className="w-32 h-32 object-contain drop-shadow-md mb-3" />
-                                    <span className="text-xs font-bold text-brown-600 mb-2">Ilustração da Capa</span>
-                                    <button
-                                        onClick={handleGenerateImageForCurrentPage}
-                                        disabled={isGeneratingImg}
-                                        className="text-xs font-black text-amber-800 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg border border-amber-300 flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                    >
-                                        <Sparkles className="w-3.5 h-3.5" />
-                                        Gerar Capa com IA
-                                    </button>
+                                <div className="flex flex-col items-center justify-center text-center p-6 bg-stone-50/60 rounded-2xl border-2 border-dashed border-stone-300 w-full h-full max-h-[440px]">
+                                    <div className="p-3 rounded-full bg-white border border-stone-200 mb-3 shadow-2xs">
+                                        <img src="/dracker_character.png" alt="Drácker" className="w-28 h-28 object-contain" />
+                                    </div>
+                                    <span className="text-sm font-black text-stone-800 mb-1">Capa do Livro Infantil</span>
+                                    <p className="text-xs text-stone-500 max-w-xs mb-3">
+                                        Capa limpa projetada para economia de tinta na impressão escolar.
+                                    </p>
                                 </div>
                             )}
                         </div>
 
-                        {/* Texto de Capa */}
-                        <div className="flex-1 p-8 md:p-12 flex flex-col justify-between bg-gradient-to-br from-[#fffdf9] to-[#fbf5ed]">
+                        {/* Texto de Capa Limpo */}
+                        <div className="flex-1 p-8 md:p-12 flex flex-col justify-between bg-white text-stone-900">
                             <div className="flex flex-col gap-3">
-                                <span className="text-xs font-black uppercase text-amber-700 tracking-widest bg-amber-100/80 px-3 py-1 rounded-full self-start border border-amber-200">
-                                    {book.theme || 'Aventura Pedagógica'}
+                                <span className="text-[11px] font-black uppercase tracking-wider border border-stone-300 text-stone-600 px-3 py-1 rounded-md self-start">
+                                    {book.theme || 'História Pedagógica'}
                                 </span>
-                                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-brown-950 font-serif leading-tight">
+                                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-stone-950 font-serif leading-tight">
                                     {book.title}
                                 </h1>
-                                <p className="text-base sm:text-lg text-brown-700 font-medium italic mt-1">
+                                <p className="text-base sm:text-lg text-stone-600 font-medium italic">
                                     {book.subtitle}
                                 </p>
                             </div>
 
-                            <div className="mt-8 pt-6 border-t border-amber-200/60 flex flex-col gap-2">
-                                <span className="text-xs font-bold text-brown-500 uppercase tracking-wider">Sinopse da História:</span>
-                                <p className="text-sm text-brown-800 leading-relaxed font-sans">
+                            <div className="mt-8 pt-6 border-t border-stone-200 flex flex-col gap-2">
+                                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Sinopse:</span>
+                                <p className="text-sm text-stone-700 leading-relaxed font-sans">
                                     {book.synopsis || 'Uma jornada inesquecível de descobertas com o Drácker e seus grandes amigos da floresta!'}
                                 </p>
-                                <span className="text-xs font-bold text-amber-900 mt-3 font-serif">
-                                    Drácker Adapta • Livro Ilustrado Didático
+                                <span className="text-xs font-semibold text-stone-500 mt-2">
+                                    Drácker Adapta • Livro Didático Infantil
                                 </span>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* --- CONTEÚDO: PÁGINA INTERNA --- */}
+                {/* --- CONTEÚDO: PÁGINA INTERNA (Clean & White) --- */}
                 {currentPage && (
-                    <div className="flex-1 flex flex-col md:flex-row h-full">
-                        {/* Lado Esquerdo: Imagem da Cena */}
-                        <div className="flex-1 bg-amber-50/70 p-6 sm:p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-amber-200/60 relative">
+                    <div className="flex-1 flex flex-col md:flex-row h-full storybook-print-page">
+                        {/* Lado Esquerdo: Área de Desenho / Ilustração Limpa para Colorir */}
+                        <div className="flex-1 bg-white p-6 sm:p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-stone-200 relative">
                             {currentPage.imageUrl ? (
                                 <img 
                                     src={currentPage.imageUrl} 
                                     alt={`Página ${currentPage.pageNumber}`} 
-                                    className="w-full h-full max-h-[440px] object-cover rounded-2xl shadow-md border-2 border-white"
+                                    className="w-full h-full max-h-[440px] object-contain rounded-2xl border border-stone-200"
                                 />
                             ) : (
-                                <div className="flex flex-col items-center justify-center text-center p-6 bg-white/70 backdrop-blur-sm rounded-2xl border-2 border-dashed border-amber-300 w-full h-full max-h-[440px]">
-                                    <img src="/dracker_character.png" alt="Drácker" className="w-24 h-24 object-contain drop-shadow-md mb-2" />
-                                    <span className="text-xs font-bold text-brown-600 mb-1">Cena {currentPage.pageNumber}</span>
-                                    <p className="text-[11px] text-brown-400 max-w-xs mb-3 italic">
-                                        "{currentPage.imagePrompt?.slice(0, 80)}..."
+                                <div className="flex flex-col items-center justify-center text-center p-6 bg-stone-50/50 rounded-2xl border-2 border-dashed border-stone-300 w-full h-full max-h-[440px]">
+                                    <div className="w-20 h-20 rounded-2xl bg-white border border-stone-200 flex items-center justify-center p-2 mb-3 shadow-2xs">
+                                        <img src="/dracker_character.png" alt="Drácker" className="w-full h-full object-contain" />
+                                    </div>
+                                    <span className="text-xs font-black text-stone-700 uppercase tracking-wider mb-1">
+                                        Ilustração da Página {currentPage.pageNumber}
+                                    </span>
+                                    <p className="text-xs text-stone-500 max-w-xs italic mb-2">
+                                        Espaço dedicado para os alunos colorirem após a leitura!
                                     </p>
-                                    <button
-                                        onClick={handleGenerateImageForCurrentPage}
-                                        disabled={isGeneratingImg}
-                                        className="text-xs font-black text-amber-800 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg border border-amber-300 flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                    >
-                                        <Sparkles className="w-3.5 h-3.5" />
-                                        Ilustrar Cena
-                                    </button>
                                 </div>
                             )}
                         </div>
 
-                        {/* Lado Direito: Texto da História */}
-                        <div className="flex-1 p-8 md:p-12 flex flex-col justify-between bg-white/90">
+                        {/* Lado Direito: Texto da História em Fundo Branco Limpo */}
+                        <div className="flex-1 p-8 md:p-12 flex flex-col justify-between bg-white text-stone-900">
                             <div>
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-xl sm:text-2xl font-black text-brown-950 font-serif">
+                                <div className="flex justify-between items-center mb-4 pb-2 border-b border-stone-100">
+                                    <h3 className="text-xl sm:text-2xl font-black text-stone-900 font-serif">
                                         {currentPage.title || `Capítulo ${currentPage.pageNumber}`}
                                     </h3>
-                                    <span className="text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full font-mono">
+                                    <span className="text-xs font-bold text-stone-500 bg-stone-100 px-2.5 py-0.5 rounded-full font-mono">
                                         Página {currentPage.pageNumber}
                                     </span>
                                 </div>
 
-                                {/* Texto da narrativa em tipografia elegante para leitura */}
-                                <div className="text-base sm:text-[17px] text-brown-900 leading-relaxed font-serif space-y-3 whitespace-pre-line">
+                                {/* Texto da narrativa com excelente legibilidade e economia de tinta */}
+                                <div className="text-base sm:text-[17px] text-stone-800 leading-relaxed font-serif space-y-3 whitespace-pre-line">
                                     {currentPage.text}
                                 </div>
 
-                                {/* Fala Marcante / Diálogo em Destaque */}
+                                {/* Fala Marcante do Personagem */}
                                 {currentPage.dialogue && (
-                                    <div className="mt-4 p-3.5 rounded-2xl bg-amber-50/90 border-l-4 border-amber-500 text-sm italic text-brown-900 flex items-start gap-2.5 shadow-2xs">
-                                        <MessageCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                    <div className="mt-5 p-3.5 rounded-xl bg-stone-50 border-l-4 border-stone-400 text-sm italic text-stone-800 flex items-start gap-2.5">
+                                        <MessageCircle className="w-4 h-4 text-stone-500 shrink-0 mt-0.5" />
                                         <span>"{currentPage.dialogue}"</span>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Pergunta Interativa para a Criança / Aluno */}
+                            {/* Pergunta Interativa para o Aluno */}
                             {currentPage.interactiveQuestion && (
-                                <div className="mt-6 pt-4 border-t border-amber-100 flex items-start gap-2 text-xs font-bold text-amber-900 bg-amber-50/60 p-3 rounded-xl border border-amber-200/50">
-                                    <HelpCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                <div className="mt-6 pt-3 border-t border-stone-200 flex items-start gap-2 text-xs font-bold text-stone-800 bg-stone-50 p-3 rounded-xl border border-stone-200">
+                                    <HelpCircle className="w-4 h-4 text-stone-600 shrink-0 mt-0.5" />
                                     <div>
-                                        <span className="uppercase text-[10px] text-amber-700 tracking-wider block font-black">Momento de Interagir:</span>
+                                        <span className="uppercase text-[10px] text-stone-500 tracking-wider block font-black">Desafio de Atenção:</span>
                                         <span>{currentPage.interactiveQuestion}</span>
                                     </div>
                                 </div>
@@ -274,33 +289,33 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                     </div>
                 )}
 
-                {/* --- CONTEÚDO: CONTRACAPA --- */}
+                {/* --- CONTEÚDO: CONTRACAPA LIMPA --- */}
                 {isBackCover && (
-                    <div className="flex-1 p-8 sm:p-14 flex flex-col justify-between bg-gradient-to-br from-[#f8f1e7] to-[#ede0cf] text-center">
+                    <div className="flex-1 p-8 sm:p-14 flex flex-col justify-between bg-white text-center storybook-print-page">
                         <div className="max-w-2xl mx-auto flex flex-col items-center">
-                            <img src="/dracker_character.png" alt="Drácker" className="w-20 h-20 object-contain mb-4 drop-shadow-md" />
-                            <h2 className="text-2xl sm:text-3xl font-black text-brown-950 font-serif mb-2">
+                            <img src="/dracker_character.png" alt="Drácker" className="w-20 h-20 object-contain mb-4" />
+                            <h2 className="text-2xl sm:text-3xl font-black text-stone-900 font-serif mb-2">
                                 Fim da Nossa Expedição!
                             </h2>
-                            <p className="text-base text-brown-700 italic max-w-lg mb-6">
+                            <p className="text-base text-stone-600 italic max-w-lg mb-6">
                                 "{book.moralLesson || 'Aprender juntos na floresta mágica transforma qualquer dúvida em pura descoberta!'}"
                             </p>
 
                             {/* Desafio de Atividade Final */}
                             {book.backCover?.activity && (
-                                <div className="w-full bg-white/80 backdrop-blur-sm p-6 rounded-2xl border-2 border-dashed border-amber-400 text-left shadow-sm">
-                                    <span className="text-xs font-black uppercase text-amber-800 tracking-wider flex items-center gap-1.5 mb-2">
-                                        🎨 Desafio do Drácker para Você:
+                                <div className="w-full bg-stone-50 p-6 rounded-2xl border-2 border-dashed border-stone-300 text-left">
+                                    <span className="text-xs font-black uppercase text-stone-700 tracking-wider flex items-center gap-1.5 mb-2">
+                                        ✏️ Desafio Prático do Aluno:
                                     </span>
-                                    <p className="text-sm font-bold text-brown-900 leading-relaxed">
+                                    <p className="text-sm font-semibold text-stone-800 leading-relaxed">
                                         {book.backCover.activity}
                                     </p>
                                 </div>
                             )}
                         </div>
 
-                        <div className="text-xs text-brown-500 font-semibold mt-6 pt-4 border-t border-brown-300/40">
-                            Drácker Adapta • Criado com Metodologias Ativas e Inteligência Artificial
+                        <div className="text-xs text-stone-400 font-semibold mt-6 pt-4 border-t border-stone-200">
+                            Drácker Adapta • Livro Infantil Pedagógico
                         </div>
                     </div>
                 )}

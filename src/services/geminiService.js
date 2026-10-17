@@ -1015,7 +1015,7 @@ IMPORTANTE: Retorne APENAS o JSON (array de 20 objetos), sem markdown (\`\`\`jso
   }
 
   /**
-   * Gera imagem utilizando o modelo Imagen 3 do Google AI Studio com a mesma API Key
+   * Gera imagem utilizando os modelos disponíveis no Google AI Studio (Gemini Multimodal ou Imagen)
    */
   async generateImageWithImagen(prompt, options = {}) {
     if (!this.apiKey) {
@@ -1023,50 +1023,67 @@ IMPORTANTE: Retorne APENAS o JSON (array de 20 objetos), sem markdown (\`\`\`jso
     }
 
     const {
-      aspectRatio = '1:1', // '1:1', '3:4', '4:3', '16:9'
-      numberOfImages = 1,
-      safetyFilterLevel = 'block_medium_and_above',
-      personGeneration = 'ALLOW_ADULT'
+      isColoringPage = false
     } = options;
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${this.apiKey}`;
+    // Se for modo de economia de tinta / colorir, ajusta o prompt para traço preto e branco limpo
+    const adjustedPrompt = isColoringPage
+      ? `Clean coloring book page for children, black and white line art only, bold outlines, no shading, no gradient, pure white background, cute cartoon style: ${prompt}`
+      : `${prompt}, clean white background, high quality storybook style, minimal dark ink`;
 
-    const requestBody = {
-      instances: [{ prompt }],
-      parameters: {
-        sampleCount: numberOfImages,
-        aspectRatio: aspectRatio,
-        safetySetting: safetyFilterLevel,
-        personGeneration: personGeneration
-      }
-    };
-
+    // 1ª Tentativa: Gemini Multimodal Image Generation (nativo da API Gemini v1beta)
     try {
-      this.reportStatus('generating_image', 'Gerando ilustração com Imagen 3...');
-      const response = await fetch(endpoint, {
+      this.reportStatus('generating_image', 'Desenhando ilustração com a IA...');
+      const endpointGemini = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${this.apiKey}`;
+      
+      const res = await fetch(endpointGemini, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: adjustedPrompt }] }],
+          generationConfig: {
+            responseModalities: ["TEXT", "IMAGE"]
+          }
+        })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.warn('[GeminiService] Falha na chamada do Imagen 3:', errorData);
-        throw new Error(errorData?.error?.message || `Erro HTTP ${response.status} ao gerar imagem.`);
+      if (res.ok) {
+        const data = await res.json();
+        const candidateParts = data?.candidates?.[0]?.content?.parts || [];
+        for (const part of candidateParts) {
+          if (part.inlineData?.data) {
+            const mime = part.inlineData.mimeType || 'image/png';
+            return `data:${mime};base64,${part.inlineData.data}`;
+          }
+        }
       }
-
-      const data = await response.json();
-      const base64Bytes = data?.predictions?.[0]?.bytesBase64Encoded;
-
-      if (!base64Bytes) {
-        throw new Error('Nenhuma imagem retornada pelo modelo Imagen 3.');
-      }
-
-      return `data:image/jpeg;base64,${base64Bytes}`;
-    } catch (err) {
-      console.error('[GeminiService] Erro ao gerar imagem:', err);
-      throw err;
+    } catch (e) {
+      console.warn('[GeminiService] Falha na rota nativa multimodal:', e);
     }
+
+    // 2ª Tentativa: Endpoint Imagen 3 predict
+    try {
+      const endpointImagen = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${this.apiKey}`;
+      const res = await fetch(endpointImagen, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instances: [{ prompt: adjustedPrompt }],
+          parameters: { sampleCount: 1, aspectRatio: '1:1' }
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
+        if (b64) return `data:image/jpeg;base64,${b64}`;
+      }
+    } catch (e) {
+      console.warn('[GeminiService] Falha na rota Imagen 3 predict:', e);
+    }
+
+    // Se a chave não tiver cota de imagem habilitada no Google AI Studio, usamos ilustração em traço limpo
+    throw new Error('A sua chave de API não possui permissão ativa para geração de novas imagens no Google AI Studio. Use as ilustrações limpas integradas!');
   }
 
   /**
@@ -1090,16 +1107,18 @@ ${conversationText}
 """
 
 REGRAS OBRIGATÓRIAS DO LIVRO:
-1. Personagens principais: Drácker (dragão marrom bonzinho e curioso) e sua turma mágica da floresta (a sábia Coruja, o ágil Esquilo, a esperta Raposa e o fofinho Coelho).
-2. O livro deve ensinar de forma lúdica, divertida e encantadora o tema discutido na conversa.
-3. Cada página deve conter:
-   - "pageNumber": número da página (1 a N).
+1. O array "pages" DEVE CONTER OBRIGATORIAMENTE ENTRE 4 E 6 PÁGINAS DIFERENTES (NUNCA GERE APENAS UMA PÁGINA). Cada página representa um passo da historinha pedagógica.
+2. Personagens principais: Drácker (dragão marrom bonzinho e curioso) e sua turma mágica da floresta (a sábia Coruja, o ágil Esquilo, a esperta Raposa e o fofinho Coelho).
+3. O livro deve ensinar de forma lúdica, divertida e encantadora o tema discutido na conversa.
+4. O visual e texto devem ser ULTRA-LIMPOS (estilo livro para colorir / impressão econômica em preto e branco).
+5. Cada item do array "pages" deve conter:
+   - "pageNumber": número inteiro consecutivo (1, 2, 3, 4, 5, 6...).
    - "title": título do capítulo/página.
-   - "text": narrativa fluida, calorosa e comovente para crianças (2 a 4 parágrafos curtos, excelente para leitura em voz alta).
+   - "text": narrativa fluida, calorosa e comovente para crianças (2 a 3 parágrafos curtos, excelente para leitura em voz alta).
    - "dialogue": fala marcante de um dos personagens na cena.
-   - "interactiveQuestion": uma pergunta para a criança interagir durante a leitura (ex: "Você consegue contar quantos galhos têm na árvore?").
-   - "imagePrompt": prompt em inglês detalhado no estilo "children's storybook illustration, cute 3D cartoon style, enchanted forest, friendly brown dragon named Drácker, colorful, soft daylight, warm palette, high quality".
-4. Retorne ESTRITAMENTE um objeto JSON válido, sem cercas de markdown extras ou comentários.
+   - "interactiveQuestion": uma pergunta para a criança interagir durante a leitura (ex: "Você consegue contar quantas estrelas têm no céu?").
+   - "imagePrompt": prompt em inglês detalhado no estilo "Clean coloring book page for children, black and white line art, pure white background, cute cartoon little brown dragon named Drácker".
+6. Retorne ESTRITAMENTE um objeto JSON válido, sem cercas de markdown extras ou comentários.
 
 FORMATO JSON ESPERADO:
 {
