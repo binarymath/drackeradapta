@@ -724,10 +724,10 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             </div>
 
                             {/* Lado Direito: Texto da História em Fundo Branco Limpo e Fluido */}
-                            <div className="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-between bg-white text-stone-900 overflow-y-auto">
-                                <div>
+                            <div className="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-start gap-4 bg-white text-stone-900 overflow-y-auto">
+                                <div className="flex flex-col gap-3.5">
                                     {/* Cabeçalho da Página */}
-                                    <div className="flex justify-between items-center mb-4 pb-2.5 border-b border-stone-200">
+                                    <div className="flex justify-between items-center pb-2 border-b border-stone-200">
                                         {isEditingText ? (
                                             <input
                                                 type="text"
@@ -781,7 +781,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                         />
                                     ) : (
                                         <div 
-                                            className="text-stone-800 leading-relaxed font-serif space-y-4 whitespace-pre-line"
+                                            className="text-stone-800 leading-relaxed font-serif space-y-2.5 whitespace-pre-line"
                                             style={{
                                                 fontSize: `${(17 * currentFontScales.text) / 100}px`,
                                                 textAlign: currentTextAligns.text || 'justify'
@@ -793,7 +793,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
                                     {/* Fala Marcante do Personagem */}
                                     {isEditingText ? (
-                                        <div className="mt-4">
+                                        <div className="mt-1">
                                             <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Fala do Personagem:</label>
                                             <input
                                                 type="text"
@@ -812,12 +812,12 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                         </div>
                                     ) : currentPage.dialogue ? (
                                         <div 
-                                            className="mt-5 p-3.5 rounded-xl bg-amber-50/70 border-l-4 border-amber-500 italic text-stone-800 flex items-start gap-2.5 shadow-2xs"
+                                            className="mt-1.5 p-3 rounded-xl bg-amber-50/70 border-l-4 border-amber-500 italic text-stone-800 flex items-start gap-2.5 shadow-2xs"
                                             style={{
                                                 fontSize: `${(14 * currentFontScales.dialogue) / 100}px`
                                             }}
                                         >
-                                            <MessageCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+                                            <MessageCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                                             <span 
                                                 className="w-full"
                                                 style={{
@@ -832,7 +832,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
                                 {/* Pergunta Interativa para o Aluno (Desafio de Atenção) */}
                                 {isEditingText ? (
-                                    <div className="mt-5 pt-3 border-t border-stone-200">
+                                    <div className="mt-1 pt-2 border-t border-stone-200">
                                         <label className="text-[11px] font-black text-amber-900 uppercase tracking-wider block mb-1">Desafio de Atenção:</label>
                                         <input
                                             type="text"
@@ -851,19 +851,19 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                     </div>
                                 ) : currentPage.interactiveQuestion ? (
                                     <div 
-                                        className="mt-6 pt-3.5 border-t border-stone-200 flex items-start gap-3 font-bold text-stone-900 bg-amber-50/80 p-3.5 rounded-2xl border border-amber-300 shadow-2xs"
+                                        className="mt-1 pt-3 border-t border-stone-200 flex items-start gap-2.5 font-bold text-stone-900 bg-amber-50/80 p-3 rounded-2xl border border-amber-300 shadow-2xs"
                                         style={{
                                             fontSize: `${(13 * currentFontScales.question) / 100}px`
                                         }}
                                     >
-                                        <HelpCircle className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
+                                        <HelpCircle className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
                                         <div 
                                             className="w-full"
                                             style={{
                                                 textAlign: currentTextAligns.question || 'left'
                                             }}
                                         >
-                                            <span className="uppercase text-[11px] text-amber-900 tracking-wider block font-black mb-0.5">Desafio de Atenção:</span>
+                                            <span className="uppercase text-[10px] text-amber-900 tracking-wider block font-black mb-0.5">Desafio de Atenção:</span>
                                             <span className="leading-snug">{currentPage.interactiveQuestion}</span>
                                         </div>
                                     </div>
