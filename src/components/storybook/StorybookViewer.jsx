@@ -49,65 +49,103 @@ export const StorybookViewer = ({ data, onUpdate }) => {
     const [inputMediaUrl, setInputMediaUrl] = useState('');
     const [isPlayingVideo, setIsPlayingVideo] = useState(false);
 
-    // Barra de ferramentas de texto (Tamanho da fonte por elemento, Alinhamento e Edição de Texto)
-    const [targetTextPart, setTargetTextPart] = useState('text'); // 'text' | 'title' | 'dialogue' | 'question' | 'all'
-    const [fontScales, setFontScales] = useState({
-        text: 140,      // Texto principal / narrativa / sinopse
-        title: 120,     // Título e subtítulo
-        dialogue: 110,  // Fala do personagem
-        question: 110   // Pergunta ou desafio de atenção
-    });
-    const [textAligns, setTextAligns] = useState({
-        text: 'justify',    // Texto principal / narrativa / sinopse
-        title: 'left',      // Título e subtítulo
-        dialogue: 'left',   // Fala do personagem
-        question: 'left'    // Pergunta ou desafio de atenção
-    });
-    const [isEditingText, setIsEditingText] = useState(false);
-
-    // Alinhamento atual da parte selecionada (para destacar os botões)
-    const currentAlignment = targetTextPart === 'all' ? (textAligns.text || 'justify') : (textAligns[targetTextPart] || 'left');
-
-    // Ajusta o alinhamento para a parte selecionada ou para todas
-    const setAlignmentForTarget = (align) => {
-        setTextAligns(prev => {
-            if (targetTextPart === 'all') {
-                return {
-                    text: align,
-                    title: align,
-                    dialogue: align,
-                    question: align
-                };
-            }
-            return {
-                ...prev,
-                [targetTextPart]: align
-            };
-        });
-    };
-
-    // Ajusta o tamanho da fonte para o elemento selecionado ou para todos
-    const adjustFontScale = (delta) => {
-        setFontScales(prev => {
-            if (targetTextPart === 'all') {
-                return {
-                    text: Math.min(220, Math.max(80, prev.text + delta)),
-                    title: Math.min(220, Math.max(80, prev.title + delta)),
-                    dialogue: Math.min(220, Math.max(80, prev.dialogue + delta)),
-                    question: Math.min(220, Math.max(80, prev.question + delta))
-                };
-            }
-            return {
-                ...prev,
-                [targetTextPart]: Math.min(220, Math.max(80, (prev[targetTextPart] || 100) + delta))
-            };
-        });
-    };
-
     const totalViews = pages.length + 2; // Capa + Páginas + Contracapa
     const isCover = currentPageIndex === 0;
     const isBackCover = currentPageIndex === totalViews - 1;
     const currentPage = !isCover && !isBackCover ? pages[currentPageIndex - 1] : null;
+
+    // Chave identificadora da página ativa ('cover', número da página ou 'backcover')
+    const activePageKey = isCover ? 'cover' : isBackCover ? 'backcover' : (currentPage ? currentPage.pageNumber : 1);
+
+    // Barra de ferramentas de texto (Tamanho da fonte por elemento, Alinhamento e Edição de Texto POR PÁGINA)
+    const [targetTextPart, setTargetTextPart] = useState('text'); // 'text' | 'title' | 'dialogue' | 'question' | 'all'
+    const DEFAULT_FONT_SCALES = {
+        text: 140,      // Texto principal / narrativa / sinopse
+        title: 120,     // Título e subtítulo
+        dialogue: 110,  // Fala do personagem
+        question: 110   // Pergunta ou desafio de atenção
+    };
+    const DEFAULT_TEXT_ALIGNS = {
+        text: 'justify',    // Texto principal / narrativa / sinopse
+        title: 'left',      // Título e subtítulo
+        dialogue: 'left',   // Fala do personagem
+        question: 'left'    // Pergunta ou desafio de atenção
+    };
+
+    // Mapas de estilos por página: chave ('cover' | 1 | 2 | ... | 'backcover') -> { text, title, dialogue, question }
+    const [pageFontScales, setPageFontScales] = useState({});
+    const [pageTextAligns, setPageTextAligns] = useState({});
+
+    // Helpers para obter estilos de uma página específica
+    const getPageScales = (pageKey) => ({
+        ...DEFAULT_FONT_SCALES,
+        ...(pageFontScales[pageKey] || {})
+    });
+    const getPageAligns = (pageKey) => ({
+        ...DEFAULT_TEXT_ALIGNS,
+        ...(pageTextAligns[pageKey] || {})
+    });
+
+    // Estilos da página atualmente ativa na tela
+    const currentFontScales = getPageScales(activePageKey);
+    const currentTextAligns = getPageAligns(activePageKey);
+
+    const [isEditingText, setIsEditingText] = useState(false);
+
+    // Alinhamento atual da parte selecionada na página ativa (para destacar os botões)
+    const currentAlignment = targetTextPart === 'all' 
+        ? (currentTextAligns.text || 'justify') 
+        : (currentTextAligns[targetTextPart] || 'left');
+
+    // Ajusta o alinhamento para a parte selecionada ou para todas na PÁGINA ATIVA
+    const setAlignmentForTarget = (align) => {
+        setPageTextAligns(prev => {
+            const pageAlign = { ...DEFAULT_TEXT_ALIGNS, ...(prev[activePageKey] || {}) };
+            if (targetTextPart === 'all') {
+                return {
+                    ...prev,
+                    [activePageKey]: {
+                        text: align,
+                        title: align,
+                        dialogue: align,
+                        question: align
+                    }
+                };
+            }
+            return {
+                ...prev,
+                [activePageKey]: {
+                    ...pageAlign,
+                    [targetTextPart]: align
+                }
+            };
+        });
+    };
+
+    // Ajusta o tamanho da fonte para o elemento selecionado ou para todos na PÁGINA ATIVA
+    const adjustFontScale = (delta) => {
+        setPageFontScales(prev => {
+            const pageScale = { ...DEFAULT_FONT_SCALES, ...(prev[activePageKey] || {}) };
+            if (targetTextPart === 'all') {
+                return {
+                    ...prev,
+                    [activePageKey]: {
+                        text: Math.min(220, Math.max(80, pageScale.text + delta)),
+                        title: Math.min(220, Math.max(80, pageScale.title + delta)),
+                        dialogue: Math.min(220, Math.max(80, pageScale.dialogue + delta)),
+                        question: Math.min(220, Math.max(80, pageScale.question + delta))
+                    }
+                };
+            }
+            return {
+                ...prev,
+                [activePageKey]: {
+                    ...pageScale,
+                    [targetTextPart]: Math.min(220, Math.max(80, (pageScale[targetTextPart] || 100) + delta))
+                }
+            };
+        });
+    };
 
     // Atalho Escape para sair do modo tela cheia
     useEffect(() => {
@@ -252,7 +290,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 A-
                             </button>
                             <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[36px] text-center" title="Percentual da fonte selecionada">
-                                {targetTextPart === 'all' ? `${fontScales.text}%` : `${fontScales[targetTextPart]}%`}
+                                {targetTextPart === 'all' ? `${currentFontScales.text}%` : `${currentFontScales[targetTextPart]}%`}
                             </span>
                             <button
                                 type="button"
@@ -402,43 +440,6 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         flex: 0 0 50% !important;
                         box-sizing: border-box !important;
                         height: 100% !important;
-                    }
-
-                    /* Forçar estritamente tamanhos de fonte e alinhamentos personalizados do usuário na impressão/PDF */
-                    .storybook-print-container .sb-print-title {
-                        font-size: ${(36 * fontScales.title) / 100}px !important;
-                        text-align: ${textAligns.title || 'left'} !important;
-                        line-height: 1.25 !important;
-                    }
-                    .storybook-print-container .sb-print-chapter-title {
-                        font-size: ${(26 * fontScales.title) / 100}px !important;
-                        text-align: ${textAligns.title || 'left'} !important;
-                        line-height: 1.25 !important;
-                    }
-                    .storybook-print-container .sb-print-subtitle {
-                        font-size: ${(18 * fontScales.title) / 100}px !important;
-                        text-align: ${textAligns.title || 'left'} !important;
-                        line-height: 1.35 !important;
-                    }
-                    .storybook-print-container .sb-print-synopsis {
-                        font-size: ${(15 * fontScales.text) / 100}px !important;
-                        text-align: ${textAligns.text || 'justify'} !important;
-                        line-height: 1.6 !important;
-                    }
-                    .storybook-print-container .sb-print-narrative {
-                        font-size: ${(17 * fontScales.text) / 100}px !important;
-                        text-align: ${textAligns.text || 'justify'} !important;
-                        line-height: 1.65 !important;
-                    }
-                    .storybook-print-container .sb-print-dialogue {
-                        font-size: ${(14 * fontScales.dialogue) / 100}px !important;
-                        text-align: ${textAligns.dialogue || 'left'} !important;
-                        line-height: 1.5 !important;
-                    }
-                    .storybook-print-container .sb-print-question {
-                        font-size: ${(13 * fontScales.question) / 100}px !important;
-                        text-align: ${textAligns.question || 'left'} !important;
-                        line-height: 1.45 !important;
                     }
                 }
 
@@ -605,8 +606,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                                 <h1 
                                                     className="font-black text-stone-950 font-serif leading-tight"
                                                     style={{
-                                                        fontSize: `${(32 * fontScales.title) / 100}px`,
-                                                        textAlign: textAligns.title || 'left'
+                                                        fontSize: `${(32 * currentFontScales.title) / 100}px`,
+                                                        textAlign: currentTextAligns.title || 'left'
                                                     }}
                                                 >
                                                     {book.title}
@@ -614,8 +615,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                                 <p 
                                                     className="text-stone-600 font-medium italic mt-1"
                                                     style={{
-                                                        fontSize: `${(17 * fontScales.title) / 100}px`,
-                                                        textAlign: textAligns.title || 'left'
+                                                        fontSize: `${(17 * currentFontScales.title) / 100}px`,
+                                                        textAlign: currentTextAligns.title || 'left'
                                                     }}
                                                 >
                                                     {book.subtitle}
@@ -640,8 +641,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                             <p 
                                                 className="text-stone-700 leading-relaxed font-sans"
                                                 style={{
-                                                    fontSize: `${(15 * fontScales.text) / 100}px`,
-                                                    textAlign: textAligns.text || 'justify'
+                                                    fontSize: `${(15 * currentFontScales.text) / 100}px`,
+                                                    textAlign: currentTextAligns.text || 'justify'
                                                 }}
                                             >
                                                 {book.synopsis || 'Uma jornada inesquecível de descobertas com o Drácker e seus grandes amigos da floresta!'}
@@ -745,8 +746,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                             <h3 
                                                 className="font-black text-stone-900 font-serif"
                                                 style={{
-                                                    fontSize: `${(24 * fontScales.title) / 100}px`,
-                                                    textAlign: textAligns.title || 'left'
+                                                    fontSize: `${(24 * currentFontScales.title) / 100}px`,
+                                                    textAlign: currentTextAligns.title || 'left'
                                                 }}
                                             >
                                                 {currentPage.title || `Capítulo ${currentPage.pageNumber}`}
@@ -782,8 +783,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                         <div 
                                             className="text-stone-800 leading-relaxed font-serif space-y-4 whitespace-pre-line"
                                             style={{
-                                                fontSize: `${(17 * fontScales.text) / 100}px`,
-                                                textAlign: textAligns.text || 'justify'
+                                                fontSize: `${(17 * currentFontScales.text) / 100}px`,
+                                                textAlign: currentTextAligns.text || 'justify'
                                             }}
                                         >
                                             {currentPage.text}
@@ -813,14 +814,14 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                         <div 
                                             className="mt-5 p-3.5 rounded-xl bg-amber-50/70 border-l-4 border-amber-500 italic text-stone-800 flex items-start gap-2.5 shadow-2xs"
                                             style={{
-                                                fontSize: `${(14 * fontScales.dialogue) / 100}px`
+                                                fontSize: `${(14 * currentFontScales.dialogue) / 100}px`
                                             }}
                                         >
                                             <MessageCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
                                             <span 
                                                 className="w-full"
                                                 style={{
-                                                    textAlign: textAligns.dialogue || 'left'
+                                                    textAlign: currentTextAligns.dialogue || 'left'
                                                 }}
                                             >
                                                 "{currentPage.dialogue}"
@@ -852,14 +853,14 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                     <div 
                                         className="mt-6 pt-3.5 border-t border-stone-200 flex items-start gap-3 font-bold text-stone-900 bg-amber-50/80 p-3.5 rounded-2xl border border-amber-300 shadow-2xs"
                                         style={{
-                                            fontSize: `${(13 * fontScales.question) / 100}px`
+                                            fontSize: `${(13 * currentFontScales.question) / 100}px`
                                         }}
                                     >
                                         <HelpCircle className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
                                         <div 
                                             className="w-full"
                                             style={{
-                                                textAlign: textAligns.question || 'left'
+                                                textAlign: currentTextAligns.question || 'left'
                                             }}
                                         >
                                             <span className="uppercase text-[11px] text-amber-900 tracking-wider block font-black mb-0.5">Desafio de Atenção:</span>
@@ -973,152 +974,171 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         )}
                     </div>
                     <div className="print-half-page p-8 sm:p-10 flex flex-col justify-center h-full">
-                        <div>
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600 border border-stone-400 px-3 py-1 rounded">
-                                {book.theme || 'História Pedagógica'}
-                            </span>
-                            <h1 
-                                className="sb-print-title font-black font-serif text-black mt-4 leading-tight"
-                                style={{
-                                    fontSize: `${(36 * fontScales.title) / 100}px`,
-                                    textAlign: textAligns.title || 'left'
-                                }}
-                            >
-                                {book.title}
-                            </h1>
-                            <p 
-                                className="sb-print-subtitle text-stone-700 font-medium italic mt-2"
-                                style={{
-                                    fontSize: `${(18 * fontScales.title) / 100}px`,
-                                    textAlign: textAligns.title || 'left'
-                                }}
-                            >
-                                {book.subtitle}
-                            </p>
-                        </div>
-                        <div className="border-t border-stone-300 pt-5 mt-6">
-                            <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Sinopse da Aventura:</span>
-                            <p 
-                                className="sb-print-synopsis text-stone-800 mt-2 leading-relaxed"
-                                style={{
-                                    fontSize: `${(15 * fontScales.text) / 100}px`,
-                                    textAlign: textAligns.text || 'justify'
-                                }}
-                            >
-                                {book.synopsis}
-                            </p>
-                            <div className="mt-6 pt-3 border-t border-stone-200 flex items-center justify-between text-xs text-stone-500 font-bold">
-                                <span>Drácker Adapta • Livro Infantil</span>
-                                <span className="border border-stone-400 px-2 py-0.5 rounded">Edição Escolar</span>
-                            </div>
-                        </div>
+                        {(() => {
+                            const coverScales = getPageScales('cover');
+                            const coverAligns = getPageAligns('cover');
+                            return (
+                                <>
+                                    <div>
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600 border border-stone-400 px-3 py-1 rounded">
+                                            {book.theme || 'História Pedagógica'}
+                                        </span>
+                                        <h1 
+                                            className="sb-print-title font-black font-serif text-black mt-4 leading-tight"
+                                            style={{
+                                                fontSize: `${(36 * coverScales.title) / 100}px`,
+                                                textAlign: coverAligns.title || 'left',
+                                                lineHeight: 1.25
+                                            }}
+                                        >
+                                            {book.title}
+                                        </h1>
+                                        <p 
+                                            className="sb-print-subtitle text-stone-700 font-medium italic mt-2"
+                                            style={{
+                                                fontSize: `${(18 * coverScales.title) / 100}px`,
+                                                textAlign: coverAligns.title || 'left',
+                                                lineHeight: 1.35
+                                            }}
+                                        >
+                                            {book.subtitle}
+                                        </p>
+                                    </div>
+                                    <div className="border-t border-stone-300 pt-5 mt-6">
+                                        <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Sinopse da Aventura:</span>
+                                        <p 
+                                            className="sb-print-synopsis text-stone-800 mt-2 leading-relaxed"
+                                            style={{
+                                                fontSize: `${(15 * coverScales.text) / 100}px`,
+                                                textAlign: coverAligns.text || 'justify',
+                                                lineHeight: 1.6
+                                            }}
+                                        >
+                                            {book.synopsis}
+                                        </p>
+                                        <div className="mt-6 pt-3 border-t border-stone-200 flex items-center justify-between text-xs text-stone-500 font-bold">
+                                            <span>Drácker Adapta • Livro Infantil</span>
+                                            <span className="border border-stone-400 px-2 py-0.5 rounded">Edição Escolar</span>
+                                        </div>
+                                    </div>
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
 
                 {/* 2. Todas as Páginas Internas Sequenciais (1 a 10+) */}
-                {pages.map((p) => (
-                    <div key={p.pageNumber} className="storybook-print-page">
-                        {/* Ilustração / QR Code à Esquerda (50%) */}
-                        <div className="print-half-page p-6 flex flex-col items-center justify-center border-r border-stone-300 relative h-full">
-                            {p.imageUrl ? (
-                                <img 
-                                    src={p.imageUrl} 
-                                    alt={`Página ${p.pageNumber}`} 
-                                    className="max-h-[170mm] max-w-[95%] object-contain"
-                                />
-                            ) : (
-                                <div className="text-center border-2 border-dashed border-stone-300 p-6 rounded-2xl w-full h-full flex flex-col items-center justify-center">
-                                    <img src="/dracker_character.png" alt="Drácker" className="w-20 h-20 object-contain mb-2" />
-                                    <span className="text-xs font-bold text-stone-700 uppercase tracking-wider">
-                                        Ilustração da Página {p.pageNumber}
-                                    </span>
-                                    <p className="text-[11px] text-stone-500 mt-1">
-                                        Área reservada para o aluno colorir.
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* QR Code impresso no canto se houver vídeo vinculado */}
-                            {p.videoUrl && (
-                                <div className="absolute bottom-3 right-3 bg-white p-2 border border-stone-400 rounded-lg flex items-center gap-2">
+                {pages.map((p) => {
+                    const pScales = getPageScales(p.pageNumber);
+                    const pAligns = getPageAligns(p.pageNumber);
+                    return (
+                        <div key={p.pageNumber} className="storybook-print-page">
+                            {/* Ilustração / QR Code à Esquerda (50%) */}
+                            <div className="print-half-page p-6 flex flex-col items-center justify-center border-r border-stone-300 relative h-full">
+                                {p.imageUrl ? (
                                     <img 
-                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(p.videoUrl)}`} 
-                                        alt="QR Code" 
-                                        className="w-12 h-12"
+                                        src={p.imageUrl} 
+                                        alt={`Página ${p.pageNumber}`} 
+                                        className="max-h-[170mm] max-w-[95%] object-contain"
                                     />
-                                    <span className="text-[9px] font-bold text-stone-700 leading-tight">
-                                        Vídeo da Página<br/>(Aponte a câmera)
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Texto e Desafio de Atenção à Direita (50% - Fluido e Bem Preenchido) */}
-                        <div className="print-half-page p-8 sm:p-10 flex flex-col justify-between h-full">
-                            <div>
-                                <div className="flex justify-between items-center border-b border-stone-300 pb-2.5 mb-4">
-                                    <h2 
-                                        className="sb-print-chapter-title font-black font-serif text-black"
-                                        style={{
-                                            fontSize: `${(26 * fontScales.title) / 100}px`,
-                                            textAlign: textAligns.title || 'left'
-                                        }}
-                                    >
-                                        {p.title || `Capítulo ${p.pageNumber}`}
-                                    </h2>
-                                    <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
-                                        <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
-                                            Página
+                                ) : (
+                                    <div className="text-center border-2 border-dashed border-stone-300 p-6 rounded-2xl w-full h-full flex flex-col items-center justify-center">
+                                        <img src="/dracker_character.png" alt="Drácker" className="w-20 h-20 object-contain mb-2" />
+                                        <span className="text-xs font-bold text-stone-700 uppercase tracking-wider">
+                                            Ilustração da Página {p.pageNumber}
                                         </span>
-                                        <span className="text-xs font-black text-stone-800">
-                                            {p.pageNumber}
-                                        </span>
+                                        <p className="text-[11px] text-stone-500 mt-1">
+                                            Área reservada para o aluno colorir.
+                                        </p>
                                     </div>
-                                </div>
+                                )}
 
-                                <div 
-                                    className="sb-print-narrative font-serif text-stone-900 leading-relaxed whitespace-pre-line"
-                                    style={{
-                                        fontSize: `${(17 * fontScales.text) / 100}px`,
-                                        textAlign: textAligns.text || 'justify'
-                                    }}
-                                >
-                                    {p.text}
-                                </div>
-
-                                {p.dialogue && (
-                                    <div 
-                                        className="sb-print-dialogue mt-4 p-3 bg-stone-50 border-l-4 border-stone-500 italic text-stone-800"
-                                        style={{
-                                            fontSize: `${(14 * fontScales.dialogue) / 100}px`,
-                                            textAlign: textAligns.dialogue || 'left'
-                                        }}
-                                    >
-                                        "{p.dialogue}"
+                                {/* QR Code impresso no canto se houver vídeo vinculado */}
+                                {p.videoUrl && (
+                                    <div className="absolute bottom-3 right-3 bg-white p-2 border border-stone-400 rounded-lg flex items-center gap-2">
+                                        <img 
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(p.videoUrl)}`} 
+                                            alt="QR Code" 
+                                            className="w-12 h-12"
+                                        />
+                                        <span className="text-[9px] font-bold text-stone-700 leading-tight">
+                                            Vídeo da Página<br/>(Aponte a câmera)
+                                        </span>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Desafio de Atenção Obrigatório */}
-                            {p.interactiveQuestion && (
-                                <div 
-                                    className="sb-print-question mt-5 p-4 border border-stone-400 rounded-2xl bg-stone-50"
-                                    style={{
-                                        fontSize: `${(13 * fontScales.question) / 100}px`,
-                                        textAlign: textAligns.question || 'left'
-                                    }}
-                                >
-                                    <span className="text-xs font-black uppercase text-stone-700 block mb-1">
-                                        🔍 Desafio de Atenção do Aluno:
-                                    </span>
-                                    <p className="font-bold text-stone-950">
-                                        {p.interactiveQuestion}
-                                    </p>
+                            {/* Texto e Desafio de Atenção à Direita (50% - Fluido e Bem Preenchido) */}
+                            <div className="print-half-page p-8 sm:p-10 flex flex-col justify-between h-full">
+                                <div>
+                                    <div className="flex justify-between items-center border-b border-stone-300 pb-2.5 mb-4">
+                                        <h2 
+                                            className="sb-print-chapter-title font-black font-serif text-black"
+                                            style={{
+                                                fontSize: `${(26 * pScales.title) / 100}px`,
+                                                textAlign: pAligns.title || 'left',
+                                                lineHeight: 1.25
+                                            }}
+                                        >
+                                            {p.title || `Capítulo ${p.pageNumber}`}
+                                        </h2>
+                                        <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
+                                            <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
+                                                Página
+                                            </span>
+                                            <span className="text-xs font-black text-stone-800">
+                                                {p.pageNumber}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div 
+                                        className="sb-print-narrative font-serif text-stone-900 leading-relaxed whitespace-pre-line"
+                                        style={{
+                                            fontSize: `${(17 * pScales.text) / 100}px`,
+                                            textAlign: pAligns.text || 'justify',
+                                            lineHeight: 1.65
+                                        }}
+                                    >
+                                        {p.text}
+                                    </div>
+
+                                    {p.dialogue && (
+                                        <div 
+                                            className="sb-print-dialogue mt-4 p-3 bg-stone-50 border-l-4 border-stone-500 italic text-stone-800"
+                                            style={{
+                                                fontSize: `${(14 * pScales.dialogue) / 100}px`,
+                                                textAlign: pAligns.dialogue || 'left',
+                                                lineHeight: 1.5
+                                            }}
+                                        >
+                                            "{p.dialogue}"
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+
+                                {/* Desafio de Atenção Obrigatório */}
+                                {p.interactiveQuestion && (
+                                    <div 
+                                        className="sb-print-question mt-5 p-4 border border-stone-400 rounded-2xl bg-stone-50"
+                                        style={{
+                                            fontSize: `${(13 * pScales.question) / 100}px`,
+                                            textAlign: pAligns.question || 'left',
+                                            lineHeight: 1.45
+                                        }}
+                                    >
+                                        <span className="text-xs font-black uppercase text-stone-700 block mb-1">
+                                            🔍 Desafio de Atenção do Aluno:
+                                        </span>
+                                        <p className="font-bold text-stone-950">
+                                            {p.interactiveQuestion}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
 
                 {/* Fim das Páginas (Contracapa suprimida na impressão para economia máxima de folha e evitar página em branco) */}
             </div>
