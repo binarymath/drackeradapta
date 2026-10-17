@@ -54,9 +54,6 @@ export const StorybookPrintBooklet = ({
                         Capa
                     </span>
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600 border border-stone-400 px-3 py-1 rounded">
-                    {book.theme || 'História Pedagógica'}
-                </span>
             </div>
             <div>
                 <h1 
