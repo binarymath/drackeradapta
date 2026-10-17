@@ -228,17 +228,33 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
     // Copiar todo o texto da página ativa (disponível somente no modo online/tela)
     const handleCopyPageText = async () => {
-        if (!currentPage) return;
         const parts = [];
-        if (currentPage.title) parts.push(currentPage.title);
-        if (currentPage.text) parts.push(currentPage.text);
-        if (currentPage.dialogue) parts.push(`"${currentPage.dialogue}"`);
-        if (currentPage.interactiveQuestion) parts.push(`Desafio de Atenção: ${currentPage.interactiveQuestion}`);
+        let pageLabel = 'da página';
+
+        if (isCover) {
+            pageLabel = 'da Capa';
+            if (book.title) parts.push(book.title);
+            if (book.subtitle) parts.push(book.subtitle);
+            if (book.synopsis) parts.push(`Sinopse: ${book.synopsis}`);
+        } else if (currentPage) {
+            pageLabel = `da página ${currentPage.pageNumber}`;
+            if (currentPage.title) parts.push(currentPage.title);
+            if (currentPage.text) parts.push(currentPage.text);
+            if (currentPage.dialogue) parts.push(`"${currentPage.dialogue}"`);
+            if (currentPage.interactiveQuestion) parts.push(`Desafio de Atenção: ${currentPage.interactiveQuestion}`);
+        } else if (isBackCover) {
+            pageLabel = 'da Contracapa';
+            parts.push('Fim da Nossa Expedição!');
+            if (book.moralLesson) parts.push(book.moralLesson);
+            if (book.backCover?.activity) parts.push(`Desafio do Aluno: ${book.backCover.activity}`);
+        }
+
+        if (parts.length === 0) return;
 
         const fullText = parts.join('\n\n');
         try {
             await navigator.clipboard.writeText(fullText);
-            toast(`Texto da página ${currentPage.pageNumber} copiado para a área de transferência!`);
+            toast(`Texto ${pageLabel} copiado para a área de transferência!`);
         } catch {
             // Fallback para ambientes restritos
             const textArea = document.createElement('textarea');
@@ -247,7 +263,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
             textArea.select();
             document.execCommand('copy');
             document.body.removeChild(textArea);
-            toast(`Texto da página ${currentPage.pageNumber} copiado!`);
+            toast(`Texto ${pageLabel} copiado!`);
         }
     };
 
@@ -602,10 +618,34 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             {/* Texto de Capa Fluido e Equilibrado com Edição */}
                             <div className="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-center bg-white text-stone-900 overflow-y-auto">
                                 <div>
-                                    <div className="flex flex-col gap-3">
-                                        <span className="text-[11px] font-black uppercase tracking-wider border border-stone-300 text-stone-600 px-3 py-1 rounded-md self-start">
+                                    {/* Cabeçalho da Capa com badge e copiar */}
+                                    <div className="flex justify-between items-center pb-2 mb-3 border-b border-stone-200">
+                                        <span className="text-[11px] font-black uppercase tracking-wider border border-stone-300 text-stone-600 px-3 py-1 rounded-md">
                                             {book.theme || 'História Pedagógica'}
                                         </span>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <button
+                                                type="button"
+                                                onClick={handleCopyPageText}
+                                                className="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition-all cursor-pointer border border-transparent hover:border-stone-200 active:scale-95 shadow-2xs"
+                                                title="Copiar todo o texto da Capa"
+                                                aria-label="Copiar texto da Capa"
+                                            >
+                                                <Copy className="w-4 h-4 text-stone-600" />
+                                            </button>
+
+                                            <div className="flex flex-col items-center justify-center bg-white border border-stone-200/90 px-3 py-1 rounded-2xl shadow-2xs shrink-0 select-none leading-tight min-w-[54px]">
+                                                <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
+                                                    Página
+                                                </span>
+                                                <span className="text-xs font-black text-stone-800">
+                                                    1
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col gap-3">
                                         {isEditingText ? (
                                             <div className="flex flex-col gap-2">
                                                 <input
@@ -913,6 +953,28 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                     {/* --- CONTEÚDO: CONTRACAPA LIMPA --- */}
                     {isBackCover && (
                         <div className="flex-1 p-6 sm:p-12 flex flex-col justify-between bg-white text-center overflow-y-auto">
+                            <div className="flex justify-end items-center mb-2">
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={handleCopyPageText}
+                                        className="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition-all cursor-pointer border border-transparent hover:border-stone-200 active:scale-95 shadow-2xs"
+                                        title="Copiar texto da Conclusão"
+                                        aria-label="Copiar texto da Conclusão"
+                                    >
+                                        <Copy className="w-4 h-4 text-stone-600" />
+                                    </button>
+
+                                    <div className="flex flex-col items-center justify-center bg-white border border-stone-200/90 px-3 py-1 rounded-2xl shadow-2xs shrink-0 select-none leading-tight min-w-[54px]">
+                                        <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
+                                            Página
+                                        </span>
+                                        <span className="text-xs font-black text-stone-800">
+                                            {pages.length + 2}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                             <div className="max-w-2xl mx-auto flex flex-col items-center">
                                 <img src="/dracker_character.png" alt="Drácker" className="w-16 h-16 sm:w-20 sm:h-20 object-contain mb-3" />
                                 <h2 className="text-xl sm:text-3xl font-black text-stone-900 font-serif mb-2">
@@ -1017,12 +1079,22 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             const coverAligns = getPageAligns('cover');
                             return (
                                 <>
-                                    <div>
+                                    <div className="flex justify-between items-center border-b border-stone-300 pb-2 mb-3">
                                         <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600 border border-stone-400 px-3 py-1 rounded">
                                             {book.theme || 'História Pedagógica'}
                                         </span>
+                                        <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
+                                            <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
+                                                Página
+                                            </span>
+                                            <span className="text-xs font-black text-stone-800">
+                                                1
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
                                         <h1 
-                                            className="sb-print-title font-black font-serif text-black mt-4 leading-tight"
+                                            className="sb-print-title font-black font-serif text-black mt-2 leading-tight"
                                             style={{
                                                 fontSize: `${(36 * coverScales.title) / 100}px`,
                                                 textAlign: coverAligns.title || 'left',
@@ -1178,7 +1250,62 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                     );
                 })}
 
-                {/* Fim das Páginas (Contracapa suprimida na impressão para economia máxima de folha e evitar página em branco) */}
+                {/* 3. Última Página: Fim da Missão / Expedição (Contracapa no PDF e Impressão) */}
+                <div className="storybook-print-page">
+                    {/* Ilustração / Drácker à Esquerda */}
+                    <div className="print-half-page p-6 flex flex-col items-center justify-center border-r border-stone-300 relative h-full text-center">
+                        <img src="/dracker_character.png" alt="Drácker" className="w-32 h-32 object-contain mx-auto mb-4" />
+                        <h3 className="text-base font-black font-serif text-stone-900">
+                            Drácker Adapta
+                        </h3>
+                        <p className="text-xs text-stone-500 mt-1">
+                            Histórias que ensinam, inspiram e transformam.
+                        </p>
+                    </div>
+
+                    {/* Fim da Missão / Expedição à Direita */}
+                    <div className="print-half-page p-8 sm:p-10 flex flex-col justify-between h-full">
+                        <div>
+                            <div className="border-b border-stone-300 pb-2.5 mb-4 flex justify-between items-center">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 border border-amber-400 bg-amber-50 px-3 py-1 rounded">
+                                    Conclusão da História
+                                </span>
+                                <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
+                                    <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
+                                        Página
+                                    </span>
+                                    <span className="text-xs font-black text-stone-800">
+                                        {pages.length + 2}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <h2 className="text-2xl font-black font-serif text-black leading-tight mb-3">
+                                Fim da Nossa Expedição!
+                            </h2>
+                            <p className="text-sm font-serif italic text-stone-800 leading-relaxed bg-stone-50 p-3.5 rounded-xl border-l-4 border-amber-500 mb-5">
+                                "{book.moralLesson || 'Aprender juntos na floresta mágica transforma qualquer dúvida em pura descoberta!'}"
+                            </p>
+
+                            {/* Desafio de Atividade Final */}
+                            {book.backCover?.activity && (
+                                <div className="p-4 border-2 border-dashed border-stone-400 rounded-2xl bg-stone-50">
+                                    <span className="text-xs font-black uppercase text-stone-800 block mb-1">
+                                        ✏️ Desafio Prático do Aluno:
+                                    </span>
+                                    <p className="text-xs font-semibold text-stone-900 leading-relaxed">
+                                        {book.backCover.activity}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="border-t border-stone-200 pt-3 flex items-center justify-between text-xs text-stone-500 font-bold">
+                            <span>Drácker Adapta • Livro Pedagógico</span>
+                            <span className="border border-stone-400 px-2 py-0.5 rounded">Edição Concluída</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* --- MODAL DISCRETO PARA INSERIR URL DE IMAGEM OU YOUTUBE --- */}
