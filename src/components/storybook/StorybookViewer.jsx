@@ -185,6 +185,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
         setEditingTarget(target);
         if (target === 'cover') {
             setInputMediaUrl(book.cover?.videoUrl || book.cover?.imageUrl || '');
+        } else if (target === 'backcover') {
+            setInputMediaUrl(book.backCover?.imageUrl || '/dracker_e_seus_amigos.png');
         } else {
             const pageItem = pages[target - 1];
             setInputMediaUrl(pageItem?.videoUrl || pageItem?.imageUrl || '');
@@ -217,6 +219,15 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                     ...book.cover,
                     imageUrl: finalImageUrl || undefined,
                     videoUrl: finalVideoUrl || undefined
+                }
+            };
+            if (onUpdate) onUpdate(updatedBook);
+        } else if (editingTarget === 'backcover') {
+            const updatedBook = {
+                ...book,
+                backCover: {
+                    ...(book.backCover || {}),
+                    imageUrl: finalImageUrl || undefined
                 }
             };
             if (onUpdate) onUpdate(updatedBook);
@@ -1001,22 +1012,35 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             </div>
 
                             <div className="max-w-2xl mx-auto w-full flex flex-col my-auto">
-                                {/* Logo / Imagem com redimensionamento e alinhamento individual por página */}
+                                {/* Imagem de Drácker e seus amigos com redimensionamento e alinhamento individual */}
                                 <div 
-                                    className={`w-full flex mb-3 ${
+                                    className={`w-full flex mb-4 relative group ${
                                         currentTextAligns.image === 'left' ? 'justify-start' :
                                         currentTextAligns.image === 'right' ? 'justify-end' : 'justify-center'
                                     }`}
                                 >
-                                    <img 
-                                        src="/dracker_character.png" 
-                                        alt="Drácker" 
-                                        style={{
-                                            width: `${(72 * (currentFontScales.image || 100)) / 100}px`,
-                                            height: `${(72 * (currentFontScales.image || 100)) / 100}px`
-                                        }}
-                                        className="object-contain transition-all" 
-                                    />
+                                    <div className="relative inline-block">
+                                        <img 
+                                            src={toDirectImageUrl(book.backCover?.imageUrl || '/dracker_e_seus_amigos.png')} 
+                                            alt="Drácker e seus amigos" 
+                                            onError={handleDriveImageError}
+                                            referrerPolicy="no-referrer"
+                                            style={{
+                                                width: `${(240 * (currentFontScales.image || 100)) / 100}px`,
+                                                maxHeight: '38vh'
+                                            }}
+                                            className="object-contain transition-all drop-shadow-md mx-auto" 
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOpenMediaModal('backcover')}
+                                            className="absolute -top-2 -right-2 p-1.5 bg-white/95 hover:bg-white text-stone-700 rounded-xl border border-stone-200 shadow-sm opacity-0 group-hover:opacity-100 transition-all cursor-pointer flex items-center gap-1 text-[10px] font-bold z-10"
+                                            title="Trocar imagem da contracapa"
+                                        >
+                                            <Link className="w-3 h-3 text-amber-700" />
+                                            <span>Mudar Imagem</span>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Título da Conclusão */}
@@ -1388,7 +1412,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
                     return (
                         <div className="storybook-print-page">
-                            {/* Ilustração / Drácker à Esquerda */}
+                            {/* Ilustração / Drácker e seus amigos à Esquerda */}
                             <div className="print-half-page p-6 flex flex-col justify-center border-r border-stone-300 relative h-full text-center">
                                 <div 
                                     className={`w-full flex mb-4 ${
@@ -1397,13 +1421,15 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                     }`}
                                 >
                                     <img 
-                                        src="/dracker_character.png" 
-                                        alt="Drácker" 
+                                        src={toDirectImageUrl(book.backCover?.imageUrl || '/dracker_e_seus_amigos.png')} 
+                                        alt="Drácker e seus amigos" 
+                                        onError={handleDriveImageError}
+                                        referrerPolicy="no-referrer"
                                         style={{
-                                            width: `${backLogoWidth}px`,
-                                            height: `${backLogoWidth}px`
+                                            width: `${Math.round((260 * (backScales.image || 100)) / 100)}px`,
+                                            maxHeight: '400px'
                                         }}
-                                        className="object-contain" 
+                                        className="object-contain mx-auto" 
                                     />
                                 </div>
                                 <h3 className="text-base font-black font-serif text-stone-900">
