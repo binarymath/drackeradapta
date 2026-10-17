@@ -11,7 +11,9 @@ import {
     HelpCircle, 
     MessageCircle,
     X,
-    Check
+    Check,
+    Play,
+    Pause
 } from 'lucide-react';
 import { toast } from '../ui/Toast';
 
@@ -39,6 +41,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
     const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
     const [editingTarget, setEditingTarget] = useState(null); // 'cover' ou número da página
     const [inputMediaUrl, setInputMediaUrl] = useState('');
+    const [isPlayingVideo, setIsPlayingVideo] = useState(false);
 
     const totalViews = pages.length + 2; // Capa + Páginas + Contracapa
     const isCover = currentPageIndex === 0;
@@ -59,6 +62,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
     // Navegação com efeito refinado de folheada
     const changePage = (newIndex, direction) => {
         if (newIndex < 0 || newIndex >= totalViews || isFlipping || newIndex === currentPageIndex) return;
+        setIsPlayingVideo(false);
         setFlipDirection(direction);
         setIsFlipping(true);
         setTimeout(() => {
@@ -304,18 +308,45 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                     {/* --- CONTEÚDO: CAPA LIMPA --- */}
                     {isCover && (
                         <>
-                            {/* Imagem de Capa */}
+                            {/* Imagem de Capa ou Player de Vídeo */}
                             <div className="flex-1 bg-stone-50/50 p-6 sm:p-8 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-stone-200 overflow-hidden group">
-                                {book.cover?.imageUrl ? (
+                                {book.cover?.videoUrl && isPlayingVideo ? (
+                                    <div className="relative w-full h-full min-h-[300px] flex items-center justify-center rounded-2xl overflow-hidden bg-black shadow-lg">
+                                        <iframe
+                                            src={`https://www.youtube-nocookie.com/embed/${extractYouTubeId(book.cover.videoUrl)}?autoplay=1&rel=0`}
+                                            title="Vídeo da Capa"
+                                            className="w-full h-full border-0 rounded-2xl aspect-video"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        />
+                                        <button
+                                            onClick={() => setIsPlayingVideo(false)}
+                                            className="absolute top-3 right-3 p-1.5 bg-black/70 hover:bg-black text-white rounded-lg cursor-pointer transition-colors z-20"
+                                            title="Fechar vídeo"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ) : book.cover?.imageUrl ? (
                                     <div className="relative w-full h-full flex items-center justify-center">
                                         <img 
                                             src={book.cover.imageUrl} 
                                             alt="Capa do Livro" 
                                             className="w-full h-full max-h-[85vh] object-contain rounded-2xl border border-stone-200 shadow-2xs"
                                         />
+                                        {/* Botão de Play se for vídeo do YouTube */}
+                                        {book.cover.videoUrl && (
+                                            <button
+                                                onClick={() => setIsPlayingVideo(true)}
+                                                className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-red-600/90 hover:bg-red-600 text-white shadow-xl flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 cursor-pointer z-10 group-hover:scale-105"
+                                                title="Assistir ao vídeo do YouTube"
+                                            >
+                                                <Play className="w-8 h-8 fill-current ml-1" />
+                                            </button>
+                                        )}
                                         {/* QR Code discreto se houver vídeo do YouTube */}
                                         {book.cover.videoUrl && (
-                                            <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm p-1.5 rounded-xl border border-stone-300 shadow-md flex items-center gap-1.5">
+                                            <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm p-1.5 rounded-xl border border-stone-300 shadow-md flex items-center gap-1.5 z-10">
                                                 <img 
                                                     src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(book.cover.videoUrl)}`} 
                                                     alt="QR Code Vídeo" 
@@ -343,7 +374,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 {/* Botão discreto para alterar imagem/YouTube */}
                                 <button
                                     onClick={() => handleOpenMediaModal('cover')}
-                                    className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white text-stone-600 hover:text-stone-900 rounded-xl border border-stone-200 shadow-xs opacity-80 hover:opacity-100 transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold"
+                                    className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white text-stone-600 hover:text-stone-900 rounded-xl border border-stone-200 shadow-xs opacity-80 hover:opacity-100 transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold z-20"
                                     title="Inserir imagem direta ou link do YouTube"
                                 >
                                     <Link className="w-3.5 h-3.5 text-amber-700" />
@@ -383,16 +414,43 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         <>
                             {/* Lado Esquerdo: Área de Desenho / Ilustração ou Vídeo */}
                             <div className="flex-1 bg-stone-50/50 p-6 sm:p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-stone-200 relative group overflow-hidden">
-                                {currentPage.imageUrl ? (
+                                {currentPage.videoUrl && isPlayingVideo ? (
+                                    <div className="relative w-full h-full min-h-[300px] flex items-center justify-center rounded-2xl overflow-hidden bg-black shadow-lg">
+                                        <iframe
+                                            src={`https://www.youtube-nocookie.com/embed/${extractYouTubeId(currentPage.videoUrl)}?autoplay=1&rel=0`}
+                                            title={`Vídeo da Página ${currentPage.pageNumber}`}
+                                            className="w-full h-full border-0 rounded-2xl aspect-video"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        />
+                                        <button
+                                            onClick={() => setIsPlayingVideo(false)}
+                                            className="absolute top-3 right-3 p-1.5 bg-black/70 hover:bg-black text-white rounded-lg cursor-pointer transition-colors z-20"
+                                            title="Fechar vídeo"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ) : currentPage.imageUrl ? (
                                     <div className="relative w-full h-full flex items-center justify-center">
                                         <img 
                                             src={currentPage.imageUrl} 
                                             alt={`Página ${currentPage.pageNumber}`} 
                                             className="w-full h-full max-h-[85vh] object-contain rounded-2xl border border-stone-200 shadow-2xs"
                                         />
+                                        {/* Botão de Play se for vídeo do YouTube */}
+                                        {currentPage.videoUrl && (
+                                            <button
+                                                onClick={() => setIsPlayingVideo(true)}
+                                                className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-red-600/90 hover:bg-red-600 text-white shadow-xl flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 cursor-pointer z-10 group-hover:scale-105"
+                                                title="Assistir ao vídeo do YouTube"
+                                            >
+                                                <Play className="w-8 h-8 fill-current ml-1" />
+                                            </button>
+                                        )}
                                         {/* QR Code discreto se houver vídeo do YouTube */}
                                         {currentPage.videoUrl && (
-                                            <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm p-1.5 rounded-xl border border-stone-300 shadow-md flex items-center gap-1.5">
+                                            <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm p-1.5 rounded-xl border border-stone-300 shadow-md flex items-center gap-1.5 z-10">
                                                 <img 
                                                     src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(currentPage.videoUrl)}`} 
                                                     alt="QR Code Vídeo" 
@@ -422,7 +480,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 {/* Botão discreto para alterar imagem/YouTube */}
                                 <button
                                     onClick={() => handleOpenMediaModal(currentPage.pageNumber)}
-                                    className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white text-stone-600 hover:text-stone-900 rounded-xl border border-stone-200 shadow-xs opacity-80 hover:opacity-100 transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold"
+                                    className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white text-stone-600 hover:text-stone-900 rounded-xl border border-stone-200 shadow-xs opacity-80 hover:opacity-100 transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold z-20"
                                     title="Inserir imagem direta ou vídeo do YouTube"
                                 >
                                     <Link className="w-3.5 h-3.5 text-amber-700" />
