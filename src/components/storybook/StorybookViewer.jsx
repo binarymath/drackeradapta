@@ -57,8 +57,34 @@ export const StorybookViewer = ({ data, onUpdate }) => {
         dialogue: 110,  // Fala do personagem
         question: 110   // Pergunta ou desafio de atenção
     });
-    const [textAlign, setTextAlign] = useState('justify'); // 'left' | 'center' | 'right' | 'justify'
+    const [textAligns, setTextAligns] = useState({
+        text: 'justify',    // Texto principal / narrativa / sinopse
+        title: 'left',      // Título e subtítulo
+        dialogue: 'left',   // Fala do personagem
+        question: 'left'    // Pergunta ou desafio de atenção
+    });
     const [isEditingText, setIsEditingText] = useState(false);
+
+    // Alinhamento atual da parte selecionada (para destacar os botões)
+    const currentAlignment = targetTextPart === 'all' ? (textAligns.text || 'justify') : (textAligns[targetTextPart] || 'left');
+
+    // Ajusta o alinhamento para a parte selecionada ou para todas
+    const setAlignmentForTarget = (align) => {
+        setTextAligns(prev => {
+            if (targetTextPart === 'all') {
+                return {
+                    text: align,
+                    title: align,
+                    dialogue: align,
+                    question: align
+                };
+            }
+            return {
+                ...prev,
+                [targetTextPart]: align
+            };
+        });
+    };
 
     // Ajusta o tamanho da fonte para o elemento selecionado ou para todos
     const adjustFontScale = (delta) => {
@@ -235,37 +261,37 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             </button>
                         </div>
 
-                        {/* Alinhamentos */}
+                        {/* Alinhamentos conforme parte selecionada */}
                         <div className="flex items-center gap-0.5 border-l border-stone-200 pl-1">
                             <button
                                 type="button"
-                                onClick={() => setTextAlign('left')}
-                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'left' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
-                                title="Alinhar à esquerda"
+                                onClick={() => setAlignmentForTarget('left')}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentAlignment === 'left' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                title={`Alinhar ${targetTextPart === 'all' ? 'todos os textos' : 'elemento selecionado'} à esquerda`}
                             >
                                 <AlignLeft className="w-3.5 h-3.5" />
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setTextAlign('center')}
-                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'center' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
-                                title="Centralizar texto"
+                                onClick={() => setAlignmentForTarget('center')}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentAlignment === 'center' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                title={`Centralizar ${targetTextPart === 'all' ? 'todos os textos' : 'elemento selecionado'}`}
                             >
                                 <AlignCenter className="w-3.5 h-3.5" />
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setTextAlign('right')}
-                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'right' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
-                                title="Alinhar à direita"
+                                onClick={() => setAlignmentForTarget('right')}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentAlignment === 'right' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                title={`Alinhar ${targetTextPart === 'all' ? 'todos os textos' : 'elemento selecionado'} à direita`}
                             >
                                 <AlignRight className="w-3.5 h-3.5" />
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setTextAlign('justify')}
-                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'justify' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
-                                title="Justificar texto"
+                                onClick={() => setAlignmentForTarget('justify')}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentAlignment === 'justify' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                title={`Justificar ${targetTextPart === 'all' ? 'todos os textos' : 'elemento selecionado'}`}
                             >
                                 <AlignJustify className="w-3.5 h-3.5" />
                             </button>
@@ -539,33 +565,33 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                         <div className="flex items-center gap-1 bg-stone-100/80 p-0.5 rounded-xl border border-stone-200/80">
                                             <button
                                                 type="button"
-                                                onClick={() => setTextAlign('left')}
-                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'left' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
-                                                title="Alinhar à esquerda"
+                                                onClick={() => setAlignmentForTarget('left')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentAlignment === 'left' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title={`Alinhar ${targetTextPart === 'all' ? 'todos os textos' : 'elemento selecionado'} à esquerda`}
                                             >
                                                 <AlignLeft className="w-3.5 h-3.5" />
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => setTextAlign('center')}
-                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'center' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
-                                                title="Centralizar texto"
+                                                onClick={() => setAlignmentForTarget('center')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentAlignment === 'center' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title={`Centralizar ${targetTextPart === 'all' ? 'todos os textos' : 'elemento selecionado'}`}
                                             >
                                                 <AlignCenter className="w-3.5 h-3.5" />
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => setTextAlign('right')}
-                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'right' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
-                                                title="Alinhar à direita"
+                                                onClick={() => setAlignmentForTarget('right')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentAlignment === 'right' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title={`Alinhar ${targetTextPart === 'all' ? 'todos os textos' : 'elemento selecionado'} à direita`}
                                             >
                                                 <AlignRight className="w-3.5 h-3.5" />
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => setTextAlign('justify')}
-                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'justify' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
-                                                title="Justificar texto"
+                                                onClick={() => setAlignmentForTarget('justify')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentAlignment === 'justify' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title={`Justificar ${targetTextPart === 'all' ? 'todos os textos' : 'elemento selecionado'}`}
                                             >
                                                 <AlignJustify className="w-3.5 h-3.5" />
                                             </button>
@@ -614,7 +640,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                                 <h1 
                                                     className="font-black text-stone-950 font-serif leading-tight"
                                                     style={{
-                                                        fontSize: `${(32 * fontScales.title) / 100}px`
+                                                        fontSize: `${(32 * fontScales.title) / 100}px`,
+                                                        textAlign: textAligns.title || 'left'
                                                     }}
                                                 >
                                                     {book.title}
@@ -622,7 +649,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                                 <p 
                                                     className="text-stone-600 font-medium italic mt-1"
                                                     style={{
-                                                        fontSize: `${(17 * fontScales.title) / 100}px`
+                                                        fontSize: `${(17 * fontScales.title) / 100}px`,
+                                                        textAlign: textAligns.title || 'left'
                                                     }}
                                                 >
                                                     {book.subtitle}
@@ -648,7 +676,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                                 className="text-stone-700 leading-relaxed font-sans"
                                                 style={{
                                                     fontSize: `${(15 * fontScales.text) / 100}px`,
-                                                    textAlign: textAlign
+                                                    textAlign: textAligns.text || 'justify'
                                                 }}
                                             >
                                                 {book.synopsis || 'Uma jornada inesquecível de descobertas com o Drácker e seus grandes amigos da floresta!'}
@@ -777,33 +805,33 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                         <div className="flex items-center gap-1 bg-stone-100/80 p-0.5 rounded-xl border border-stone-200/80">
                                             <button
                                                 type="button"
-                                                onClick={() => setTextAlign('left')}
-                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'left' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
-                                                title="Alinhar à esquerda"
+                                                onClick={() => setAlignmentForTarget('left')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentAlignment === 'left' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title={`Alinhar ${targetTextPart === 'all' ? 'todos os textos' : 'elemento selecionado'} à esquerda`}
                                             >
                                                 <AlignLeft className="w-3.5 h-3.5" />
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => setTextAlign('center')}
-                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'center' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
-                                                title="Centralizar texto"
+                                                onClick={() => setAlignmentForTarget('center')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentAlignment === 'center' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title={`Centralizar ${targetTextPart === 'all' ? 'todos os textos' : 'elemento selecionado'}`}
                                             >
                                                 <AlignCenter className="w-3.5 h-3.5" />
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => setTextAlign('right')}
-                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'right' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
-                                                title="Alinhar à direita"
+                                                onClick={() => setAlignmentForTarget('right')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentAlignment === 'right' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title={`Alinhar ${targetTextPart === 'all' ? 'todos os textos' : 'elemento selecionado'} à direita`}
                                             >
                                                 <AlignRight className="w-3.5 h-3.5" />
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => setTextAlign('justify')}
-                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${textAlign === 'justify' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
-                                                title="Justificar texto"
+                                                onClick={() => setAlignmentForTarget('justify')}
+                                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${currentAlignment === 'justify' ? 'bg-indigo-100 text-indigo-700 shadow-2xs' : 'text-stone-500 hover:text-stone-800'}`}
+                                                title={`Justificar ${targetTextPart === 'all' ? 'todos os textos' : 'elemento selecionado'}`}
                                             >
                                                 <AlignJustify className="w-3.5 h-3.5" />
                                             </button>
@@ -842,7 +870,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                             <h3 
                                                 className="font-black text-stone-900 font-serif"
                                                 style={{
-                                                    fontSize: `${(24 * fontScales.title) / 100}px`
+                                                    fontSize: `${(24 * fontScales.title) / 100}px`,
+                                                    textAlign: textAligns.title || 'left'
                                                 }}
                                             >
                                                 {currentPage.title || `Capítulo ${currentPage.pageNumber}`}
@@ -874,7 +903,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                             className="text-stone-800 leading-relaxed font-serif space-y-4 whitespace-pre-line"
                                             style={{
                                                 fontSize: `${(17 * fontScales.text) / 100}px`,
-                                                textAlign: textAlign
+                                                textAlign: textAligns.text || 'justify'
                                             }}
                                         >
                                             {currentPage.text}
@@ -908,7 +937,14 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                             }}
                                         >
                                             <MessageCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-                                            <span>"{currentPage.dialogue}"</span>
+                                            <span 
+                                                className="w-full"
+                                                style={{
+                                                    textAlign: textAligns.dialogue || 'left'
+                                                }}
+                                            >
+                                                "{currentPage.dialogue}"
+                                            </span>
                                         </div>
                                     ) : null}
                                 </div>
@@ -940,7 +976,12 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                         }}
                                     >
                                         <HelpCircle className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
-                                        <div>
+                                        <div 
+                                            className="w-full"
+                                            style={{
+                                                textAlign: textAligns.question || 'left'
+                                            }}
+                                        >
                                             <span className="uppercase text-[11px] text-amber-900 tracking-wider block font-black mb-0.5">Desafio de Atenção:</span>
                                             <span className="leading-snug">{currentPage.interactiveQuestion}</span>
                                         </div>
