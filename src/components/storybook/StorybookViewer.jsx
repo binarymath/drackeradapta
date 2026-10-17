@@ -120,7 +120,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isFullscreen]);
 
-    // Navegação com efeito refinado de folheada
+    // Navegação com efeito refinado de folheada (mais cadenciado para sensação real de virar página)
     const changePage = (newIndex, direction) => {
         if (newIndex < 0 || newIndex >= totalViews || isFlipping || newIndex === currentPageIndex) return;
         setIsPlayingVideo(false);
@@ -130,8 +130,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
             setCurrentPageIndex(newIndex);
             setTimeout(() => {
                 setIsFlipping(false);
-            }, 300);
-        }, 150);
+            }, 550);
+        }, 250);
     };
 
     // Abre o modal discreto para configurar imagem ou vídeo do YouTube
@@ -401,37 +401,49 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         display: none;
                     }
 
-                    /* Efeito de abertura suave e folheada de página (Clean Book Flip) */
+                    /* Efeito suave e cadenciado de folheada de página com perspectiva */
                     .page-turn-next {
-                        animation: smoothFlipNext 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+                        perspective: 1200px;
+                        animation: smoothFlipNext 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
                     }
                     .page-turn-prev {
-                        animation: smoothFlipPrev 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+                        perspective: 1200px;
+                        animation: smoothFlipPrev 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
                     }
                 }
 
                 @keyframes smoothFlipNext {
                     0% {
-                        opacity: 0.5;
-                        transform: translateX(18px) scale(0.99);
-                        filter: blur(0.5px);
+                        opacity: 0.2;
+                        transform: perspective(1200px) rotateY(-4deg) translateX(36px) scale(0.975);
+                        filter: blur(1px);
+                    }
+                    40% {
+                        opacity: 0.85;
+                        transform: perspective(1200px) rotateY(-1.5deg) translateX(12px) scale(0.99);
+                        filter: blur(0.3px);
                     }
                     100% {
                         opacity: 1;
-                        transform: translateX(0) scale(1);
+                        transform: perspective(1200px) rotateY(0deg) translateX(0) scale(1);
                         filter: blur(0);
                     }
                 }
 
                 @keyframes smoothFlipPrev {
                     0% {
-                        opacity: 0.5;
-                        transform: translateX(-18px) scale(0.99);
-                        filter: blur(0.5px);
+                        opacity: 0.2;
+                        transform: perspective(1200px) rotateY(4deg) translateX(-36px) scale(0.975);
+                        filter: blur(1px);
+                    }
+                    40% {
+                        opacity: 0.85;
+                        transform: perspective(1200px) rotateY(1.5deg) translateX(-12px) scale(0.99);
+                        filter: blur(0.3px);
                     }
                     100% {
                         opacity: 1;
-                        transform: translateX(0) scale(1);
+                        transform: perspective(1200px) rotateY(0deg) translateX(0) scale(1);
                         filter: blur(0);
                     }
                 }
