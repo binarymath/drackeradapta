@@ -1099,7 +1099,7 @@ IMPORTANTE: Retorne APENAS o JSON (array de 20 objetos), sem markdown (\`\`\`jso
       .join('\n\n');
 
     const prompt = `Você é um autor premiado de literatura infantil e especialista em metodologias ativas pedagógicas do sistema "Drácker Adapta".
-Sua tarefa é analisar a conversa pedagógica abaixo entre um professor e o mascote Drácker (o dragãozinho marrom aventureiro da floresta encantada) e transformá-la em um LIVRO INFANTIL ILUSTRADO COMPLETO (6 a 8 páginas).
+Sua tarefa é analisar a conversa pedagógica abaixo entre um professor e o mascote Drácker (o dragãozinho marrom aventureiro da floresta encantada) e transformá-la em um LIVRO INFANTIL ILUSTRADO COMPLETO COM NO MÍNIMO 10 PÁGINAS SEQUENCIAIS.
 
 CONVERSA DE ORIGEM:
 """
@@ -1107,50 +1107,63 @@ ${conversationText}
 """
 
 REGRAS OBRIGATÓRIAS DO LIVRO:
-1. O array "pages" DEVE CONTER OBRIGATORIAMENTE ENTRE 4 E 6 PÁGINAS DIFERENTES (NUNCA GERE APENAS UMA PÁGINA). Cada página representa um passo da historinha pedagógica.
-2. Personagens principais: Drácker (dragão marrom bonzinho e curioso) e sua turma mágica da floresta (a sábia Coruja, o ágil Esquilo, a esperta Raposa e o fofinho Coelho).
-3. O livro deve ensinar de forma lúdica, divertida e encantadora o tema discutido na conversa.
-4. O visual e texto devem ser ULTRA-LIMPOS (estilo livro para colorir / impressão econômica em preto e branco).
-5. Cada item do array "pages" deve conter:
-   - "pageNumber": número inteiro consecutivo (1, 2, 3, 4, 5, 6...).
+1. O array "pages" DEVE CONTER OBRIGATORIAMENTE NO MÍNIMO 10 PÁGINAS SEQUENCIAIS (1, 2, 3, 4, 5, 6, 7, 8, 9, 10). É estritamente proibido gerar menos de 10 páginas.
+2. CADA UMA DAS 10 PÁGINAS DEVE TER OBRIGATORIAMENTE UM "interactiveQuestion" (DESAFIO DE ATENÇÃO / PERGUNTA INTERATIVA). Exemplos:
+   - "Desafio de Atenção: Quantos passarinhos você acha que estão no ninho?"
+   - "Desafio de Atenção: Se o Drácker der 2 passos para a direita, onde ele vai parar?"
+   - "Desafio de Atenção: Consegue encontrar e circular a fruta vermelha no galho?"
+3. Personagens principais: Drácker (dragão marrom curioso) e sua turma da floresta encantada (a sábia Coruja, o ágil Esquilo, a esperta Raposa e o fofinho Coelho).
+4. O livro deve ensinar de forma lúdica, progressiva e encantadora o tema pedagógico discutido na conversa ao longo dos 10 capítulos/páginas.
+5. Estilo visual limpo (economia máxima de tinta de impressora): ilustrações em traço limpo (line art) para as crianças colorirem.
+6. Cada um dos 10 itens do array "pages" deve conter:
+   - "pageNumber": número inteiro consecutivo (1, 2, 3, 4, 5, 6, 7, 8, 9, 10...).
    - "title": título do capítulo/página.
-   - "text": narrativa fluida, calorosa e comovente para crianças (2 a 3 parágrafos curtos, excelente para leitura em voz alta).
-   - "dialogue": fala marcante de um dos personagens na cena.
-   - "interactiveQuestion": uma pergunta para a criança interagir durante a leitura (ex: "Você consegue contar quantas estrelas têm no céu?").
-   - "imagePrompt": prompt em inglês detalhado no estilo "Clean coloring book page for children, black and white line art, pure white background, cute cartoon little brown dragon named Drácker".
-6. Retorne ESTRITAMENTE um objeto JSON válido, sem cercas de markdown extras ou comentários.
+   - "text": narrativa calorosa para crianças (2 parágrafos curtos, excelente ritmo para leitura em sala de aula).
+   - "dialogue": fala marcante do Drácker ou de outro personagem.
+   - "interactiveQuestion": o desafio de atenção obrigatório desta página.
+   - "imagePrompt": prompt em inglês para ilustração limpa em traço preto e branco.
+7. Retorne ESTRITAMENTE um objeto JSON válido, sem cercas de markdown extras ou comentários.
 
 FORMATO JSON ESPERADO:
 {
   "title": "Título Incrível do Livro",
   "subtitle": "Uma aventura com o Drácker e a Turma da Floresta",
-  "theme": "Tema abordado (ex: Frações, Ciências, Amizade)",
+  "theme": "Tema abordado",
   "targetAge": "6 a 10 anos",
   "synopsis": "Breve sinopse cativante da história.",
   "moralLesson": "Mensagem positiva e lição de aprendizado do livro.",
   "cover": {
     "title": "Título do Livro",
     "subtitle": "Subtítulo lúdico",
-    "imagePrompt": "Children's storybook cover illustration, cute brown dragon Drácker holding a magical glowing pedagogical object in fairy woodland, vibrant joyful colors, masterwork"
+    "imagePrompt": "Clean line art children's storybook cover, cute brown dragon Drácker holding a book in fairy woodland, coloring book style"
   },
   "pages": [
     {
       "pageNumber": 1,
-      "title": "O Despertar da Curiosidade",
-      "text": "Texto da página...",
-      "dialogue": "Fala de personagem...",
-      "interactiveQuestion": "Pergunta interativa...",
-      "imagePrompt": "Prompt em inglês..."
-    }
+      "title": "Capítulo 1...",
+      "text": "Texto da página 1...",
+      "dialogue": "Fala...",
+      "interactiveQuestion": "Desafio de Atenção da página 1...",
+      "imagePrompt": "Clean coloring line art..."
+    },
+    { "pageNumber": 2, "title": "Capítulo 2...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 3, "title": "Capítulo 3...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 4, "title": "Capítulo 4...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 5, "title": "Capítulo 5...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 6, "title": "Capítulo 6...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 7, "title": "Capítulo 7...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 8, "title": "Capítulo 8...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 9, "title": "Capítulo 9...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 10, "title": "Capítulo 10...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." }
   ],
   "backCover": {
     "summary": "Resumo da contracapa...",
-    "activity": "Desafio de desenho ou brincadeira para fazer depois da leitura"
+    "activity": "Grande desafio final prático para os alunos"
   }
 }`;
 
     try {
-      this.reportStatus('generating_storybook', 'Estruturando Livro Infantil com o Gemini...');
+      this.reportStatus('generating_storybook', 'Escrevendo Livro Infantil de 10 páginas com o Gemini...');
       const responseText = await this.generateText(prompt, {
         temperature: 0.7,
         maxOutputTokens: 8192
