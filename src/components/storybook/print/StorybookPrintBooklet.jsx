@@ -45,10 +45,7 @@ export const StorybookPrintBooklet = ({
 
     const renderCoverRight = () => (
         <div className="print-half-page p-8 sm:p-10 flex flex-col justify-center h-full">
-            <div className="flex justify-between items-center border-b border-stone-300 pb-2 mb-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600 border border-stone-400 px-3 py-1 rounded">
-                    {book.theme || 'História Pedagógica'}
-                </span>
+            <div className="flex justify-end items-center border-b border-stone-300 pb-2 mb-3">
                 <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
                     <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
                         Início
@@ -233,10 +230,7 @@ export const StorybookPrintBooklet = ({
                     />
                 </div>
             ) : (
-                <div className="w-full flex-1 flex flex-col justify-center items-center">
-                    <img src="/dracker_character.png" alt="Drácker" className="w-20 h-20 object-contain opacity-30 mb-2" />
-                    <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Espaço para Anotações do Aluno</span>
-                </div>
+                <div className="w-full flex-1" />
             )}
             <div className="mt-2 shrink-0">
                 <h3 className="text-base font-black font-serif text-stone-900">
@@ -314,11 +308,8 @@ export const StorybookPrintBooklet = ({
         </div>
     );
 
-    const renderBlank = (label = 'Página para anotações do aluno') => (
-        <div className="print-half-page p-6 flex flex-col justify-center items-center h-full text-center border-r border-stone-200 bg-stone-50/30">
-            <img src="/dracker_character.png" alt="Drácker" className="w-16 h-16 object-contain opacity-40 mb-2" />
-            <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">{label}</span>
-        </div>
+    const renderBlank = () => (
+        <div className="print-half-page p-6 flex flex-col justify-center items-center h-full text-center border-r border-stone-200 bg-white" />
     );
 
     return (
