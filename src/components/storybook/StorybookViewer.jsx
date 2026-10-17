@@ -394,6 +394,43 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         box-sizing: border-box !important;
                         height: 100% !important;
                     }
+
+                    /* Forçar estritamente tamanhos de fonte e alinhamentos personalizados do usuário na impressão/PDF */
+                    .storybook-print-container .sb-print-title {
+                        font-size: ${(36 * fontScales.title) / 100}px !important;
+                        text-align: ${textAligns.title || 'left'} !important;
+                        line-height: 1.25 !important;
+                    }
+                    .storybook-print-container .sb-print-chapter-title {
+                        font-size: ${(26 * fontScales.title) / 100}px !important;
+                        text-align: ${textAligns.title || 'left'} !important;
+                        line-height: 1.25 !important;
+                    }
+                    .storybook-print-container .sb-print-subtitle {
+                        font-size: ${(18 * fontScales.title) / 100}px !important;
+                        text-align: ${textAligns.title || 'left'} !important;
+                        line-height: 1.35 !important;
+                    }
+                    .storybook-print-container .sb-print-synopsis {
+                        font-size: ${(15 * fontScales.text) / 100}px !important;
+                        text-align: ${textAligns.text || 'justify'} !important;
+                        line-height: 1.6 !important;
+                    }
+                    .storybook-print-container .sb-print-narrative {
+                        font-size: ${(17 * fontScales.text) / 100}px !important;
+                        text-align: ${textAligns.text || 'justify'} !important;
+                        line-height: 1.65 !important;
+                    }
+                    .storybook-print-container .sb-print-dialogue {
+                        font-size: ${(14 * fontScales.dialogue) / 100}px !important;
+                        text-align: ${textAligns.dialogue || 'left'} !important;
+                        line-height: 1.5 !important;
+                    }
+                    .storybook-print-container .sb-print-question {
+                        font-size: ${(13 * fontScales.question) / 100}px !important;
+                        text-align: ${textAligns.question || 'left'} !important;
+                        line-height: 1.45 !important;
+                    }
                 }
 
                 @media screen {
@@ -927,7 +964,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 {book.theme || 'História Pedagógica'}
                             </span>
                             <h1 
-                                className="font-black font-serif text-black mt-4 leading-tight"
+                                className="sb-print-title font-black font-serif text-black mt-4 leading-tight"
                                 style={{
                                     fontSize: `${(36 * fontScales.title) / 100}px`,
                                     textAlign: textAligns.title || 'left'
@@ -936,7 +973,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 {book.title}
                             </h1>
                             <p 
-                                className="text-stone-700 font-medium italic mt-2"
+                                className="sb-print-subtitle text-stone-700 font-medium italic mt-2"
                                 style={{
                                     fontSize: `${(18 * fontScales.title) / 100}px`,
                                     textAlign: textAligns.title || 'left'
@@ -948,7 +985,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         <div className="border-t border-stone-300 pt-5 mt-6">
                             <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Sinopse da Aventura:</span>
                             <p 
-                                className="text-stone-800 mt-2 leading-relaxed"
+                                className="sb-print-synopsis text-stone-800 mt-2 leading-relaxed"
                                 style={{
                                     fontSize: `${(15 * fontScales.text) / 100}px`,
                                     textAlign: textAligns.text || 'justify'
@@ -1007,7 +1044,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             <div>
                                 <div className="flex justify-between items-center border-b border-stone-300 pb-2.5 mb-4">
                                     <h2 
-                                        className="font-black font-serif text-black"
+                                        className="sb-print-chapter-title font-black font-serif text-black"
                                         style={{
                                             fontSize: `${(26 * fontScales.title) / 100}px`,
                                             textAlign: textAligns.title || 'left'
@@ -1021,7 +1058,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 </div>
 
                                 <div 
-                                    className="font-serif text-stone-900 leading-relaxed whitespace-pre-line"
+                                    className="sb-print-narrative font-serif text-stone-900 leading-relaxed whitespace-pre-line"
                                     style={{
                                         fontSize: `${(17 * fontScales.text) / 100}px`,
                                         textAlign: textAligns.text || 'justify'
@@ -1032,7 +1069,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
                                 {p.dialogue && (
                                     <div 
-                                        className="mt-4 p-3 bg-stone-50 border-l-4 border-stone-500 italic text-stone-800"
+                                        className="sb-print-dialogue mt-4 p-3 bg-stone-50 border-l-4 border-stone-500 italic text-stone-800"
                                         style={{
                                             fontSize: `${(14 * fontScales.dialogue) / 100}px`,
                                             textAlign: textAligns.dialogue || 'left'
@@ -1046,7 +1083,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             {/* Desafio de Atenção Obrigatório */}
                             {p.interactiveQuestion && (
                                 <div 
-                                    className="mt-5 p-4 border border-stone-400 rounded-2xl bg-stone-50"
+                                    className="sb-print-question mt-5 p-4 border border-stone-400 rounded-2xl bg-stone-50"
                                     style={{
                                         fontSize: `${(13 * fontScales.question) / 100}px`,
                                         textAlign: textAligns.question || 'left'
