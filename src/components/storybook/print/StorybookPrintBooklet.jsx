@@ -231,10 +231,7 @@ export const StorybookPrintBooklet = ({
                     />
                 </div>
             ) : (
-                <div className="w-full flex-1 flex flex-col justify-center items-center">
-                    <img src="/dracker_character.png" alt="Drácker" className="w-20 h-20 object-contain opacity-30 mb-2" />
-                    <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Espaço para Anotações do Aluno</span>
-                </div>
+                <div className="w-full flex-1" />
             )}
             <div className="mt-2 shrink-0">
                 <h3 className="text-base font-black font-serif text-stone-900">
