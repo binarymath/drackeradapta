@@ -335,10 +335,10 @@ export const StorybookPrintBooklet = ({
                     logicalPages.push({ type: 'cover_left' });
                     // Página 2 (Verso da Capa / Apresentação)
                     logicalPages.push({ type: 'cover_right' });
-                    // Miolo do Livro: cada capítulo tem Ilustração (esquerda) e Texto (direita)
+                    // Miolo do Livro: Texto vem primeiro (página ímpar) e Ilustração vem em seguida (mesma visão)
                     pages.forEach(p => {
-                        logicalPages.push({ type: 'story_left', page: p });
                         logicalPages.push({ type: 'story_right', page: p });
+                        logicalPages.push({ type: 'story_left', page: p });
                     });
                     // Páginas finais: Conclusão (interna) e Contracapa (externa)
                     logicalPages.push({ type: 'back_right' });
