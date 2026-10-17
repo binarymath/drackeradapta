@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
     BookOpen, 
     ChevronLeft, 
@@ -8,12 +8,10 @@ import {
     Minimize2, 
     Link, 
     Youtube, 
-    Image as ImageIcon,
     HelpCircle, 
     MessageCircle,
     X,
-    Check,
-    QrCode
+    Check
 } from 'lucide-react';
 import { toast } from '../ui/Toast';
 
@@ -47,17 +45,28 @@ export const StorybookViewer = ({ data, onUpdate }) => {
     const isBackCover = currentPageIndex === totalViews - 1;
     const currentPage = !isCover && !isBackCover ? pages[currentPageIndex - 1] : null;
 
-    // Navegação com efeito de virar página
+    // Atalho Escape para sair do modo tela cheia
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isFullscreen) {
+                setIsFullscreen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isFullscreen]);
+
+    // Navegação com efeito refinado de folheada
     const changePage = (newIndex, direction) => {
-        if (newIndex < 0 || newIndex >= totalViews || isFlipping) return;
+        if (newIndex < 0 || newIndex >= totalViews || isFlipping || newIndex === currentPageIndex) return;
         setFlipDirection(direction);
         setIsFlipping(true);
         setTimeout(() => {
             setCurrentPageIndex(newIndex);
             setTimeout(() => {
                 setIsFlipping(false);
-            }, 250);
-        }, 200);
+            }, 300);
+        }, 150);
     };
 
     // Abre o modal discreto para configurar imagem ou vídeo do YouTube
@@ -113,54 +122,54 @@ export const StorybookViewer = ({ data, onUpdate }) => {
         setIsMediaModalOpen(false);
     };
 
-    // Imprimir o livro no navegador (modo folheto / apresentação paisagem)
+    // Imprimir o livro no navegador (modo folheto paisagem)
     const handlePrint = () => {
         window.print();
     };
 
     return (
-        <div className={`flex flex-col gap-5 w-full mx-auto transition-all duration-300 ${
+        <div className={`transition-all duration-300 w-full ${
             isFullscreen 
-                ? 'fixed inset-0 z-50 bg-stone-900/95 backdrop-blur-md p-4 sm:p-8 flex items-center justify-center overflow-y-auto' 
-                : 'max-w-5xl py-2'
+                ? 'fixed inset-0 z-50 bg-amber-50/70 backdrop-blur-md flex flex-col justify-between p-3 sm:p-5 h-screen w-screen overflow-hidden' 
+                : 'flex flex-col gap-4 max-w-5xl mx-auto py-2'
         }`}>
             
-            {/* Barra de Ferramentas Superior (Oculta na impressão) */}
-            <div className={`flex flex-wrap items-center justify-between gap-3 bg-white/95 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl border border-amber-200/80 shadow-md no-print w-full ${isFullscreen ? 'max-w-6xl' : ''}`}>
-                <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-white shadow-xs">
-                        <BookOpen className="w-5 h-5" />
+            {/* Barra de Ferramentas Superior (Clean e Discreta) */}
+            <div className={`flex items-center justify-between gap-3 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-amber-200/80 shadow-xs no-print w-full shrink-0`}>
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-white shadow-2xs shrink-0">
+                        <BookOpen className="w-4 h-4" />
                     </div>
-                    <div>
-                        <h2 className="text-sm sm:text-base md:text-lg font-black text-brown-950 leading-tight">
+                    <div className="min-w-0">
+                        <h2 className="text-xs sm:text-sm md:text-base font-black text-brown-950 truncate">
                             {book.title || 'Livro Infantil do Drácker'}
                         </h2>
-                        <div className="flex items-center gap-2 text-xs text-brown-600 font-semibold mt-0.5">
-                            <span className="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full text-[10px] font-black uppercase">
-                                {book.theme || 'História Pedagógica'}
+                        <div className="flex items-center gap-2 text-[11px] text-brown-600 font-semibold">
+                            <span className="bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded-md font-bold uppercase text-[9px]">
+                                {book.theme || 'História'}
                             </span>
                             <span>•</span>
-                            <span>{pages.length} páginas ilustradas</span>
+                            <span>{pages.length} páginas</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                     {/* Botão de Tela Cheia 100% */}
                     <button
                         onClick={() => setIsFullscreen(prev => !prev)}
-                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-xl border border-stone-200 transition-all cursor-pointer active:scale-95"
-                        title={isFullscreen ? 'Reduzir visualização' : 'Ocupar 100% da tela'}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-xl border border-stone-200 transition-all cursor-pointer active:scale-95"
+                        title={isFullscreen ? 'Restaurar visualização normal (Esc)' : 'Ocupar 100% da tela'}
                     >
                         {isFullscreen ? (
                             <>
-                                <Minimize2 className="w-4 h-4 text-stone-600" />
+                                <Minimize2 className="w-3.5 h-3.5 text-stone-600" />
                                 <span className="hidden sm:inline">Restaurar</span>
                             </>
                         ) : (
                             <>
-                                <Maximize2 className="w-4 h-4 text-stone-600" />
-                                <span className="hidden sm:inline">100% Tela</span>
+                                <Maximize2 className="w-3.5 h-3.5 text-stone-600" />
+                                <span className="hidden sm:inline">100% da Tela</span>
                             </>
                         )}
                     </button>
@@ -168,16 +177,17 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                     {/* Botão de Impressão */}
                     <button
                         onClick={handlePrint}
-                        className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black text-brown-950 bg-amber-200/80 hover:bg-amber-300/80 rounded-xl border border-amber-300 shadow-xs transition-all cursor-pointer active:scale-95"
-                        title="Imprimir livro em paisagem para encadernação e colorir na escola"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-brown-950 bg-amber-200/80 hover:bg-amber-300 rounded-xl border border-amber-300 shadow-2xs transition-all cursor-pointer active:scale-95"
+                        title="Imprimir todas as páginas em A4 Paisagem"
                     >
-                        <Printer className="w-4 h-4 text-amber-900" />
-                        <span>Imprimir Livro (A4 Paisagem)</span>
+                        <Printer className="w-3.5 h-3.5 text-amber-900" />
+                        <span className="hidden sm:inline">Imprimir Livro (A4 Paisagem)</span>
+                        <span className="sm:hidden">Imprimir</span>
                     </button>
                 </div>
             </div>
 
-            {/* Configuração de Impressão A4 Paisagem (Landscape) e Livro Virando */}
+            {/* Estilos de Impressão A4 Paisagem e Animação Fluida de Folheada */}
             <style>{`
                 @media print {
                     @page {
@@ -216,70 +226,68 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                     .storybook-print-container {
                         display: none;
                     }
-                    .book-perspective {
-                        perspective: 1400px;
+
+                    /* Efeito de abertura suave e folheada de página (Clean Book Flip) */
+                    .page-turn-next {
+                        animation: smoothFlipNext 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
                     }
-                    .book-turn-next {
-                        animation: flipPageNext 0.45s ease-in-out forwards;
-                        transform-origin: left center;
-                    }
-                    .book-turn-prev {
-                        animation: flipPagePrev 0.45s ease-in-out forwards;
-                        transform-origin: right center;
+                    .page-turn-prev {
+                        animation: smoothFlipPrev 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
                     }
                 }
 
-                @keyframes flipPageNext {
+                @keyframes smoothFlipNext {
                     0% {
-                        transform: rotateY(0deg);
-                        opacity: 1;
-                    }
-                    50% {
-                        transform: rotateY(-35deg) scale(0.97);
-                        opacity: 0.8;
+                        opacity: 0.5;
+                        transform: translateX(18px) scale(0.99);
+                        filter: blur(0.5px);
                     }
                     100% {
-                        transform: rotateY(0deg) scale(1);
                         opacity: 1;
+                        transform: translateX(0) scale(1);
+                        filter: blur(0);
                     }
                 }
 
-                @keyframes flipPagePrev {
+                @keyframes smoothFlipPrev {
                     0% {
-                        transform: rotateY(0deg);
-                        opacity: 1;
-                    }
-                    50% {
-                        transform: rotateY(35deg) scale(0.97);
-                        opacity: 0.8;
+                        opacity: 0.5;
+                        transform: translateX(-18px) scale(0.99);
+                        filter: blur(0.5px);
                     }
                     100% {
-                        transform: rotateY(0deg) scale(1);
                         opacity: 1;
+                        transform: translateX(0) scale(1);
+                        filter: blur(0);
                     }
                 }
             `}</style>
 
-            {/* --- VISUALIZADOR DE TELA (Com Perspectiva 3D e Page Flip) --- */}
-            <div className={`storybook-screen-view book-perspective relative w-full ${isFullscreen ? 'max-w-6xl h-[82vh]' : 'aspect-[16/10] min-h-[540px]'} bg-stone-100 rounded-3xl p-1 shadow-2xl`}>
-                <div className={`w-full h-full bg-white rounded-3xl border-2 border-stone-200/90 shadow-lg overflow-hidden flex flex-col justify-between transition-transform duration-300 ${
-                    isFlipping ? (flipDirection === 'next' ? 'book-turn-next' : 'book-turn-prev') : ''
+            {/* --- VISUALIZADOR DE TELA (100% Altura/Largura quando Fullscreen) --- */}
+            <div className={`storybook-screen-view relative w-full flex-1 flex flex-col justify-between bg-white rounded-3xl border-2 border-amber-200/90 shadow-xl overflow-hidden ${
+                isFullscreen ? 'h-full min-h-0' : 'aspect-[16/10] min-h-[520px]'
+            }`}>
+                
+                {/* Linha discreta de Vinco Central com Sombreamento de Livro Aberto */}
+                <div className="absolute inset-y-0 left-1/2 w-6 -ml-3 bg-gradient-to-r from-stone-200/0 via-stone-300/40 to-stone-200/0 pointer-events-none z-30 hidden md:block" />
+                <div className="absolute inset-y-0 left-1/2 w-px bg-stone-200 pointer-events-none z-30 hidden md:block" />
+
+                {/* Conteúdo Dinâmico com Transição Suave */}
+                <div className={`flex-1 flex flex-col md:flex-row h-full overflow-hidden ${
+                    isFlipping ? (flipDirection === 'next' ? 'page-turn-next' : 'page-turn-prev') : ''
                 }`}>
-                    
-                    {/* Linha discreta de Vinco Central */}
-                    <div className="absolute inset-y-0 left-1/2 w-px bg-stone-200 pointer-events-none z-30 hidden md:block" />
 
                     {/* --- CONTEÚDO: CAPA LIMPA --- */}
                     {isCover && (
-                        <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden">
+                        <>
                             {/* Imagem de Capa */}
-                            <div className="flex-1 bg-white p-6 sm:p-8 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-stone-200 overflow-hidden group">
+                            <div className="flex-1 bg-stone-50/50 p-6 sm:p-8 flex items-center justify-center relative border-b md:border-b-0 md:border-r border-stone-200 overflow-hidden group">
                                 {book.cover?.imageUrl ? (
                                     <div className="relative w-full h-full flex items-center justify-center">
                                         <img 
                                             src={book.cover.imageUrl} 
                                             alt="Capa do Livro" 
-                                            className="w-full h-full max-h-[440px] object-contain rounded-2xl border border-stone-200 shadow-2xs"
+                                            className="w-full h-full max-h-[85vh] object-contain rounded-2xl border border-stone-200 shadow-2xs"
                                         />
                                         {/* QR Code discreto se houver vídeo do YouTube */}
                                         {book.cover.videoUrl && (
@@ -297,13 +305,13 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center text-center p-6 bg-stone-50/60 rounded-2xl border-2 border-dashed border-stone-300 w-full h-full max-h-[440px]">
-                                        <div className="p-3 rounded-full bg-white border border-stone-200 mb-3 shadow-2xs">
+                                    <div className="flex flex-col items-center justify-center text-center p-6 bg-white rounded-2xl border-2 border-dashed border-stone-300 w-full h-full max-h-[85vh]">
+                                        <div className="p-3 rounded-full bg-amber-50 border border-amber-200 mb-3 shadow-2xs">
                                             <img src="/dracker_character.png" alt="Drácker" className="w-24 h-24 object-contain" />
                                         </div>
                                         <span className="text-sm font-black text-stone-800 mb-1">Capa do Livro Infantil</span>
                                         <p className="text-xs text-stone-500 max-w-xs mb-3">
-                                            Pronto para leitura e economia de tinta na impressão escolar.
+                                            Pronto para leitura interativa e economia de tinta na impressão escolar.
                                         </p>
                                     </div>
                                 )}
@@ -311,11 +319,11 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 {/* Botão discreto para alterar imagem/YouTube */}
                                 <button
                                     onClick={() => handleOpenMediaModal('cover')}
-                                    className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white text-stone-600 hover:text-stone-900 rounded-xl border border-stone-200 shadow-sm opacity-80 hover:opacity-100 transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold"
-                                    title="Inserir URL de imagem ou vídeo do YouTube na capa"
+                                    className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white text-stone-600 hover:text-stone-900 rounded-xl border border-stone-200 shadow-xs opacity-80 hover:opacity-100 transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold"
+                                    title="Inserir imagem direta ou link do YouTube"
                                 >
                                     <Link className="w-3.5 h-3.5 text-amber-700" />
-                                    <span>{book.cover?.videoUrl ? 'YouTube' : book.cover?.imageUrl ? 'Mudar Imagem' : '+ Imagem / YouTube'}</span>
+                                    <span>{book.cover?.videoUrl ? 'YouTube' : book.cover?.imageUrl ? 'Mudar Mídia' : '+ Imagem / YouTube'}</span>
                                 </button>
                             </div>
 
@@ -343,20 +351,20 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                     </span>
                                 </div>
                             </div>
-                        </div>
+                        </>
                     )}
 
                     {/* --- CONTEÚDO: PÁGINAS INTERNAS (1 a 10+) --- */}
                     {currentPage && (
-                        <div className="flex-1 flex flex-col md:flex-row h-full overflow-hidden">
+                        <>
                             {/* Lado Esquerdo: Área de Desenho / Ilustração ou Vídeo */}
-                            <div className="flex-1 bg-white p-6 sm:p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-stone-200 relative group overflow-hidden">
+                            <div className="flex-1 bg-stone-50/50 p-6 sm:p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-stone-200 relative group overflow-hidden">
                                 {currentPage.imageUrl ? (
                                     <div className="relative w-full h-full flex items-center justify-center">
                                         <img 
                                             src={currentPage.imageUrl} 
                                             alt={`Página ${currentPage.pageNumber}`} 
-                                            className="w-full h-full max-h-[440px] object-contain rounded-2xl border border-stone-200 shadow-2xs"
+                                            className="w-full h-full max-h-[85vh] object-contain rounded-2xl border border-stone-200 shadow-2xs"
                                         />
                                         {/* QR Code discreto se houver vídeo do YouTube */}
                                         {currentPage.videoUrl && (
@@ -374,15 +382,15 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center text-center p-6 bg-stone-50/50 rounded-2xl border-2 border-dashed border-stone-300 w-full h-full max-h-[440px]">
-                                        <div className="w-16 h-16 rounded-2xl bg-white border border-stone-200 flex items-center justify-center p-2 mb-3 shadow-2xs">
+                                    <div className="flex flex-col items-center justify-center text-center p-6 bg-white rounded-2xl border-2 border-dashed border-stone-300 w-full h-full max-h-[85vh]">
+                                        <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center p-2 mb-3 shadow-2xs">
                                             <img src="/dracker_character.png" alt="Drácker" className="w-full h-full object-contain" />
                                         </div>
                                         <span className="text-xs font-black text-stone-700 uppercase tracking-wider mb-1">
                                             Ilustração da Página {currentPage.pageNumber}
                                         </span>
                                         <p className="text-xs text-stone-500 max-w-xs italic mb-2">
-                                            Espaço dedicado para os alunos colorirem ou visualizarem imagens da aula!
+                                            Espaço reservado para colorir ou visualizar imagens da aula!
                                         </p>
                                     </div>
                                 )}
@@ -390,7 +398,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 {/* Botão discreto para alterar imagem/YouTube */}
                                 <button
                                     onClick={() => handleOpenMediaModal(currentPage.pageNumber)}
-                                    className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white text-stone-600 hover:text-stone-900 rounded-xl border border-stone-200 shadow-sm opacity-80 hover:opacity-100 transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold"
+                                    className="absolute top-4 right-4 p-2 bg-white/90 hover:bg-white text-stone-600 hover:text-stone-900 rounded-xl border border-stone-200 shadow-xs opacity-80 hover:opacity-100 transition-all cursor-pointer flex items-center gap-1 text-[11px] font-bold"
                                     title="Inserir imagem direta ou vídeo do YouTube"
                                 >
                                     <Link className="w-3.5 h-3.5 text-amber-700" />
@@ -426,16 +434,16 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
                                 {/* Pergunta Interativa para o Aluno (Desafio de Atenção) */}
                                 {currentPage.interactiveQuestion && (
-                                    <div className="mt-5 pt-3 border-t border-stone-200 flex items-start gap-2 text-xs font-bold text-stone-800 bg-stone-50 p-3 rounded-xl border border-stone-200">
-                                        <HelpCircle className="w-4 h-4 text-stone-600 shrink-0 mt-0.5" />
+                                    <div className="mt-5 pt-3 border-t border-stone-200 flex items-start gap-2 text-xs font-bold text-stone-800 bg-amber-50/60 p-3 rounded-xl border border-amber-200">
+                                        <HelpCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                                         <div>
-                                            <span className="uppercase text-[10px] text-stone-500 tracking-wider block font-black">Desafio de Atenção:</span>
+                                            <span className="uppercase text-[10px] text-amber-800 tracking-wider block font-black">Desafio de Atenção:</span>
                                             <span>{currentPage.interactiveQuestion}</span>
                                         </div>
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        </>
                     )}
 
                     {/* --- CONTEÚDO: CONTRACAPA LIMPA --- */}
@@ -452,8 +460,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
                                 {/* Desafio de Atividade Final */}
                                 {book.backCover?.activity && (
-                                    <div className="w-full bg-stone-50 p-5 rounded-2xl border-2 border-dashed border-stone-300 text-left">
-                                        <span className="text-xs font-black uppercase text-stone-700 tracking-wider flex items-center gap-1.5 mb-2">
+                                    <div className="w-full bg-amber-50/60 p-5 rounded-2xl border-2 border-dashed border-amber-300 text-left">
+                                        <span className="text-xs font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5 mb-2">
                                             ✏️ Desafio Prático do Aluno:
                                         </span>
                                         <p className="text-xs sm:text-sm font-semibold text-stone-800 leading-relaxed">
@@ -468,46 +476,46 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             </div>
                         </div>
                     )}
+                </div>
 
-                    {/* Barra Inferior de Navegação de Páginas (Paginador) */}
-                    <div className="bg-white/95 backdrop-blur-md px-4 sm:px-6 py-2.5 sm:py-3 border-t border-amber-200/70 flex items-center justify-between z-40 shrink-0 no-print">
-                        <button
-                            onClick={() => changePage(currentPageIndex - 1, 'prev')}
-                            disabled={currentPageIndex === 0 || isFlipping}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold text-xs text-brown-700 hover:bg-amber-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                            <span className="hidden sm:inline">Página Anterior</span>
-                        </button>
+                {/* Barra Inferior de Navegação de Páginas (Paginador) */}
+                <div className="bg-white/95 backdrop-blur-md px-4 sm:px-6 py-2.5 sm:py-3 border-t border-stone-200 flex items-center justify-between z-40 shrink-0 no-print">
+                    <button
+                        onClick={() => changePage(currentPageIndex - 1, 'prev')}
+                        disabled={currentPageIndex === 0 || isFlipping}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold text-xs text-brown-700 hover:bg-amber-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span className="hidden sm:inline">Página Anterior</span>
+                    </button>
 
-                        <div className="flex items-center gap-1 sm:gap-1.5">
-                            {Array.from({ length: totalViews }).map((_, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => changePage(idx, idx > currentPageIndex ? 'next' : 'prev')}
-                                    disabled={isFlipping}
-                                    className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all cursor-pointer ${
-                                        currentPageIndex === idx 
-                                            ? 'bg-amber-600 scale-125 shadow-xs' 
-                                            : 'bg-brown-200 hover:bg-brown-300'
-                                    }`}
-                                    title={idx === 0 ? 'Capa' : idx === totalViews - 1 ? 'Contracapa' : `Página ${idx}`}
-                                />
-                            ))}
-                            <span className="text-xs font-extrabold text-brown-800 ml-2 font-mono">
-                                {currentPageIndex === 0 ? 'Capa' : currentPageIndex === totalViews - 1 ? 'Contracapa' : `${currentPageIndex} de ${pages.length}`}
-                            </span>
-                        </div>
-
-                        <button
-                            onClick={() => changePage(currentPageIndex + 1, 'next')}
-                            disabled={currentPageIndex === totalViews - 1 || isFlipping}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold text-xs text-brown-700 hover:bg-amber-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
-                        >
-                            <span className="hidden sm:inline">Próxima Página</span>
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
+                    <div className="flex items-center gap-1 sm:gap-1.5">
+                        {Array.from({ length: totalViews }).map((_, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => changePage(idx, idx > currentPageIndex ? 'next' : 'prev')}
+                                disabled={isFlipping}
+                                className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all cursor-pointer ${
+                                    currentPageIndex === idx 
+                                        ? 'bg-amber-600 scale-125 shadow-2xs' 
+                                        : 'bg-stone-300 hover:bg-amber-300'
+                                }`}
+                                title={idx === 0 ? 'Capa' : idx === totalViews - 1 ? 'Contracapa' : `Página ${idx}`}
+                            />
+                        ))}
+                        <span className="text-xs font-extrabold text-brown-800 ml-2 font-mono">
+                            {currentPageIndex === 0 ? 'Capa' : currentPageIndex === totalViews - 1 ? 'Contracapa' : `${currentPageIndex} de ${pages.length}`}
+                        </span>
                     </div>
+
+                    <button
+                        onClick={() => changePage(currentPageIndex + 1, 'next')}
+                        disabled={currentPageIndex === totalViews - 1 || isFlipping}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold text-xs text-brown-700 hover:bg-amber-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                    >
+                        <span className="hidden sm:inline">Próxima Página</span>
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
 
@@ -670,7 +678,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
             {/* --- MODAL DISCRETO PARA INSERIR URL DE IMAGEM OU YOUTUBE --- */}
             {isMediaModalOpen && (
-                <div className="fixed inset-0 z-60 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-60 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-150">
                         <div className="flex items-center justify-between pb-3 border-b border-stone-200">
                             <div className="flex items-center gap-2">
