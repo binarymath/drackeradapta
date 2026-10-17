@@ -49,10 +49,34 @@ export const StorybookViewer = ({ data, onUpdate }) => {
     const [inputMediaUrl, setInputMediaUrl] = useState('');
     const [isPlayingVideo, setIsPlayingVideo] = useState(false);
 
-    // Barra de ferramentas de texto (Tamanho da fonte, Alinhamento e Edição de Texto)
-    const [fontScale, setFontScale] = useState(140); // porcentagem (ex: 140%)
+    // Barra de ferramentas de texto (Tamanho da fonte por elemento, Alinhamento e Edição de Texto)
+    const [targetTextPart, setTargetTextPart] = useState('text'); // 'text' | 'title' | 'dialogue' | 'question' | 'all'
+    const [fontScales, setFontScales] = useState({
+        text: 140,      // Texto principal / narrativa / sinopse
+        title: 120,     // Título e subtítulo
+        dialogue: 110,  // Fala do personagem
+        question: 110   // Pergunta ou desafio de atenção
+    });
     const [textAlign, setTextAlign] = useState('justify'); // 'left' | 'center' | 'right' | 'justify'
     const [isEditingText, setIsEditingText] = useState(false);
+
+    // Ajusta o tamanho da fonte para o elemento selecionado ou para todos
+    const adjustFontScale = (delta) => {
+        setFontScales(prev => {
+            if (targetTextPart === 'all') {
+                return {
+                    text: Math.min(220, Math.max(80, prev.text + delta)),
+                    title: Math.min(220, Math.max(80, prev.title + delta)),
+                    dialogue: Math.min(220, Math.max(80, prev.dialogue + delta)),
+                    question: Math.min(220, Math.max(80, prev.question + delta))
+                };
+            }
+            return {
+                ...prev,
+                [targetTextPart]: Math.min(220, Math.max(80, (prev[targetTextPart] || 100) + delta))
+            };
+        });
+    };
 
     const totalViews = pages.length + 2; // Capa + Páginas + Contracapa
     const isCover = currentPageIndex === 0;
@@ -172,25 +196,40 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                 <div className="flex items-center gap-2 shrink-0">
                     {/* Barra de Formatação e Edição Rápida (Idêntica ao layout desejado) */}
                     <div className="flex items-center gap-2 bg-stone-50 border border-stone-200/90 rounded-xl p-1 shadow-2xs">
-                        {/* Controle de Fonte */}
-                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold text-stone-700">
-                            <span className="text-stone-400 font-semibold text-[11px] hidden sm:inline">Fonte:</span>
+                        {/* Seletor de Elemento Textual + Controle de Fonte */}
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-bold text-stone-700">
+                            <span className="text-stone-400 font-semibold text-[11px] hidden sm:inline">Parte:</span>
+                            <select
+                                value={targetTextPart}
+                                onChange={(e) => setTargetTextPart(e.target.value)}
+                                className="bg-white border border-stone-200 text-stone-800 text-[11px] font-bold rounded-lg px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer shadow-2xs"
+                                title="Escolha qual parte textual deseja redimensionar"
+                            >
+                                <option value="text">📖 Narrativa / Texto</option>
+                                <option value="title">🏷️ Título</option>
+                                <option value="dialogue">💬 Falas dos Personagens</option>
+                                <option value="question">❓ Desafio de Atenção</option>
+                                <option value="all">✨ Todos os Textos</option>
+                            </select>
+
+                            <div className="w-px h-3.5 bg-stone-200 mx-0.5 hidden sm:block" />
+
                             <button
                                 type="button"
-                                onClick={() => setFontScale(prev => Math.max(90, prev - 10))}
+                                onClick={() => adjustFontScale(-10)}
                                 className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
-                                title="Diminuir fonte"
+                                title="Diminuir tamanho da fonte selecionada"
                             >
                                 A-
                             </button>
-                            <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[36px] text-center">
-                                {fontScale}%
+                            <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[36px] text-center" title="Percentual da fonte selecionada">
+                                {targetTextPart === 'all' ? `${fontScales.text}%` : `${fontScales[targetTextPart]}%`}
                             </span>
                             <button
                                 type="button"
-                                onClick={() => setFontScale(prev => Math.min(200, prev + 10))}
+                                onClick={() => adjustFontScale(10)}
                                 className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
-                                title="Aumentar fonte"
+                                title="Aumentar tamanho da fonte selecionada"
                             >
                                 A+
                             </button>
@@ -459,25 +498,38 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 <div>
                                     {/* Barra de Formatação e Edição Exclusiva da Tela (Oculta no PDF/Impressão) */}
                                     <div className="flex items-center justify-between pb-3 mb-4 border-b border-stone-100 no-print select-none">
-                                        {/* Controle de Tamanho de Fonte: A- 140% A+ */}
+                                        {/* Seletor de Elemento Textual + Controle de Fonte */}
                                         <div className="flex items-center gap-1.5 bg-stone-100/80 hover:bg-stone-100 px-2.5 py-1 rounded-xl border border-stone-200/80 text-xs font-bold text-stone-700">
-                                            <span className="text-stone-400 font-semibold text-[11px]">Fonte:</span>
+                                            <span className="text-stone-400 font-semibold text-[11px] hidden sm:inline">Parte:</span>
+                                            <select
+                                                value={targetTextPart}
+                                                onChange={(e) => setTargetTextPart(e.target.value)}
+                                                className="bg-white border border-stone-200 text-stone-800 text-[11px] font-bold rounded-lg px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer shadow-2xs"
+                                                title="Escolha qual parte textual deseja redimensionar"
+                                            >
+                                                <option value="text">📖 Sinopse / Texto</option>
+                                                <option value="title">🏷️ Título da Capa</option>
+                                                <option value="all">✨ Todos os Textos</option>
+                                            </select>
+
+                                            <div className="w-px h-3.5 bg-stone-300 mx-0.5 hidden sm:block" />
+
                                             <button
                                                 type="button"
-                                                onClick={() => setFontScale(prev => Math.max(90, prev - 10))}
+                                                onClick={() => adjustFontScale(-10)}
                                                 className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
-                                                title="Diminuir fonte"
+                                                title="Diminuir fonte selecionada"
                                             >
                                                 A-
                                             </button>
-                                            <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[38px] text-center">
-                                                {fontScale}%
+                                            <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[38px] text-center" title="Percentual da fonte selecionada">
+                                                {targetTextPart === 'all' ? `${fontScales.text}%` : `${fontScales[targetTextPart] || fontScales.text}%`}
                                             </span>
                                             <button
                                                 type="button"
-                                                onClick={() => setFontScale(prev => Math.min(200, prev + 10))}
+                                                onClick={() => adjustFontScale(10)}
                                                 className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
-                                                title="Aumentar fonte"
+                                                title="Aumentar fonte selecionada"
                                             >
                                                 A+
                                             </button>
@@ -559,10 +611,20 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                             </div>
                                         ) : (
                                             <>
-                                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-stone-950 font-serif leading-tight">
+                                                <h1 
+                                                    className="font-black text-stone-950 font-serif leading-tight"
+                                                    style={{
+                                                        fontSize: `${(32 * fontScales.title) / 100}px`
+                                                    }}
+                                                >
                                                     {book.title}
                                                 </h1>
-                                                <p className="text-base sm:text-lg text-stone-600 font-medium italic">
+                                                <p 
+                                                    className="text-stone-600 font-medium italic mt-1"
+                                                    style={{
+                                                        fontSize: `${(17 * fontScales.title) / 100}px`
+                                                    }}
+                                                >
                                                     {book.subtitle}
                                                 </p>
                                             </>
@@ -585,7 +647,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                             <p 
                                                 className="text-stone-700 leading-relaxed font-sans"
                                                 style={{
-                                                    fontSize: `${(15 * fontScale) / 100}px`,
+                                                    fontSize: `${(15 * fontScales.text) / 100}px`,
                                                     textAlign: textAlign
                                                 }}
                                             >
@@ -672,25 +734,40 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 <div>
                                     {/* Barra de Formatação e Edição Exclusiva da Tela (Oculta no PDF/Impressão) */}
                                     <div className="flex items-center justify-between pb-3 mb-4 border-b border-stone-100 no-print select-none">
-                                        {/* Controle de Tamanho de Fonte: A- 140% A+ */}
+                                        {/* Seletor de Elemento Textual + Controle de Fonte */}
                                         <div className="flex items-center gap-1.5 bg-stone-100/80 hover:bg-stone-100 px-2.5 py-1 rounded-xl border border-stone-200/80 text-xs font-bold text-stone-700">
-                                            <span className="text-stone-400 font-semibold text-[11px]">Fonte:</span>
+                                            <span className="text-stone-400 font-semibold text-[11px] hidden sm:inline">Parte:</span>
+                                            <select
+                                                value={targetTextPart}
+                                                onChange={(e) => setTargetTextPart(e.target.value)}
+                                                className="bg-white border border-stone-200 text-stone-800 text-[11px] font-bold rounded-lg px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer shadow-2xs"
+                                                title="Escolha qual parte textual deseja redimensionar"
+                                            >
+                                                <option value="text">📖 Narrativa / Texto</option>
+                                                <option value="title">🏷️ Título da Página</option>
+                                                <option value="dialogue">💬 Falas dos Personagens</option>
+                                                <option value="question">❓ Desafio de Atenção</option>
+                                                <option value="all">✨ Todos os Textos</option>
+                                            </select>
+
+                                            <div className="w-px h-3.5 bg-stone-300 mx-0.5 hidden sm:block" />
+
                                             <button
                                                 type="button"
-                                                onClick={() => setFontScale(prev => Math.max(90, prev - 10))}
+                                                onClick={() => adjustFontScale(-10)}
                                                 className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
-                                                title="Diminuir fonte"
+                                                title="Diminuir fonte selecionada"
                                             >
                                                 A-
                                             </button>
-                                            <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[38px] text-center">
-                                                {fontScale}%
+                                            <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[38px] text-center" title="Percentual da fonte selecionada">
+                                                {targetTextPart === 'all' ? `${fontScales.text}%` : `${fontScales[targetTextPart]}%`}
                                             </span>
                                             <button
                                                 type="button"
-                                                onClick={() => setFontScale(prev => Math.min(200, prev + 10))}
+                                                onClick={() => adjustFontScale(10)}
                                                 className="px-1.5 py-0.5 rounded hover:bg-white text-stone-800 font-black cursor-pointer transition-colors"
-                                                title="Aumentar fonte"
+                                                title="Aumentar fonte selecionada"
                                             >
                                                 A+
                                             </button>
@@ -762,7 +839,12 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                                 className="text-xl sm:text-2xl font-black text-stone-900 font-serif border border-amber-300 rounded-lg px-2 py-1 bg-amber-50/50 w-full mr-3"
                                             />
                                         ) : (
-                                            <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-stone-900 font-serif">
+                                            <h3 
+                                                className="font-black text-stone-900 font-serif"
+                                                style={{
+                                                    fontSize: `${(24 * fontScales.title) / 100}px`
+                                                }}
+                                            >
                                                 {currentPage.title || `Capítulo ${currentPage.pageNumber}`}
                                             </h3>
                                         )}
@@ -791,7 +873,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                         <div 
                                             className="text-stone-800 leading-relaxed font-serif space-y-4 whitespace-pre-line"
                                             style={{
-                                                fontSize: `${(17 * fontScale) / 100}px`,
+                                                fontSize: `${(17 * fontScales.text) / 100}px`,
                                                 textAlign: textAlign
                                             }}
                                         >
@@ -819,7 +901,12 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                             />
                                         </div>
                                     ) : currentPage.dialogue ? (
-                                        <div className="mt-5 p-3.5 rounded-xl bg-amber-50/70 border-l-4 border-amber-500 text-sm sm:text-base italic text-stone-800 flex items-start gap-2.5 shadow-2xs">
+                                        <div 
+                                            className="mt-5 p-3.5 rounded-xl bg-amber-50/70 border-l-4 border-amber-500 italic text-stone-800 flex items-start gap-2.5 shadow-2xs"
+                                            style={{
+                                                fontSize: `${(14 * fontScales.dialogue) / 100}px`
+                                            }}
+                                        >
                                             <MessageCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
                                             <span>"{currentPage.dialogue}"</span>
                                         </div>
@@ -846,7 +933,12 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                         />
                                     </div>
                                 ) : currentPage.interactiveQuestion ? (
-                                    <div className="mt-6 pt-3.5 border-t border-stone-200 flex items-start gap-3 text-xs sm:text-sm font-bold text-stone-900 bg-amber-50/80 p-3.5 rounded-2xl border border-amber-300 shadow-2xs">
+                                    <div 
+                                        className="mt-6 pt-3.5 border-t border-stone-200 flex items-start gap-3 font-bold text-stone-900 bg-amber-50/80 p-3.5 rounded-2xl border border-amber-300 shadow-2xs"
+                                        style={{
+                                            fontSize: `${(13 * fontScales.question) / 100}px`
+                                        }}
+                                    >
                                         <HelpCircle className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
                                         <div>
                                             <span className="uppercase text-[11px] text-amber-900 tracking-wider block font-black mb-0.5">Desafio de Atenção:</span>
