@@ -115,31 +115,12 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={handleGenerateImageForCurrentPage}
-                        disabled={isGeneratingImg}
-                        className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black text-white bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 rounded-xl shadow-sm transition-all disabled:opacity-50 cursor-pointer active:scale-95"
-                        title="Gerar ou regerar a ilustração desta página usando Imagen 3 com sua chave"
-                    >
-                        {isGeneratingImg ? (
-                            <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span>Ilustrando...</span>
-                            </>
-                        ) : (
-                            <>
-                                <Sparkles className="w-4 h-4 text-amber-200" />
-                                <span>Ilustrar Esta Página</span>
-                            </>
-                        )}
-                    </button>
-
-                    <button
                         onClick={handlePrint}
-                        className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black text-brown-800 bg-amber-50 hover:bg-amber-100 rounded-xl border border-amber-300 shadow-2xs transition-all cursor-pointer"
-                        title="Imprimir livro em alta resolução para encadernação"
+                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-black text-brown-900 bg-amber-100 hover:bg-amber-200 rounded-xl border border-amber-300 shadow-xs transition-all cursor-pointer active:scale-95"
+                        title="Imprimir livro limpo para encadernação e colorir na escola"
                     >
-                        <Printer className="w-4 h-4 text-amber-700" />
-                        <span>Imprimir</span>
+                        <Printer className="w-4 h-4 text-amber-800" />
+                        <span>Imprimir Livro (A4 / Livreto)</span>
                     </button>
                 </div>
             </div>
