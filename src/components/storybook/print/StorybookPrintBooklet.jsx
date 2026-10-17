@@ -316,38 +316,35 @@ export const StorybookPrintBooklet = ({
         <div className="storybook-print-container">
             {(() => {
                 // ==========================================
-                // 1. MODO LIVRETO GRAMPEADO (BOOKLET OCIDENTAL / BRASIL)
+                // 1. MODO LIVRETO GRAMPEADO (BOOKLET)
                 // ==========================================
-                // Em um mini-livro infantil grampeado no centro:
-                // Cada folha A4 paisagem é dobrada no meio e contém:
-                // - Folha 1 (Capa / Contracapa):
-                //     Lado de Fora: Contracapa (Esquerda) | Capa (Direita)
-                //     Lado de Dentro (Verso): Conclusão da História (Esquerda) | Sinopse/Apresentação (Direita)
-                // - Folhas Internas:
-                //     Cada folha interna contém a Ilustração na Esquerda e a História/Narrativa na Direita.
-                // Isso elimina completamente quaisquer páginas em branco ou páginas de anotações soltas!
+                // Cada folha A4 dobrada ao meio é uma página dupla do livro:
+                // - Folha 1: [ Ilustração da Capa | Apresentação e Sinopse da Capa ]
+                // - Folhas do Miolo: Para cada capítulo -> [ Ilustração da Página | Texto e Desafio ]
+                // - Folha Final: [ Imagem da Contracapa | Conclusão da História ]
+                // Isso elimina totalmente a folha duplicada desnecessária de anotações no início!
                 if (printLayoutMode === 'booklet') {
                     return (
                         <>
-                            {/* FOLHA 1 - FRENTE (EXTERNA): [ Contracapa (Final) | Capa (Início) ] */}
+                            {/* CAPA DO LIVRO: [ Ilustração da Capa (Esquerda) | Título e Sinopse (Direita) ] */}
                             <div className="storybook-print-page relative">
-                                {renderBackLeft()}
                                 {renderCoverLeft()}
-                            </div>
-
-                            {/* FOLHA 1 - VERSO (INTERNA DA CAPA): [ Conclusão | Apresentação da Capa ] */}
-                            <div className="storybook-print-page relative">
-                                {renderBackRight()}
                                 {renderCoverRight()}
                             </div>
 
-                            {/* FOLHAS DO MIOLO (HISTÓRIAS INTERNAS): [ Ilustração (Esquerda) | Texto (Direita) ] */}
+                            {/* PÁGINAS DO MIOLO: [ Ilustração (Esquerda) | Texto e Desafio (Direita) ] */}
                             {pages.map(p => (
                                 <div key={`booklet-page-${p.pageNumber}`} className="storybook-print-page relative">
                                     {renderStoryLeft(p)}
                                     {renderStoryRight(p)}
                                 </div>
                             ))}
+
+                            {/* CONTRACAPA DO LIVRO: [ Logo/Imagem (Esquerda) | Conclusão da História (Direita) ] */}
+                            <div className="storybook-print-page relative">
+                                {renderBackLeft()}
+                                {renderBackRight()}
+                            </div>
                         </>
                     );
                 }
