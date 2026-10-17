@@ -187,200 +187,12 @@ export const StorybookViewer = ({ data, onUpdate }) => {
         setIsMediaModalOpen(false);
     };
 
-    // Imprimir o livro no navegador em modo A4 Paisagem isolado (zero páginas em branco)
+    // Imprimir o livro no navegador em modo A4 Paisagem direto (fiel às customizações e sem páginas em branco)
     const handlePrint = () => {
-        const printContainer = document.querySelector('.storybook-print-container');
-        if (!printContainer) {
-            window.print();
-            return;
-        }
-
         toast('Preparando livro para impressão e PDF...');
-
-        try {
-            // Remove iframe de impressão anterior se ainda existir
-            const oldFrame = document.getElementById('storybook-fast-print-frame');
-            if (oldFrame) oldFrame.remove();
-
-            const iframe = document.createElement('iframe');
-            iframe.id = 'storybook-fast-print-frame';
-            iframe.setAttribute('aria-hidden', 'true');
-            iframe.style.position = 'fixed';
-            iframe.style.right = '0';
-            iframe.style.bottom = '0';
-            iframe.style.width = '0';
-            iframe.style.height = '0';
-            iframe.style.border = '0';
-            iframe.style.opacity = '0';
-            iframe.style.pointerEvents = 'none';
-            iframe.style.zIndex = '-9999';
-
-            document.body.appendChild(iframe);
-
-            const doc = iframe.contentWindow?.document;
-            if (!doc) {
-                window.print();
-                return;
-            }
-
-            // Coleta folhas de estilo ativas e fontes
-            const styleNodes = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'));
-            const stylesHtml = styleNodes.map(node => node.outerHTML).join('\n');
-
-            const pageTitle = book.title ? `Livro - ${book.title}` : 'Livro Infantil - Drácker Adapta';
-
-            doc.open();
-            doc.write(`
-                <!DOCTYPE html>
-                <html lang="pt-BR">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>${pageTitle}</title>
-                    ${stylesHtml}
-                    <style>
-                        @page {
-                            size: A4 landscape;
-                            margin: 0 !important;
-                        }
-                        *, *::before, *::after {
-                            box-sizing: border-box !important;
-                            -webkit-print-color-adjust: exact !important;
-                            print-color-adjust: exact !important;
-                        }
-                        html, body {
-                            margin: 0 !important;
-                            padding: 0 !important;
-                            background: #ffffff !important;
-                            color: #1a1a1a !important;
-                            width: 297mm !important;
-                            height: auto !important;
-                            overflow: visible !important;
-                        }
-                        .storybook-print-container {
-                            display: block !important;
-                            width: 297mm !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
-                        }
-                        .storybook-print-page {
-                            width: 297mm !important;
-                            height: 205mm !important;
-                            max-width: 297mm !important;
-                            max-height: 205mm !important;
-                            padding: 7mm 10mm !important;
-                            box-sizing: border-box !important;
-                            background: white !important;
-                            color: black !important;
-                            overflow: hidden !important;
-                            display: flex !important;
-                            flex-direction: row !important;
-                            align-items: stretch !important;
-                            page-break-inside: avoid !important;
-                            break-inside: avoid !important;
-                            page-break-after: always !important;
-                            break-after: page !important;
-                        }
-                        .storybook-print-page:last-child {
-                            page-break-after: auto !important;
-                            break-after: auto !important;
-                        }
-                        .print-half-page {
-                            width: 50% !important;
-                            max-width: 50% !important;
-                            flex: 0 0 50% !important;
-                            box-sizing: border-box !important;
-                            height: 100% !important;
-                        }
-                        .sb-print-title {
-                            font-size: ${(36 * fontScales.title) / 100}px !important;
-                            text-align: ${textAligns.title || 'left'} !important;
-                            line-height: 1.25 !important;
-                        }
-                        .sb-print-chapter-title {
-                            font-size: ${(26 * fontScales.title) / 100}px !important;
-                            text-align: ${textAligns.title || 'left'} !important;
-                            line-height: 1.25 !important;
-                        }
-                        .sb-print-subtitle {
-                            font-size: ${(18 * fontScales.title) / 100}px !important;
-                            text-align: ${textAligns.title || 'left'} !important;
-                            line-height: 1.35 !important;
-                        }
-                        .sb-print-synopsis {
-                            font-size: ${(15 * fontScales.text) / 100}px !important;
-                            text-align: ${textAligns.text || 'justify'} !important;
-                            line-height: 1.6 !important;
-                        }
-                        .sb-print-narrative {
-                            font-size: ${(17 * fontScales.text) / 100}px !important;
-                            text-align: ${textAligns.text || 'justify'} !important;
-                            line-height: 1.65 !important;
-                        }
-                        .sb-print-dialogue {
-                            font-size: ${(14 * fontScales.dialogue) / 100}px !important;
-                            text-align: ${textAligns.dialogue || 'left'} !important;
-                            line-height: 1.5 !important;
-                        }
-                        .sb-print-question {
-                            font-size: ${(13 * fontScales.question) / 100}px !important;
-                            text-align: ${textAligns.question || 'left'} !important;
-                            line-height: 1.45 !important;
-                        }
-                        .no-print, [data-no-print] {
-                            display: none !important;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="storybook-print-container">
-                        ${printContainer.innerHTML}
-                    </div>
-                </body>
-                </html>
-            `);
-            doc.close();
-
-            const triggerPrint = () => {
-                setTimeout(() => {
-                    try {
-                        iframe.contentWindow?.focus();
-                        iframe.contentWindow?.print();
-                    } catch (e) {
-                        console.warn('[storybookPrint] Fallback print:', e);
-                        window.print();
-                    } finally {
-                        setTimeout(() => {
-                            iframe.remove();
-                        }, 4000);
-                    }
-                }, 100);
-            };
-
-            // Aguarda imagens carregarem se existirem no iframe
-            const images = Array.from(doc.images || []);
-            if (images.length > 0) {
-                let loaded = 0;
-                const onDone = () => {
-                    loaded++;
-                    if (loaded >= images.length) triggerPrint();
-                };
-                images.forEach(img => {
-                    if (img.complete) {
-                        onDone();
-                    } else {
-                        img.onload = onDone;
-                        img.onerror = onDone;
-                    }
-                });
-                setTimeout(triggerPrint, 400);
-            } else {
-                triggerPrint();
-            }
-
-        } catch (err) {
-            console.warn('[handlePrint Storybook] Falha no iframe isolado, recorrendo ao print padrão:', err);
+        setTimeout(() => {
             window.print();
-        }
+        }, 80);
     };
 
     return (
@@ -553,8 +365,14 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                     }
                     .storybook-print-container {
                         display: block !important;
+                        visibility: visible !important;
+                        width: 297mm !important;
                         margin: 0 !important;
                         padding: 0 !important;
+                    }
+                    .storybook-print-container,
+                    .storybook-print-container * {
+                        visibility: visible !important;
                     }
                     .storybook-print-page {
                         page-break-inside: avoid !important;
