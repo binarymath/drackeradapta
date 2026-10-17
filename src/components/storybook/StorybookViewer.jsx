@@ -23,6 +23,7 @@ import {
     Copy
 } from 'lucide-react';
 import { toast } from '../ui/Toast';
+import { toDirectImageUrl, handleDriveImageError } from '../../utils/urlUtils';
 
 // Utilitário para extrair ID do vídeo do YouTube
 const extractYouTubeId = (url) => {
@@ -198,6 +199,9 @@ export const StorybookViewer = ({ data, onUpdate }) => {
             finalVideoUrl = `https://www.youtube.com/watch?v=${ytId}`;
             // Pega a thumbnail oficial do YouTube em alta resolução
             finalImageUrl = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+        } else if (trimmedUrl) {
+            // Converte links do Google Drive (share, /view, ?usp=sharing, uc?export=view) para URL direta
+            finalImageUrl = toDirectImageUrl(trimmedUrl);
         }
 
         if (editingTarget === 'cover') {
@@ -222,7 +226,12 @@ export const StorybookViewer = ({ data, onUpdate }) => {
             if (onUpdate) onUpdate(updatedBook);
         }
 
-        toast(ytId ? 'Vídeo do YouTube e QR Code vinculados com sucesso!' : 'Imagem atualizada com sucesso!');
+        const isDrive = trimmedUrl.includes('drive.google.com') || trimmedUrl.includes('googleusercontent.com');
+        toast(ytId 
+            ? 'Vídeo do YouTube e QR Code vinculados com sucesso!' 
+            : isDrive 
+                ? 'Imagem do Google Drive vinculada e convertida com sucesso!' 
+                : 'Imagem atualizada com sucesso!');
         setIsMediaModalOpen(false);
     };
 
@@ -577,8 +586,10 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 ) : book.cover?.imageUrl ? (
                                     <div className="relative w-full h-full flex items-center justify-center">
                                         <img 
-                                            src={book.cover.imageUrl} 
+                                            src={toDirectImageUrl(book.cover.imageUrl)} 
                                             alt="Capa do Livro" 
+                                            onError={handleDriveImageError}
+                                            referrerPolicy="no-referrer"
                                             className="w-full h-full max-h-[85vh] object-contain rounded-2xl border border-stone-200 shadow-2xs"
                                         />
                                         {/* Botão de Play se for vídeo do YouTube */}
@@ -749,8 +760,10 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 ) : currentPage.imageUrl ? (
                                     <div className="relative w-full h-full flex items-center justify-center">
                                         <img 
-                                            src={currentPage.imageUrl} 
+                                            src={toDirectImageUrl(currentPage.imageUrl)} 
                                             alt={`Página ${currentPage.pageNumber}`} 
+                                            onError={handleDriveImageError}
+                                            referrerPolicy="no-referrer"
                                             className="w-full h-full max-h-[85vh] object-contain rounded-2xl border border-stone-200 shadow-2xs"
                                         />
                                         {/* Botão de Play se for vídeo do YouTube */}
@@ -1052,8 +1065,10 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                     <div className="print-half-page p-6 flex flex-col items-center justify-center border-r border-stone-300 relative h-full">
                         {book.cover?.imageUrl ? (
                             <img 
-                                src={book.cover.imageUrl} 
+                                src={toDirectImageUrl(book.cover.imageUrl)} 
                                 alt="Capa" 
+                                onError={handleDriveImageError}
+                                referrerPolicy="no-referrer"
                                 className="max-h-[170mm] max-w-[95%] object-contain"
                             />
                         ) : (
@@ -1147,8 +1162,10 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             <div className="print-half-page p-6 flex flex-col items-center justify-center border-r border-stone-300 relative h-full">
                                 {p.imageUrl ? (
                                     <img 
-                                        src={p.imageUrl} 
+                                        src={toDirectImageUrl(p.imageUrl)} 
                                         alt={`Página ${p.pageNumber}`} 
+                                        onError={handleDriveImageError}
+                                        referrerPolicy="no-referrer"
                                         className="max-h-[170mm] max-w-[95%] object-contain"
                                     />
                                 ) : (
@@ -1343,7 +1360,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                     autoFocus
                                 />
                                 <p className="text-[11px] text-stone-500 mt-1.5 leading-snug">
-                                    💡 <strong>Dica:</strong> Se colar um link do <strong>YouTube</strong>, a ilustração exibirá a capa do vídeo e um <strong>QR Code discreto</strong> será gerado automaticamente para os alunos e pais assistirem!
+                                    💡 <strong>Dica:</strong> Aceita links do <strong>Google Drive</strong> (compartilhados ou de visualização), imagens diretas da web ou links do <strong>YouTube</strong> (com capa oficial e QR Code gerados automaticamente)!
                                 </p>
                             </div>
 
