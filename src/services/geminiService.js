@@ -1129,7 +1129,6 @@ FORMATO JSON ESPERADO:
   "title": "Título Incrível do Livro",
   "subtitle": "Uma aventura com o Drácker e a Turma da Floresta",
   "theme": "Tema abordado",
-  "targetAge": "6 a 10 anos",
   "synopsis": "Breve sinopse cativante da história.",
   "moralLesson": "Mensagem positiva e lição de aprendizado do livro.",
   "cover": {
