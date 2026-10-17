@@ -224,8 +224,16 @@ code {
     display: block !important;
   }
 
-  .trading-cards-editor-view {
+  .trading-cards-editor-view,
+  .storybook-screen-view {
     display: none !important;
+  }
+
+  .storybook-print-container {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   .trading-cards-print-target {
@@ -316,8 +324,16 @@ code {
 .pdf-capture-mode .no-pdf,
 .pdf-capture-mode .no-print,
 .pdf-capture-mode [data-no-print],
-.pdf-capture-mode .trading-cards-editor-view {
+.pdf-capture-mode .trading-cards-editor-view,
+.pdf-capture-mode .storybook-screen-view {
   display: none !important;
+}
+
+.pdf-capture-mode .storybook-print-container {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .pdf-capture-mode .trading-cards-print-target {

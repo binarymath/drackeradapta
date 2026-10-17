@@ -487,7 +487,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
             `}</style>
 
             {/* --- VISUALIZADOR DE TELA (100% Altura/Largura quando Fullscreen) --- */}
-            <div className={`storybook-screen-view relative w-full flex-1 flex flex-col justify-between bg-white rounded-3xl border-2 border-amber-200/90 shadow-xl overflow-hidden ${
+            <div className={`storybook-screen-view no-print no-pdf relative w-full flex-1 flex flex-col justify-between bg-white rounded-3xl border-2 border-amber-200/90 shadow-xl overflow-hidden ${
                 isFullscreen ? 'h-full min-h-0' : 'aspect-[16/10] min-h-[520px]'
             }`}>
                 
