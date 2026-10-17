@@ -1104,16 +1104,34 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             <span className="text-[11px] font-bold uppercase tracking-wider text-stone-600 border border-stone-400 px-3 py-1 rounded">
                                 {book.theme || 'História Pedagógica'}
                             </span>
-                            <h1 className="text-4xl sm:text-5xl font-black font-serif text-black mt-4 leading-tight">
+                            <h1 
+                                className="font-black font-serif text-black mt-4 leading-tight"
+                                style={{
+                                    fontSize: `${(36 * fontScales.title) / 100}px`,
+                                    textAlign: textAligns.title || 'left'
+                                }}
+                            >
                                 {book.title}
                             </h1>
-                            <p className="text-lg sm:text-xl text-stone-700 font-medium italic mt-2">
+                            <p 
+                                className="text-stone-700 font-medium italic mt-2"
+                                style={{
+                                    fontSize: `${(18 * fontScales.title) / 100}px`,
+                                    textAlign: textAligns.title || 'left'
+                                }}
+                            >
                                 {book.subtitle}
                             </p>
                         </div>
                         <div className="border-t border-stone-300 pt-5 mt-6">
                             <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Sinopse da Aventura:</span>
-                            <p className="text-sm sm:text-base text-stone-800 mt-2 leading-relaxed text-justify">
+                            <p 
+                                className="text-stone-800 mt-2 leading-relaxed"
+                                style={{
+                                    fontSize: `${(15 * fontScales.text) / 100}px`,
+                                    textAlign: textAligns.text || 'justify'
+                                }}
+                            >
                                 {book.synopsis}
                             </p>
                             <div className="mt-6 pt-3 border-t border-stone-200 flex items-center justify-between text-xs text-stone-500 font-bold">
@@ -1166,7 +1184,13 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                         <div className="print-half-page p-8 sm:p-10 flex flex-col justify-between h-full">
                             <div>
                                 <div className="flex justify-between items-center border-b border-stone-300 pb-2.5 mb-4">
-                                    <h2 className="text-2xl sm:text-3xl font-black font-serif text-black">
+                                    <h2 
+                                        className="font-black font-serif text-black"
+                                        style={{
+                                            fontSize: `${(26 * fontScales.title) / 100}px`,
+                                            textAlign: textAligns.title || 'left'
+                                        }}
+                                    >
                                         {p.title || `Capítulo ${p.pageNumber}`}
                                     </h2>
                                     <span className="text-xs font-mono font-bold text-stone-700 border border-stone-400 px-3 py-1 rounded-full">
@@ -1174,12 +1198,24 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                     </span>
                                 </div>
 
-                                <div className="text-base sm:text-lg font-serif text-stone-900 leading-relaxed whitespace-pre-line text-justify">
+                                <div 
+                                    className="font-serif text-stone-900 leading-relaxed whitespace-pre-line"
+                                    style={{
+                                        fontSize: `${(17 * fontScales.text) / 100}px`,
+                                        textAlign: textAligns.text || 'justify'
+                                    }}
+                                >
                                     {p.text}
                                 </div>
 
                                 {p.dialogue && (
-                                    <div className="mt-4 p-3 bg-stone-50 border-l-4 border-stone-500 text-sm italic text-stone-800">
+                                    <div 
+                                        className="mt-4 p-3 bg-stone-50 border-l-4 border-stone-500 italic text-stone-800"
+                                        style={{
+                                            fontSize: `${(14 * fontScales.dialogue) / 100}px`,
+                                            textAlign: textAligns.dialogue || 'left'
+                                        }}
+                                    >
                                         "{p.dialogue}"
                                     </div>
                                 )}
@@ -1187,11 +1223,17 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
                             {/* Desafio de Atenção Obrigatório */}
                             {p.interactiveQuestion && (
-                                <div className="mt-5 p-4 border border-stone-400 rounded-2xl bg-stone-50">
+                                <div 
+                                    className="mt-5 p-4 border border-stone-400 rounded-2xl bg-stone-50"
+                                    style={{
+                                        fontSize: `${(13 * fontScales.question) / 100}px`,
+                                        textAlign: textAligns.question || 'left'
+                                    }}
+                                >
                                     <span className="text-xs font-black uppercase text-stone-700 block mb-1">
                                         🔍 Desafio de Atenção do Aluno:
                                     </span>
-                                    <p className="text-sm font-bold text-stone-950">
+                                    <p className="font-bold text-stone-950">
                                         {p.interactiveQuestion}
                                     </p>
                                 </div>
