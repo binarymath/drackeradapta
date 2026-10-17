@@ -328,26 +328,50 @@ export const StorybookPrintBooklet = ({
                 // 1. MODO LIVRETO GRAMPEADO (BOOKLET)
                 // ==========================================
                 if (printLayoutMode === 'booklet') {
+                    // No formato ocidental/brasileiro (leitura da esquerda para a direita, abertura da direita para a esquerda):
+                    // A lombada (dobra/grampo) fica à ESQUERDA.
+                    // Folha 1 (Frente - Lado Externo):
+                    //   [ Lado Esquerdo: Contracapa | Lado Direito: Capa ]
+                    // Ao abrir a capa (da direita para a esquerda), revela-se:
+                    // Folha 1 (Verso - Lado Interno):
+                    //   [ Lado Esquerdo: Apresentação da Capa | Lado Direito: Ilustração da Pág 1 ]
+                    // Em cada página dupla aberta interna (Miolo):
+                    //   [ Lado Esquerdo: Ilustração | Lado Direito: Narrativa do Capítulo ]
+                    // Na última página interna:
+                    //   [ Lado Esquerdo: Conclusão/Moral | Lado Direito: Página final de atividades ]
                     const logicalPages = [];
+                    // Página 1 (Capa)
                     logicalPages.push({ type: 'cover_left' });
+                    // Página 2 (Verso da Capa / Apresentação)
                     logicalPages.push({ type: 'cover_right' });
+                    // Miolo do Livro: cada capítulo tem Ilustração (esquerda) e Texto (direita)
                     pages.forEach(p => {
                         logicalPages.push({ type: 'story_left', page: p });
                         logicalPages.push({ type: 'story_right', page: p });
                     });
-                    logicalPages.push({ type: 'back_left' });
+                    // Páginas finais: Conclusão (interna) e Contracapa (externa)
                     logicalPages.push({ type: 'back_right' });
+                    logicalPages.push({ type: 'back_left' });
 
                     // Para encadernação de livreto dobrado ao meio, o número de páginas A5 deve ser múltiplo de 4
                     const remainder = logicalPages.length % 4;
                     if (remainder !== 0) {
                         const paddingCount = 4 - remainder;
                         for (let i = 0; i < paddingCount; i++) {
-                            logicalPages.push({ type: 'blank', index: i + 1 });
+                            // Insere páginas em branco extras antes da contracapa final se necessário
+                            logicalPages.splice(logicalPages.length - 1, 0, { type: 'blank', index: i + 1 });
                         }
                     }
 
-                    // Algoritmo clássico de imposição de livreto (Saddle-Stitch Booklet)
+                    // Algoritmo de imposição de livreto (Saddle-Stitch Booklet):
+                    // N = totalUnits (múltiplo de 4), totalSheets = N / 4
+                    // Folha s (0 a totalSheets - 1):
+                    // - Frente (lado externo):
+                    //     Esquerda: logicalPages[N - 1 - 2*s]  -> para s=0: logicalPages[N - 1] (Contracapa / back_left)
+                    //     Direita:  logicalPages[2*s]          -> para s=0: logicalPages[0]     (Capa / cover_left)
+                    // - Verso (lado interno virado no eixo longo):
+                    //     Esquerda: logicalPages[2*s + 1]      -> para s=0: logicalPages[1]     (Apresentação / cover_right)
+                    //     Direita:  logicalPages[N - 2 - 2*s]  -> para s=0: logicalPages[N - 2] (Conclusão / back_right)
                     const totalUnits = logicalPages.length;
                     const totalSheets = totalUnits / 4;
                     const imposedSheets = [];
@@ -363,7 +387,7 @@ export const StorybookPrintBooklet = ({
                             right: logicalPages[frontRightIdx]
                         });
 
-                        // Verso da folha s (Ao virar no eixo longo)
+                        // Verso da folha s (Ao virar no eixo longo/horizontal da impressora)
                         const backLeftIdx = (2 * s) + 1;
                         const backRightIdx = totalUnits - 2 - (2 * s);
                         imposedSheets.push({
