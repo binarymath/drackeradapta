@@ -1412,12 +1412,12 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
                     return (
                         <div className="storybook-print-page">
-                            {/* Ilustração / Drácker e seus amigos à Esquerda */}
-                            <div className="print-half-page p-6 flex flex-col justify-center border-r border-stone-300 relative h-full text-center">
+                            {/* Ilustração / Drácker e seus amigos à Esquerda (Ocupando com destaque o espaço) */}
+                            <div className="print-half-page p-6 flex flex-col justify-center items-center border-r border-stone-300 relative h-full text-center">
                                 <div 
-                                    className={`w-full flex mb-4 ${
-                                        backAligns.image === 'left' ? 'justify-start' :
-                                        backAligns.image === 'right' ? 'justify-end' : 'justify-center'
+                                    className={`w-full flex-1 flex flex-col justify-center items-center ${
+                                        backAligns.image === 'left' ? 'items-start' :
+                                        backAligns.image === 'right' ? 'items-end' : 'items-center'
                                     }`}
                                 >
                                     <img 
@@ -1426,18 +1426,21 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                         onError={handleDriveImageError}
                                         referrerPolicy="no-referrer"
                                         style={{
-                                            width: `${Math.round((260 * (backScales.image || 100)) / 100)}px`,
-                                            maxHeight: '400px'
+                                            width: `${Math.round((380 * (backScales.image || 100)) / 100)}px`,
+                                            maxWidth: '96%',
+                                            maxHeight: '145mm'
                                         }}
-                                        className="object-contain mx-auto" 
+                                        className="object-contain" 
                                     />
                                 </div>
-                                <h3 className="text-base font-black font-serif text-stone-900">
-                                    Drácker Adapta
-                                </h3>
-                                <p className="text-xs text-stone-500 mt-1">
-                                    Histórias que ensinam, inspiram e transformam.
-                                </p>
+                                <div className="mt-2 shrink-0">
+                                    <h3 className="text-base font-black font-serif text-stone-900">
+                                        Drácker Adapta
+                                    </h3>
+                                    <p className="text-xs text-stone-500 mt-0.5">
+                                        Histórias que ensinam, inspiram e transformam.
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Fim da Missão / Expedição à Direita */}
