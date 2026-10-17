@@ -744,7 +744,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                             />
                                         ) : (
                                             <h3 
-                                                className="font-black text-stone-900 font-serif"
+                                                className="font-black text-stone-900 font-serif flex-1 pr-3"
                                                 style={{
                                                     fontSize: `${(24 * currentFontScales.title) / 100}px`,
                                                     textAlign: currentTextAligns.title || 'left'
@@ -1073,7 +1073,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                                 <div>
                                     <div className="flex justify-between items-center border-b border-stone-300 pb-2.5 mb-4">
                                         <h2 
-                                            className="sb-print-chapter-title font-black font-serif text-black"
+                                            className="sb-print-chapter-title font-black font-serif text-black flex-1 pr-3"
                                             style={{
                                                 fontSize: `${(26 * pScales.title) / 100}px`,
                                                 textAlign: pAligns.title || 'left',
