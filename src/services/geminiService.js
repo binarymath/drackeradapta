@@ -1122,7 +1122,8 @@ REGRAS OBRIGATÓRIAS DO LIVRO:
    - "dialogue": fala marcante do Drácker ou de outro personagem.
    - "interactiveQuestion": o desafio de atenção obrigatório desta página.
    - "imagePrompt": prompt em inglês para ilustração limpa em traço preto e branco.
-7. Retorne ESTRITAMENTE um objeto JSON válido, sem cercas de markdown extras ou comentários.
+7. REGRA OBRIGATÓRIA DE MATEMÁTICA E TEXTO: NUNCA use LaTeX nem envolva fórmulas em cifrões ($ ou $$). NUNCA escreva expressões como $\frac{1}{2}$ ou $x^2$. Escreva sempre em TEXTO CORRENTE, PURO E NATURAL em português (ex: "1/2", "metade", "x²", "raiz quadrada de 16", "2 + 2 = 4").
+8. Retorne ESTRITAMENTE um objeto JSON válido, sem cercas de markdown extras ou comentários.
 
 FORMATO JSON ESPERADO:
 {
@@ -1158,6 +1159,19 @@ FORMATO JSON ESPERADO:
   "backCover": {
     "summary": "Resumo da contracapa...",
     "activity": "Grande desafio final prático para os alunos"
+  },
+  "lessonPlan": {
+    "title": "Receita de Bolo da Aula",
+    "duration": "50 minutos",
+    "location": "100% na Sala de Aula",
+    "materials": ["Folhas de papel/sulfite", "Lápis e canetinhas", "Lousa/Quadro"],
+    "activeMethodology": "Nome e explicação da metodologia ativa de sala (ex: Think-Pair-Share ou Estações)",
+    "stepByStep": {
+      "beginning": "Início / Aquecimento (5-10 min): Pergunta-gatilho ou enigma do Drácker na lousa",
+      "middle": "Meio / Desenvolvimento Ativo (20-25 min): Desafio prático em equipes de carteira ou duplas",
+      "ending": "Fim / Fechamento (10 min): Partilha rápida das soluções e consolidação do aprendizado"
+    },
+    "chefTip": "Dica de adaptação para turma agitada ou aplicação 100% individual"
   }
 }`;
 
@@ -1176,6 +1190,239 @@ FORMATO JSON ESPERADO:
       return parsed;
     } catch (err) {
       console.error('[GeminiService] Erro ao gerar livro infantil:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Transforma uma conversa de metodologia ativa com o Drácker em um LIVRO-GUIA DO PROFESSOR (10 páginas sequenciais com passo a passo da aula)
+   */
+  async generateTeacherGuideBookFromChat(chatHistory = []) {
+    if (!this.apiKey) {
+      throw new Error('Chave de API não informada.');
+    }
+
+    const conversationText = chatHistory
+      .map(m => `${m.role === 'user' ? 'PROFESSOR' : 'DRÁCKER'}: ${m.parts?.map(p => p.text).join(' ')}`)
+      .join('\n\n');
+
+    const prompt = `Você é o Drácker, especialista em mediação pedagógica e metodologias ativas do sistema "Drácker Adapta".
+Sua tarefa é analisar a conversa pedagógica abaixo com o professor e transformá-la em um LIVRO-GUIA DO PROFESSOR (MANUAL PASSO A PASSO DA AULA) DE 10 PÁGINAS SEQUENCIAIS.
+
+ATENÇÃO CRUCIAL:
+NÃO crie uma história infantil de ficção! Este livro NÃO é uma historinha para crianças.
+Este livro é uma CONVERSA DIRETA E PRÁTICA COM O PROFESSOR, ensinando como executar a aula, em que momento agir e o que fazer em cada etapa, como uma receita de bolo infalível.
+
+CONVERSA DE ORIGEM:
+"""
+${conversationText}
+"""
+
+REGRAS OBRIGATÓRIAS DO GUIA DO PROFESSOR:
+1. O array "pages" DEVE CONTER OBRIGATORIAMENTE 10 PÁGINAS SEQUENCIAIS (1 a 10), correspondendo às 10 etapas da aula:
+   - Página 1: Alinhamento pedagógico e objetivo da aula (O que vamos construir hoje).
+   - Página 2: Ingredientes e Materiais simples da sala (sem complicar).
+   - Página 3: Arranjo rápido das carteiras na sala (em duplas ou quartetos sem sair da sala).
+   - Página 4: O Aquecimento / Início (5 a 10 min) - A frase de abertura e a pergunta-gatilho na lousa.
+   - Página 5: Lançando o Desafio da Metodologia Ativa - Como explicar a regra da atividade em 2 minutos.
+   - Página 6: O Meio da Aula (20 a 25 min) - A produção dos alunos nas carteiras e dinâmica de colaboração.
+   - Página 7: Papel do Professor como Mediador - Dicas do Drácker de como circular e destravar grupos.
+   - Página 8: O Fim / Fechamento (10 min) - "Partilha dos Dragões": apresentações relâmpago de 1 minuto por equipe.
+   - Página 9: Resolução de Imprevistos - E se a turma for agitada? E se preferir aplicar 100% individual?
+   - Página 10: Avaliação Formativa e Conclusão - Como registrar o aprendizado sem precisar de prova tradicional.
+2. LOCAL: 100% EXECUTÁVEL NA SALA DE AULA (sem precisar de quadra ou pátio).
+3. Cada página do array "pages" deve conter:
+   - "pageNumber": número inteiro (1 a 10).
+   - "title": Título claro da etapa da aula (ex: "Etapa 4: Aquecimento com Pergunta-Gatilho na Lousa").
+   - "text": Conversa franca, encorajadora e detalhada do Drácker orientando o professor sobre o que fazer e em que minuto da aula agir.
+   - "dialogue": "Dica de Fala do Professor" (Uma frase pronta em aspas para o professor dizer em voz alta para os estudantes neste momento).
+   - "interactiveQuestion": "Ação Imediata do Professor" (Checklist prático: ex: "Escreva estas duas perguntas no canto da lousa e dê 3 minutos de silêncio para pensarem").
+   - "imagePrompt": Prompt em inglês para ilustração diagramática de sala de aula em line art preto e branco (coloring style, classroom diagram, desks, blackboard).
+4. REGRA OBRIGATÓRIA DE MATEMÁTICA E TEXTO: NUNCA use código LaTeX nem expressões delimitadas por cifrões ($ ou $$). NUNCA escreva expressões como $\frac{1}{2}$ ou $x^2$. Escreva sempre em TEXTO CORRENTE, PURO E NATURAL em português (ex: "1/2", "metade", "x²", "raiz quadrada de 16", "2 + 2 = 4").
+5. Retorne ESTRITAMENTE um objeto JSON válido, sem texto adicional.
+
+FORMATO JSON ESPERADO:
+{
+  "title": "Guia Prático de Aula: [Tema da Aula]",
+  "subtitle": "Passo a Passo de Metodologia Ativa com o Drácker",
+  "theme": "Guia do Professor",
+  "synopsis": "Manual prático passo a passo de como planejar, conduzir e avaliar a aula de [Tema] utilizando metodologias ativas 100% em sala de aula.",
+  "moralLesson": "Professor mediador transforma carteiras comuns em verdadeiras expedições de descoberta!",
+  "cover": {
+    "title": "Guia Prático de Aula",
+    "subtitle": "Metodologia Ativa Passo a Passo na Sala de Aula",
+    "imagePrompt": "Clean line art coloring book illustration of a modern friendly classroom, teacher mediating students around desks, blackboard with notes, dragon mascot Drácker assisting"
+  },
+  "pages": [
+    {
+      "pageNumber": 1,
+      "title": "Etapa 1: Alinhamento e Objetivo da Aula",
+      "text": "Texto explicando a meta da aula...",
+      "dialogue": "Turma, hoje nossa sala se transforma em um laboratório de descobertas!",
+      "interactiveQuestion": "Ação Imediata: Escreva o objetivo no topo do quadro.",
+      "imagePrompt": "Line art of classroom desks arranged for collaboration"
+    },
+    { "pageNumber": 2, "title": "Etapa 2: Ingredientes e Materiais...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
+    { "pageNumber": 3, "title": "Etapa 3: Organização Rápida da Sala...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
+    { "pageNumber": 4, "title": "Etapa 4: Início e Pergunta-Gatilho...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
+    { "pageNumber": 5, "title": "Etapa 5: O Desafio Ativo das Equipes...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
+    { "pageNumber": 6, "title": "Etapa 6: Desenvolvimento e Produção...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
+    { "pageNumber": 7, "title": "Etapa 7: Mediação Ativa nas Carteiras...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
+    { "pageNumber": 8, "title": "Etapa 8: Partilha e Fechamento da Aula...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
+    { "pageNumber": 9, "title": "Etapa 9: Adaptações e Plano B...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
+    { "pageNumber": 10, "title": "Etapa 10: Avaliação Formativa e Síntese...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." }
+  ],
+  "backCover": {
+    "summary": "Checklist do Professor Concluído com Sucesso!",
+    "activity": "Preencha a autoavaliação rápida da aula e anote os pontos altos das soluções dos alunos."
+  }
+}`;
+
+    try {
+      this.reportStatus('generating_storybook', 'Estruturando Guia de Aula de 10 passos para o professor com o Gemini...');
+      const responseText = await this.generateText(prompt, {
+        temperature: 0.6,
+        maxOutputTokens: 8192
+      });
+
+      const parsed = safeJSONParse(responseText);
+      if (!parsed || !parsed.title || !parsed.pages) {
+        throw new Error('A resposta da IA não gerou a estrutura esperada do guia de aula.');
+      }
+
+      return parsed;
+    } catch (err) {
+      console.error('[GeminiService] Erro ao gerar guia de aula do professor:', err);
+      throw err;
+    }
+  }
+
+  /**
+   * Transforma uma conversa em um LIVRO COMPLETO DE 20 PÁGINAS SEQUENCIAIS:
+   * - Páginas 1 a 10: A História Infantil Ilustrada completa
+   * - Páginas 11 a 20: O Guia Prático de Metodologia Ativa para o Professor
+   */
+  async generateFullStoryAndGuideBookFromChat(chatHistory = []) {
+    if (!this.apiKey) {
+      throw new Error('Chave de API não informada.');
+    }
+
+    const conversationText = chatHistory
+      .map(m => `${m.role === 'user' ? 'PROFESSOR' : 'DRÁCKER'}: ${m.parts?.map(p => p.text).join(' ')}`)
+      .join('\n\n');
+
+    const prompt = `Você é o Drácker, autor de literatura pedagógica e especialista em metodologias ativas do sistema "Drácker Adapta".
+Sua tarefa é analisar a conversa pedagógica abaixo com o professor e transformá-la em um LIVRO MESTRE COMPLETO COM EXATAMENTE 20 PÁGINAS SEQUENCIAIS (1 a 20).
+
+ESTRUTURA OBRIGATÓRIA DAS 20 PÁGINAS:
+PARTE 1 - A HISTÓRIA INFANTIL ILUSTRADA (Páginas 1 a 10):
+- Páginas 1 a 10: Narrativa lúdica encantadora com o Drácker (dragão marrom) e a turma da floresta encantada (Coruja sábia, Esquilo ágil, Raposa esperta, Coelho fofinho) ensinando e vivenciando o tema pedagógico.
+- Cada uma das 10 páginas da história deve ter:
+  * "pageNumber": número inteiro (1 a 10).
+  * "title": Título da página/capítulo (ex: "Capítulo 1: O Enigma da Clareira").
+  * "text": Narrativa calorosa para as crianças lerem (2 parágrafos com excelente ritmo).
+  * "dialogue": Fala marcante de um dos personagens.
+  * "interactiveQuestion": "Desafio de Atenção" para as crianças interagirem com a página.
+  * "imagePrompt": Prompt em inglês de desenho em traço limpo preto e branco para colorir (coloring book line art).
+
+PARTE 2 - O GUIA PRÁTICO DE METODOLOGIA ATIVA (Páginas 11 a 20):
+- Páginas 11 a 20: Manual passo a passo para o PROFESSOR aplicar a aula 100% dentro da sala de aula:
+  * Página 11: Alinhamento pedagógico e objetivo da aula conectando com a história.
+  * Página 12: Ingredientes e materiais simples da sala de aula.
+  * Página 13: Organização rápida das carteiras (duplas ou quartetos na sala).
+  * Página 14: O Aquecimento / Início (5 a 10 min) - Pergunta-gatilho na lousa.
+  * Página 15: O Desafio Ativo das Equipes - Como explicar a atividade em 2 minutos.
+  * Página 16: O Meio da Aula (20 a 25 min) - Dinâmica de resolução prática e colaboração.
+  * Página 17: O Papel do Professor como Mediador nas carteiras.
+  * Página 18: O Fim / Fechamento (10 min) - Partilha rápida e validação.
+  * Página 19: Dica do Chef Drácker para Imprevistos (turma agitada ou aplicação 100% individual).
+  * Página 20: Avaliação Formativa e Conclusão prática.
+- Cada uma das páginas 11 a 20 deve ter:
+  * "pageNumber": número inteiro (11 a 20).
+  * "title": Título claro da etapa (ex: "Etapa 4: Aquecimento e Pergunta-Gatilho").
+  * "text": Conversa franca e orientadora do Drácker com o professor sobre a etapa.
+  * "dialogue": Dica de Fala do Professor (frase entre aspas pronta para o professor falar à turma).
+  * "interactiveQuestion": Ação Imediata do Professor (checklist prático).
+  * "imagePrompt": Prompt em inglês de diagrama da sala de aula em line art preto e branco.
+
+CONVERSA DE ORIGEM:
+"""
+${conversationText}
+"""
+
+REGRAS GERAIS:
+1. O array "pages" DEVE CONTER OBRIGATORIAMENTE 20 PÁGINAS SEQUENCIAIS numeradas de 1 a 20.
+2. REGRA OBRIGATÓRIA DE MATEMÁTICA E TEXTO: NUNCA use LaTeX nem expressões delimitadas por cifrões ($ ou $$). NUNCA escreva expressões como $\\frac{1}{2}$ ou $x^2$. Escreva sempre em TEXTO CORRENTE, PURO E NATURAL em português (ex: "1/2", "metade", "x²", "raiz quadrada de 16", "2 + 2 = 4").
+3. Retorne ESTRITAMENTE um objeto JSON válido, sem texto adicional.
+
+FORMATO JSON ESPERADO:
+{
+  "title": "Título Completo do Livro e Guia",
+  "subtitle": "História Ilustrada + Guia de Metodologia Ativa de Aula",
+  "theme": "História + Metodologia",
+  "synopsis": "Edição especial com 20 páginas: 10 páginas de história infantil com desafios de atenção seguidas de 10 páginas de manual prático de metodologia ativa para a sala de aula.",
+  "moralLesson": "Aprender através do lúdico e da colaboração prática!",
+  "cover": {
+    "title": "Título do Livro",
+    "subtitle": "História Infantil + Guia Prático de Aula",
+    "imagePrompt": "Clean line art coloring book illustration, Drácker the friendly dragon with storybook and teacher guides in a charming classroom woodland setting"
+  },
+  "pages": [
+    { "pageNumber": 1, "title": "Capítulo 1...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 2, "title": "Capítulo 2...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 3, "title": "Capítulo 3...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 4, "title": "Capítulo 4...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 5, "title": "Capítulo 5...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 6, "title": "Capítulo 6...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 7, "title": "Capítulo 7...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 8, "title": "Capítulo 8...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 9, "title": "Capítulo 9...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 10, "title": "Capítulo 10...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
+    { "pageNumber": 11, "title": "Etapa 1: Alinhamento e Metas...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
+    { "pageNumber": 12, "title": "Etapa 2: Ingredientes e Materiais...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
+    { "pageNumber": 13, "title": "Etapa 3: Organização da Sala...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
+    { "pageNumber": 14, "title": "Etapa 4: Aquecimento na Lousa...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
+    { "pageNumber": 15, "title": "Etapa 5: O Desafio Ativo...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
+    { "pageNumber": 16, "title": "Etapa 6: Desenvolvimento...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
+    { "pageNumber": 17, "title": "Etapa 7: Mediação nas Carteiras...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
+    { "pageNumber": 18, "title": "Etapa 8: Partilha dos Dragões...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
+    { "pageNumber": 19, "title": "Etapa 9: Dicas para Imprevistos...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
+    { "pageNumber": 20, "title": "Etapa 10: Conclusão Formativa...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." }
+  ],
+  "backCover": {
+    "summary": "Resumo integrado contendo o encerramento da história e a síntese da metodologia ativa aplicada na aula.",
+    "activity": "Desafio final para a turma e validação prática da missão pedagógica."
+  },
+  "lessonPlan": {
+    "title": "Receita de Bolo da Aula",
+    "duration": "50 minutos",
+    "location": "100% na Sala de Aula",
+    "materials": ["Folhas de papel/sulfite", "Lápis e canetinhas", "Lousa/Quadro"],
+    "activeMethodology": "Metodologia ativa integrada da aula",
+    "stepByStep": {
+      "beginning": "Início / Aquecimento (5-10 min): Leitura da história e pergunta-gatilho",
+      "middle": "Meio / Desenvolvimento Ativo (20-25 min): Desafio prático em equipes",
+      "ending": "Fim / Fechamento (10 min): Partilha rápida das soluções"
+    },
+    "chefTip": "Dica de adaptação para turma agitada ou aplicação 100% individual"
+  }
+}`;
+
+    try {
+      this.reportStatus('generating_storybook', 'Produzindo Edição Mestre de 20 páginas (10 de História + 10 de Metodologia)...');
+      const responseText = await this.generateText(prompt, {
+        temperature: 0.7,
+        maxOutputTokens: 8192
+      });
+
+      const parsed = safeJSONParse(responseText);
+      if (!parsed || !parsed.title || !parsed.pages || parsed.pages.length === 0) {
+        throw new Error('A resposta da IA não gerou a estrutura esperada do livro de 20 páginas.');
+      }
+
+      return parsed;
+    } catch (err) {
+      console.error('[GeminiService] Erro ao gerar livro completo de 20 páginas:', err);
       throw err;
     }
   }

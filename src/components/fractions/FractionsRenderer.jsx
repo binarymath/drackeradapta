@@ -12,7 +12,8 @@ export const FractionsRenderer = ({
     forceEmpty = false,
     sizeClassName = "w-24 h-24 md:w-32 md:h-32 shrink-0",
     style = null,
-    maxShapesToRender = 12
+    maxShapesToRender = 12,
+    overlayLines = null // { d1, color1, d2, color2 } para desenhar linhas divisórias destacadas
 }) => {
     const n = Math.max(0, Number(numerator) || 0);
     const d = Math.max(1, Number(denominator) || 1);
@@ -126,6 +127,117 @@ export const FractionsRenderer = ({
                         />
                     );
                     index++;
+                }
+            }
+        }
+
+        // --- LINHAS SOBREPOSTAS DESTACADAS (CHAMANDO A ATENÇÃO PELAS CORES DAS FRAÇÕES DE ORIGEM) ---
+        if (overlayLines) {
+            const { d1, color1 = '#2563eb', d2, color2 = '#dc2626' } = overlayLines;
+
+            if (shape === 'circle') {
+                // Desenha as linhas da 1ª fração (d1) com cor e espessura destacadas
+                if (d1 && d1 > 1) {
+                    for (let i = 0; i < d1; i++) {
+                        const ang = (2 * Math.PI / d1) * i - Math.PI / 2;
+                        const lx = 100 + 90 * Math.cos(ang);
+                        const ly = 100 + 90 * Math.sin(ang);
+                        elements.push(
+                            <line
+                                key={`overlay-line-d1-${i}`}
+                                x1="100"
+                                y1="100"
+                                x2={lx}
+                                y2={ly}
+                                stroke={color1}
+                                strokeWidth="4.5"
+                                strokeLinecap="round"
+                            />
+                        );
+                    }
+                }
+
+                // Desenha as linhas da 2ª fração (d2) com cor destacada
+                if (d2 && d2 > 1) {
+                    for (let j = 0; j < d2; j++) {
+                        const ang = (2 * Math.PI / d2) * j - Math.PI / 2;
+                        const lx = 100 + 90 * Math.cos(ang);
+                        const ly = 100 + 90 * Math.sin(ang);
+                        elements.push(
+                            <line
+                                key={`overlay-line-d2-${j}`}
+                                x1="100"
+                                y1="100"
+                                x2={lx}
+                                y2={ly}
+                                stroke={color2}
+                                strokeWidth="3.5"
+                                strokeLinecap="round"
+                                strokeDasharray={d1 === d2 ? "6 3" : undefined}
+                            />
+                        );
+                    }
+                }
+
+                // Círculo de centro sutil para arrematar o encontro das linhas
+                elements.push(
+                    <circle
+                        key="overlay-center-point"
+                        cx="100"
+                        cy="100"
+                        r="5"
+                        fill="#0f172a"
+                        stroke="#ffffff"
+                        strokeWidth="2"
+                    />
+                );
+            } else {
+                // No Retângulo: Linhas verticais para a 1ª fração e horizontais para a 2ª fração
+                const totalWidth = 180;
+                const totalHeight = 160;
+                const startX = 10;
+                const startY = 20;
+
+                // Linhas da 1ª Fração (colunas verticais)
+                if (d1 && d1 > 1) {
+                    const colW = totalWidth / d1;
+                    for (let c = 1; c < d1; c++) {
+                        const lx = startX + c * colW;
+                        elements.push(
+                            <line
+                                key={`overlay-rect-line-d1-${c}`}
+                                x1={lx}
+                                y1={startY}
+                                x2={lx}
+                                y2={startY + totalHeight}
+                                stroke={color1}
+                                strokeWidth="4"
+                                strokeLinecap="round"
+                                className="drop-shadow-xs"
+                            />
+                        );
+                    }
+                }
+
+                // Linhas da 2ª Fração (linhas horizontais)
+                if (d2 && d2 > 1) {
+                    const rowH = totalHeight / d2;
+                    for (let r = 1; r < d2; r++) {
+                        const ly = startY + r * rowH;
+                        elements.push(
+                            <line
+                                key={`overlay-rect-line-d2-${r}`}
+                                x1={startX}
+                                y1={ly}
+                                x2={startX + totalWidth}
+                                y2={ly}
+                                stroke={color2}
+                                strokeWidth="3.5"
+                                strokeLinecap="round"
+                                className="drop-shadow-xs"
+                            />
+                        );
+                    }
                 }
             }
         }

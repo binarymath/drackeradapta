@@ -3,7 +3,8 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { 
     PieChart, Plus, Minus, X, Divide, Maximize2, Minimize2, 
-    Download, Printer, Sparkles, RefreshCw, CheckCircle2, HelpCircle, Wand2 
+    Download, Printer, Sparkles, RefreshCw, CheckCircle2, HelpCircle, Wand2,
+    Layers
 } from 'lucide-react';
 import { FractionsRenderer } from './FractionsRenderer';
 import { FractionsAIModal } from './FractionsAIModal';
@@ -18,9 +19,12 @@ export const FractionsMaker = () => {
     
     // Comparison / Multi View State
     const [fractions, setFractions] = useState(fd.fractions || [
-        { id: 1, type: 'fraction', num: 3, den: 4, decimalValue: '0.75', color: '#3b82f6' }
+        { id: 1, type: 'fraction', num: 1, den: 2, decimalValue: '0.5', color: '#3b82f6' },
+        { id: 2, type: 'fraction', num: 1, den: 3, decimalValue: '0.333', color: '#f59e0b' }
     ]);
     const [shape, setShape] = useState(fd.shape || 'circle');
+    const [showOverlay, setShowOverlay] = useState(fd.showOverlay !== undefined ? fd.showOverlay : false);
+    const [overlayColor, setOverlayColor] = useState(fd.overlayColor || '#8b5cf6'); // Roxo / Violeta chamativo
     
     // Operations State
     const [opType1, setOpType1] = useState(fd.opType1 || 'fraction');
@@ -52,7 +56,8 @@ export const FractionsMaker = () => {
         if (activeTabId) {
             updateActivityData(activeTabId, {
                 fractionsData: {
-                    activeTab, fractions, shape, opNum1, opDen1, opColor1, opNum2, opDen2, opColor2,
+                    activeTab, fractions, shape, showOverlay, overlayColor,
+                    opNum1, opDen1, opColor1, opNum2, opDen2, opColor2,
                     opType1, opDecimal1, opType2, opDecimal2,
                     operator, showAnswers, printCount, printType, customExercisesData, aiHistory,
                     activeSource, imageSizePx, fontSizePx
@@ -61,7 +66,8 @@ export const FractionsMaker = () => {
         }
     }, [
         activeTabId, updateActivityData,
-        activeTab, fractions, shape, opNum1, opDen1, opColor1, opNum2, opDen2, opColor2,
+        activeTab, fractions, shape, showOverlay, overlayColor,
+        opNum1, opDen1, opColor1, opNum2, opDen2, opColor2,
         opType1, opDecimal1, opType2, opDecimal2,
         operator, showAnswers, printCount, printType, customExercisesData, aiHistory,
         activeSource, imageSizePx, fontSizePx
@@ -205,7 +211,48 @@ export const FractionsMaker = () => {
         });
     };
 
-    // --- OPERATIONS CALCULATION ---
+    // --- OVERLAY / JUNÇÃO DE FRAÇÕES NO COMPARADOR ---
+    const calculateOverlayData = () => {
+        if (!fractions || fractions.length < 2) return null;
+
+        // Pega as duas primeiras frações para sobreposição
+        const f1 = fractions[0];
+        const f2 = fractions[1];
+
+        let n1 = f1.num, d1 = f1.den;
+        if (f1.type === 'decimal') {
+            const dec = decimalToFraction(f1.decimalValue);
+            n1 = dec.num;
+            d1 = dec.den;
+        }
+
+        let n2 = f2.num, d2 = f2.den;
+        if (f2.type === 'decimal') {
+            const dec = decimalToFraction(f2.decimalValue);
+            n2 = dec.num;
+            d2 = dec.den;
+        }
+
+        // MMC dos denominadores para formar a fração de junção
+        const mmcDen = (d1 * d2) / mdc(d1, d2);
+        const m1 = mmcDen / d1;
+        const m2 = mmcDen / d2;
+        const eqN1 = n1 * m1;
+        const eqN2 = n2 * m2;
+        const totalN = eqN1 + eqN2;
+
+        return {
+            f1, f2,
+            n1, d1, n2, d2,
+            mmcDen,
+            m1, m2,
+            eqN1, eqN2,
+            totalN,
+            color1: f1.color,
+            color2: f2.color,
+            overlayColor: overlayColor || '#8b5cf6'
+        };
+    };
     const calculateOperations = () => {
         let n1, d1, n2, d2;
         let isDec1 = false, isDec2 = false;
@@ -291,7 +338,7 @@ export const FractionsMaker = () => {
             <Card className="p-5 bg-gradient-to-r from-blue-50/80 to-slate-50 border-blue-200">
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
                             <div className="flex flex-col bg-white p-2 rounded-xl border border-slate-300 shadow-2xs">
                                 <label className="text-[10px] font-extrabold text-slate-500 mb-1 uppercase tracking-wider">Forma Global</label>
                                 <select
@@ -303,6 +350,21 @@ export const FractionsMaker = () => {
                                     <option value="rectangle">▭ Retângulo</option>
                                 </select>
                             </div>
+
+                            {/* Botão de Sobrepor Frações */}
+                            <button
+                                type="button"
+                                onClick={() => setShowOverlay(!showOverlay)}
+                                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-2xs active:scale-95 border ${
+                                    showOverlay
+                                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-500 shadow-purple-600/25 ring-2 ring-purple-300'
+                                        : 'bg-white hover:bg-purple-50 text-purple-700 border-purple-300'
+                                }`}
+                                title="Sobrepor frações gerando a fração comum resultante (MMC)"
+                            >
+                                <Layers className="w-4 h-4" />
+                                <span>{showOverlay ? '🥞 Ocultar Sobreposição' : '🥞 Sobrepor Frações (MMC)'}</span>
+                            </button>
                         </div>
 
                         <div className="flex items-center gap-2 ml-auto">
@@ -456,8 +518,81 @@ export const FractionsMaker = () => {
                     })}
                 </div>
 
+                {/* --- SEÇÃO DE SOBREPOSIÇÃO / JUNÇÃO DE FRAÇÕES (MMC) --- */}
+                {showOverlay && (() => {
+                    const overlayData = calculateOverlayData();
+                    if (!overlayData) return null;
+
+                    return (
+                        <div className="w-full mt-6 pt-6 border-t-2 border-dashed border-purple-200 flex flex-col items-center animate-in fade-in slide-in-from-top-3 duration-300">
+                            {/* Card Limpo e Destacado da Junção */}
+                            <div className="w-full max-w-2xl bg-white border-2 border-purple-200 rounded-3xl p-6 md:p-8 shadow-lg flex flex-col items-center relative">
+                                <div className="absolute top-0 right-0 bg-gradient-to-l from-purple-600 to-indigo-600 text-white text-[11px] font-black uppercase tracking-wider px-4 py-1 rounded-bl-2xl shadow-xs flex items-center gap-1.5">
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    <span>Junção dos Denominadores</span>
+                                </div>
+
+                                {/* Cabeçalho com o Número do Novo Denominador em Grande Destaque */}
+                                <div className="flex flex-col items-center text-center mt-2 mb-6">
+                                    <span className="text-xs font-black uppercase tracking-widest text-purple-600 mb-1">
+                                        Fração Gerada pela Sobreposição
+                                    </span>
+                                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                                        <span>Denominador:</span>
+                                        <span className="px-3.5 py-1 bg-purple-100 text-purple-700 rounded-2xl border border-purple-300 shadow-xs font-black text-3xl md:text-4xl">
+                                            {overlayData.mmcDen}
+                                        </span>
+                                    </h3>
+                                    <p className="text-xs md:text-sm text-slate-500 font-semibold mt-2">
+                                        A junção das divisões gera um inteiro com <strong>{overlayData.mmcDen} fatias iguais</strong>
+                                    </p>
+                                </div>
+
+                                {/* Figura com Fundo Branco Limpo e Linhas Coloridas das Duas Frações */}
+                                <div className="relative p-6 rounded-3xl bg-white border-2 border-slate-200 shadow-md flex items-center justify-center">
+                                    <FractionsRenderer
+                                        numerator={0}
+                                        denominator={overlayData.mmcDen}
+                                        forceEmpty={true}
+                                        emptyColor="#ffffff"
+                                        shape={shape}
+                                        strokeColor="#334155"
+                                        overlayLines={{
+                                            d1: overlayData.d1,
+                                            color1: overlayData.color1,
+                                            d2: overlayData.d2,
+                                            color2: overlayData.color2
+                                        }}
+                                        sizeClassName="shrink-0"
+                                        style={{ width: `${Math.min(imageSizePx * 1.5, 260)}px`, height: `${Math.min(imageSizePx * 1.5, 260)}px` }}
+                                        maxShapesToRender={20}
+                                    />
+                                </div>
+
+                                {/* Legenda e Destaque da Mudança de Cor das Linhas */}
+                                <div className="flex flex-wrap items-center justify-center gap-4 mt-6 px-5 py-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs font-extrabold text-slate-700 shadow-2xs">
+                                    <span className="flex items-center gap-2">
+                                        <span className="w-5 h-2 rounded-full inline-block shadow-xs" style={{ backgroundColor: overlayData.color1 }}></span>
+                                        <span>Divisão em <strong>{overlayData.d1} partes</strong> (1º Denominador)</span>
+                                    </span>
+                                    <span className="text-slate-300">|</span>
+                                    <span className="flex items-center gap-2">
+                                        <span className="w-5 h-2 rounded-full inline-block shadow-xs" style={{ backgroundColor: overlayData.color2 }}></span>
+                                        <span>Divisão em <strong>{overlayData.d2} partes</strong> (2º Denominador)</span>
+                                    </span>
+                                    <span className="text-slate-300">|</span>
+                                    <span className="flex items-center gap-2 text-purple-900 font-black">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block"></span>
+                                        <span>Resultado: <strong>{overlayData.mmcDen} fatias</strong></span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
+
                 <div className="mt-4 text-center text-slate-500 max-w-lg" style={{ fontSize: `${Math.max(12, fontSizePx - 2)}px` }}>
-                    💡 <strong className="text-slate-700">Dica Pedagógica:</strong> Compare as frações visualmente. Você pode utilizar o espaço entre as figuras para perguntar ao aluno se a primeira é maior (&gt;), menor (&lt;) ou equivalente (=) à segunda.
+                    💡 <strong className="text-slate-700">Dica Pedagógica:</strong> Compare as frações visualmente ou ative a <strong>Sobreposição (MMC)</strong> acima para ver as duas frações fundidas em um mesmo denominador comum.
                 </div>
             </Card>
         </div>

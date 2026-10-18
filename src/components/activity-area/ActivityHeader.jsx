@@ -16,7 +16,8 @@ import {
     ChevronDown, 
     CheckCircle2,
     Gamepad2,
-    Plus 
+    Plus,
+    MessageSquare
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -274,21 +275,50 @@ export const ActivityHeader = ({
                 </div>
 
                 <div className="flex flex-col min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <span className={`w-2 h-2 rounded-full ${hasContent ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-brown-300'}`}></span>
-                        <span className="text-[10px] font-extrabold text-brown-500 uppercase tracking-widest whitespace-nowrap">
-                            {activityType === 'about_system' || activityType === 'dashboard'
-                                ? 'Nova Atividade'
-                                : activityType === 'merge_pdf'
-                                ? 'Unir PDF'
-                                : activityType === 'simplify'
-                                ? 'Rádio Drácker'
-                                : activityType === 'video_gallery'
-                                ? 'Vídeos Interativos'
-                                : hasContent
-                                ? 'Atividade Pronta'
-                                : 'Aguardando Geração'}
-                        </span>
+                    <div className="flex items-center justify-between gap-2 mb-0.5 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`w-2 h-2 rounded-full ${hasContent ? 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-brown-300'}`}></span>
+                            <span className="text-[10px] font-extrabold text-brown-500 uppercase tracking-widest whitespace-nowrap">
+                                {activityType === 'about_system' || activityType === 'dashboard'
+                                    ? 'Nova Atividade'
+                                    : activityType === 'merge_pdf'
+                                    ? 'Unir PDF'
+                                    : activityType === 'simplify'
+                                    ? 'Rádio Drácker'
+                                    : activityType === 'video_gallery'
+                                    ? 'Vídeos Interativos'
+                                    : hasContent
+                                    ? 'Atividade Pronta'
+                                    : 'Aguardando Geração'}
+                            </span>
+                        </div>
+
+                        {/* Botão no canto direito na mesma linha do Atividade Pronta */}
+                        {activityType === 'storybook' && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const sourceId = activeActivity?.sourceChatTabId;
+                                    const matchingChatTab = (tabs || []).find(t => 
+                                        (sourceId && t.id === sourceId) || t.type === 'chat_dracker'
+                                    );
+                                    if (matchingChatTab && selectActivityTab) {
+                                        selectActivityTab(matchingChatTab.id);
+                                        toast('Voltando para a conversa com o Drácker...');
+                                    } else if (addActivityTab) {
+                                        addActivityTab({
+                                            type: 'chat_dracker',
+                                            title: 'Conversa com Drácker'
+                                        });
+                                    }
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition-all shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer ml-auto shrink-0"
+                                title="Ir para a conversa com o Drácker que gerou esta criação"
+                            >
+                                <MessageSquare className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Conversa com Drácker</span>
+                            </button>
+                        )}
 
                         {/* Botão discreto para alternar entre modo folha/impressão e jogar online */}
                         {(['crossword', 'wordsearch', 'domino', 'connect_dots', 'quiz'].includes(activityType)) && hasContent && onToggleGameMode && (

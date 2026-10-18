@@ -45,16 +45,6 @@ export const StorybookPrintBooklet = ({
 
     const renderCoverRight = () => (
         <div className="print-half-page p-8 sm:p-10 flex flex-col justify-center h-full">
-            <div className="flex justify-end items-center border-b border-stone-300 pb-2 mb-3">
-                <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
-                    <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
-                        Início
-                    </span>
-                    <span className="text-xs font-black text-stone-800">
-                        Capa
-                    </span>
-                </div>
-            </div>
             <div>
                 <h1 
                     className="sb-print-title font-black font-serif text-black mt-2 leading-tight"
@@ -250,14 +240,6 @@ export const StorybookPrintBooklet = ({
                     <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 border border-amber-400 bg-amber-50 px-3 py-1 rounded">
                         Conclusão da História
                     </span>
-                    <div className="flex flex-col items-center justify-center bg-white border border-stone-300 px-3 py-1 rounded-2xl shrink-0 select-none leading-tight min-w-[54px]">
-                        <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
-                            Final
-                        </span>
-                        <span className="text-xs font-black text-stone-800">
-                            Contracapa
-                        </span>
-                    </div>
                 </div>
 
                 <h2 
@@ -331,16 +313,16 @@ export const StorybookPrintBooklet = ({
                     // Na última página interna:
                     //   [ Lado Esquerdo: Conclusão/Moral | Lado Direito: Página final de atividades ]
                     const logicalPages = [];
-                    // Página 1 (Capa)
+                    // Pág 1: Capa (face externa da folha dobrada - fica à direita quando fechada)
                     logicalPages.push({ type: 'cover_left' });
-                    // Página 2 (Verso da Capa / Apresentação)
+                    // Pág 2: Apresentação da Capa (face interna esquerda da primeira abertura dupla)
                     logicalPages.push({ type: 'cover_right' });
-                    // Miolo do Livro: Texto vem primeiro (página ímpar) e Ilustração vem em seguida (mesma visão)
+                    // Miolo do Livro: cada abertura dupla tem o Texto à Esquerda (story_right) e a Ilustração à Direita (story_left)
                     pages.forEach(p => {
                         logicalPages.push({ type: 'story_right', page: p });
                         logicalPages.push({ type: 'story_left', page: p });
                     });
-                    // Páginas finais: Conclusão (interna) e Contracapa (externa)
+                    // Páginas finais: Conclusão/Moral (interna esquerda) e Contracapa (externa)
                     logicalPages.push({ type: 'back_right' });
                     logicalPages.push({ type: 'back_left' });
 
@@ -417,22 +399,22 @@ export const StorybookPrintBooklet = ({
                     <>
                         {/* Capa */}
                         <div className="storybook-print-page">
-                            {renderCoverLeft()}
                             {renderCoverRight()}
+                            {renderCoverLeft()}
                         </div>
 
                         {/* Páginas de História */}
                         {pages.map(p => (
                             <div key={p.pageNumber} className="storybook-print-page">
-                                {renderStoryLeft(p)}
                                 {renderStoryRight(p)}
+                                {renderStoryLeft(p)}
                             </div>
                         ))}
 
                         {/* Contracapa */}
                         <div className="storybook-print-page">
-                            {renderBackLeft()}
                             {renderBackRight()}
+                            {renderBackLeft()}
                         </div>
                     </>
                 );

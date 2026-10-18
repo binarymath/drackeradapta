@@ -14,26 +14,15 @@ export const StorybookBackCoverView = ({
     return (
         <div className="flex-1 p-6 sm:p-12 flex flex-col justify-between bg-white text-center overflow-y-auto">
             <div className="flex justify-end items-center mb-2">
-                <div className="flex items-center gap-2 shrink-0">
-                    <button
-                        type="button"
-                        onClick={handleCopyPageText}
-                        className="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition-all cursor-pointer border border-transparent hover:border-stone-200 active:scale-95 shadow-2xs"
-                        title="Copiar texto da Conclusão"
-                        aria-label="Copiar texto da Conclusão"
-                    >
-                        <Copy className="w-4 h-4 text-stone-600" />
-                    </button>
-
-                    <div className="flex flex-col items-center justify-center bg-white border border-stone-200/90 px-3 py-1 rounded-2xl shadow-2xs shrink-0 select-none leading-tight min-w-[54px]">
-                        <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
-                            Final
-                        </span>
-                        <span className="text-xs font-black text-stone-800">
-                            Contracapa
-                        </span>
-                    </div>
-                </div>
+                <button
+                    type="button"
+                    onClick={handleCopyPageText}
+                    className="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition-all cursor-pointer border border-transparent hover:border-stone-200 active:scale-95 shadow-2xs"
+                    title="Copiar texto da Conclusão"
+                    aria-label="Copiar texto da Conclusão"
+                >
+                    <Copy className="w-4 h-4 text-stone-600" />
+                </button>
             </div>
 
             {/* Imagem de Contracapa com redimensionamento, alinhamento individual e opção de ocultar se não houver link */}

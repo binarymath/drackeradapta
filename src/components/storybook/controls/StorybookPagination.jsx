@@ -14,9 +14,11 @@ export const StorybookPagination = ({
                 onClick={() => changePage(currentPageIndex - 1, 'prev')}
                 disabled={currentPageIndex === 0 || isFlipping}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold text-xs text-brown-700 hover:bg-amber-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                title="Página Anterior (Seta Esquerda ←)"
             >
                 <ChevronLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">Página Anterior</span>
+                <kbd className="hidden md:inline-block ml-1 px-1.5 py-0.5 text-[10px] font-sans font-semibold bg-stone-100 border border-stone-300 rounded text-stone-600">←</kbd>
             </button>
 
             <div className="flex items-center gap-1 sm:gap-1.5">
@@ -42,8 +44,10 @@ export const StorybookPagination = ({
                 onClick={() => changePage(currentPageIndex + 1, 'next')}
                 disabled={currentPageIndex === totalViews - 1 || isFlipping}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold text-xs text-brown-700 hover:bg-amber-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                title="Próxima Página (Seta Direita →)"
             >
                 <span className="hidden sm:inline">Próxima Página</span>
+                <kbd className="hidden md:inline-block mr-1 px-1.5 py-0.5 text-[10px] font-sans font-semibold bg-stone-100 border border-stone-300 rounded text-stone-600">→</kbd>
                 <ChevronRight className="w-4 h-4" />
             </button>
         </div>

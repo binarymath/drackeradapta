@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
     BookOpen, 
     Printer, 
@@ -14,7 +13,6 @@ import {
 
 export const StorybookToolbar = ({
     book,
-    pagesCount,
     targetTextPart,
     setTargetTextPart,
     currentFontScales,
@@ -39,13 +37,6 @@ export const StorybookToolbar = ({
                     <h2 className="text-xs sm:text-sm md:text-base font-black text-brown-950 truncate">
                         {book.title || 'Livro Infantil do Drácker'}
                     </h2>
-                    <div className="flex items-center gap-2 text-[11px] text-brown-600 font-semibold">
-                        <span className="bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded-md font-bold uppercase text-[9px]">
-                            {book.theme || 'História'}
-                        </span>
-                        <span>•</span>
-                        <span>{pagesCount} páginas</span>
-                    </div>
                 </div>
             </div>
 
@@ -154,19 +145,16 @@ export const StorybookToolbar = ({
                     </select>
                 </div>
 
-                {/* Botão de Impressão */}
+                {/* Botão de Impressão Discreto (Apenas Ícone) */}
                 <button
                     onClick={handlePrint}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-brown-950 bg-amber-200/80 hover:bg-amber-300 rounded-xl border border-amber-300 shadow-2xs transition-all cursor-pointer active:scale-95"
+                    className="p-2 text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-xl border border-stone-200 shadow-2xs transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0"
                     title={printLayoutMode === 'booklet' 
-                        ? 'Imprimir em modo Livreto Frente e Verso (Para dobrar e grampear no meio)' 
-                        : 'Imprimir todas as páginas em ordem sequencial'}
+                        ? 'Imprimir Livreto Frente e Verso (A4)' 
+                        : 'Imprimir Páginas Sequenciais (A4 Paisagem)'}
+                    aria-label="Imprimir livro"
                 >
-                    <Printer className="w-3.5 h-3.5 text-amber-900" />
-                    <span className="hidden sm:inline">
-                        {printLayoutMode === 'booklet' ? 'Imprimir Livreto (A4)' : 'Imprimir (A4 Paisagem)'}
-                    </span>
-                    <span className="sm:hidden">Imprimir</span>
+                    <Printer className="w-4 h-4 text-stone-700" />
                 </button>
 
                 {/* Símbolo de Tela Cheia discreto */}

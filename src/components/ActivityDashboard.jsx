@@ -3,9 +3,11 @@ import {
     PlusCircle, Search, FileText, Pencil, Trash2, BrainCircuit, Music, Play,
     LayoutGrid, ChevronDown, ChevronUp, Layers, PieChart, Ruler, Compass,
     Target, Grid, Brain, LifeBuoy, Link, MessageSquare, BarChart, X,
-    Gamepad2, Calculator, Headphones, GraduationCap, Sparkles, Folder, Plus
+    Gamepad2, Calculator, Headphones, GraduationCap, Sparkles, Folder, Plus,
+    Download
 } from 'lucide-react';
 import { Card } from './ui/Card';
+import { toast } from './ui/Toast';
 import { useActivity } from '../contexts/ActivityContext';
 import {
     CATEGORIES_CONFIG,
@@ -164,6 +166,52 @@ export const ActivityDashboard = ({ tabs = [], onSelect, onCreateNew, onDeleteTa
         return groupTabsByClass(filteredTabs, classes, officialSession);
     }, [filteredTabs, classes, officialSession]);
 
+    // Download individual de atividade em JSON
+    const handleDownloadSingleActivity = (e, tab) => {
+        e.stopPropagation();
+        try {
+            const cleanTitle = (tab.title || 'atividade')
+                .toLowerCase()
+                .replace(/[^a-z0-9_-]/g, '_')
+                .replace(/_+/g, '_')
+                .replace(/^_|_$/g, '');
+
+            const dateStr = new Date().toISOString().split('T')[0];
+            const fileName = `${cleanTitle || 'atividade'}_${dateStr}.json`;
+
+            // Prepara payload enriquecido e autossuficiente para importação ou backup
+            const activityPayload = {
+                fileFormat: "DRACKER_SINGLE_ACTIVITY",
+                formatVersion: "3.0",
+                exportedAt: new Date().toISOString(),
+                activity: tab,
+                metadata: {
+                    title: tab.title || "Atividade Sem Nome",
+                    type: tab.type || "unknown",
+                    topic: tab.topic || "",
+                    createdAt: tab.createdAt || new Date().toISOString(),
+                    author: "Drácker Adapta"
+                }
+            };
+
+            const jsonStr = JSON.stringify(activityPayload, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+            toast(`JSON de "${tab.title || 'Atividade'}" baixado com sucesso!`);
+        } catch (err) {
+            console.error('Erro ao baixar JSON da atividade:', err);
+            toast('Erro ao baixar JSON da atividade.');
+        }
+    };
+
     // Renderizar um card de atividade individual
     const renderActivityCard = (tab) => {
         const subConfig = getSubdivisionConfig(tab.type);
@@ -176,7 +224,14 @@ export const ActivityDashboard = ({ tabs = [], onSelect, onCreateNew, onDeleteTa
             >
                 <Card className={`h-full border-2 p-5 flex flex-col gap-3.5 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 hover:border-slate-300 ${getBgColor(tab.type)}`}>
                     {/* Botões de Ação Rápidos */}
-                    <div className="absolute top-3.5 right-3.5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all z-10">
+                    <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all z-10">
+                        <button
+                            onClick={(e) => handleDownloadSingleActivity(e, tab)}
+                            className="p-1.5 rounded-full bg-white/90 border border-slate-200 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all hover:scale-110 active:scale-95 shadow-2xs"
+                            title="Baixar JSON desta atividade"
+                        >
+                            <Download className="w-3.5 h-3.5" />
+                        </button>
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -203,7 +258,7 @@ export const ActivityDashboard = ({ tabs = [], onSelect, onCreateNew, onDeleteTa
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border border-slate-100 shadow-2xs group-hover:scale-105 transition-transform duration-300 ${getIconColorClass(tab.type)}`}>
                             {getSubdivisionIcon(tab.type, "w-6 h-6")}
                         </div>
-                        <div className="flex-1 min-w-0 pr-12">
+                        <div className="flex-1 min-w-0 pr-20">
                             <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block truncate">
                                 {subConfig.label}
                             </span>

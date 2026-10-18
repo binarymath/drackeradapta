@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from '../ui/Toast';
+import { useActivity } from '../../contexts/ActivityContext';
 import { toDirectImageUrl } from '../../utils/urlUtils';
 import { 
     DEFAULT_FONT_SCALES, 
@@ -8,6 +9,7 @@ import {
     copyTextToClipboard 
 } from './utils/storybookUtils';
 import { StorybookMediaModal } from './modals/StorybookMediaModal';
+import { StorybookLessonPlanModal } from './modals/StorybookLessonPlanModal';
 import { StorybookToolbar } from './controls/StorybookToolbar';
 import { StorybookPagination } from './controls/StorybookPagination';
 import { StorybookCoverView } from './screen/StorybookCoverView';
@@ -18,6 +20,23 @@ import { StorybookPrintBooklet } from './print/StorybookPrintBooklet';
 export const StorybookViewer = ({ data, onUpdate }) => {
     const book = data || {};
     const pages = book.pages || [];
+    const { activeActivity, tabs, selectActivityTab, handleActivityTypeChange } = useActivity();
+
+    // Encontra a aba do chat que gerou o storybook
+    const handleGoToChat = () => {
+        const sourceId = activeActivity?.sourceChatTabId;
+        const matchingChatTab = (tabs || []).find(t => 
+            (sourceId && t.id === sourceId) || t.type === 'chat_dracker'
+        );
+
+        if (matchingChatTab && selectActivityTab) {
+            selectActivityTab(matchingChatTab.id);
+            toast('Voltando para a conversa com o Drácker...');
+        } else if (handleActivityTypeChange) {
+            handleActivityTypeChange('chat_dracker');
+            toast('Abrindo conversa com o Drácker...');
+        }
+    };
 
     // Estado da visualização
     // 0 = Capa | 1 .. pages.length = Páginas | pages.length + 1 = Contracapa
@@ -28,6 +47,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
     // Modal para adicionar/editar URL de Imagem ou Vídeo do YouTube
     const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+    const [isLessonPlanOpen, setIsLessonPlanOpen] = useState(false);
     const [editingTarget, setEditingTarget] = useState(null); // 'cover', 'backcover' ou número da página
     const [inputMediaUrl, setInputMediaUrl] = useState('');
     const [isPlayingVideo, setIsPlayingVideo] = useState(false);
@@ -122,19 +142,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
         });
     };
 
-    // Atalho Escape para sair do modo tela cheia
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === 'Escape' && isFullscreen) {
-                setIsFullscreen(false);
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isFullscreen]);
-
     // Navegação com efeito refinado de folheada
-    const changePage = (newIndex, direction) => {
+    const changePage = React.useCallback((newIndex, direction) => {
         if (newIndex < 0 || newIndex >= totalViews || isFlipping || newIndex === currentPageIndex) return;
         setIsPlayingVideo(false);
         setFlipDirection(direction);
@@ -145,7 +154,34 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                 setIsFlipping(false);
             }, 550);
         }, 250);
-    };
+    }, [totalViews, isFlipping, currentPageIndex]);
+
+    // Atalhos de teclado: Escape (tela cheia) e Setas Direita/Esquerda (navegação de páginas)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isFullscreen) {
+                setIsFullscreen(false);
+                return;
+            }
+
+            // Ignorar setas se o usuário estiver digitando em um input, textarea ou contentEditable
+            const activeTag = document.activeElement?.tagName?.toLowerCase();
+            const isEditing = activeTag === 'input' || activeTag === 'textarea' || document.activeElement?.isContentEditable;
+            if (isEditing) return;
+
+            if (e.key === 'ArrowRight') {
+                if (currentPageIndex < totalViews - 1 && !isFlipping) {
+                    changePage(currentPageIndex + 1, 'next');
+                }
+            } else if (e.key === 'ArrowLeft') {
+                if (currentPageIndex > 0 && !isFlipping) {
+                    changePage(currentPageIndex - 1, 'prev');
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isFullscreen, currentPageIndex, totalViews, isFlipping, changePage]);
 
     // Abre o modal discreto para configurar imagem ou vídeo do YouTube
     const handleOpenMediaModal = (target) => {
@@ -278,6 +314,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                 handlePrint={handlePrint}
                 isFullscreen={isFullscreen}
                 setIsFullscreen={setIsFullscreen}
+                onGoToChat={handleGoToChat}
             />
 
             {/* Estilos de Impressão A4 Paisagem 100% e Animação de Folheada */}
@@ -488,6 +525,13 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                 inputMediaUrl={inputMediaUrl}
                 setInputMediaUrl={setInputMediaUrl}
                 onSave={handleSaveMedia}
+            />
+
+            {/* Modal com a Receita de Bolo da Aula (Guia do Professor) */}
+            <StorybookLessonPlanModal 
+                isOpen={isLessonPlanOpen}
+                onClose={() => setIsLessonPlanOpen(false)}
+                book={book}
             />
         </div>
     );
