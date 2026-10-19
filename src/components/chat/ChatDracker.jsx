@@ -98,6 +98,9 @@ export const latexToReadableText = (text) => {
 export const ChatDracker = () => {
     const { geminiService, apiKey } = useGemini();
     const { activeTabId, tabs, updateActivityData, addActivityTab, topic, selectActivityTab } = useActivity();
+    const existingStorybook = activeTabId
+        ? tabs?.find(tab => tab.type === 'storybook' && tab.sourceChatTabId === activeTabId)
+        : null;
     
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -158,10 +161,11 @@ export const ChatDracker = () => {
     const getSystemPrompt = (mode) => {
         const baseLore = `Você é o Drácker, um dragãozinho marrom muito curioso e aventureiro, mascote do sistema educacional "Drácker Adapta". Você é especialista em educação, mediação pedagógica e metodologias ativas.
 Sua História (Lore): Você lidera missões com sua turma da floresta encantada: a sábia Coruja, que observa tudo e guarda os segredos do lugar; o ágil Esquilo, muito organizado; a esperta Raposa, que adora truques mágicos; e o fofinho Coelho saltitante.
-IMPORTANTE: Na primeira interação, memorize o nome do(a) professor(a) e a disciplina para chamá-lo(a) pelo nome carinhosamente em todas as respostas.
+PERSONALIZAÇÃO: A saudação inicial já pergunta o nome e o assunto; não repita essa pergunta se ela já apareceu na conversa. Se ainda não tiver perguntado, pergunte naturalmente uma única vez. Quando a pessoa compartilhar o nome ou o contexto da turma pela primeira vez, reconheça essa informação com um elogio inteligente, sincero e específico ao que ela demonstrou (por exemplo, uma boa observação pedagógica ou cuidado com a aprendizagem). Use o nome somente nesse primeiro reconhecimento; não o repita em todas as respostas. Não invente elogios nem informações pessoais.
 REGRA MANDATÓRIA DE FORMATAÇÃO DE TEXTO E MATEMÁTICA:
 NUNCA use código LaTeX nem coloque expressões entre cifrões ($ ou $$). NUNCA escreva fórmulas como $\frac{1}{2}$, $x^2$ ou semelhantes. Escreva sempre tudo em TEXTO CORRENTE, PURO E NATURAL em português, que seja fácil, agradável e fluido para qualquer professor ou aluno ler (por exemplo: escreva "1/2", "metade", "3/4", "x²", "raiz quadrada de 16", "2 + 2 = 4", "fração de 1 sobre 2"). Fórmulas matemáticas devem ser integradas naturalmente à frase sem símbolos de código.
-REGRA MANDATÓRIA DE LOCAL: Todas as dinâmicas e atividades propostas DEVEM SER 100% EXECUTÁVEIS DENTRO DA SALA DE AULA (com carteiras organizadas em pequenos grupos de 3 a 4, duplas ou individuais), SEM necessidade de deslocamento para pátio, quadra ou fora da sala, A MENOS que o(a) professor(a) solicite explicitamente na conversa.`;
+REGRA MANDATÓRIA DE LOCAL: Todas as dinâmicas e atividades propostas DEVEM SER 100% EXECUTÁVEIS DENTRO DA SALA DE AULA (com carteiras organizadas em pequenos grupos de 3 a 4, duplas ou individuais), SEM necessidade de deslocamento para pátio, quadra ou fora da sala, A MENOS que o(a) professor(a) solicite explicitamente na conversa.
+REFERÊNCIA PEDAGÓGICA: Sempre que apresentar um plano metodológico, nomeie explicitamente ao menos uma metodologia ativa adequada ao objetivo (por exemplo, Think-Pair-Share, aprendizagem cooperativa, aprendizagem baseada em problemas ou projetos, ou sala de aula invertida) e cite um estudioso ou especialista cuja contribuição tenha relação real com a proposta. Explique em uma frase como a referência se conecta à atividade. Doug Lemov, em "Aula Nota 10" (Teach Like a Champion), pode ser citado por técnicas práticas de condução e participação; Barak Rosenshine, pelos Princípios de Instrução. Se usar Lemov ou Rosenshine, nomeie separadamente a metodologia ativa e não afirme que eles criaram essa metodologia nem classifique seus livros/princípios como uma metodologia ativa. Não invente citações, obras ou atribuições; quando a relação não for segura, escolha uma referência mais diretamente ligada à metodologia selecionada.`;
 
         if (mode === 'story_only') {
             return `${baseLore}
@@ -177,45 +181,47 @@ Crie uma NARRATIVA INFANTIL ENCANTADORA, calorosa e rica, com o Drácker e seus 
         if (mode === 'recipe_only') {
             return `${baseLore}
 
-DIRETRIZ DESTE MODO (APENAS RECEITA DE BOLO DA METODOLOGIA):
+DIRETRIZ DESTE MODO (APENAS PLANO DE AULA):
 O(a) professor(a) escolheu o modo DIRETO AO PONTO. NÃO invente uma história longa ou narrativa de ficção.
-Entregue ESTRITAMENTE a sequência didática prática, estruturada exatamente como uma RECEITA DE BOLO infalível:
+Entregue somente um plano de aula objetivo, claro e aplicável, organizado em etapas. Use linguagem pedagógica natural: não use metáforas ou termos de culinária, nem títulos como "receita de bolo", "ingredientes", "modo de preparo" ou "dica do chef".
 
-Estrutura Obrigatória da Resposta:
-🍳 **RECEITA DE BOLO DA AULA: [Nome do Tema / Desafio]**
+Organize a resposta com esta estrutura:
+📘 **PLANO DE AULA: [Nome do Tema / Desafio]**
 ⏱️ **Duração:** 45 a 50 min | 📍 **Local:** 100% na Sala de aula | 👥 **Dinâmica:** [Grupos de 4, Duplas ou Individual]
 
-📦 **1. INGREDIENTES DA AULA:**
-- Materiais simples da sala (folhas de caderno/sulfite, lápis de cor/caneta, lousa/quadro).
-- Metodologia Ativa aplicada (ex: Think-Pair-Share / Pense-Compartilhe, Rotação nas Carteiras, Jigsaw simplificado ou Desafio Relâmpago).
-- Arranjo rápido das carteiras (fácil de movimentar em 1 minuto sem barulho).
+🧰 **Materiais e organização:**
+- Materiais simples disponíveis na sala e organização das carteiras.
+- **Metodologia ativa:** informe o nome da abordagem escolhida e como formar duplas, grupos ou trabalhar individualmente.
+- **Referência pedagógica:** cite um estudioso ou especialista relevante e explique brevemente a conexão com a proposta, sem atribuir a ele ideias que não desenvolveu.
 
-👩‍🍳 **2. MODO DE PREPARO (Passo a Passo com Início, Meio e Fim):**
-- 🟢 **INÍCIO / AQUECIMENTO (5 a 10 min):** O que o(a) professor(a) fala na abertura. Pergunta-gatilho ou enigma do Drácker na lousa para ativar a curiosidade imediata e prender a atenção de todos.
-- 🟡 **MEIO / DESENVOLVIMENTO ATIVO (20 a 25 min):** Atividade prática dos alunos nas carteiras. Passo a passo do que cada grupo ou aluno deve produzir, calcular ou discutir. Papel do professor como mediador circulando entre as mesas.
-- 🔴 **FIM / FECHAMENTO E PARTILHA (10 a 15 min):** Apresentação rápida ("Partilha dos Dragões" - 1 minuto por equipe), síntese do aprendizado e validação do professor.
+🗺️ **Etapas da aula:**
+- 🟢 **Início (5 a 10 min):** Sugestão do que o(a) professor(a) pode dizer, com uma pergunta-gatilho ou desafio breve para despertar a curiosidade.
+- 🟡 **Desenvolvimento (20 a 25 min):** Passos concretos da atividade, o que os estudantes farão e como o(a) professor(a) acompanhará a aprendizagem.
+- 🔴 **Fechamento (10 a 15 min):** Partilha das descobertas, síntese do conteúdo e uma forma rápida de verificar a compreensão.
 
-💡 **DICA DO CHEF DRÁCKER:**
-- Como adaptar se a turma for agitada ou quieta.
-- Como aplicar 100% individual se não der tempo de fazer grupos.`;
+🌿 **Olhares da turma da floresta:** inclua uma dica breve e diferente de cada personagem, sempre ligada à sua forma de ver a missão: a Coruja sugere observar evidências de aprendizagem; o Esquilo, organizar materiais e etapas; a Raposa, propor uma adaptação criativa; o Coelho, favorecer participação e acolhimento; e o Drácker, ajudar a turma a manter propósito e curiosidade. As dicas devem ser práticas, sem repetir a mesma orientação.
+
+🧠 **Dica de neurociência para conduzir a turma:** finalize com uma sugestão curta, prática e responsável baseada em atenção, previsibilidade ou autorregulação (por exemplo, combinar um sinal de atenção, aguardar o foco antes de dar uma instrução curta e apresentar uma etapa por vez). Explique brevemente que previsibilidade e instruções claras reduzem distrações e carga cognitiva. Evite prometer controle total ou usar linguagem de domínio/coerção.`;
         }
 
-        // Modo 'story_and_recipe' (Padrão Completo)
+        // Modo combinado (história e plano de aula)
         return `${baseLore}
 
-DIRETRIZ DESTE MODO (HISTÓRIA LÚDICA + RECEITA DE BOLO DA AULA):
+    DIRETRIZ DESTE MODO (HISTÓRIA LÚDICA + PLANO DE AULA):
 Apresente uma experiência completa e harmoniosa:
 
 1. 📖 **A HISTÓRIA PEDAGÓGICA:**
 Uma narrativa calorosa, envolvente e com os personagens da floresta encantada (Drácker, Coruja, Esquilo, Raposa e Coelho), contextualizando o tema com emoção, mistério e descobertas.
 
-2. 🍳 **A RECEITA DE BOLO DA AULA (Início, Meio e Fim):**
-Logo após a narrativa, entregue o passo a passo prático para o(a) professor(a) aplicar na sala de aula conectado à história:
-- 📦 **Ingredientes da Aula:** Materiais da sala e metodologia ativa utilizada.
-- 🟢 **Início (5-10 min):** Leitura/encenação da história e pergunta-gatilho.
-- 🟡 **Meio (20-25 min):** Atividade ativa nas carteiras (em grupo de 3 a 4 ou duplas) resolvendo a missão da história.
-- 🔴 **Fim (10 min):** Fechamento, partilha dos grupos e síntese do aprendizado.
-- 💡 **Dica do Chef Drácker:** Adaptação para atividade 100% individual.`;
+2. 📘 **PLANO DE AULA (Início, Desenvolvimento e Fechamento):**
+Logo após a narrativa, apresente uma proposta prática para o(a) professor(a) aplicar em sala, conectada à história. Use linguagem pedagógica, sem metáforas ou termos de culinária e sem chamar a proposta de receita:
+- 🧰 **Materiais e organização:** Recursos simples da sala, metodologia ativa e formação de duplas ou grupos.
+- **Metodologia ativa e referência:** nomeie a metodologia escolhida e cite um estudioso ou especialista com contribuição realmente relacionada; explique em uma frase como sua ideia orienta a atividade. Não atribua a Lemov ou Rosenshine a criação de metodologias que não criaram.
+- 🟢 **Início (5 a 10 min):** Leitura ou encenação da história e uma pergunta-gatilho.
+- 🟡 **Desenvolvimento (20 a 25 min):** Atividade concreta nas carteiras, conectada à missão da história, com passos para estudantes e mediação do professor.
+- 🔴 **Fechamento (10 min):** Partilha das descobertas, síntese e verificação breve da aprendizagem.
+- 🌿 **Olhares da turma da floresta:** uma dica prática e própria de cada personagem: a Coruja observa evidências de aprendizagem; o Esquilo organiza etapas e materiais; a Raposa sugere uma adaptação criativa; o Coelho cuida da participação e do acolhimento; e o Drácker reforça propósito e curiosidade. Não repita dicas e não use títulos culinários.
+- 🧠 **Dica de neurociência para conduzir a turma:** encerre com uma sugestão curta baseada em atenção, previsibilidade ou autorregulação, como combinar um sinal de atenção, aguardar o foco e então dar uma instrução curta por vez. Relacione-a brevemente à redução de distrações e carga cognitiva; não prometa controle total nem recomende coerção.`;
     };
 
     // Load messages from current tab
@@ -343,7 +349,7 @@ Logo após a narrativa, entregue o passo a passo prático para o(a) professor(a)
     };
 
     return (
-        <div className="flex flex-col flex-1 h-[calc(100vh-170px)] sm:h-[calc(100vh-190px)] min-h-[480px] w-full bg-gradient-to-b from-[#fdfbf7] via-[#faf6ef] to-[#f5ede4] rounded-3xl overflow-hidden border border-brown-200/70 shadow-2xl relative">
+        <div className="flex flex-col flex-1 h-full min-h-0 w-full bg-gradient-to-b from-[#fdfbf7] via-[#faf6ef] to-[#f5ede4] rounded-2xl overflow-hidden border border-brown-200/70 shadow-xl relative">
             
             {/* Header Area */}
             <div className="bg-white/85 backdrop-blur-md border-b border-brown-200/60 px-5 py-2.5 flex justify-between items-center z-20 shadow-xs shrink-0">
@@ -373,21 +379,21 @@ Logo após a narrativa, entregue o passo a passo prático para o(a) professor(a)
             </div>
 
             {/* Main Chat Area - Leitura Ampla, Maximizada e Fluida */}
-            <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-10 pt-4 pb-2 space-y-6 custom-scrollbar relative z-10">
+            <div className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 md:px-10 pt-3 pb-2 space-y-4 custom-scrollbar relative z-10">
                 {messages.map((msg, idx) => {
                     const isUser = msg.role === 'user';
                     return (
-                        <div key={idx} className={`flex w-full items-start gap-3.5 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                        <div key={idx} className={`flex w-full items-start gap-2.5 sm:gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
                             
                             {/* Drácker Avatar - Topo do Balão */}
                             {!isUser && (
-                                <div className="flex-shrink-0 mt-1 w-11 h-11 sm:w-13 sm:h-13 md:w-14 md:h-14 rounded-2xl bg-gradient-to-tr from-amber-200 to-amber-50 p-1.5 border-2 border-white shadow-md relative z-20 hover:scale-105 transition-transform">
+                                <div className="flex-shrink-0 mt-1 w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-2xl bg-gradient-to-tr from-amber-200 to-amber-50 p-1.5 border-2 border-white shadow-md relative z-20 hover:scale-105 transition-transform">
                                     <img src="/dracker_character.png" alt="Drácker" className="w-full h-full object-contain" />
                                 </div>
                             )}
 
                             {/* Message Bubble - Espaçoso, Amplo e Confortável */}
-                            <div className={`w-full sm:max-w-[92%] md:max-w-[94%] xl:max-w-[96%] relative px-6 sm:px-8 py-5 sm:py-6 rounded-[2rem] text-[15px] sm:text-[16px] md:text-[17px] leading-relaxed transition-all ${
+                            <div className={`w-full sm:max-w-[96%] relative px-4 sm:px-6 py-3.5 sm:py-4 rounded-3xl text-[15px] sm:text-[16px] leading-relaxed transition-all ${
                                 isUser 
                                 ? 'bg-gradient-to-br from-[#6b4733] to-[#4c3224] text-white rounded-tr-md shadow-[0_10px_25px_rgba(76,50,36,0.25)] border-t border-white/20' 
                                 : 'bg-white/95 backdrop-blur-md text-brown-950 border-2 border-brown-200/90 rounded-tl-md shadow-[0_10px_30px_rgba(90,60,40,0.07)]'
@@ -405,9 +411,9 @@ Logo após a narrativa, entregue o passo a passo prático para o(a) professor(a)
                                     <ReactMarkdown 
                                         remarkPlugins={[remarkGfm]}
                                         components={{
-                                            p: ({node, ...props}) => <p className="mb-3.5 last:mb-0" {...props} />,
-                                            ul: ({node, ...props}) => <ul className={`list-disc pl-6 my-3.5 space-y-1.5 ${isUser ? 'marker:text-amber-200' : 'marker:text-amber-600'}`} {...props} />,
-                                            ol: ({node, ...props}) => <ol className={`list-decimal pl-6 my-3.5 space-y-1.5 ${isUser ? 'marker:text-amber-200' : 'marker:text-amber-600'}`} {...props} />,
+                                            p: ({node, ...props}) => <p className="mb-2.5 last:mb-0" {...props} />,
+                                            ul: ({node, ...props}) => <ul className={`list-disc pl-6 my-2.5 space-y-1 ${isUser ? 'marker:text-amber-200' : 'marker:text-amber-600'}`} {...props} />,
+                                            ol: ({node, ...props}) => <ol className={`list-decimal pl-6 my-2.5 space-y-1 ${isUser ? 'marker:text-amber-200' : 'marker:text-amber-600'}`} {...props} />,
                                             strong: ({node, ...props}) => <strong className={`font-black ${isUser ? 'text-amber-100' : 'text-brown-950'}`} {...props} />,
                                             h1: ({node, ...props}) => <h1 className={`text-2xl font-black mb-3.5 mt-5 ${isUser ? 'text-white' : 'text-brown-950'}`} {...props} />,
                                             h2: ({node, ...props}) => <h2 className={`text-xl font-extrabold mb-3 mt-4 ${isUser ? 'text-white' : 'text-brown-950'}`} {...props} />,
@@ -455,14 +461,14 @@ Logo após a narrativa, entregue o passo a passo prático para o(a) professor(a)
             </div>
 
             {/* Input Area Fixo colado na parte inferior com plano externo transparente */}
-            <div className="px-3 pb-2 sm:px-6 sm:pb-3 md:px-10 md:pb-3 pt-1 z-20 shrink-0 bg-transparent">
+            <div className="sticky bottom-0 px-2 pb-2 sm:px-5 sm:pb-3 md:px-8 pt-2 z-20 shrink-0 bg-white/90 backdrop-blur-md border-t border-brown-200/60 shadow-[0_-8px_20px_rgba(76,50,36,0.06)]">
                 
                 {/* Barra de Ações Discreta Acima do Text Field */}
-                <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2 mb-1.5 px-0.5">
+                <div className="max-w-6xl mx-auto flex flex-nowrap items-center gap-1.5 mb-1.5 px-0.5 overflow-x-auto no-scrollbar">
                     {/* Controles de Modo e Ação Inteligente */}
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-nowrap items-center gap-1.5 shrink-0">
                         {/* Seletor Segmentado Clean e Moderno */}
-                        <div className="inline-flex items-center p-1 rounded-2xl bg-stone-100/90 border border-stone-200/80 shadow-inner">
+                        <div className="inline-flex max-w-full items-center overflow-x-auto no-scrollbar p-1 rounded-2xl bg-stone-100/90 border border-stone-200/80 shadow-inner">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -569,10 +575,21 @@ Logo após a narrativa, entregue o passo a passo prático para o(a) professor(a)
                                 </>
                             )}
                         </button>
+                        {existingStorybook && (
+                            <button
+                                type="button"
+                                onClick={() => selectActivityTab(existingStorybook.id)}
+                                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl text-xs font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer shrink-0"
+                                title={`Abrir o storybook: ${existingStorybook.title || 'Livro do Drácker'}`}
+                            >
+                                <BookOpen className="w-3.5 h-3.5" />
+                                <span>Abrir Storybook</span>
+                            </button>
+                        )}
                     </div>
 
                     {/* Atalhos Rápidos da Turma Discretos */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="hidden sm:flex items-center gap-1.5">
                         <button
                             type="button"
                             onClick={handleOpenRadio}

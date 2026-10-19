@@ -161,10 +161,10 @@ export const ActivityArea = ({
     // --- Render Logic ---
 
     return (
-        <div className="w-full h-full flex flex-col print:block bg-transparent">
-            <div className="flex-1 flex flex-col min-h-96 print:block">
+        <div className="w-full h-full min-h-0 flex flex-col print:block bg-transparent">
+            <div className={`flex-1 flex flex-col print:block ${activityType === 'chat_dracker' ? 'min-h-0' : 'min-h-96'}`}>
 
-                {activityType !== 'roulette' && (
+                {activityType !== 'roulette' && activityType !== 'chat_dracker' && (
                     <ActivityHeader
                         hasContent={hasContent}
                         activityType={activityType}
@@ -185,7 +185,7 @@ export const ActivityArea = ({
                     />
                 )}
 
-                <div className={`flex-1 ${isFullWidth ? 'p-1 sm:p-2' : 'p-4 sm:p-8'} overflow-y-auto print:overflow-visible custom-scrollbar print:p-0`} ref={activityAreaRef} id="activity-area-print">
+                <div className={`flex-1 min-h-0 ${activityType === 'chat_dracker' ? 'overflow-hidden p-1 sm:p-2' : `${isFullWidth ? 'p-1 sm:p-2' : 'p-4 sm:p-8'} overflow-y-auto`} print:overflow-visible custom-scrollbar print:p-0`} ref={activityAreaRef} id="activity-area-print">
                     {hasContent ? (
                         <>
                             {/* --- SETUP / TOGGLE CARDS --- */}

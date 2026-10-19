@@ -17,7 +17,7 @@ export const StorybookCoverView = ({
     return (
         <>
             {/* Texto de Capa Fluido e Equilibrado com Edição */}
-            <div className="flex-1 p-6 sm:p-8 md:p-10 flex flex-col justify-center bg-white text-stone-900 overflow-y-auto border-b md:border-b-0 md:border-r border-stone-200">
+            <div className="flex-1 min-h-[40vh] md:min-h-0 p-4 sm:p-8 md:p-10 flex flex-col justify-center bg-white text-stone-900 overflow-visible md:overflow-y-auto border-b md:border-b-0 md:border-r border-stone-200">
                 <div>
                     {/* Cabeçalho da Capa com badge e copiar */}
                     <div className="flex justify-end items-center pb-2 mb-3 border-b border-stone-200">
@@ -110,7 +110,7 @@ export const StorybookCoverView = ({
             </div>
 
             {/* Imagem de Capa ou Player de Vídeo */}
-            <div className="flex-1 bg-stone-50/50 p-6 sm:p-8 flex items-center justify-center relative overflow-hidden group">
+            <div className="flex-1 min-h-[40vh] md:min-h-0 bg-stone-50/50 p-4 sm:p-8 flex items-center justify-center relative overflow-hidden group">
                 {book.cover?.videoUrl && isPlayingVideo ? (
                     <div className="relative w-full h-full min-h-[300px] flex items-center justify-center rounded-2xl overflow-hidden bg-black shadow-lg">
                         <iframe

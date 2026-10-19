@@ -10,7 +10,8 @@ import {
     BarChart3,
     Dices,
     FileText,
-    Grid
+    Grid,
+    BookOpen
 } from 'lucide-react';
 
 export const Sidebar = ({
@@ -22,6 +23,22 @@ export const Sidebar = ({
     const { activityOptions, tabs, selectActivityTab, addActivityTab } = useActivity();
 
     const handleActivitySelect = (type) => {
+        if (type === 'storybook') {
+            const storybookTab = [...(tabs || [])].reverse().find(tab => tab.type === 'storybook' && !tab.hidden);
+            if (storybookTab) {
+                selectActivityTab(storybookTab.id);
+                return;
+            }
+
+            const chatTab = (tabs || []).find(tab => tab.type === 'chat_dracker' && !tab.hidden);
+            if (chatTab) {
+                selectActivityTab(chatTab.id);
+            } else {
+                setActivityType('chat_dracker');
+            }
+            return;
+        }
+
         if (type === 'simplify') {
             const radioTab = (tabs || []).find(t => t.type === 'simplify' && !t.musicData && !t.hidden);
             if (radioTab) {
@@ -76,6 +93,7 @@ export const Sidebar = ({
         { id: 'video_gallery', label: 'Vídeos Interativos', icon: <Play className="w-5 h-5" /> },
         { id: 'roulette', label: 'Roleta', icon: <Dices className="w-5 h-5" /> },
         { id: 'rpg', label: 'RPG', icon: <Compass className="w-5 h-5" /> },
+        { id: 'storybook', label: 'Storybook', icon: <BookOpen className="w-5 h-5" /> },
         { id: 'quiz', label: 'Quiz', icon: <FileText className="w-5 h-5" /> },
         { id: 'wordsearch', label: 'Caça Palavras', icon: <Grid className="w-5 h-5" /> },
         { id: 'crossword', label: 'Palavras Cruzadas', icon: <Grid className="w-5 h-5" /> },

@@ -91,6 +91,7 @@ export const MainLayout = () => {
     } = useAudio();
 
     const actions = useActivityActions();
+    const isChatActivity = (activeActivity?.type || activityType) === 'chat_dracker';
 
     const activityAreaRef = useRef(null);
 
@@ -555,10 +556,10 @@ export const MainLayout = () => {
                     />
                 )}
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 flex flex-col w-full">
-                    <div id="activity-area-container" className="max-w-[1600px] mx-auto w-full flex-1 flex flex-col gap-6">
+                <main className={`flex-1 flex flex-col w-full min-h-0 ${isChatActivity ? 'overflow-hidden p-2 sm:p-3' : 'overflow-y-auto p-4 md:p-6 lg:p-8'}`}>
+                    <div id="activity-area-container" className={`max-w-[1600px] mx-auto w-full flex-1 min-h-0 flex flex-col ${isChatActivity ? 'gap-0' : 'gap-6'}`}>
 
-                        <div className="flex-1 flex flex-col bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden relative">
+                        <div className={`flex-1 min-h-0 flex flex-col bg-white shadow-sm border border-slate-200 overflow-hidden relative ${isChatActivity ? 'rounded-2xl' : 'rounded-[2.5rem]'}`}>
                             {showHero ? (
                                 <HeroGenerator
                                     topic={topic}
@@ -752,7 +753,7 @@ export const MainLayout = () => {
                     onImport={activeActivity?.type === 'roulette' ? handleImportToCurrentActivity : undefined}
                 />
 
-                {!isFullWidth && <Footer />}
+                {!isFullWidth && !isChatActivity && <Footer />}
             </div>
             <CookieBanner />
             <InspectorPanel
@@ -782,7 +783,7 @@ export const MainLayout = () => {
             />
 
             {/* Floating Chat Button (Atendente) */}
-            <button
+            {!isChatActivity && <button
                 onClick={() => {
                     const chatTab = tabs.find(t => t.type === 'chat_dracker');
                     if (chatTab) {
@@ -798,13 +799,15 @@ export const MainLayout = () => {
                         });
                     }
                 }}
-                className={`fixed bottom-6 ${isFullWidth ? 'left-6' : 'left-24'} z-50 flex items-center gap-3 bg-white p-2 pr-4 rounded-full shadow-2xl border border-slate-200 hover:scale-105 hover:border-indigo-300 transition-all cursor-pointer group`}
+                className={`fixed bottom-4 sm:bottom-6 ${isFullWidth ? 'left-4 sm:left-6' : 'left-20 sm:left-24'} z-50 flex h-14 w-14 items-center gap-3 overflow-hidden rounded-full border border-slate-200 bg-white p-2 shadow-2xl transition-[width,border-color,transform] duration-200 hover:w-56 hover:scale-[1.02] hover:border-indigo-300 focus-visible:w-56 focus-visible:border-indigo-300 cursor-pointer group`}
+                aria-label="Fale com o Drácker"
+                title="Fale com o Drácker"
             >
-                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center group-hover:bg-indigo-500 transition-colors">
+                <div className="w-10 h-10 shrink-0 bg-indigo-100 rounded-full flex items-center justify-center group-hover:bg-indigo-500 transition-colors">
                     <MessageSquare className="w-5 h-5 text-indigo-600 group-hover:text-white transition-colors" />
                 </div>
-                <span className="font-bold text-sm text-slate-700 group-hover:text-indigo-700 transition-colors">Fale com o Drácker</span>
-            </button>
+                <span className="whitespace-nowrap font-bold text-sm text-slate-700 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 group-focus-visible:opacity-100 group-focus-visible:translate-x-0 transition-all">Fale com o Drácker</span>
+            </button>}
 
         </div>
     );

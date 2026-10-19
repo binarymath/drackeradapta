@@ -436,7 +436,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
             {/* Visualizador de Livro Aberto em Tela */}
             <div className={`storybook-screen-view relative bg-white rounded-3xl border border-stone-200/90 shadow-xl overflow-hidden flex flex-col justify-between select-text ${
-                isFullscreen ? 'h-full min-h-0' : 'aspect-[16/10] min-h-[520px]'
+                isFullscreen ? 'h-full min-h-0' : 'min-h-[70svh] md:aspect-[16/10] md:min-h-[520px]'
             }`}>
                 {/* Linha discreta de Vinco Central com Sombreamento de Livro Aberto */}
                 {!isBackCover && (
@@ -447,7 +447,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                 )}
 
                 {/* Conteúdo Dinâmico em Tela com Transição */}
-                <div className={`flex-1 flex flex-col md:flex-row h-full overflow-hidden ${
+                <div className={`flex-1 flex flex-col md:flex-row min-h-0 md:h-full overflow-y-auto md:overflow-hidden ${
                     isFlipping ? (flipDirection === 'next' ? 'page-turn-next' : 'page-turn-prev') : ''
                 }`}>
                     {/* Capa */}

@@ -12,7 +12,7 @@ export const StorybookBackCoverView = ({
     currentTextAligns
 }) => {
     return (
-        <div className="flex-1 p-6 sm:p-12 flex flex-col justify-between bg-white text-center overflow-y-auto">
+        <div className="flex-1 min-h-[70vh] md:min-h-0 p-4 sm:p-12 flex flex-col justify-between bg-white text-center overflow-visible md:overflow-y-auto">
             <div className="flex justify-end items-center mb-2">
                 <button
                     type="button"

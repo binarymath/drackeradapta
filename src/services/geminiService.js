@@ -1101,6 +1101,8 @@ IMPORTANTE: Retorne APENAS o JSON (array de 20 objetos), sem markdown (\`\`\`jso
     const prompt = `Você é um autor premiado de literatura infantil e especialista em metodologias ativas pedagógicas do sistema "Drácker Adapta".
 Sua tarefa é analisar a conversa pedagógica abaixo entre um professor e o mascote Drácker (o dragãozinho marrom aventureiro da floresta encantada) e transformá-la em um LIVRO INFANTIL ILUSTRADO COMPLETO COM NO MÍNIMO 10 PÁGINAS SEQUENCIAIS.
 
+PRINCÍPIO DE CONTINUIDADE: A conversa é a fonte de verdade. Se a história já começou a ser contada, continue-a a partir do ponto alcançado; não reinicie, substitua personagens, mude o conflito, o tema, o tom ou acontecimentos já estabelecidos. Preserve falas, ideias, exemplos e detalhes que dão identidade à história. Acrescente apenas ligações, descrições e detalhes pontuais necessários para organizar a narrativa em páginas e dar um encerramento coerente. Não reescreva a história como uma nova versão.
+
 CONVERSA DE ORIGEM:
 """
 ${conversationText}
@@ -1113,17 +1115,18 @@ REGRAS OBRIGATÓRIAS DO LIVRO:
    - "Desafio de Atenção: Se o Drácker der 2 passos para a direita, onde ele vai parar?"
    - "Desafio de Atenção: Consegue encontrar e circular a fruta vermelha no galho?"
 3. Personagens principais: Drácker (dragão marrom curioso) e sua turma da floresta encantada (a sábia Coruja, o ágil Esquilo, a esperta Raposa e o fofinho Coelho).
-4. O livro deve ensinar de forma lúdica, progressiva e encantadora o tema pedagógico discutido na conversa ao longo dos 10 capítulos/páginas.
+4. O livro deve ensinar de forma lúdica o tema discutido, respeitando a progressão e os acontecimentos da história já iniciada na conversa. As páginas devem continuar a narrativa, não criar uma história paralela ou substituta.
 5. Estilo visual limpo (economia máxima de tinta de impressora): ilustrações em traço limpo (line art) para as crianças colorirem.
-6. Cada um dos 10 itens do array "pages" deve conter:
+6. No objeto "lessonPlan", registre somente metodologia, etapas, materiais e duração mencionados na conversa. Não crie um novo plano; faça apenas ajustes pontuais para conectar a história à atividade. Preserve a dica de atenção ou autorregulação já discutida e informe sua base teórica em "theoreticalBasis". Não invente referências ou atribua a uma teoria conclusões que ela não sustenta.
+7. Cada um dos 10 itens do array "pages" deve conter:
    - "pageNumber": número inteiro consecutivo (1, 2, 3, 4, 5, 6, 7, 8, 9, 10...).
    - "title": título do capítulo/página.
    - "text": narrativa calorosa para crianças (2 parágrafos curtos, excelente ritmo para leitura em sala de aula).
    - "dialogue": fala marcante do Drácker ou de outro personagem.
    - "interactiveQuestion": o desafio de atenção obrigatório desta página.
    - "imagePrompt": prompt em inglês para ilustração limpa em traço preto e branco.
-7. REGRA OBRIGATÓRIA DE MATEMÁTICA E TEXTO: NUNCA use LaTeX nem envolva fórmulas em cifrões ($ ou $$). NUNCA escreva expressões como $\frac{1}{2}$ ou $x^2$. Escreva sempre em TEXTO CORRENTE, PURO E NATURAL em português (ex: "1/2", "metade", "x²", "raiz quadrada de 16", "2 + 2 = 4").
-8. Retorne ESTRITAMENTE um objeto JSON válido, sem cercas de markdown extras ou comentários.
+8. REGRA OBRIGATÓRIA DE MATEMÁTICA E TEXTO: NUNCA use LaTeX nem envolva fórmulas em cifrões ($ ou $$). NUNCA escreva expressões como $\frac{1}{2}$ ou $x^2$. Escreva sempre em TEXTO CORRENTE, PURO E NATURAL em português (ex: "1/2", "metade", "x²", "raiz quadrada de 16", "2 + 2 = 4").
+9. Retorne ESTRITAMENTE um objeto JSON válido, sem cercas de markdown extras ou comentários.
 
 FORMATO JSON ESPERADO:
 {
@@ -1161,17 +1164,19 @@ FORMATO JSON ESPERADO:
     "activity": "Grande desafio final prático para os alunos"
   },
   "lessonPlan": {
-    "title": "Receita de Bolo da Aula",
-    "duration": "50 minutos",
-    "location": "100% na Sala de Aula",
-    "materials": ["Folhas de papel/sulfite", "Lápis e canetinhas", "Lousa/Quadro"],
-    "activeMethodology": "Nome e explicação da metodologia ativa de sala (ex: Think-Pair-Share ou Estações)",
+    "title": "Plano de aula",
+    "duration": "Duração informada na conversa, se houver",
+    "location": "Local informado na conversa, se houver",
+    "materials": ["Materiais mencionados na conversa"],
+    "activeMethodology": "Metodologia ativa escolhida na conversa; não propor outra",
     "stepByStep": {
-      "beginning": "Início / Aquecimento (5-10 min): Pergunta-gatilho ou enigma do Drácker na lousa",
-      "middle": "Meio / Desenvolvimento Ativo (20-25 min): Desafio prático em equipes de carteira ou duplas",
-      "ending": "Fim / Fechamento (10 min): Partilha rápida das soluções e consolidação do aprendizado"
+      "beginning": "Etapa inicial conforme definida na conversa, se houver",
+      "middle": "Desenvolvimento conforme definido na conversa, se houver",
+      "ending": "Fechamento conforme definido na conversa, se houver"
     },
-    "chefTip": "Dica de adaptação para turma agitada ou aplicação 100% individual"
+    "methodologyReference": "Estudioso ou especialista relacionado à metodologia, somente se sustentado pela conversa",
+    "neuroscienceTip": "Dica breve de atenção ou autorregulação já discutida, com ajuste pontual se necessário",
+    "theoreticalBasis": "Nome da teoria ou referência que sustenta a dica e explicação breve da relação; não inventar citações ou atribuições"
   }
 }`;
 
@@ -1207,11 +1212,11 @@ FORMATO JSON ESPERADO:
       .join('\n\n');
 
     const prompt = `Você é o Drácker, especialista em mediação pedagógica e metodologias ativas do sistema "Drácker Adapta".
-Sua tarefa é analisar a conversa pedagógica abaixo com o professor e transformá-la em um LIVRO-GUIA DO PROFESSOR (MANUAL PASSO A PASSO DA AULA) DE 10 PÁGINAS SEQUENCIAIS.
+Sua tarefa é organizar a conversa abaixo em um LIVRO-GUIA DO PROFESSOR: um manual de aplicação da aula já planejada, com 10 páginas sequenciais. A paginação é editorial; não significa criar dez novas etapas nem uma nova metodologia.
 
 ATENÇÃO CRUCIAL:
 NÃO crie uma história infantil de ficção! Este livro NÃO é uma historinha para crianças.
-Este livro é uma CONVERSA DIRETA E PRÁTICA COM O PROFESSOR, ensinando como executar a aula, em que momento agir e o que fazer em cada etapa, como uma receita de bolo infalível.
+Este livro é um manual direto para executar o plano discutido. A conversa é a fonte de verdade: preserve a metodologia ativa já nomeada, o objetivo, a sequência, os materiais, os tempos, as adaptações, os exemplos e as falas definidos. Não substitua nem reinicie a metodologia, não acrescente uma segunda proposta e não reescreva respostas já suficientes. Faça apenas ajustes pontuais de clareza, organização e ligação entre etapas. Se faltar um detalhe, apresente-o como sugestão opcional, nunca como algo já acordado. Use linguagem pedagógica natural, sem termos ou metáforas de culinária.
 
 CONVERSA DE ORIGEM:
 """
@@ -1219,34 +1224,25 @@ ${conversationText}
 """
 
 REGRAS OBRIGATÓRIAS DO GUIA DO PROFESSOR:
-1. O array "pages" DEVE CONTER OBRIGATORIAMENTE 10 PÁGINAS SEQUENCIAIS (1 a 10), correspondendo às 10 etapas da aula:
-   - Página 1: Alinhamento pedagógico e objetivo da aula (O que vamos construir hoje).
-   - Página 2: Ingredientes e Materiais simples da sala (sem complicar).
-   - Página 3: Arranjo rápido das carteiras na sala (em duplas ou quartetos sem sair da sala).
-   - Página 4: O Aquecimento / Início (5 a 10 min) - A frase de abertura e a pergunta-gatilho na lousa.
-   - Página 5: Lançando o Desafio da Metodologia Ativa - Como explicar a regra da atividade em 2 minutos.
-   - Página 6: O Meio da Aula (20 a 25 min) - A produção dos alunos nas carteiras e dinâmica de colaboração.
-   - Página 7: Papel do Professor como Mediador - Dicas do Drácker de como circular e destravar grupos.
-   - Página 8: O Fim / Fechamento (10 min) - "Partilha dos Dragões": apresentações relâmpago de 1 minuto por equipe.
-   - Página 9: Resolução de Imprevistos - E se a turma for agitada? E se preferir aplicar 100% individual?
-   - Página 10: Avaliação Formativa e Conclusão - Como registrar o aprendizado sem precisar de prova tradicional.
+1. O array "pages" deve conter 10 páginas sequenciais (1 a 10) para acomodar o manual. Distribua nelas as decisões e orientações que realmente aparecem na conversa, respeitando sua ordem: objetivo e metodologia escolhida; materiais e preparação; abertura; desenvolvimento da atividade; mediação; fechamento; adaptações discutidas; avaliação e dica final. Esses são agrupamentos editoriais, não etapas extras. Se precisar completar a paginação, divida orientações existentes em passos menores; não invente atividades, métodos, materiais, tempos ou adaptações, nem repita conteúdo para preencher páginas.
 2. LOCAL: 100% EXECUTÁVEL NA SALA DE AULA (sem precisar de quadra ou pátio).
 3. Cada página do array "pages" deve conter:
    - "pageNumber": número inteiro (1 a 10).
    - "title": Título claro da etapa da aula (ex: "Etapa 4: Aquecimento com Pergunta-Gatilho na Lousa").
-   - "text": Conversa franca, encorajadora e detalhada do Drácker orientando o professor sobre o que fazer e em que minuto da aula agir.
+  - "text": Orientação concisa e acionável derivada da conversa, explicando o que fazer e quando, sem reconstruir do zero o plano já estabelecido.
    - "dialogue": "Dica de Fala do Professor" (Uma frase pronta em aspas para o professor dizer em voz alta para os estudantes neste momento).
    - "interactiveQuestion": "Ação Imediata do Professor" (Checklist prático: ex: "Escreva estas duas perguntas no canto da lousa e dê 3 minutos de silêncio para pensarem").
    - "imagePrompt": Prompt em inglês para ilustração diagramática de sala de aula em line art preto e branco (coloring style, classroom diagram, desks, blackboard).
 4. REGRA OBRIGATÓRIA DE MATEMÁTICA E TEXTO: NUNCA use código LaTeX nem expressões delimitadas por cifrões ($ ou $$). NUNCA escreva expressões como $\frac{1}{2}$ ou $x^2$. Escreva sempre em TEXTO CORRENTE, PURO E NATURAL em português (ex: "1/2", "metade", "x²", "raiz quadrada de 16", "2 + 2 = 4").
-5. Retorne ESTRITAMENTE um objeto JSON válido, sem texto adicional.
+5. Inclua uma dica final breve de atenção ou autorregulação que complemente, sem substituir, a orientação já discutida. No campo "theoreticalBasis", identifique a teoria ou referência que realmente fundamenta a dica e explique a relação em uma frase. Use referência de neurociência apenas quando pertinente; o modelo de redes atencionais de Posner e Rothbart ou o trabalho de Adele Diamond sobre funções executivas podem ser considerados se sustentarem a recomendação escolhida. Não confunda ciência cognitiva com neurociência nem invente obras, citações ou atribuições. Preserve a dica existente na conversa e faça somente o complemento teórico necessário.
+6. Retorne ESTRITAMENTE um objeto JSON válido, sem texto adicional.
 
 FORMATO JSON ESPERADO:
 {
   "title": "Guia Prático de Aula: [Tema da Aula]",
   "subtitle": "Passo a Passo de Metodologia Ativa com o Drácker",
   "theme": "Guia do Professor",
-  "synopsis": "Manual prático passo a passo de como planejar, conduzir e avaliar a aula de [Tema] utilizando metodologias ativas 100% em sala de aula.",
+  "synopsis": "Manual de aplicação da metodologia e da sequência didática já definidas na conversa, com ajustes pontuais.",
   "moralLesson": "Professor mediador transforma carteiras comuns em verdadeiras expedições de descoberta!",
   "cover": {
     "title": "Guia Prático de Aula",
@@ -1262,7 +1258,7 @@ FORMATO JSON ESPERADO:
       "interactiveQuestion": "Ação Imediata: Escreva o objetivo no topo do quadro.",
       "imagePrompt": "Line art of classroom desks arranged for collaboration"
     },
-    { "pageNumber": 2, "title": "Etapa 2: Ingredientes e Materiais...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
+    { "pageNumber": 2, "title": "Materiais e organização...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
     { "pageNumber": 3, "title": "Etapa 3: Organização Rápida da Sala...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
     { "pageNumber": 4, "title": "Etapa 4: Início e Pergunta-Gatilho...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
     { "pageNumber": 5, "title": "Etapa 5: O Desafio Ativo das Equipes...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
@@ -1270,11 +1266,26 @@ FORMATO JSON ESPERADO:
     { "pageNumber": 7, "title": "Etapa 7: Mediação Ativa nas Carteiras...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
     { "pageNumber": 8, "title": "Etapa 8: Partilha e Fechamento da Aula...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
     { "pageNumber": 9, "title": "Etapa 9: Adaptações e Plano B...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." },
-    { "pageNumber": 10, "title": "Etapa 10: Avaliação Formativa e Síntese...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." }
+    { "pageNumber": 10, "title": "Síntese e dica de atenção...", "text": "...", "dialogue": "...", "interactiveQuestion": "...", "imagePrompt": "..." }
   ],
   "backCover": {
     "summary": "Checklist do Professor Concluído com Sucesso!",
     "activity": "Preencha a autoavaliação rápida da aula e anote os pontos altos das soluções dos alunos."
+  },
+  "lessonPlan": {
+    "title": "Plano de aula",
+    "duration": "Duração definida na conversa",
+    "location": "Sala de aula",
+    "materials": ["Materiais definidos na conversa"],
+    "activeMethodology": "Metodologia ativa escolhida na conversa, sem substituição",
+    "methodologyReference": "Referência pertinente à metodologia, sem atribuições inventadas",
+    "stepByStep": {
+      "beginning": "Início conforme combinado na conversa",
+      "middle": "Desenvolvimento conforme combinado na conversa",
+      "ending": "Fechamento conforme combinado na conversa"
+    },
+    "neuroscienceTip": "Dica breve de atenção/autorregulação que complementa a conversa",
+    "theoreticalBasis": "Base teórica pertinente e explicação breve da relação"
   }
 }`;
 
@@ -1312,11 +1323,11 @@ FORMATO JSON ESPERADO:
       .join('\n\n');
 
     const prompt = `Você é o Drácker, autor de literatura pedagógica e especialista em metodologias ativas do sistema "Drácker Adapta".
-Sua tarefa é analisar a conversa pedagógica abaixo com o professor e transformá-la em um LIVRO MESTRE COMPLETO COM EXATAMENTE 20 PÁGINAS SEQUENCIAIS (1 a 20).
+Sua tarefa é organizar a conversa pedagógica abaixo em um LIVRO MESTRE COM 20 PÁGINAS: continuação fiel da história já iniciada e manual da aula já planejada. A paginação não autoriza reiniciar a história nem criar outra metodologia.
 
 ESTRUTURA OBRIGATÓRIA DAS 20 PÁGINAS:
 PARTE 1 - A HISTÓRIA INFANTIL ILUSTRADA (Páginas 1 a 10):
-- Páginas 1 a 10: Narrativa lúdica encantadora com o Drácker (dragão marrom) e a turma da floresta encantada (Coruja sábia, Esquilo ágil, Raposa esperta, Coelho fofinho) ensinando e vivenciando o tema pedagógico.
+- Páginas 1 a 10: Continue a narrativa da conversa com Drácker e a turma da floresta. Preserve enredo, personagens, cenário, conflito, tom, fatos, diálogos e ordem dos acontecimentos já estabelecidos. Não recomece, substitua nem crie história paralela; acrescente apenas detalhes, transições e um encerramento coerente com o que já foi contado.
 - Cada uma das 10 páginas da história deve ter:
   * "pageNumber": número inteiro (1 a 10).
   * "title": Título da página/capítulo (ex: "Capítulo 1: O Enigma da Clareira").
@@ -1326,21 +1337,11 @@ PARTE 1 - A HISTÓRIA INFANTIL ILUSTRADA (Páginas 1 a 10):
   * "imagePrompt": Prompt em inglês de desenho em traço limpo preto e branco para colorir (coloring book line art).
 
 PARTE 2 - O GUIA PRÁTICO DE METODOLOGIA ATIVA (Páginas 11 a 20):
-- Páginas 11 a 20: Manual passo a passo para o PROFESSOR aplicar a aula 100% dentro da sala de aula:
-  * Página 11: Alinhamento pedagógico e objetivo da aula conectando com a história.
-  * Página 12: Ingredientes e materiais simples da sala de aula.
-  * Página 13: Organização rápida das carteiras (duplas ou quartetos na sala).
-  * Página 14: O Aquecimento / Início (5 a 10 min) - Pergunta-gatilho na lousa.
-  * Página 15: O Desafio Ativo das Equipes - Como explicar a atividade em 2 minutos.
-  * Página 16: O Meio da Aula (20 a 25 min) - Dinâmica de resolução prática e colaboração.
-  * Página 17: O Papel do Professor como Mediador nas carteiras.
-  * Página 18: O Fim / Fechamento (10 min) - Partilha rápida e validação.
-  * Página 19: Dica do Chef Drácker para Imprevistos (turma agitada ou aplicação 100% individual).
-  * Página 20: Avaliação Formativa e Conclusão prática.
+- Páginas 11 a 20: Distribua em ordem os objetivos, a metodologia já escolhida, as etapas, materiais, tempos, falas, adaptações e avaliação que aparecem na conversa. Use as páginas para explicar como aplicar o plano existente, não para criar outro. A dica de atenção/autorregulação e sua base teórica devem aparecer no fechamento do manual. Não acrescente ações ou decisões ausentes sem identificá-las como sugestões opcionais.
 - Cada uma das páginas 11 a 20 deve ter:
   * "pageNumber": número inteiro (11 a 20).
   * "title": Título claro da etapa (ex: "Etapa 4: Aquecimento e Pergunta-Gatilho").
-  * "text": Conversa franca e orientadora do Drácker com o professor sobre a etapa.
+  * "text": Orientação prática baseada na conversa, sem reconstruir do zero o plano já estabelecido.
   * "dialogue": Dica de Fala do Professor (frase entre aspas pronta para o professor falar à turma).
   * "interactiveQuestion": Ação Imediata do Professor (checklist prático).
   * "imagePrompt": Prompt em inglês de diagrama da sala de aula em line art preto e branco.
@@ -1353,14 +1354,15 @@ ${conversationText}
 REGRAS GERAIS:
 1. O array "pages" DEVE CONTER OBRIGATORIAMENTE 20 PÁGINAS SEQUENCIAIS numeradas de 1 a 20.
 2. REGRA OBRIGATÓRIA DE MATEMÁTICA E TEXTO: NUNCA use LaTeX nem expressões delimitadas por cifrões ($ ou $$). NUNCA escreva expressões como $\\frac{1}{2}$ ou $x^2$. Escreva sempre em TEXTO CORRENTE, PURO E NATURAL em português (ex: "1/2", "metade", "x²", "raiz quadrada de 16", "2 + 2 = 4").
-3. Retorne ESTRITAMENTE um objeto JSON válido, sem texto adicional.
+3. Não use termos ou metáforas culinárias no manual. Inclua uma dica final de atenção ou autorregulação que complemente a conversa, sem substituí-la. Identifique no campo "theoreticalBasis" uma teoria ou referência que realmente sustente a dica e explique a relação. Use referências neurocientíficas somente quando pertinentes; não confunda ciência cognitiva com neurociência e não invente obras, citações ou atribuições. Se a conversa já contém a dica, preserve-a e acrescente apenas a fundamentação teórica com cautela.
+4. Retorne ESTRITAMENTE um objeto JSON válido, sem texto adicional.
 
 FORMATO JSON ESPERADO:
 {
   "title": "Título Completo do Livro e Guia",
   "subtitle": "História Ilustrada + Guia de Metodologia Ativa de Aula",
   "theme": "História + Metodologia",
-  "synopsis": "Edição especial com 20 páginas: 10 páginas de história infantil com desafios de atenção seguidas de 10 páginas de manual prático de metodologia ativa para a sala de aula.",
+  "synopsis": "Continuação da história e manual de aplicação da metodologia ativa já definidas na conversa, com ajustes pontuais.",
   "moralLesson": "Aprender através do lúdico e da colaboração prática!",
   "cover": {
     "title": "Título do Livro",
@@ -1379,7 +1381,7 @@ FORMATO JSON ESPERADO:
     { "pageNumber": 9, "title": "Capítulo 9...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
     { "pageNumber": 10, "title": "Capítulo 10...", "text": "...", "dialogue": "...", "interactiveQuestion": "Desafio de Atenção...", "imagePrompt": "..." },
     { "pageNumber": 11, "title": "Etapa 1: Alinhamento e Metas...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
-    { "pageNumber": 12, "title": "Etapa 2: Ingredientes e Materiais...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
+    { "pageNumber": 12, "title": "Materiais e organização...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
     { "pageNumber": 13, "title": "Etapa 3: Organização da Sala...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
     { "pageNumber": 14, "title": "Etapa 4: Aquecimento na Lousa...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
     { "pageNumber": 15, "title": "Etapa 5: O Desafio Ativo...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
@@ -1387,24 +1389,26 @@ FORMATO JSON ESPERADO:
     { "pageNumber": 17, "title": "Etapa 7: Mediação nas Carteiras...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
     { "pageNumber": 18, "title": "Etapa 8: Partilha dos Dragões...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
     { "pageNumber": 19, "title": "Etapa 9: Dicas para Imprevistos...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." },
-    { "pageNumber": 20, "title": "Etapa 10: Conclusão Formativa...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." }
+    { "pageNumber": 20, "title": "Síntese e dica de atenção...", "text": "...", "dialogue": "...", "interactiveQuestion": "Ação Imediata...", "imagePrompt": "..." }
   ],
   "backCover": {
     "summary": "Resumo integrado contendo o encerramento da história e a síntese da metodologia ativa aplicada na aula.",
     "activity": "Desafio final para a turma e validação prática da missão pedagógica."
   },
   "lessonPlan": {
-    "title": "Receita de Bolo da Aula",
-    "duration": "50 minutos",
-    "location": "100% na Sala de Aula",
-    "materials": ["Folhas de papel/sulfite", "Lápis e canetinhas", "Lousa/Quadro"],
-    "activeMethodology": "Metodologia ativa integrada da aula",
+    "title": "Plano de aula",
+    "duration": "Duração definida na conversa",
+    "location": "Local definido na conversa",
+    "materials": ["Materiais definidos na conversa"],
+    "activeMethodology": "Metodologia ativa escolhida na conversa, sem substituição",
+    "methodologyReference": "Referência pertinente à metodologia, sem atribuições inventadas",
     "stepByStep": {
-      "beginning": "Início / Aquecimento (5-10 min): Leitura da história e pergunta-gatilho",
-      "middle": "Meio / Desenvolvimento Ativo (20-25 min): Desafio prático em equipes",
-      "ending": "Fim / Fechamento (10 min): Partilha rápida das soluções"
+      "beginning": "Início conforme combinado na conversa",
+      "middle": "Desenvolvimento conforme combinado na conversa",
+      "ending": "Fechamento conforme combinado na conversa"
     },
-    "chefTip": "Dica de adaptação para turma agitada ou aplicação 100% individual"
+    "neuroscienceTip": "Dica de atenção ou autorregulação que complementa a conversa",
+    "theoreticalBasis": "Base teórica pertinente e explicação breve da relação"
   }
 }`;
 

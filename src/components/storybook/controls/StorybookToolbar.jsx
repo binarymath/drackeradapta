@@ -28,7 +28,7 @@ export const StorybookToolbar = ({
     setIsFullscreen
 }) => {
     return (
-        <div className="flex items-center justify-between gap-3 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-amber-200/80 shadow-xs no-print w-full shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 bg-white/95 backdrop-blur-md px-3 sm:px-4 py-2.5 rounded-2xl border border-amber-200/80 shadow-xs no-print w-full shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-white shadow-2xs shrink-0">
                     <BookOpen className="w-4 h-4" />
@@ -40,7 +40,7 @@ export const StorybookToolbar = ({
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 min-w-0 max-w-full sm:shrink-0 overflow-x-auto">
                 {/* Barra de Formatação e Edição Rápida */}
                 <div className="flex items-center gap-2 bg-stone-50 border border-stone-200/90 rounded-xl p-1 shadow-2xs">
                     {/* Seletor de Elemento Textual + Controle de Fonte */}

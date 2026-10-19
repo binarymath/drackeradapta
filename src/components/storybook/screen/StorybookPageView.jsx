@@ -24,7 +24,7 @@ export const StorybookPageView = ({
     return (
         <>
             {/* Lado Esquerdo: Texto da História em Fundo Branco Limpo e Fluido */}
-            <div className={`flex-1 p-6 sm:p-8 md:p-10 flex flex-col ${isFullscreen ? 'justify-center' : 'justify-start'} gap-4 bg-white text-stone-900 overflow-y-auto border-b md:border-b-0 md:border-r border-stone-200`}>
+            <div className={`flex-1 min-h-[40vh] md:min-h-0 p-4 sm:p-8 md:p-10 flex flex-col ${isFullscreen ? 'justify-center' : 'justify-start'} gap-4 bg-white text-stone-900 overflow-visible md:overflow-y-auto border-b md:border-b-0 md:border-r border-stone-200`}>
                 <div className="flex flex-col gap-3.5 my-auto">
                     {/* Cabeçalho da Página */}
                     <div className="flex justify-between items-center pb-2 border-b border-stone-200">
@@ -196,7 +196,7 @@ export const StorybookPageView = ({
             </div>
 
             {/* Lado Direito: Área de Desenho / Ilustração ou Vídeo */}
-            <div className="flex-1 bg-stone-50/50 p-6 sm:p-8 flex flex-col items-center justify-center relative group overflow-hidden">
+            <div className="flex-1 min-h-[40vh] md:min-h-0 bg-stone-50/50 p-4 sm:p-8 flex flex-col items-center justify-center relative group overflow-hidden">
                 {currentPage.videoUrl && isPlayingVideo ? (
                     <div className="relative w-full h-full min-h-[300px] flex items-center justify-center rounded-2xl overflow-hidden bg-black shadow-lg">
                         <iframe

@@ -9,11 +9,11 @@ export const StorybookPagination = ({
     changePage
 }) => {
     return (
-        <div className="bg-white/95 backdrop-blur-md px-4 sm:px-6 py-2.5 sm:py-3 border-t border-stone-200 flex items-center justify-between z-40 shrink-0 no-print">
+        <div className="bg-white/95 backdrop-blur-md px-2 sm:px-6 py-2.5 sm:py-3 border-t border-stone-200 flex items-center justify-between gap-1 z-40 shrink-0 no-print">
             <button
                 onClick={() => changePage(currentPageIndex - 1, 'prev')}
                 disabled={currentPageIndex === 0 || isFlipping}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold text-xs text-brown-700 hover:bg-amber-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-1.5 sm:px-3 py-1.5 rounded-xl font-bold text-xs text-brown-700 hover:bg-amber-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer shrink-0"
                 title="Página Anterior (Seta Esquerda ←)"
             >
                 <ChevronLeft className="w-4 h-4" />
@@ -21,13 +21,13 @@ export const StorybookPagination = ({
                 <kbd className="hidden md:inline-block ml-1 px-1.5 py-0.5 text-[10px] font-sans font-semibold bg-stone-100 border border-stone-300 rounded text-stone-600">←</kbd>
             </button>
 
-            <div className="flex items-center gap-1 sm:gap-1.5">
+            <div className="flex items-center justify-center gap-1 sm:gap-1.5 min-w-0 overflow-hidden">
                 {Array.from({ length: totalViews }).map((_, idx) => (
                     <button
                         key={idx}
                         onClick={() => changePage(idx, idx > currentPageIndex ? 'next' : 'prev')}
                         disabled={isFlipping}
-                        className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all cursor-pointer ${
+                        className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all cursor-pointer shrink-0 ${
                             currentPageIndex === idx 
                                 ? 'bg-amber-600 scale-125 shadow-2xs' 
                                 : 'bg-stone-300 hover:bg-amber-300'
@@ -35,7 +35,7 @@ export const StorybookPagination = ({
                         title={idx === 0 ? 'Capa' : idx === totalViews - 1 ? 'Contracapa' : `Página ${idx}`}
                     />
                 ))}
-                <span className="text-xs font-extrabold text-brown-800 ml-2 font-mono">
+                <span className="text-[10px] sm:text-xs font-extrabold text-brown-800 ml-1 sm:ml-2 font-mono whitespace-nowrap">
                     {currentPageIndex === 0 ? 'Capa' : currentPageIndex === totalViews - 1 ? 'Contracapa' : `${currentPageIndex} de ${pagesCount}`}
                 </span>
             </div>
@@ -43,7 +43,7 @@ export const StorybookPagination = ({
             <button
                 onClick={() => changePage(currentPageIndex + 1, 'next')}
                 disabled={currentPageIndex === totalViews - 1 || isFlipping}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold text-xs text-brown-700 hover:bg-amber-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-1.5 sm:px-3 py-1.5 rounded-xl font-bold text-xs text-brown-700 hover:bg-amber-100 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer shrink-0"
                 title="Próxima Página (Seta Direita →)"
             >
                 <span className="hidden sm:inline">Próxima Página</span>
