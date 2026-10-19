@@ -283,12 +283,109 @@ export const StorybookViewer = ({ data, onUpdate }) => {
         toast(`Texto ${pageLabel} copiado para a área de transferência!`);
     };
 
-    // Imprimir o livro no navegador
-    const handlePrint = () => {
-        toast('Preparando livro para impressão e PDF...');
-        setTimeout(() => {
+    const exportStorybookPdf = async () => {
+        const sourcePages = Array.from(document.querySelectorAll('.storybook-print-page'));
+        if (sourcePages.length === 0) {
+            toast('Não foi possível localizar as páginas do livro.');
+            return;
+        }
+
+        const stage = document.createElement('div');
+        stage.style.cssText = 'position:fixed;left:0;top:0;z-index:-1;opacity:0;pointer-events:none;width:1123px;background:#fff;';
+
+        const pageWidthPx = 1123;
+        const pageHeightPx = 775;
+        sourcePages.forEach(sourcePage => {
+            const page = sourcePage.cloneNode(true);
+            page.style.cssText += `;display:flex;width:${pageWidthPx}px;height:${pageHeightPx}px;max-width:${pageWidthPx}px;max-height:${pageHeightPx}px;padding:26.46px 37.8px;box-sizing:border-box;background:#fff;color:#000;overflow:hidden;flex-direction:row;align-items:stretch;`;
+            page.querySelectorAll('.print-half-page').forEach(half => {
+                half.style.cssText += ';width:50%;max-width:50%;height:100%;flex:0 0 50%;box-sizing:border-box;';
+            });
+            stage.appendChild(page);
+        });
+
+        document.body.appendChild(stage);
+        toast('Gerando PDF em formato paisagem...');
+
+        try {
+            const [{ default: html2canvas }, { PDFDocument }] = await Promise.all([
+                import('html2canvas'),
+                import('pdf-lib')
+            ]);
+            const pdf = await PDFDocument.create();
+            const pdfWidth = 841.89;
+            const pdfHeight = 595.28;
+            const pageNodes = Array.from(stage.children);
+
+            for (const pageNode of pageNodes) {
+                const canvas = await html2canvas(pageNode, {
+                    scale: 1.5,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    width: pageWidthPx,
+                    height: pageHeightPx,
+                    windowWidth: pageWidthPx,
+                    windowHeight: pageHeightPx,
+                    scrollX: 0,
+                    scrollY: 0,
+                    onclone: clonedDocument => {
+                        const clonedStage = clonedDocument.querySelector('[style*="z-index: -1"]');
+                        if (clonedStage) clonedStage.style.opacity = '1';
+                    }
+                });
+                const imageBytes = await new Promise((resolve, reject) => {
+                    canvas.toBlob(blob => {
+                        if (!blob) {
+                            reject(new Error('Não foi possível rasterizar uma página do livro.'));
+                            return;
+                        }
+                        blob.arrayBuffer().then(buffer => resolve(new Uint8Array(buffer)), reject);
+                    }, 'image/jpeg', 0.94);
+                });
+                const image = await pdf.embedJpg(imageBytes);
+                const pdfPage = pdf.addPage([pdfWidth, pdfHeight]);
+                const imageHeight = pdfWidth * (pageHeightPx / pageWidthPx);
+                pdfPage.drawImage(image, {
+                    x: 0,
+                    y: pdfHeight - imageHeight,
+                    width: pdfWidth,
+                    height: imageHeight
+                });
+                canvas.width = 1;
+                canvas.height = 1;
+            }
+
+            const pdfBytes = await pdf.save();
+            const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            const downloadLink = document.createElement('a');
+            downloadLink.href = pdfUrl;
+            downloadLink.download = `${(book.title || 'storybook').replace(/[\\/:*?"<>|]/g, '-').trim()}.pdf`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            downloadLink.remove();
+            setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
+            toast('PDF do Storybook baixado em A4 paisagem.');
+        } catch (error) {
+            console.error('[StorybookViewer] Erro na exportação de PDF para tablet:', error);
+            toast('Não foi possível gerar o PDF direto. Abrindo a impressão do navegador...');
             window.print();
-        }, 80);
+        } finally {
+            stage.remove();
+        }
+    };
+
+    // Mantém a impressão nativa do desktop, onde o layout atual já está validado.
+    const handlePrint = () => {
+        const isTouchDevice = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 1;
+        if (isTouchDevice) {
+            exportStorybookPdf();
+            return;
+        }
+
+        toast('Preparando livro para impressão e PDF...');
+        setTimeout(() => window.print(), 80);
     };
 
     return (
