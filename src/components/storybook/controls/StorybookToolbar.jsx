@@ -15,6 +15,8 @@ export const StorybookToolbar = ({
     book,
     targetTextPart,
     setTargetTextPart,
+    wholeStoryScale,
+    hasStoryPages,
     currentFontScales,
     currentAlignment,
     adjustFontScale,
@@ -53,6 +55,7 @@ export const StorybookToolbar = ({
                             title="Escolha qual parte textual deseja redimensionar"
                         >
                             <option value="text">📖 Narrativa / Texto</option>
+                            {hasStoryPages && <option value="story">📚 Toda a história</option>}
                             <option value="title">🏷️ Título</option>
                             <option value="dialogue">💬 Falas dos Personagens</option>
                             <option value="question">❓ Desafio de Atenção</option>
@@ -71,7 +74,11 @@ export const StorybookToolbar = ({
                             A-
                         </button>
                         <span className="text-indigo-600 font-mono font-extrabold text-xs min-w-[36px] text-center" title="Percentual da fonte ou imagem selecionada">
-                            {targetTextPart === 'all' ? `${currentFontScales.text}%` : `${currentFontScales[targetTextPart] || 100}%`}
+                            {targetTextPart === 'story'
+                                ? `${wholeStoryScale}%`
+                                : targetTextPart === 'all'
+                                    ? `${currentFontScales.text}%`
+                                    : `${currentFontScales[targetTextPart] || 100}%`}
                         </span>
                         <button
                             type="button"

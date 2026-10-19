@@ -67,29 +67,70 @@ export const StorybookViewer = ({ data, onUpdate }) => {
     const [targetTextPart, setTargetTextPart] = useState('text'); // 'text' | 'title' | 'dialogue' | 'question' | 'image' | 'all'
     const [pageFontScales, setPageFontScales] = useState({});
     const [pageTextAligns, setPageTextAligns] = useState({});
+    const [wholeStoryScale, setWholeStoryScale] = useState(100);
+    const [wholeStoryAlignment, setWholeStoryAlignment] = useState('justify');
     const [isEditingText, setIsEditingText] = useState(false);
 
+    const isTeacherGuide = (book.theme || '').toLowerCase().includes('guia');
+    const storyPageCount = isTeacherGuide ? 0 : Math.min(pages.length, pages.length > 10 ? 10 : pages.length);
+    const isStoryPageKey = (pageKey) => {
+        const pageNumber = Number(pageKey);
+        return Number.isInteger(pageNumber) && pageNumber >= 1 && pageNumber <= storyPageCount;
+    };
+
     // Helpers para obter estilos de uma página específica
-    const getPageScales = (pageKey) => ({
-        ...DEFAULT_FONT_SCALES,
-        ...(pageFontScales[pageKey] || {})
-    });
-    const getPageAligns = (pageKey) => ({
-        ...DEFAULT_TEXT_ALIGNS,
-        ...(pageTextAligns[pageKey] || {})
-    });
+    const getPageScales = (pageKey) => {
+        const scales = {
+            ...DEFAULT_FONT_SCALES,
+            ...(pageFontScales[pageKey] || {})
+        };
+        if (isStoryPageKey(pageKey)) {
+            ['text', 'title', 'dialogue', 'question'].forEach(part => {
+                scales[part] = Math.round(scales[part] * wholeStoryScale / 100);
+            });
+        }
+        return scales;
+    };
+    const getPageAligns = (pageKey) => {
+        const aligns = {
+            ...DEFAULT_TEXT_ALIGNS,
+            ...(isStoryPageKey(pageKey) ? {
+                text: wholeStoryAlignment,
+                title: wholeStoryAlignment,
+                dialogue: wholeStoryAlignment,
+                question: wholeStoryAlignment
+            } : {}),
+            ...(pageTextAligns[pageKey] || {})
+        };
+        return aligns;
+    };
 
     // Estilos da página atualmente ativa na tela
     const currentFontScales = getPageScales(activePageKey);
     const currentTextAligns = getPageAligns(activePageKey);
 
     // Alinhamento atual da parte selecionada na página ativa
-    const currentAlignment = targetTextPart === 'all' 
-        ? (currentTextAligns.text || 'justify') 
-        : (currentTextAligns[targetTextPart] || 'left');
+    const currentAlignment = targetTextPart === 'all'
+        ? (currentTextAligns.text || 'justify')
+        : targetTextPart === 'story'
+            ? wholeStoryAlignment
+            : (currentTextAligns[targetTextPart] || 'left');
 
     // Ajusta o alinhamento para a parte selecionada ou para todas na PÁGINA ATIVA
     const setAlignmentForTarget = (align) => {
+        if (targetTextPart === 'story') {
+            setWholeStoryAlignment(align);
+            setPageTextAligns(prev => Object.fromEntries(
+                Object.entries(prev).map(([key, value]) => {
+                    if (!isStoryPageKey(key)) return [key, value];
+                    const pageAlign = { ...value };
+                    ['text', 'title', 'dialogue', 'question'].forEach(part => delete pageAlign[part]);
+                    return [key, pageAlign];
+                })
+            ));
+            return;
+        }
+
         setPageTextAligns(prev => {
             const pageAlign = { ...DEFAULT_TEXT_ALIGNS, ...(prev[activePageKey] || {}) };
             if (targetTextPart === 'all') {
@@ -116,6 +157,11 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
     // Ajusta o tamanho da fonte ou imagem para o elemento selecionado ou para todos na PÁGINA ATIVA
     const adjustFontScale = (delta) => {
+        if (targetTextPart === 'story') {
+            setWholeStoryScale(prev => Math.min(220, Math.max(80, prev + delta)));
+            return;
+        }
+
         setPageFontScales(prev => {
             const pageScale = { ...DEFAULT_FONT_SCALES, ...(prev[activePageKey] || {}) };
             if (targetTextPart === 'all') {
@@ -295,15 +341,6 @@ export const StorybookViewer = ({ data, onUpdate }) => {
 
         const pageWidthPx = 1123;
         const pageHeightPx = 775;
-        sourcePages.forEach(sourcePage => {
-            const page = sourcePage.cloneNode(true);
-            page.style.cssText += `;display:flex;width:${pageWidthPx}px;height:${pageHeightPx}px;max-width:${pageWidthPx}px;max-height:${pageHeightPx}px;padding:26.46px 37.8px;box-sizing:border-box;background:#fff;color:#000;overflow:hidden;flex-direction:row;align-items:stretch;`;
-            page.querySelectorAll('.print-half-page').forEach(half => {
-                half.style.cssText += ';width:50%;max-width:50%;height:100%;flex:0 0 50%;box-sizing:border-box;';
-            });
-            stage.appendChild(page);
-        });
-
         document.body.appendChild(stage);
         toast('Gerando PDF em formato paisagem...');
 
@@ -315,11 +352,17 @@ export const StorybookViewer = ({ data, onUpdate }) => {
             const pdf = await PDFDocument.create();
             const pdfWidth = 841.89;
             const pdfHeight = 595.28;
-            const pageNodes = Array.from(stage.children);
 
-            for (const pageNode of pageNodes) {
+            for (const sourcePage of sourcePages) {
+                const pageNode = sourcePage.cloneNode(true);
+                pageNode.style.cssText += `;display:flex;width:${pageWidthPx}px;height:${pageHeightPx}px;max-width:${pageWidthPx}px;max-height:${pageHeightPx}px;padding:26.46px 37.8px;box-sizing:border-box;background:#fff;color:#000;overflow:hidden;flex-direction:row;align-items:stretch;`;
+                pageNode.querySelectorAll('.print-half-page').forEach(half => {
+                    half.style.cssText += ';width:50%;max-width:50%;height:100%;flex:0 0 50%;box-sizing:border-box;';
+                });
+                stage.appendChild(pageNode);
+
                 const canvas = await html2canvas(pageNode, {
-                    scale: 1.5,
+                    scale: 1.1,
                     useCORS: true,
                     logging: false,
                     backgroundColor: '#ffffff',
@@ -341,7 +384,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                             return;
                         }
                         blob.arrayBuffer().then(buffer => resolve(new Uint8Array(buffer)), reject);
-                    }, 'image/jpeg', 0.94);
+                    }, 'image/jpeg', 0.82);
                 });
                 const image = await pdf.embedJpg(imageBytes);
                 const pdfPage = pdf.addPage([pdfWidth, pdfHeight]);
@@ -354,6 +397,7 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                 });
                 canvas.width = 1;
                 canvas.height = 1;
+                pageNode.remove();
             }
 
             const pdfBytes = await pdf.save();
@@ -400,6 +444,8 @@ export const StorybookViewer = ({ data, onUpdate }) => {
                 pagesCount={pages.length}
                 targetTextPart={targetTextPart}
                 setTargetTextPart={setTargetTextPart}
+                wholeStoryScale={wholeStoryScale}
+                hasStoryPages={storyPageCount > 0}
                 currentFontScales={currentFontScales}
                 currentAlignment={currentAlignment}
                 adjustFontScale={adjustFontScale}
