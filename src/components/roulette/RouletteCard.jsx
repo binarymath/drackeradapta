@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { gameAudio } from '../../utils/gameAudio';
-import { getDirectImageUrl, handleDriveImageError, renderQuestionText, isYouTubeUrl, getYouTubeEmbedUrl } from '../../utils/urlUtils';
+import { getDirectImageUrl, handleDriveImageError, renderQuestionText, isYouTubeUrl, getYouTubeEmbedUrl, hasInlineMedia, getQuestionKey, normalizeSnippetTags } from '../../utils/urlUtils';
 import { RouletteTimerBomb } from './RouletteTimerBomb';
 import { StudentSelectorModal } from './card-modals/StudentSelectorModal';
 import { QuestionSelectorModal } from './card-modals/QuestionSelectorModal';
@@ -79,42 +79,57 @@ export const RouletteCard = ({
         }
     }, []);
 
-    // Controle de Tamanho de Fonte para Acessibilidade / Lousa / Projetor
-    const [fontScale, setFontScale] = useState(() => {
+    // Chave única para isolar tamanho de fonte e alinhamento por questão
+    const activeQuestionKey = getQuestionKey(winner);
+
+    // Controle de Tamanho de Fonte INDEPENDENTE por Pergunta (para projeção / lousa)
+    const [questionFontScales, setQuestionFontScales] = useState(() => {
         if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('preferred_roulette_font_scale');
-            if (saved !== null) {
-                const parsed = parseInt(saved, 10);
-                if (!isNaN(parsed) && parsed >= 50 && parsed <= 300) return parsed;
-            }
+            try {
+                const saved = localStorage.getItem('preferred_roulette_question_font_scales_v2');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && typeof parsed === 'object') return parsed;
+                }
+            } catch (e) {}
         }
-        return 100;
+        return {};
     });
 
+    const fontScale = questionFontScales[activeQuestionKey] !== undefined 
+        ? questionFontScales[activeQuestionKey] 
+        : 100;
+
     const handleIncreaseFont = () => {
-        setFontScale(prev => {
-            const next = Math.min(300, prev + 5);
-            try { localStorage.setItem('preferred_roulette_font_scale', String(next)); } catch (e) {}
-            gameAudio.playTick();
-            return next;
+        const next = Math.min(300, fontScale + 5);
+        setQuestionFontScales(prev => {
+            const updated = { ...prev, [activeQuestionKey]: next };
+            try { localStorage.setItem('preferred_roulette_question_font_scales_v2', JSON.stringify(updated)); } catch (e) {}
+            return updated;
         });
-    };
-
-    const handleDecreaseFont = () => {
-        setFontScale(prev => {
-            const next = Math.max(50, prev - 5);
-            try { localStorage.setItem('preferred_roulette_font_scale', String(next)); } catch (e) {}
-            gameAudio.playTick();
-            return next;
-        });
-    };
-
-    const handleResetFont = () => {
-        setFontScale(100);
-        try { localStorage.setItem('preferred_roulette_font_scale', '100'); } catch (e) {}
         gameAudio.playTick();
     };
 
+    const handleDecreaseFont = () => {
+        const next = Math.max(50, fontScale - 5);
+        setQuestionFontScales(prev => {
+            const updated = { ...prev, [activeQuestionKey]: next };
+            try { localStorage.setItem('preferred_roulette_question_font_scales_v2', JSON.stringify(updated)); } catch (e) {}
+            return updated;
+        });
+        gameAudio.playTick();
+    };
+
+    const handleResetFont = () => {
+        setQuestionFontScales(prev => {
+            const updated = { ...prev, [activeQuestionKey]: 100 };
+            try { localStorage.setItem('preferred_roulette_question_font_scales_v2', JSON.stringify(updated)); } catch (e) {}
+            return updated;
+        });
+        gameAudio.playTick();
+    };
+
+    // Alinhamento de texto INDEPENDENTE por Pergunta
     const [textAligns, setTextAligns] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('preferred_roulette_question_aligns_v2');
@@ -128,11 +143,14 @@ export const RouletteCard = ({
         return {};
     });
 
-    const currentTextAlign = textAligns[winner?.question] || 'text-left';
+    const currentTextAlign = textAligns[activeQuestionKey] || (winner?.question ? textAligns[winner.question] : null) || 'text-left';
 
     const handleSetAlign = (alignClass) => {
         setTextAligns(prev => {
-            const next = { ...prev, [winner?.question]: alignClass };
+            const next = { ...prev, [activeQuestionKey]: alignClass };
+            if (winner?.question) {
+                next[winner.question] = alignClass;
+            }
             try { localStorage.setItem('preferred_roulette_question_aligns_v2', JSON.stringify(next)); } catch(e){}
             return next;
         });
@@ -681,7 +699,7 @@ export const RouletteCard = ({
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <div className="inline-flex items-center justify-center gap-1.5 text-indigo-600 font-bold bg-indigo-50 px-3.5 py-1 rounded-full border border-indigo-100 text-xs">
                                         <HelpCircle className="w-4 h-4" />
-                                        <span>Pergunta da Rodada</span>
+                                        <span>{winner.questionNumber ? `Pergunta ${winner.questionNumber}` : 'Pergunta da Rodada'}</span>
                                     </div>
 
                                     {/* Chip para restaurar cronômetro se estiver minimizado no canto */}
@@ -744,30 +762,32 @@ export const RouletteCard = ({
                                     </div>
                                 </div>
 
-                                {winner.imageUrl && !(winner.question || '').match(/\[img/i) && (
-                                    <div className="mb-4 flex justify-center w-full">
+                                {Boolean(winner.imageUrl && String(winner.imageUrl).trim() && String(winner.imageUrl).trim() !== '-' && String(winner.imageUrl).trim() !== '—' && !hasInlineMedia(winner.question)) && (
+                                    <div className="mb-5 flex justify-center w-full">
                                         {isYouTubeUrl(winner.imageUrl) ? (
                                             <iframe
                                                 src={getYouTubeEmbedUrl(winner.imageUrl)}
                                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                                 allowFullScreen
-                                                className="aspect-video w-full max-w-2xl rounded-xl border-2 border-slate-200 shadow-sm"
+                                                className="aspect-video w-full max-w-2xl rounded-2xl border-2 border-slate-200 shadow-md"
                                             />
                                         ) : (
-                                            <img 
-                                                src={getDirectImageUrl(winner.imageUrl)} 
-                                                alt="" 
-                                                className="max-h-48 rounded-xl border-2 border-slate-200 shadow-sm object-contain"
-                                                referrerPolicy="no-referrer"
-                                                onError={handleDriveImageError}
-                                            />
+                                            <div className="relative group max-w-2xl">
+                                                <img 
+                                                    src={winner.imageUrl.startsWith('data:') ? winner.imageUrl : getDirectImageUrl(winner.imageUrl)} 
+                                                    alt="Imagem da questão" 
+                                                    className="max-h-64 sm:max-h-80 w-auto rounded-2xl border-2 border-indigo-100 bg-white shadow-md object-contain p-2 hover:shadow-lg transition-all"
+                                                    referrerPolicy="no-referrer"
+                                                    onError={winner.imageUrl.startsWith('data:') ? undefined : handleDriveImageError}
+                                                />
+                                            </div>
                                         )}
                                     </div>
                                 )}
 
                                 <div className="relative">
                                         <div className={`text-[1.25em] sm:text-[1.5em] text-slate-800 font-bold leading-relaxed transition-all whitespace-pre-wrap w-full`}>
-                                            {(winner.question || '').split('\n').map((line, idx) => {
+                                            {normalizeSnippetTags(winner.question || '').split('\n').map((line, idx) => {
                                                 let lineAlign = currentTextAlign;
                                                 let content = line;
 
@@ -794,31 +814,70 @@ export const RouletteCard = ({
                                         </div>
                                     </div>
 
-                                {/* ALTERNATIVAS DE MÚLTIPLA ESCOLHA (SE VINDAS DE UM QUIZ) */}
+                                {/* INDICADOR DE QUESTÃO DISCURSIVA */}
+                                {winner.isDiscursive && (
+                                    <div className="mt-3 flex justify-center">
+                                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-bold shadow-2xs">
+                                            <span>📝</span>
+                                            <span>Questão Discursiva / Resposta Aberta</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ALTERNATIVAS DE MÚLTIPLA ESCOLHA (SE VINDAS DE UM QUIZ OU PLANILHA) */}
                                 {winner.options && Array.isArray(winner.options) && winner.options.length > 0 && (
                                     <div className="mt-3 pt-2">
                                         <button
                                             type="button"
                                             onClick={() => setShowAlternatives(!showAlternatives)}
-                                            className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-full transition-colors border border-indigo-200 cursor-pointer"
+                                            className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3.5 py-1.5 rounded-full transition-colors border border-indigo-200 cursor-pointer shadow-2xs"
                                         >
                                             {showAlternatives ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                             {showAlternatives ? 'Ocultar Alternativas' : 'Ver Alternativas (A, B, C, D)'}
                                         </button>
 
                                         {showAlternatives && (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left mt-2.5 animate-in fade-in slide-in-from-top-1">
-                                                {winner.options.map((opt, oi) => (
-                                                    <div 
-                                                        key={oi}
-                                                        className={`p-2.5 rounded-xl border border-indigo-100 bg-indigo-50/50 text-[0.875em] sm:text-[1em] font-medium text-slate-800 flex items-start gap-2 transition-all`}
-                                                    >
-                                                        <span className="w-5 h-5 rounded-md bg-indigo-600 text-white font-black flex items-center justify-center text-[11px] shrink-0">
-                                                            {String.fromCharCode(65 + oi)}
-                                                        </span>
-                                                        <span className="leading-snug pt-0.5">{opt}</span>
-                                                    </div>
-                                                ))}
+                                            <div className={`grid gap-2.5 text-left mt-3 animate-in fade-in slide-in-from-top-1 ${
+                                                winner.options.some(o => (typeof o === 'object' && o?.imageUrl) || (winner.optionImages && Object.values(winner.optionImages).some(Boolean)))
+                                                    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+                                                    : 'grid-cols-1 sm:grid-cols-2'
+                                            }`}>
+                                                {winner.options.map((opt, oi) => {
+                                                    const isObj = typeof opt === 'object' && opt !== null;
+                                                    const letter = isObj ? (opt.letter || String.fromCharCode(65 + oi)) : String.fromCharCode(65 + oi);
+                                                    const text = isObj ? (opt.text || '') : String(opt || '');
+                                                    const optImg = isObj ? (opt.imageUrl || '') : (winner.optionImages?.[letter] || '');
+
+                                                    return (
+                                                        <div 
+                                                            key={oi}
+                                                            className="p-3 rounded-2xl border-2 border-indigo-100/90 bg-white/95 hover:border-indigo-300 shadow-2xs flex flex-col justify-between gap-2 transition-all"
+                                                        >
+                                                            <div className="flex items-start gap-2">
+                                                                <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-black flex items-center justify-center text-xs shrink-0 shadow-2xs">
+                                                                    {letter}
+                                                                </span>
+                                                                {text && (
+                                                                    <span className="leading-snug pt-0.5 text-xs sm:text-sm font-semibold text-slate-800 break-words">
+                                                                        {text}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {optImg && (
+                                                                <div className="mt-1 flex items-center justify-center bg-slate-50 rounded-xl p-1.5 border border-slate-200 overflow-hidden min-h-[90px] max-h-36">
+                                                                    <img 
+                                                                        src={optImg.startsWith('data:') ? optImg : getDirectImageUrl(optImg)} 
+                                                                        alt={`Alternativa ${letter}`}
+                                                                        className="max-h-32 max-w-full rounded-lg object-contain shadow-2xs hover:scale-105 transition-transform"
+                                                                        referrerPolicy="no-referrer"
+                                                                        onError={optImg.startsWith('data:') ? undefined : handleDriveImageError}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                     </div>

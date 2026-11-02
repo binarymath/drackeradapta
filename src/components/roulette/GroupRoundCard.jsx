@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { CheckCircle, XCircle, RotateCcw, RotateCw, Eye, EyeOff, Maximize2, Minimize2, Trophy, Type, List, Shuffle, AlignLeft, AlignCenter, AlignRight, AlignJustify, Edit3, HelpCircle } from 'lucide-react';
 import { QuestionEditModal } from './card-modals/QuestionEditModal';
 import { RouletteTimerBomb } from './RouletteTimerBomb';
-import { getDirectImageUrl, handleDriveImageError, renderQuestionText, isYouTubeUrl, getYouTubeEmbedUrl } from "../../utils/urlUtils";
+import { getDirectImageUrl, handleDriveImageError, renderQuestionText, isYouTubeUrl, getYouTubeEmbedUrl, hasInlineMedia, getQuestionKey, normalizeSnippetTags } from "../../utils/urlUtils";
 import { gameAudio } from '../../utils/gameAudio';
 
 const FONT_LEVELS = [
@@ -15,10 +15,18 @@ const FONT_LEVELS = [
 ];
 
 export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, onChangeQuestion, onEditQuestionContent, onClear, allQuestions = [], usedQuestions = new Set() }) => {
-    const [fontLevel, setFontLevel] = useState(() => {
-        try { const s = localStorage.getItem('preferred_roulette_card_font_level'); if (s !== null) { const p = parseInt(s, 10); if (!isNaN(p) && p >= 0 && p < FONT_LEVELS.length) return p; } } catch (e) {}
-        return 1;
+    // Escala de fonte INDEPENDENTE por questão de cada equipe
+    const [questionFontLevels, setQuestionFontLevels] = useState(() => {
+        try {
+            const s = localStorage.getItem('preferred_roulette_group_font_levels_v2');
+            if (s) {
+                const parsed = JSON.parse(s);
+                if (parsed && typeof parsed === 'object') return parsed;
+            }
+        } catch (e) {}
+        return {};
     });
+
     const [spokespersons, setSpokespersons] = useState({});
     const [isCardMinimized, setIsCardMinimized] = useState(false);
     const [showAnswer, setShowAnswer] = useState(false);
@@ -26,6 +34,7 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
     const [showQuestionSelector, setShowQuestionSelector] = useState(false);
     const [timerViewMode, setTimerViewMode] = useState(() => { try { return localStorage.getItem('preferred_roulette_timer_mode') || 'normal'; } catch (e) { return 'normal'; } });
 
+    // Alinhamento INDEPENDENTE por questão
     const [textAligns, setTextAligns] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('preferred_roulette_question_aligns_v2');
@@ -38,9 +47,14 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
     
     const [showQuestionEditModal, setShowQuestionEditModal] = useState(false);
 
+    const slot = slots[activeTab];
+    const slotKey = getQuestionKey(slot);
+
+    const fontLevel = (slotKey && questionFontLevels[slotKey] !== undefined)
+        ? questionFontLevels[slotKey]
+        : 1;
     const currentFont = FONT_LEVELS[fontLevel] || FONT_LEVELS[1];
 
-    
     const handleDrawSpokesperson = (groupId) => {
         const groupSlot = slots.find(s => s.group.id === groupId);
         const members = groupSlot?.group?.members || [];
@@ -50,17 +64,41 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
         gameAudio.playTick();
     };
 
-    const handleIncreaseFont = () => setFontLevel(prev => { const next = Math.min(FONT_LEVELS.length - 1, prev + 1); try { localStorage.setItem('preferred_roulette_card_font_level', String(next)); } catch (e) {} gameAudio.playTick(); return next; });
-    const handleDecreaseFont = () => setFontLevel(prev => { const next = Math.max(0, prev - 1); try { localStorage.setItem('preferred_roulette_card_font_level', String(next)); } catch (e) {} gameAudio.playTick(); return next; });
-    const handleResetFont = () => { setFontLevel(1); try { localStorage.setItem('preferred_roulette_card_font_level', '1'); } catch (e) {} gameAudio.playTick(); };
+    const handleIncreaseFont = () => {
+        const next = Math.min(FONT_LEVELS.length - 1, fontLevel + 1);
+        setQuestionFontLevels(prev => {
+            const updated = { ...prev, [slotKey]: next };
+            try { localStorage.setItem('preferred_roulette_group_font_levels_v2', JSON.stringify(updated)); } catch (e) {}
+            return updated;
+        });
+        gameAudio.playTick();
+    };
 
-    const slot = slots[activeTab];
+    const handleDecreaseFont = () => {
+        const next = Math.max(0, fontLevel - 1);
+        setQuestionFontLevels(prev => {
+            const updated = { ...prev, [slotKey]: next };
+            try { localStorage.setItem('preferred_roulette_group_font_levels_v2', JSON.stringify(updated)); } catch (e) {}
+            return updated;
+        });
+        gameAudio.playTick();
+    };
 
-    const currentTextAlign = textAligns[slot?.question] || 'text-left';
+    const handleResetFont = () => {
+        setQuestionFontLevels(prev => {
+            const updated = { ...prev, [slotKey]: 1 };
+            try { localStorage.setItem('preferred_roulette_group_font_levels_v2', JSON.stringify(updated)); } catch (e) {}
+            return updated;
+        });
+        gameAudio.playTick();
+    };
+
+    const currentTextAlign = textAligns[slotKey] || (slot?.question ? textAligns[slot.question] : null) || 'text-left';
 
     const handleSetAlign = (alignClass) => {
         setTextAligns(prev => {
-            const next = { ...prev, [slot?.question]: alignClass };
+            const next = { ...prev, [slotKey]: alignClass };
+            if (slot?.question) next[slot.question] = alignClass;
             try { localStorage.setItem('preferred_roulette_question_aligns_v2', JSON.stringify(next)); } catch(e){}
             return next;
         });
@@ -299,7 +337,7 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
                                     const isLong = (slot.question || '').length > 150;
                                     return (
                                         <div className="relative my-auto w-full pt-8 sm:pt-4">
-                                        {slot.imageUrl && !(slot.question || '').match(/\[img/i) && (
+                                        {slot.imageUrl && !hasInlineMedia(slot.question) && (
                                             <div className="mb-4 flex justify-center w-full">
                                                 {isYouTubeUrl(slot.imageUrl) ? (
                                                     <iframe
@@ -320,7 +358,7 @@ export const GroupRoundCard = ({ slots, activeTab, onTabChange, onSlotResult, on
                                             </div>
                                         )}
                                         <div className={`font-black ${currentTextAlign} text-slate-800 ${currentFont.questionClass} ${isLong ? 'leading-snug' : 'leading-tight'} mx-auto w-full max-w-[95%] py-2 drop-shadow-sm`}>
-                                            {(slot.question || '').split('\n').map((line, idx) => {
+                                            {normalizeSnippetTags(slot.question || '').split('\n').map((line, idx) => {
                                                 let lineAlign = currentTextAlign;
                                                 let content = line;
 

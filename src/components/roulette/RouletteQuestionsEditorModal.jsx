@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, X, AlertCircle, Plus, Trash2, CheckCircle, FileText, Check } from 'lucide-react';
+import { Save, Image as ImageIcon, X, AlertCircle, Plus, Trash2, CheckCircle, FileText, Check, Upload } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { useActivity } from '../../contexts/ActivityContext';
 import { convertQuizQuestionsToRoulette } from '../../services/questionTransitionService';
 import { gameAudio } from '../../utils/gameAudio';
-import { getDirectImageUrl, handleDriveImageError, isYouTubeUrl, getYouTubeEmbedUrl } from '../../utils/urlUtils';
+import { getDirectImageUrl, handleDriveImageError, isYouTubeUrl, getYouTubeEmbedUrl, toDirectImageUrl } from '../../utils/urlUtils';
 
 export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, updateActivityData }) => {
     // Trabalharemos com uma cópia local durante a edição
@@ -31,11 +31,14 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
             // Inicializar estado local copiando as propriedades essenciais
             setLocalQuestions(uniqueQuestions.map(q => ({
                 id: q.id || Math.random().toString(36).substr(2, 9),
+                questionNumber: q.questionNumber || undefined,
                 question: q.question,
                 answer: q.answer || '',
                 difficulty: q.difficulty || 'Média',
                 imageUrl: q.imageUrl || '',
+                isDiscursive: q.isDiscursive || undefined,
                 options: q.options || undefined,
+                optionImages: q.optionImages || undefined,
                 isActive: q.isActive !== false,
                 name: q.name || '' // keep for legacy compatibility
             })));
@@ -56,27 +59,68 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
         setLocalQuestions(prev => prev.map(q => q.id === id ? { ...q, answer: newAnswer } : q));
     };
 
+    const applySnippetTagToQuestion = (qId, openTag, closeTag = '') => {
+        const el = document.getElementById(`textarea-q-${qId}`);
+        if (!el) {
+            handleQuestionChange(qId, (localQuestions.find(q => q.id === qId)?.question || '') + `${openTag}trecho${closeTag}`);
+            return;
+        }
+
+        const start = el.selectionStart || 0;
+        const end = el.selectionEnd || 0;
+        const currentText = el.value || '';
+        const selectedText = currentText.substring(start, end);
+
+        let prefix = '';
+        let suffix = '';
+        let inner = selectedText;
+
+        if (inner) {
+            const leadMatch = inner.match(/^(\s+)/);
+            if (leadMatch) {
+                prefix = leadMatch[0];
+                inner = inner.slice(prefix.length);
+            }
+            const trailMatch = inner.match(/(\s+)$/);
+            if (trailMatch) {
+                suffix = trailMatch[0];
+                inner = inner.slice(0, -suffix.length);
+            }
+        }
+
+        const innerContent = inner || 'trecho';
+        const replacement = `${prefix}${openTag}${innerContent}${closeTag}${suffix}`;
+
+        const newText = currentText.substring(0, start) + replacement + currentText.substring(end);
+        handleQuestionChange(qId, newText);
+
+        setTimeout(() => {
+            el.focus();
+            const selStart = start + prefix.length + openTag.length;
+            const selEnd = selStart + innerContent.length;
+            el.setSelectionRange(selStart, selEnd);
+        }, 20);
+    };
+
     const handleDifficultyChange = (id, newDiff) => {
         setLocalQuestions(prev => prev.map(q => q.id === id ? { ...q, difficulty: newDiff } : q));
     };
 
-    const formatImageUrl = (url) => {
-        if (!url) return '';
-        // Converte link de visualização do Google Drive para link de imagem direto (uc?export=view)
-        const matchFile = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (matchFile && matchFile[1]) {
-            return `https://drive.google.com/uc?export=view&id=${matchFile[1]}`;
-        }
-        const matchId = url.match(/id=([a-zA-Z0-9_-]+)/);
-        if (url.includes('drive.google.com') && matchId && matchId[1]) {
-            return `https://drive.google.com/uc?export=view&id=${matchId[1]}`;
-        }
-        return url;
+    const handleImageUrlChange = (id, newUrl) => {
+        const formattedUrl = toDirectImageUrl((newUrl || '').trim());
+        setLocalQuestions(prev => prev.map(q => q.id === id ? { ...q, imageUrl: formattedUrl } : q));
     };
 
-    const handleImageUrlChange = (id, newUrl) => {
-        const formattedUrl = formatImageUrl(newUrl);
-        setLocalQuestions(prev => prev.map(q => q.id === id ? { ...q, imageUrl: formattedUrl } : q));
+    const handleLocalImageUpload = (id, file) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target?.result;
+            if (dataUrl) {
+                setLocalQuestions(prev => prev.map(q => q.id === id ? { ...q, imageUrl: dataUrl } : q));
+            }
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleAddQuestion = () => {
@@ -235,8 +279,47 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
                         </div>
                         
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1">Texto da Pergunta</label>
+                            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                                <label className="text-sm font-bold text-slate-700">Texto da Pergunta</label>
+                                
+                                <div className="flex items-center gap-1 flex-wrap">
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mr-0.5">Tamanho:</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => applySnippetTagToQuestion(q.id, '[TAM=160]', '[/TAM]')}
+                                        className="px-2 py-0.5 bg-white hover:bg-indigo-50 border border-slate-300 rounded text-xs font-black text-indigo-700 hover:border-indigo-400 transition-all cursor-pointer shadow-2xs"
+                                        title="Aumentar trecho selecionado (+60%)"
+                                    >
+                                        A+ <span className="text-[10px] font-normal text-slate-500">160%</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => applySnippetTagToQuestion(q.id, '[TAM=130]', '[/TAM]')}
+                                        className="px-1.5 py-0.5 bg-white hover:bg-indigo-50 border border-slate-300 rounded text-xs font-black text-indigo-600 hover:border-indigo-400 transition-all cursor-pointer shadow-2xs"
+                                        title="Aumentar um pouco (+30%)"
+                                    >
+                                        A <span className="text-[10px] font-normal text-slate-500">130%</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => applySnippetTagToQuestion(q.id, '[TAM=75]', '[/TAM]')}
+                                        className="px-1.5 py-0.5 bg-white hover:bg-slate-100 border border-slate-300 rounded text-xs font-black text-slate-600 transition-all cursor-pointer shadow-2xs"
+                                        title="Diminuir trecho selecionado (-25%)"
+                                    >
+                                        A- <span className="text-[10px] font-normal text-slate-500">75%</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => applySnippetTagToQuestion(q.id, '[B]', '[/B]')}
+                                        className="px-2 py-0.5 bg-white hover:bg-slate-100 border border-slate-300 rounded text-xs font-black text-slate-800 transition-all cursor-pointer shadow-2xs"
+                                        title="Negrito"
+                                    >
+                                        B
+                                    </button>
+                                </div>
+                            </div>
                             <textarea 
+                                id={`textarea-q-${q.id}`}
                                 value={q.question}
                                 onChange={(e) => handleQuestionChange(q.id, e.target.value)}
                                 rows={2}
@@ -256,26 +339,50 @@ export const RouletteQuestionsEditorModal = ({ isOpen, onClose, activeActivity, 
                         </div>
                         
                         <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-1">
-                                <ImageIcon className="w-4 h-4 text-slate-400" /> URL da Imagem ou YouTube (Opcional)
+                            <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center justify-between">
+                                <span className="flex items-center gap-1">
+                                    <ImageIcon className="w-4 h-4 text-slate-400" /> Imagem ou YouTube (Opcional)
+                                </span>
+                                {q.imageUrl && (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => handleImageUrlChange(q.id, '')} 
+                                        className="text-xs font-bold text-red-500 hover:text-red-700 cursor-pointer"
+                                    >
+                                        Remover imagem
+                                    </button>
+                                )}
                             </label>
-                            <div className="flex gap-4">
+                            <div className="flex gap-2 items-center">
                                 <input 
                                     type="text"
                                     value={q.imageUrl}
                                     onChange={(e) => handleImageUrlChange(q.id, e.target.value)}
-                                    placeholder="https://exemplo.com/imagem.png"
-                                    className="flex-1 p-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white"
+                                    placeholder="Cole link da imagem, Drive ou YouTube..."
+                                    className="flex-1 p-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs bg-white font-medium"
                                 />
+                                <label className="px-3 py-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-300 hover:border-indigo-200 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0">
+                                    <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                                    <span>Do PC</span>
+                                    <input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleLocalImageUpload(q.id, file);
+                                        }} 
+                                        className="hidden" 
+                                    />
+                                </label>
                                 {q.imageUrl && (
-                                    <div className="w-16 h-16 rounded-lg border border-slate-200 overflow-hidden shrink-0 bg-white flex items-center justify-center relative group">
+                                    <div className="w-12 h-12 rounded-lg border border-slate-200 overflow-hidden shrink-0 bg-white flex items-center justify-center relative group shadow-xs">
                                         {isYouTubeUrl(q.imageUrl) ? (
                                             <iframe src={getYouTubeEmbedUrl(q.imageUrl)} className="w-full h-full object-cover pointer-events-none" />
                                         ) : (
-                                            <img src={getDirectImageUrl(q.imageUrl)} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={handleDriveImageError} />
+                                            <img src={q.imageUrl.startsWith('data:') ? q.imageUrl : getDirectImageUrl(q.imageUrl)} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={q.imageUrl.startsWith('data:') ? undefined : handleDriveImageError} />
                                         )}
-                                        <button onClick={() => handleImageUrlChange(q.id, '')} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <X className="w-6 h-6" />
+                                        <button onClick={() => handleImageUrlChange(q.id, '')} className="absolute inset-0 bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                            <X className="w-4 h-4" />
                                         </button>
                                     </div>
                                 )}

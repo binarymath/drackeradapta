@@ -177,24 +177,40 @@ export const useRouletteCore = () => {
 
     // Sincroniza o estado "winner" caso a pergunta correspondente seja editada no painel principal
     useEffect(() => {
-        if (winner && winner.question && activeActivity?.questions) {
-            const updatedQ = activeActivity.questions.find(q => q.question === winner.question);
+        if (winner && (winner.questionId || winner.questionNumber || winner.question || winner._activityQuestionIndex !== undefined) && activeActivity?.questions) {
+            const targetIndex = winner._activityQuestionIndex;
+            const updatedQ = activeActivity.questions.find((q, idx) => 
+                (targetIndex !== null && targetIndex !== undefined && idx === targetIndex) ||
+                (winner.questionId && q.id && String(q.id) === String(winner.questionId)) ||
+                (winner.questionNumber && q.questionNumber && String(q.questionNumber) === String(winner.questionNumber) && (!winner.tabOrigin || !q.tabOrigin || winner.tabOrigin === q.tabOrigin)) ||
+                (q.question && (q.question === winner.question || q.question.replace(/(\d+)\.(\d+)/g, '$1,$2') === winner.question.replace(/(\d+)\.(\d+)/g, '$1,$2')))
+            );
             if (updatedQ) {
                 setWinner(prev => {
                     if (!prev) return prev;
-                    if (updatedQ.imageUrl !== prev.imageUrl || updatedQ.answer !== prev.answer || updatedQ.difficulty !== prev.difficulty) {
+                    if (
+                        updatedQ.question !== prev.question ||
+                        updatedQ.imageUrl !== prev.imageUrl || 
+                        updatedQ.answer !== prev.answer || 
+                        updatedQ.difficulty !== prev.difficulty ||
+                        JSON.stringify(updatedQ.options) !== JSON.stringify(prev.options)
+                    ) {
                         return {
                             ...prev,
-                            imageUrl: updatedQ.imageUrl || null,
-                            answer: updatedQ.answer || '',
-                            difficulty: updatedQ.difficulty || 'Média'
+                            question: updatedQ.question || prev.question,
+                            imageUrl: updatedQ.imageUrl !== undefined ? updatedQ.imageUrl : prev.imageUrl,
+                            answer: updatedQ.answer !== undefined ? updatedQ.answer : prev.answer,
+                            difficulty: updatedQ.difficulty || 'Média',
+                            options: updatedQ.options || null,
+                            optionImages: updatedQ.optionImages || null,
+                            isDiscursive: updatedQ.isDiscursive !== undefined ? updatedQ.isDiscursive : prev.isDiscursive
                         };
                     }
                     return prev;
                 });
             }
         }
-    }, [activeActivity?.questions, winner?.question]);
+    }, [activeActivity?.questions]);
 
     // Modo Rodada Simultânea de Equipes
     // null = sem rodada ativa | Array<{ group, question, answer, difficulty, imageUrl, result: null|'correct'|'incorrect' }>
@@ -204,16 +220,23 @@ export const useRouletteCore = () => {
     useEffect(() => {
         if (groupRoundSlots && groupRoundSlots.length > 0 && activeActivity?.questions) {
             let hasChanges = false;
-            const newSlots = groupRoundSlots.map(slot => {
-                const updatedQ = activeActivity.questions.find(q => q.question === slot.question);
+            const newSlots = groupRoundSlots.map((slot, sIdx) => {
+                const targetIndex = slot._activityQuestionIndex;
+                const updatedQ = activeActivity.questions.find((q, qIdx) => 
+                    (targetIndex !== null && targetIndex !== undefined && qIdx === targetIndex) ||
+                    (slot.questionId && q.id && String(q.id) === String(slot.questionId)) ||
+                    (slot.questionNumber && q.questionNumber && String(q.questionNumber) === String(slot.questionNumber) && (!slot.tabOrigin || !q.tabOrigin || slot.tabOrigin === q.tabOrigin)) ||
+                    (q.question && (q.question === slot.question || q.question.replace(/(\d+)\.(\d+)/g, '$1,$2') === slot.question.replace(/(\d+)\.(\d+)/g, '$1,$2')))
+                );
                 if (updatedQ) {
-                    if (updatedQ.imageUrl !== slot.imageUrl || updatedQ.answer !== slot.answer || updatedQ.difficulty !== slot.difficulty) {
+                    if (updatedQ.imageUrl !== slot.imageUrl || updatedQ.answer !== slot.answer || updatedQ.difficulty !== slot.difficulty || updatedQ.question !== slot.question) {
                         hasChanges = true;
                         return {
                             ...slot,
-                            imageUrl: updatedQ.imageUrl || null,
-                            answer: updatedQ.answer || '',
-                            difficulty: updatedQ.difficulty || 'Média'
+                            question: updatedQ.question || slot.question,
+                            imageUrl: updatedQ.imageUrl !== undefined ? updatedQ.imageUrl : slot.imageUrl,
+                            answer: updatedQ.answer !== undefined ? updatedQ.answer : slot.answer,
+                            difficulty: updatedQ.difficulty || slot.difficulty || 'Média'
                         };
                     }
                 }
@@ -349,15 +372,24 @@ export const useRouletteCore = () => {
         const questions = activeActivity?.questions || [];
         const uniqueMap = new Map();
         questions.forEach((q, idx) => {
-            if (q && q.question && q.isActive !== false && !uniqueMap.has(q.question)) {
-                uniqueMap.set(q.question, {
-                    id: q.id || `q_${idx}_${Date.now()}`,
-                    question: (q.question || '').replace(/(\d+)\.(\d+)/g, '$1,$2'),
-                    answer: q.answer ? q.answer.replace(/(\d+)\.(\d+)/g, '$1,$2') : '',
-                    difficulty: q.difficulty || (idx % 3 === 0 ? 'Fácil' : idx % 3 === 1 ? 'Média' : 'Difícil'),
-                    imageUrl: q.imageUrl || null,
-                    isActive: true
-                });
+            if (q && q.question && q.isActive !== false) {
+                const key = q.id || (q.questionNumber ? `${q.tabOrigin || ''}_qn_${q.questionNumber}` : `q_${idx}`);
+                if (!uniqueMap.has(key)) {
+                    uniqueMap.set(key, {
+                        id: q.id || `q_${idx}`,
+                        _activityQuestionIndex: idx,
+                        questionNumber: q.questionNumber || null,
+                        tabOrigin: q.tabOrigin || null,
+                        question: (q.question || '').replace(/(\d+)\.(\d+)/g, '$1,$2'),
+                        answer: q.answer ? q.answer.replace(/(\d+)\.(\d+)/g, '$1,$2') : '',
+                        difficulty: q.difficulty || (idx % 3 === 0 ? 'Fácil' : idx % 3 === 1 ? 'Média' : 'Difícil'),
+                        imageUrl: q.imageUrl || null,
+                        isDiscursive: q.isDiscursive || false,
+                        options: q.options || null,
+                        optionImages: q.optionImages || null,
+                        isActive: true
+                    });
+                }
             }
         });
         return Array.from(uniqueMap.values());
@@ -417,7 +449,13 @@ export const useRouletteCore = () => {
                 answer: questionObj ? questionObj.answer : '',
                 difficulty: questionObj ? questionObj.difficulty : 'Média',
                 imageUrl: questionObj ? questionObj.imageUrl : null,
-                questionId: questionObj ? questionObj.id : null
+                questionId: questionObj ? questionObj.id : null,
+                _activityQuestionIndex: questionObj?._activityQuestionIndex !== undefined ? questionObj._activityQuestionIndex : null,
+                questionNumber: questionObj ? questionObj.questionNumber : null,
+                tabOrigin: questionObj ? questionObj.tabOrigin : null,
+                isDiscursive: questionObj ? questionObj.isDiscursive : false,
+                options: questionObj ? questionObj.options : null,
+                optionImages: questionObj ? questionObj.optionImages : null
             };
         });
     }, [currentClass, uniqueQuestions, activityRemovedIds, studentToGroupMap]);
@@ -449,7 +487,13 @@ export const useRouletteCore = () => {
                 answer: questionObj ? questionObj.answer : '',
                 difficulty: questionObj ? questionObj.difficulty : 'Média',
                 imageUrl: questionObj ? questionObj.imageUrl : null,
-                questionId: questionObj ? questionObj.id : null
+                questionId: questionObj ? questionObj.id : null,
+                _activityQuestionIndex: questionObj?._activityQuestionIndex !== undefined ? questionObj._activityQuestionIndex : null,
+                questionNumber: questionObj ? questionObj.questionNumber : null,
+                tabOrigin: questionObj ? questionObj.tabOrigin : null,
+                isDiscursive: questionObj ? questionObj.isDiscursive : false,
+                options: questionObj ? questionObj.options : null,
+                optionImages: questionObj ? questionObj.optionImages : null
             };
         });
     }, [currentClass, currentGroups, uniqueQuestions]);
@@ -729,6 +773,12 @@ export const useRouletteCore = () => {
                     difficulty: questionObj?.difficulty || 'Média',
                     imageUrl: questionObj?.imageUrl || null,
                     questionId: questionObj?.id || null,
+                    _activityQuestionIndex: questionObj?._activityQuestionIndex !== undefined ? questionObj._activityQuestionIndex : null,
+                    questionNumber: questionObj?.questionNumber || null,
+                    tabOrigin: questionObj?.tabOrigin || null,
+                    isDiscursive: questionObj?.isDiscursive || false,
+                    options: questionObj?.options || null,
+                    optionImages: questionObj?.optionImages || null,
                     isGroup: true
                 });
                 return;
@@ -799,7 +849,13 @@ export const useRouletteCore = () => {
             answer: questionObj?.answer || '',
             difficulty: questionObj?.difficulty || 'Média',
             imageUrl: questionObj?.imageUrl || null,
-            questionId: questionObj?.id || null
+            questionId: questionObj?.id || null,
+            _activityQuestionIndex: questionObj?._activityQuestionIndex !== undefined ? questionObj._activityQuestionIndex : null,
+            questionNumber: questionObj?.questionNumber || null,
+            tabOrigin: questionObj?.tabOrigin || null,
+            isDiscursive: questionObj?.isDiscursive || false,
+            options: questionObj?.options || null,
+            optionImages: questionObj?.optionImages || null
         });
     };
 

@@ -27,7 +27,11 @@ export const useRouletteHandlers = (context) => {
             answer: prev?.answer !== undefined ? prev.answer : newStudentObj.answer || '',
             difficulty: prev?.difficulty || newStudentObj.difficulty || 'Média',
             imageUrl: prev?.imageUrl !== undefined ? prev.imageUrl : newStudentObj.imageUrl || null,
-            questionId: prev?.questionId || newStudentObj.questionId || null
+            questionId: prev?.questionId || newStudentObj.questionId || null,
+            questionNumber: prev?.questionNumber || newStudentObj.questionNumber || null,
+            isDiscursive: prev?.isDiscursive !== undefined ? prev.isDiscursive : newStudentObj.isDiscursive || false,
+            options: prev?.options || newStudentObj.options || null,
+            optionImages: prev?.optionImages || newStudentObj.optionImages || null
         }));
         gameAudio.playTick();
     };
@@ -35,24 +39,90 @@ export const useRouletteHandlers = (context) => {
     const handleEditQuestionContent = (updatedData) => {
         if (!winner) return;
 
-        // Atualiza a atividade global
+        // Atualiza a atividade global garantindo independência estrita da questão editada
         if (activeActivity?.id && updateActivityData) {
-            const updatedQuestions = (activeActivity.questions || []).map(q => {
-                const isMatch = winner.questionId && q.id 
-                    ? String(q.id) === String(winner.questionId) 
-                    : q.question === winner.question;
-                return isMatch ? { ...q, ...updatedData } : q;
+            let matchedOnce = false;
+            const targetId = winner.questionId;
+            const targetIndex = winner._activityQuestionIndex;
+            const targetQNum = winner.questionNumber ? String(winner.questionNumber).trim().toLowerCase() : null;
+            const targetText = winner.question ? String(winner.question).trim() : '';
+
+            let updatedQuestions = (activeActivity.questions || []).map((q, idx) => {
+                if (matchedOnce) return q;
+                let isMatch = false;
+
+                if (targetIndex !== null && targetIndex !== undefined && idx === targetIndex) {
+                    isMatch = true;
+                } else if (targetId && q.id && String(q.id) === String(targetId)) {
+                    isMatch = true;
+                } else if (targetQNum && q.questionNumber && String(q.questionNumber).trim().toLowerCase() === targetQNum) {
+                    const tabMatch = !winner.tabOrigin || !q.tabOrigin || winner.tabOrigin === q.tabOrigin;
+                    if (tabMatch) isMatch = true;
+                } else if (targetText && q.question) {
+                    const cleanQ = String(q.question).trim();
+                    if (cleanQ === targetText || cleanQ.replace(/(\d+)\.(\d+)/g, '$1,$2') === targetText.replace(/(\d+)\.(\d+)/g, '$1,$2')) {
+                        isMatch = true;
+                    }
+                }
+
+                if (isMatch) {
+                    matchedOnce = true;
+                    return {
+                        ...q,
+                        question: updatedData.question !== undefined ? updatedData.question : q.question,
+                        answer: updatedData.answer !== undefined ? updatedData.answer : q.answer,
+                        imageUrl: updatedData.imageUrl !== undefined ? updatedData.imageUrl : q.imageUrl,
+                        difficulty: updatedData.difficulty !== undefined ? updatedData.difficulty : q.difficulty,
+                        options: updatedData.options !== undefined ? updatedData.options : q.options,
+                        isDiscursive: updatedData.isDiscursive !== undefined ? updatedData.isDiscursive : q.isDiscursive
+                    };
+                }
+                return q;
             });
+
+            // Se ainda não deu match, tenta pelo índice ou questão correspondente mais próxima
+            if (!matchedOnce && updatedQuestions.length > 0) {
+                const fallbackIdx = updatedQuestions.findIndex(q => 
+                    q.question && targetText && (
+                        q.question.includes(targetText.slice(0, 20)) || 
+                        targetText.includes(q.question.slice(0, 20))
+                    )
+                );
+                const safeIdx = fallbackIdx >= 0 ? fallbackIdx : 0;
+                updatedQuestions = updatedQuestions.map((q, idx) => {
+                    if (idx === safeIdx) {
+                        return {
+                            ...q,
+                            question: updatedData.question !== undefined ? updatedData.question : q.question,
+                            answer: updatedData.answer !== undefined ? updatedData.answer : q.answer,
+                            imageUrl: updatedData.imageUrl !== undefined ? updatedData.imageUrl : q.imageUrl,
+                            difficulty: updatedData.difficulty !== undefined ? updatedData.difficulty : q.difficulty,
+                            options: updatedData.options !== undefined ? updatedData.options : q.options,
+                            isDiscursive: updatedData.isDiscursive !== undefined ? updatedData.isDiscursive : q.isDiscursive
+                        };
+                    }
+                    return q;
+                });
+            }
+
             updateActivityData(activeActivity.id, { questions: updatedQuestions });
         }
 
-        // Atualiza o card atual
-        setWinner(prev => ({ ...prev, ...updatedData }));
+        // Atualiza o card atual de forma isolada
+        setWinner(prev => ({
+            ...prev,
+            question: updatedData.question !== undefined ? updatedData.question : prev?.question,
+            answer: updatedData.answer !== undefined ? updatedData.answer : prev?.answer,
+            imageUrl: updatedData.imageUrl !== undefined ? updatedData.imageUrl : prev?.imageUrl,
+            difficulty: updatedData.difficulty !== undefined ? updatedData.difficulty : prev?.difficulty,
+            options: updatedData.options !== undefined ? updatedData.options : prev?.options,
+            isDiscursive: updatedData.isDiscursive !== undefined ? updatedData.isDiscursive : prev?.isDiscursive
+        }));
 
         logTeacherAction(
             'edit_question_modal',
             'Edição Completa de Pergunta',
-            `A pergunta atual foi editada no modal.`,
+            `A pergunta atual foi editada no modal de forma independente.`,
             { oldQuestion: winner.question, newQuestionData: updatedData, studentName: winner.name }
         );
     };
@@ -123,7 +193,11 @@ export const useRouletteHandlers = (context) => {
             answer: questionObj?.answer || '',
             difficulty: questionObj?.difficulty || 'Média',
             imageUrl: questionObj?.imageUrl || null,
-            questionId: questionObj?.id || null
+            questionId: questionObj?.id || null,
+            questionNumber: questionObj?.questionNumber || null,
+            isDiscursive: questionObj?.isDiscursive || false,
+            options: questionObj?.options || null,
+            optionImages: questionObj?.optionImages || null
         });
         setShowCard(true);
         gameAudio.playTick();
@@ -265,7 +339,11 @@ export const useRouletteHandlers = (context) => {
             answer: newQuestionObj.answer || '',
             difficulty: newQuestionObj.difficulty || prev?.difficulty || 'Média',
             imageUrl: newQuestionObj.imageUrl || null,
-            questionId: newQuestionObj.id || null
+            questionId: newQuestionObj.id || null,
+            questionNumber: newQuestionObj.questionNumber || null,
+            isDiscursive: newQuestionObj.isDiscursive || false,
+            options: newQuestionObj.options || null,
+            optionImages: newQuestionObj.optionImages || null
         }));
     };
 
@@ -659,7 +737,13 @@ export const useRouletteHandlers = (context) => {
             answer: questionObj?.answer || '',
             difficulty: questionObj?.difficulty || 'Média',
             imageUrl: questionObj?.imageUrl || null,
-            questionId: questionObj?.id || null
+            questionId: questionObj?.id || null,
+            questionNumber: questionObj?.questionNumber || null,
+            tabOrigin: questionObj?.tabOrigin || null,
+            isDiscursive: questionObj?.isDiscursive || false,
+            options: questionObj?.options || null,
+            optionImages: questionObj?.optionImages || null,
+            isGroup: true
         });
         setShowCard(true);
         gameAudio.playTick();
@@ -953,20 +1037,85 @@ export const useRouletteHandlers = (context) => {
         const slot = groupRoundSlots?.[slotIndex];
         if (!slot) return;
 
-        // Atualiza a atividade global se possível
+        // Atualiza a atividade global garantindo independência estrita da questão editada
         if (activeActivity?.id && updateActivityData) {
-            const updatedQuestions = (activeActivity.questions || []).map(q => {
-                const isMatch = slot.questionId && q.id 
-                    ? String(q.id) === String(slot.questionId) 
-                    : q.question === slot.question;
-                return isMatch ? { ...q, ...updatedData } : q;
+            let matchedOnce = false;
+            const targetId = slot.questionId;
+            const targetIndex = slot._activityQuestionIndex;
+            const targetQNum = slot.questionNumber ? String(slot.questionNumber).trim().toLowerCase() : null;
+            const targetText = slot.question ? String(slot.question).trim() : '';
+
+            let updatedQuestions = (activeActivity.questions || []).map((q, idx) => {
+                if (matchedOnce) return q;
+                let isMatch = false;
+
+                if (targetIndex !== null && targetIndex !== undefined && idx === targetIndex) {
+                    isMatch = true;
+                } else if (targetId && q.id && String(q.id) === String(targetId)) {
+                    isMatch = true;
+                } else if (targetQNum && q.questionNumber && String(q.questionNumber).trim().toLowerCase() === targetQNum) {
+                    const tabMatch = !slot.tabOrigin || !q.tabOrigin || slot.tabOrigin === q.tabOrigin;
+                    if (tabMatch) isMatch = true;
+                } else if (targetText && q.question) {
+                    const cleanQ = String(q.question).trim();
+                    if (cleanQ === targetText || cleanQ.replace(/(\d+)\.(\d+)/g, '$1,$2') === targetText.replace(/(\d+)\.(\d+)/g, '$1,$2')) {
+                        isMatch = true;
+                    }
+                }
+
+                if (isMatch) {
+                    matchedOnce = true;
+                    return {
+                        ...q,
+                        question: updatedData.question !== undefined ? updatedData.question : q.question,
+                        answer: updatedData.answer !== undefined ? updatedData.answer : q.answer,
+                        imageUrl: updatedData.imageUrl !== undefined ? updatedData.imageUrl : q.imageUrl,
+                        difficulty: updatedData.difficulty !== undefined ? updatedData.difficulty : q.difficulty,
+                        options: updatedData.options !== undefined ? updatedData.options : q.options,
+                        isDiscursive: updatedData.isDiscursive !== undefined ? updatedData.isDiscursive : q.isDiscursive
+                    };
+                }
+                return q;
             });
+
+            if (!matchedOnce && updatedQuestions.length > 0) {
+                const fallbackIdx = updatedQuestions.findIndex(q => 
+                    q.question && targetText && (
+                        q.question.includes(targetText.slice(0, 20)) || 
+                        targetText.includes(q.question.slice(0, 20))
+                    )
+                );
+                const safeIdx = fallbackIdx >= 0 ? fallbackIdx : 0;
+                updatedQuestions = updatedQuestions.map((q, idx) => {
+                    if (idx === safeIdx) {
+                        return {
+                            ...q,
+                            question: updatedData.question !== undefined ? updatedData.question : q.question,
+                            answer: updatedData.answer !== undefined ? updatedData.answer : q.answer,
+                            imageUrl: updatedData.imageUrl !== undefined ? updatedData.imageUrl : q.imageUrl,
+                            difficulty: updatedData.difficulty !== undefined ? updatedData.difficulty : q.difficulty,
+                            options: updatedData.options !== undefined ? updatedData.options : q.options,
+                            isDiscursive: updatedData.isDiscursive !== undefined ? updatedData.isDiscursive : q.isDiscursive
+                        };
+                    }
+                    return q;
+                });
+            }
+
             updateActivityData(activeActivity.id, { questions: updatedQuestions });
         }
 
-        // Atualiza o slot localmente
+        // Atualiza o slot localmente de forma isolada
         setGroupRoundSlots(prev => prev.map((s, i) =>
-            i === slotIndex ? { ...s, ...updatedData } : s
+            i === slotIndex ? {
+                ...s,
+                question: updatedData.question !== undefined ? updatedData.question : s?.question,
+                answer: updatedData.answer !== undefined ? updatedData.answer : s?.answer,
+                imageUrl: updatedData.imageUrl !== undefined ? updatedData.imageUrl : s?.imageUrl,
+                difficulty: updatedData.difficulty !== undefined ? updatedData.difficulty : s?.difficulty,
+                options: updatedData.options !== undefined ? updatedData.options : s?.options,
+                isDiscursive: updatedData.isDiscursive !== undefined ? updatedData.isDiscursive : s?.isDiscursive
+            } : s
         ));
 
         logTeacherAction(

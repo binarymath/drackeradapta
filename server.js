@@ -63,6 +63,37 @@ app.post('/api/imagen', async (req, res) => {
   }
 });
 
+// Endpoint proxy para arquivos e planilhas do Google Drive / Google Sheets
+app.get('/api/drive-proxy', async (req, res) => {
+  try {
+    const { id } = req.query;
+    if (!id) return res.status(400).json({ error: 'Missing file/sheet id' });
+
+    // 1. Tentar primeiro export em XLSX (caso seja Google Sheets)
+    const sheetExportUrl = `https://docs.google.com/spreadsheets/d/${id}/export?format=xlsx`;
+    let resp = await fetch(sheetExportUrl, { redirect: 'follow' });
+
+    // 2. Se falhar, tentar download direto do Drive (caso seja arquivo .xlsx no Drive)
+    if (!resp.ok) {
+      const driveDownloadUrl = `https://drive.google.com/uc?export=download&id=${id}`;
+      resp = await fetch(driveDownloadUrl, { redirect: 'follow' });
+    }
+
+    if (!resp.ok) {
+      return res.status(resp.status).json({ 
+        error: `Falha ao baixar arquivo do Google Drive (HTTP ${resp.status})` 
+      });
+    }
+
+    const buffer = await resp.arrayBuffer();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    return res.send(Buffer.from(buffer));
+  } catch (err) {
+    console.error('Drive proxy error:', err);
+    return res.status(500).json({ error: err.message || 'Erro ao buscar arquivo do Drive' });
+  }
+});
+
 const port = process.env.PORT || 5174;
 app.listen(port, () => {
   console.log(`[proxy] Imagen proxy listening on http://localhost:${port}`);

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, Edit3, Image as ImageIcon, MessageCircle, Info, Plus, Trash2, CheckCircle2 } from 'lucide-react';
-import { getDirectImageUrl, handleDriveImageError, isYouTubeUrl, getYouTubeEmbedUrl } from '../../../utils/urlUtils';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Save, Edit3, Image as ImageIcon, MessageCircle, Info, Plus, Trash2, CheckCircle2, Upload, Type, Eye, Bold } from 'lucide-react';
+import { getDirectImageUrl, handleDriveImageError, isYouTubeUrl, getYouTubeEmbedUrl, toDirectImageUrl, renderQuestionText, normalizeSnippetTags } from '../../../utils/urlUtils';
 
 export const QuestionEditModal = ({
     show,
@@ -10,6 +10,9 @@ export const QuestionEditModal = ({
     onSave
 }) => {
     const targetQuestion = question || questionData;
+    const fileInputRef = useRef(null);
+    const textareaRef = useRef(null);
+    const [showPreview, setShowPreview] = useState(true);
 
     const [formData, setFormData] = useState({
         question: '',
@@ -49,6 +52,30 @@ export const QuestionEditModal = ({
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
+    const handleImageUrlChange = (val) => {
+        const trimmed = (val || '').trim();
+        const formatted = toDirectImageUrl(trimmed);
+        setFormData(prev => ({ ...prev, imageUrl: formatted }));
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const dataUrl = event.target?.result;
+            if (dataUrl) {
+                setFormData(prev => ({ ...prev, imageUrl: dataUrl }));
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleClearImage = () => {
+        setFormData(prev => ({ ...prev, imageUrl: '' }));
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
     const handleOptionChange = (idx, value) => {
         setFormData(prev => {
             const nextOptions = [...(prev.options || [])];
@@ -69,6 +96,58 @@ export const QuestionEditModal = ({
             ...prev,
             options: (prev.options || []).filter((_, i) => i !== idx)
         }));
+    };
+
+    const applySnippetTag = (openTag, closeTag = '') => {
+        const el = textareaRef.current;
+        if (!el) {
+            setFormData(prev => ({ ...prev, question: (prev.question || '') + `${openTag}trecho${closeTag}` }));
+            return;
+        }
+
+        const start = el.selectionStart || 0;
+        const end = el.selectionEnd || 0;
+        const currentText = formData.question || '';
+        const selectedText = currentText.substring(start, end);
+
+        let prefix = '';
+        let suffix = '';
+        let inner = selectedText;
+
+        if (inner) {
+            const leadMatch = inner.match(/^(\s+)/);
+            if (leadMatch) {
+                prefix = leadMatch[0];
+                inner = inner.slice(prefix.length);
+            }
+            const trailMatch = inner.match(/(\s+)$/);
+            if (trailMatch) {
+                suffix = trailMatch[0];
+                inner = inner.slice(0, -suffix.length);
+            }
+        }
+
+        const innerContent = inner || 'trecho';
+        const replacement = `${prefix}${openTag}${innerContent}${closeTag}${suffix}`;
+
+        const newText = currentText.substring(0, start) + replacement + currentText.substring(end);
+        setFormData(prev => ({ ...prev, question: newText }));
+
+        setTimeout(() => {
+            el.focus();
+            const selStart = start + prefix.length + openTag.length;
+            const selEnd = selStart + innerContent.length;
+            el.setSelectionRange(selStart, selEnd);
+        }, 20);
+    };
+
+    const handleCustomSizePrompt = () => {
+        const custom = window.prompt("Digite o tamanho do trecho em porcentagem (Ex: 150 para 150%, 80 para 80%, ou 200 para o dobro):", "150");
+        if (!custom) return;
+        const num = parseInt(custom.replace(/\D/g, ''), 10);
+        if (!isNaN(num) && num > 0) {
+            applySnippetTag(`[TAM=${num}]`, `[/TAM]`);
+        }
     };
 
     const handleSave = () => {
@@ -120,19 +199,151 @@ export const QuestionEditModal = ({
                     
                     {/* Pergunta */}
                     <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
-                            <MessageCircle className="w-4 h-4 text-indigo-500" />
-                            Enunciado da Pergunta
-                        </label>
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                            <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                <MessageCircle className="w-4 h-4 text-indigo-500" />
+                                Enunciado da Pergunta
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => setShowPreview(prev => !prev)}
+                                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200"
+                            >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>{showPreview ? 'Ocultar Prévia' : 'Ver Prévia'}</span>
+                            </button>
+                        </div>
+
+                        {/* Barra de Ajuste de Tamanho de Trechos */}
+                        <div className="flex items-center gap-1.5 flex-wrap p-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700">
+                            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-black mr-1 flex items-center gap-1">
+                                <Type className="w-3.5 h-3.5 text-indigo-600" />
+                                Tamanho do Trecho:
+                            </span>
+                            
+                            <button
+                                type="button"
+                                onClick={() => applySnippetTag('[TAM=160]', '[/TAM]')}
+                                className="px-2 py-1 bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 border border-slate-200 rounded-lg shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                                title="Aumentar trecho selecionado (+60%)"
+                            >
+                                <span className="text-sm font-black text-indigo-700">A+</span>
+                                <span className="text-[10px] text-slate-500 font-semibold">160%</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => applySnippetTag('[TAM=130]', '[/TAM]')}
+                                className="px-2 py-1 bg-white hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-300 border border-slate-200 rounded-lg shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                                title="Aumentar um pouco o trecho selecionado (+30%)"
+                            >
+                                <span className="text-xs font-black text-indigo-600">A</span>
+                                <span className="text-[10px] text-slate-500 font-semibold">130%</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => applySnippetTag('[TAM=200]', '[/TAM]')}
+                                className="px-2 py-1 bg-white hover:bg-purple-50 hover:text-purple-700 hover:border-purple-300 border border-slate-200 rounded-lg shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                                title="Dobrar tamanho do trecho (200% - Destaque Gigante)"
+                            >
+                                <span className="text-sm font-black text-purple-700">A++</span>
+                                <span className="text-[10px] text-slate-500 font-semibold">200%</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => applySnippetTag('[TAM=75]', '[/TAM]')}
+                                className="px-2 py-1 bg-white hover:bg-slate-200 border border-slate-200 rounded-lg shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                                title="Diminuir trecho selecionado (-25%)"
+                            >
+                                <span className="text-xs font-black text-slate-600">A-</span>
+                                <span className="text-[10px] text-slate-500 font-semibold">75%</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => applySnippetTag('[TAM=60]', '[/TAM]')}
+                                className="px-2 py-1 bg-white hover:bg-slate-200 border border-slate-200 rounded-lg shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                                title="Reduzir bastante o trecho selecionado (60%)"
+                            >
+                                <span className="text-[10px] font-black text-slate-500">A--</span>
+                                <span className="text-[10px] text-slate-500 font-semibold">60%</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleCustomSizePrompt}
+                                className="px-2 py-1 bg-white hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 border border-slate-200 rounded-lg shadow-2xs text-[11px] font-bold text-amber-700 transition-all cursor-pointer"
+                                title="Definir outra porcentagem personalizada para o trecho"
+                            >
+                                Outro %...
+                            </button>
+
+                            <div className="w-px h-4 bg-slate-300 mx-0.5" />
+
+                            <button
+                                type="button"
+                                onClick={() => applySnippetTag('[B]', '[/B]')}
+                                className="px-2 py-1 bg-white hover:bg-slate-200 border border-slate-200 rounded-lg shadow-2xs text-[11px] font-black text-slate-800 transition-all cursor-pointer flex items-center gap-0.5"
+                                title="Negrito no trecho"
+                            >
+                                <Bold className="w-3 h-3" /> Negrito
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => applySnippetTag('[C]', '')}
+                                className="px-2 py-1 bg-white hover:bg-slate-200 border border-slate-200 rounded-lg shadow-2xs text-[11px] font-bold text-slate-700 transition-all cursor-pointer"
+                                title="Centralizar esta linha ([C])"
+                            >
+                                [C] Centro
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => applySnippetTag(' [IMG] ', '')}
+                                className="px-2 py-1 bg-white hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 border border-slate-200 rounded-lg shadow-2xs text-[11px] font-bold text-rose-600 transition-all cursor-pointer flex items-center gap-1"
+                                title="Posicionar a imagem neste trecho ([IMG])"
+                            >
+                                <ImageIcon className="w-3 h-3" /> [IMG]
+                            </button>
+                        </div>
+
                         <textarea
+                            ref={textareaRef}
                             value={formData.question}
                             onChange={(e) => handleChange('question', e.target.value)}
-                            placeholder="Ex: Qual é a capital do Brasil? [IMG]"
-                            className="w-full h-32 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all resize-none font-medium text-slate-800"
+                            placeholder="Ex: Qual é a capital do Brasil? Selecione um trecho e clique em A+ para aumentá-lo!"
+                            className="w-full h-32 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-all resize-none font-medium text-slate-800 text-sm"
                             autoFocus
                         />
-                        <p className="text-[11px] text-slate-500 font-medium px-2">
-                            Dica: Digite <strong className="text-indigo-600 bg-indigo-50 px-1 rounded">[IMG]</strong> ou <strong className="text-indigo-600 bg-indigo-50 px-1 rounded">[YT]</strong> no meio do texto para escolher onde a mídia vai aparecer! Você também pode ajustar o tamanho usando <strong className="text-indigo-600 bg-indigo-50 px-1 rounded">[IMG=300]</strong>.
+
+                        {/* Prévia ao vivo formatada */}
+                        {showPreview && formData.question && (
+                            <div className="p-3.5 bg-indigo-50/40 border border-indigo-100 rounded-2xl space-y-1">
+                                <span className="text-[10px] font-black text-indigo-500 uppercase tracking-wider block">
+                                    👁️ Prévia ao vivo da formatação:
+                                </span>
+                                <div className="text-slate-800 font-bold leading-relaxed whitespace-pre-wrap text-base">
+                                    {normalizeSnippetTags(formData.question || '').split('\n').map((line, idx) => {
+                                        let align = 'text-left';
+                                        let c = line;
+                                        if (c.trim().startsWith('[C]')) { align = 'text-center'; c = c.replace('[C]', ''); }
+                                        else if (c.trim().startsWith('[R]')) { align = 'text-right'; c = c.replace('[R]', ''); }
+                                        else if (c.trim().startsWith('[J]')) { align = 'text-justify'; c = c.replace('[J]', ''); }
+                                        return (
+                                            <div key={idx} className={align}>
+                                                {renderQuestionText(c, formData.imageUrl)}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        <p className="text-[11px] text-slate-500 font-medium px-1 leading-relaxed">
+                            💡 <strong>Dica:</strong> Para aumentar ou diminuir qualquer parte da pergunta, <strong>selecione as palavras com o mouse</strong> e clique em <strong>A+ (160%)</strong>, <strong>A (130%)</strong>, <strong>A++ (200%)</strong> ou <strong>A- (75%)</strong>. Você também pode digitar manualmente <code className="text-indigo-600 bg-indigo-50 px-1 rounded">[TAM=150]seu texto[/TAM]</code> ou <code className="text-indigo-600 bg-indigo-50 px-1 rounded">[TAM=80]seu texto[/TAM]</code>.
                         </p>
                     </div>
 
@@ -201,19 +412,51 @@ export const QuestionEditModal = ({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {/* Imagem ou Vídeo */}
                         <div className="space-y-2">
-                            <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
-                                <ImageIcon className="w-4 h-4 text-rose-500" />
-                                Link da Imagem ou YouTube (Opcional)
-                            </label>
-                            <input
-                                type="url"
-                                value={formData.imageUrl}
-                                onChange={(e) => handleChange('imageUrl', e.target.value)}
-                                placeholder="https://..."
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/40 focus:border-rose-500 transition-all text-slate-800"
-                            />
+                            <div className="flex items-center justify-between">
+                                <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                    <ImageIcon className="w-4 h-4 text-rose-500" />
+                                    Imagem ou Vídeo (Opcional)
+                                </label>
+                                {formData.imageUrl && (
+                                    <button
+                                        type="button"
+                                        onClick={handleClearImage}
+                                        className="text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200"
+                                        title="Remover imagem"
+                                    >
+                                        <Trash2 className="w-3 h-3" /> Remover Mídia
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={formData.imageUrl}
+                                    onChange={(e) => handleImageUrlChange(e.target.value)}
+                                    placeholder="Cole link da imagem, Drive ou YouTube..."
+                                    className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/40 focus:border-rose-500 transition-all text-xs text-slate-800 font-medium"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="px-3 py-2.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-300 hover:border-indigo-200 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                                    title="Carregar imagem do seu computador"
+                                >
+                                    <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                                    <span>Do PC</span>
+                                </button>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    className="hidden"
+                                />
+                            </div>
+
                             {formData.imageUrl && (
-                                <div className="mt-2 h-32 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 flex items-center justify-center p-2">
+                                <div className="mt-2 h-36 rounded-xl border-2 border-indigo-100 overflow-hidden bg-slate-100 flex items-center justify-center p-2 relative shadow-inner">
                                     {isYouTubeUrl(formData.imageUrl) ? (
                                         <iframe 
                                             src={getYouTubeEmbedUrl(formData.imageUrl)} 
@@ -223,11 +466,11 @@ export const QuestionEditModal = ({
                                         />
                                     ) : (
                                         <img 
-                                            src={getDirectImageUrl(formData.imageUrl)} 
+                                            src={formData.imageUrl.startsWith('data:') ? formData.imageUrl : getDirectImageUrl(formData.imageUrl)} 
                                             alt="Preview" 
                                             className="max-h-full max-w-full object-contain rounded-lg shadow-sm" 
                                             referrerPolicy="no-referrer"
-                                            onError={handleDriveImageError}
+                                            onError={formData.imageUrl.startsWith('data:') ? undefined : handleDriveImageError}
                                         />
                                     )}
                                 </div>
