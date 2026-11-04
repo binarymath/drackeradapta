@@ -511,7 +511,8 @@ export async function parseWorkbook(workbook, arrayBuffer = null) {
             name,
             taskTitle: questions.taskTitle || name,
             questions,
-            count: questions.length
+            count: questions.length,
+            rawRows: rows
         };
 
         if (!defaultSheetName && questions.length > 0) {
@@ -558,10 +559,17 @@ function parseGvizResponse(rawText) {
         throw new Error(msg || 'Erro ao ler a planilha.');
     }
 
-    const rows = data?.table?.rows ?? [];
-    if (rows.length === 0) return [];
+    const table = data?.table;
+    const rows = table?.rows ?? [];
+    const rawRows = [
+        (table?.cols ?? []).map(column => column.label || column.id || ''),
+        ...rows.map(row => (row.c ?? []).map(cell => cell?.v ?? cell?.f ?? ''))
+    ];
 
-    return parseSpreadsheetRows(rows);
+    return {
+        questions: rows.length > 0 ? parseSpreadsheetRows(rows) : [],
+        rawRows: rawRows.filter(row => row.some(value => String(value ?? '').trim()))
+    };
 }
 
 /**
@@ -611,7 +619,7 @@ export async function fetchSpreadsheetWorkbook(sheetId, options = {}) {
             if (resp.status === 401 || resp.status === 403) throw new Error('PLANILHA_PRIVADA');
             if (resp.ok) {
                 const text = await resp.text();
-                const questions = parseGvizResponse(text);
+                const { questions, rawRows } = parseGvizResponse(text);
                 const defaultName = options.sheetName || 'Planilha Principal';
                 return {
                     sheetNames: [defaultName],
@@ -620,7 +628,8 @@ export async function fetchSpreadsheetWorkbook(sheetId, options = {}) {
                             name: defaultName,
                             taskTitle: questions.taskTitle || defaultName,
                             questions,
-                            count: questions.length
+                            count: questions.length,
+                            rawRows
                         }
                     },
                     defaultSheetName: defaultName

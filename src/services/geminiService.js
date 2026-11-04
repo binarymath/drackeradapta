@@ -562,7 +562,7 @@ class GeminiService {
       `;
     }
 
-    const safeStages = Math.max(2, Math.min(5, Number(stageCount) || 4));
+    const safeStages = Math.max(2, Math.min(8, Number(stageCount) || 4));
     const isIndividualMode = Boolean(options.isIndividual || options.participationMode === 'class_students');
     const safeTeams = Array.isArray(teams) && teams.length > 0 ? teams : [{ name: 'Equipe 1' }, { name: 'Equipe 2' }];
 
@@ -663,6 +663,7 @@ class GeminiService {
         titulo_aventura: obj.titulo_aventura || obj.title || `Aventura: ${topic}`,
         historia_abertura: obj.historia_abertura || obj.intro || normalizedEtapas[0]?.narrativa_avanco || `Bem-vindos à grande expedição de ${topic}!`,
         etapas: normalizedEtapas,
+        revelacao_final: obj.revelacao_final || obj.historia_final || obj.final_revelation || '',
         reforco_pedagogico: obj.reforco_pedagogico || obj.dica_geral || 'O segredo da investigação é a atenção aos conceitos fundamentais e a colaboração!',
         finais: obj.finais || {
           vitoria_epica: 'Parabéns a todos! O mistério foi completamente desvendado com maestria!',
@@ -692,6 +693,7 @@ class GeminiService {
       CRIE A HISTÓRIA COMPLETA DO JOGO (COM INÍCIO, MEIO E FIM).
       O jogo deve ter EXATAMENTE ${safeStages} ETAPAS (rounds/capítulos numerados de 1 a ${safeStages}).
       A história deve evoluir gradativamente até a grande revelação no final (etapa ${safeStages}).
+      - Escreva "revelacao_final" como uma história de 5 a 7 frases que conecte explicitamente a abertura, os acontecimentos dos capítulos, os locais, os enigmas/conceitos e as relíquias conquistadas. Explique como cada pista levou à seguinte e revele a causa ou solução do mistério sem contradizer os capítulos.
       
       MUITO IMPORTANTE: O JOGO PRECISA SER ÁGIL, EMOCIONANTE E DIRETO AO PONTO!
       - A "historia_abertura" (round 1) deve ter NO MÁXIMO 3 a 4 frases cativantes.
@@ -705,6 +707,7 @@ class GeminiService {
       {
         "titulo_aventura": "Título épico e cativante da expedição",
         "historia_abertura": "A introdução épica da história detalhando o mistério...",
+        "revelacao_final": "História final que reúne as pistas, enigmas e relíquias de todos os capítulos e revela como o mistério foi resolvido...",
         "etapas": [
           {
             "round": 1,
@@ -757,6 +760,7 @@ class GeminiService {
         {
           "titulo_aventura": "Título da Aventura",
           "historia_abertura": "História inicial em 3 frases",
+          "revelacao_final": "Desfecho que conecta a abertura, capítulos, enigmas, conceitos e relíquias, revelando o mistério",
           "etapas": [
             {
               "round": 1,

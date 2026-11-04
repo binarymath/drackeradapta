@@ -10,6 +10,7 @@ import { TransitionQuestionsModal } from './modals/TransitionQuestionsModal';
 import { ReportsDashboard } from './reports/ReportsDashboard';
 import { exportActivityToPdf } from '../utils/pdfExportHelper';
 import { PrintFontSizeControl } from './ui/PrintFontSizeControl';
+import { RouletteTimerBomb } from './roulette/RouletteTimerBomb';
 
 // Módulos carregados sob demanda via ActivityRegistry (React.lazy + code splitting)
 const {
@@ -128,6 +129,7 @@ export const ActivityArea = ({
         (activityType === 'about_system') ||
         (activityType === 'dashboard') ||
         (activityType === 'reports') ||
+        (activityType === 'timer') ||
 
         (activityType === 'hangman') ||
         (activityType === 'trading_cards' || activityType === 'trading_card') ||
@@ -164,7 +166,7 @@ export const ActivityArea = ({
         <div className="w-full h-full min-h-0 flex flex-col print:block bg-transparent">
             <div className={`flex-1 flex flex-col print:block ${activityType === 'chat_dracker' ? 'min-h-0' : 'min-h-96'}`}>
 
-                {activityType !== 'roulette' && activityType !== 'chat_dracker' && (
+                {activityType !== 'roulette' && activityType !== 'timer' && activityType !== 'chat_dracker' && (
                     <ActivityHeader
                         hasContent={hasContent}
                         activityType={activityType}
@@ -547,6 +549,10 @@ export const ActivityArea = ({
                                 <FractionsMaker key={activeTabId || 'new_fractions'} />
                             ) : activityType === 'roulette' ? (
                                 <RouletteActivity key={activeTabId || 'new_roulette'} />
+                            ) : activityType === 'timer' ? (
+                                <div className="w-[80vw] max-w-none mx-auto">
+                                    <RouletteTimerBomb isStandaloneView />
+                                </div>
                             ) : activityType === 'storybook' ? (
                                 <StorybookViewer 
                                     key={activeTabId || 'new_storybook'} 

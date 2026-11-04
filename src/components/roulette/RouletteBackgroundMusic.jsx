@@ -1,11 +1,89 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-    Music, Play, Pause, Trash2, Volume2, Link as LinkIcon, Upload, X, Clock, 
-    GripVertical, Check, Edit2, Save, SkipBack, SkipForward, Sparkles, Youtube, CheckCircle2 
+import {
+    Music, Play, Pause, Trash2, Volume2, Upload, X, Clock,
+    Edit2, Save, SkipBack, SkipForward, Sparkles, Youtube, CheckCircle2,
+    FileSpreadsheet, Loader2, AlertCircle
 } from 'lucide-react';
 import { formatMediaTime } from '../../utils/time';
 import { toast } from '../ui/Toast';
+import { extractSheetInfo, fetchSpreadsheetWorkbook } from '../../services/googleSheetsService';
+
+const normalizeSheetHeader = (value) => String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+const getYouTubeVideoId = (value) => {
+    try {
+        const url = new URL(value.trim());
+        const hostname = url.hostname.toLowerCase().replace(/^www\./, '');
+        let videoId = '';
+
+        if (hostname === 'youtu.be') {
+            videoId = url.pathname.split('/').filter(Boolean)[0] || '';
+        } else if (['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtube-nocookie.com'].includes(hostname)) {
+            videoId = url.searchParams.get('v') || url.pathname.match(/^\/(?:embed|shorts|live|v)\/([^/?]+)/)?.[1] || '';
+        } else {
+            return null;
+        }
+
+        return /^[a-zA-Z0-9_-]{11}$/.test(videoId) ? videoId : null;
+    } catch {
+        return null;
+    }
+};
+
+const parseMusicSheetRows = (rows = []) => {
+    const nameHeaders = new Set(['nome', 'nome da musica', 'titulo', 'titulo da musica', 'name', 'title']);
+    const linkHeaders = new Set(['link', 'link do youtube', 'youtube', 'link youtube', 'url', 'url do youtube']);
+    let headerIndex = -1;
+    let nameColumn = -1;
+    let linkColumn = -1;
+
+    for (let index = 0; index < Math.min(rows.length, 10); index++) {
+        const headers = rows[index].map(normalizeSheetHeader);
+        const nameIndex = headers.findIndex(header => nameHeaders.has(header));
+        const linkIndex = headers.findIndex(header => linkHeaders.has(header));
+        if (nameIndex >= 0 && linkIndex >= 0) {
+            headerIndex = index;
+            nameColumn = nameIndex;
+            linkColumn = linkIndex;
+            break;
+        }
+    }
+
+    if (headerIndex < 0) {
+        return { error: 'A aba precisa ter colunas "Nome" e "Link do YouTube".', tracks: [], invalidCount: 0 };
+    }
+
+    const tracks = [];
+    let invalidCount = 0;
+    rows.slice(headerIndex + 1).forEach((row) => {
+        const name = String(row[nameColumn] ?? '').trim();
+        const link = String(row[linkColumn] ?? '').trim();
+        if (!name && !link) return;
+
+        const videoId = getYouTubeVideoId(link);
+        if (!name || !videoId) {
+            invalidCount++;
+            return;
+        }
+
+        tracks.push({
+            id: `sheet-${videoId}`,
+            type: 'youtube',
+            url: videoId,
+            name,
+            duration: 0
+        });
+    });
+
+    return { tracks, invalidCount, error: tracks.length === 0 ? 'Nenhuma linha válida com nome e link do YouTube foi encontrada.' : null };
+};
 
 // Duração de faixa: inválida => "--:--"
 const formatDuration = (sec) => formatMediaTime(sec, '--:--');
@@ -101,12 +179,30 @@ export const RouletteBackgroundMusic = ({
     const [ytPlayerReady, setYtPlayerReady] = useState(false);
     const [ytInput, setYtInput] = useState('');
     const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+    const [showSheetImport, setShowSheetImport] = useState(false);
+    const [sheetUrl, setSheetUrl] = useState('');
+    const [sheetWorkbook, setSheetWorkbook] = useState(null);
+    const [selectedMusicSheet, setSelectedMusicSheet] = useState('');
+    const [sheetPreview, setSheetPreview] = useState(null);
+    const [isLoadingSheet, setIsLoadingSheet] = useState(false);
+    const [sheetImportError, setSheetImportError] = useState('');
     const fileInputRef = useRef(null);
     const audioRef = useRef(null);
     const ytPlayerRef = useRef(null);
+    const endedTrackRef = useRef(null);
 
     // Current track
     const currentTrack = playlist[currentIndex] || null;
+    const existingVideoIds = new Set(playlist.filter(track => track.type === 'youtube').map(track => track.url));
+    const availablePlaylistSlots = Math.max(0, 10 - playlist.length);
+    const importableSheetTracks = (() => {
+        const seenVideoIds = new Set(existingVideoIds);
+        return (sheetPreview?.tracks || []).filter(track => {
+            if (seenVideoIds.has(track.url)) return false;
+            seenVideoIds.add(track.url);
+            return true;
+        }).slice(0, availablePlaylistSlots);
+    })();
 
     // Save to localStorage whenever playlist changes
     useEffect(() => {
@@ -208,16 +304,18 @@ export const RouletteBackgroundMusic = ({
     }, [timerIsRunning, syncWithMusic, currentTrack, isExploded]);
 
     const handleTrackEnded = () => {
+        if (!currentTrack || endedTrackRef.current === currentTrack.id) return;
+        endedTrackRef.current = currentTrack.id;
+
         if (playlist.length > 0) {
             const nextIdx = (currentIndex + 1) % playlist.length;
-            setCurrentIndex(nextIdx);
-            setIsPlaying(true);
             const nextTrack = playlist[nextIdx];
-            if (syncWithMusic && onSyncRequest && !isExploded && nextTrack && nextTrack.duration > 0) {
+            setCurrentIndex(nextIdx);
+            setIsPlaying(false);
+            if (syncWithMusic && onSyncRequest && !isExploded) {
                 onSyncRequest({
-                    action: 'sync_on',
-                    duration: nextTrack.duration,
-                    isPlaying: true
+                    action: 'music_ended',
+                    duration: nextTrack?.duration > 0 ? nextTrack.duration : undefined
                 });
             }
         }
@@ -251,6 +349,7 @@ export const RouletteBackgroundMusic = ({
     // Track Restart (When Bomb is restarted after explosion)
     useEffect(() => {
         if (restartTrackTrigger > 0 && currentTrack) {
+            endedTrackRef.current = null;
             if (currentTrack.type === 'local' && audioRef.current) {
                 audioRef.current.currentTime = 0;
                 audioRef.current.play().catch(e => console.log(e));
@@ -443,6 +542,51 @@ export const RouletteBackgroundMusic = ({
         setYtInput('');
         setIsLoadingUrl(false);
         toast('Música do YouTube adicionada com sucesso!');
+    };
+
+    const handleLoadMusicSheet = async () => {
+        const { sheetId, gid, isDriveFile } = extractSheetInfo(sheetUrl.trim());
+        if (!sheetId) {
+            setSheetImportError('Cole um link válido de uma planilha do Google Sheets.');
+            return;
+        }
+
+        setIsLoadingSheet(true);
+        setSheetImportError('');
+        setSheetPreview(null);
+        try {
+            const workbook = await fetchSpreadsheetWorkbook(sheetId, { gid, isDriveFile });
+            const defaultSheet = workbook.defaultSheetName || workbook.sheetNames[0];
+            setSheetWorkbook(workbook);
+            setSelectedMusicSheet(defaultSheet);
+            setSheetPreview(parseMusicSheetRows(workbook.sheets[defaultSheet]?.rawRows || []));
+        } catch (error) {
+            setSheetImportError(error.message === 'PLANILHA_PRIVADA'
+                ? 'A planilha precisa permitir acesso de visualização para qualquer pessoa com o link.'
+                : error.message || 'Não foi possível carregar a planilha.');
+        } finally {
+            setIsLoadingSheet(false);
+        }
+    };
+
+    const handleMusicSheetChange = (sheetName) => {
+        setSelectedMusicSheet(sheetName);
+        setSheetPreview(parseMusicSheetRows(sheetWorkbook?.sheets[sheetName]?.rawRows || []));
+    };
+
+    const handleAddSheetTracks = () => {
+        if (importableSheetTracks.length === 0) return;
+        const tracksToAdd = importableSheetTracks.map((track, index) => ({
+            ...track,
+            id: `sheet-${Date.now()}-${index}`
+        }));
+        setPlaylist(prev => [...prev, ...tracksToAdd.slice(0, Math.max(0, 10 - prev.length))]);
+        toast(`${tracksToAdd.length} música(s) adicionada(s) à playlist.`);
+        setSheetWorkbook(null);
+        setSheetPreview(null);
+        setSheetUrl('');
+        setSheetImportError('');
+        setShowSheetImport(false);
     };
 
     const removeTrack = (index) => {
@@ -861,6 +1005,111 @@ export const RouletteBackgroundMusic = ({
                                             </button>
                                         </div>
                                     </form>
+
+                                    <div className="pt-2 border-t border-slate-700/60">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowSheetImport(value => !value);
+                                                setSheetImportError('');
+                                            }}
+                                            className="bg-blue-700 hover:bg-blue-600 border border-blue-500/40 rounded-xl px-3 py-2 text-xs text-white font-bold transition-colors flex items-center gap-2 cursor-pointer"
+                                        >
+                                            <FileSpreadsheet className="w-3.5 h-3.5" />
+                                            {showSheetImport ? 'Fechar importação' : 'Importar do Google Sheets'}
+                                        </button>
+
+                                        {showSheetImport && (
+                                            <div className="mt-3 p-3 bg-slate-900/80 border border-slate-700 rounded-xl space-y-3">
+                                                <p className="text-[11px] text-slate-300">
+                                                    Use uma planilha pública com as colunas <strong>Nome</strong> e <strong>Link do YouTube</strong>.
+                                                </p>
+                                                <div className="flex gap-2">
+                                                    <input
+                                                        type="url"
+                                                        value={sheetUrl}
+                                                        onChange={event => setSheetUrl(event.target.value)}
+                                                        onKeyDown={event => event.key === 'Enter' && handleLoadMusicSheet()}
+                                                        placeholder="Link da planilha Google Sheets"
+                                                        className="min-w-0 flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleLoadMusicSheet}
+                                                        disabled={!sheetUrl.trim() || isLoadingSheet}
+                                                        className="shrink-0 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                                                    >
+                                                        {isLoadingSheet ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+                                                        Buscar
+                                                    </button>
+                                                </div>
+
+                                                {sheetImportError && (
+                                                    <p className="flex items-center gap-1.5 text-xs text-rose-300" role="alert">
+                                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                        {sheetImportError}
+                                                    </p>
+                                                )}
+
+                                                {sheetWorkbook && (
+                                                    <label className="block space-y-1">
+                                                        <span className="text-[10px] uppercase tracking-wide text-slate-400 font-bold">Aba da planilha</span>
+                                                        <select
+                                                            value={selectedMusicSheet}
+                                                            onChange={event => handleMusicSheetChange(event.target.value)}
+                                                            className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white"
+                                                        >
+                                                            {sheetWorkbook.sheetNames.map(name => <option key={name} value={name}>{name}</option>)}
+                                                        </select>
+                                                    </label>
+                                                )}
+
+                                                {sheetPreview && (
+                                                    <div className="space-y-2">
+                                                        {sheetPreview.error ? (
+                                                            <p className="flex items-center gap-1.5 text-xs text-amber-300" role="status">
+                                                                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                                {sheetPreview.error}
+                                                            </p>
+                                                        ) : (
+                                                            <>
+                                                                <div className="flex items-center justify-between gap-2 text-[11px]">
+                                                                    <span className="flex items-center gap-1.5 text-blue-300 font-bold">
+                                                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                                                        {importableSheetTracks.length} faixa(s) serão adicionadas
+                                                                    </span>
+                                                                    {sheetPreview.invalidCount > 0 && (
+                                                                        <span className="text-amber-300">{sheetPreview.invalidCount} linha(s) ignoradas</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="max-h-32 overflow-y-auto rounded-lg border border-slate-700 divide-y divide-slate-800">
+                                                                    {sheetPreview.tracks.slice(0, 10).map(track => (
+                                                                        <div key={`${track.url}-${track.name}`} className="px-2.5 py-2 flex items-center justify-between gap-3 text-xs">
+                                                                            <span className="truncate text-slate-200">{track.name}</span>
+                                                                            <span className="shrink-0 text-[10px] text-slate-500">YouTube</span>
+                                                                        </div>
+                                                                    ))}
+                                                                    {sheetPreview.tracks.length > 10 && (
+                                                                        <div className="px-2.5 py-2 text-[10px] text-slate-500 text-center">
+                                                                            + {sheetPreview.tracks.length - 10} faixa(s)
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleAddSheetTracks}
+                                                                    disabled={importableSheetTracks.length === 0}
+                                                                    className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-xs font-black transition-colors cursor-pointer"
+                                                                >
+                                                                    Adicionar {importableSheetTracks.length} música(s) à playlist
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
 
                                     <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between gap-3">
                                         <span className="text-xs text-slate-400">Ou use um arquivo de áudio do dispositivo:</span>

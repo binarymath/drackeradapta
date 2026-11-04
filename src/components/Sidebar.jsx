@@ -11,7 +11,8 @@ import {
     Dices,
     FileText,
     Grid,
-    BookOpen
+    BookOpen,
+    Timer
 } from 'lucide-react';
 
 export const Sidebar = ({
@@ -92,6 +93,7 @@ export const Sidebar = ({
         { id: 'simplify', label: 'Rádio Drácker', icon: <Music className="w-5 h-5" /> },
         { id: 'video_gallery', label: 'Vídeos Interativos', icon: <Play className="w-5 h-5" /> },
         { id: 'roulette', label: 'Roleta', icon: <Dices className="w-5 h-5" /> },
+        { id: 'timer', label: 'Cronômetro', icon: <Timer className="w-5 h-5" /> },
         { id: 'rpg', label: 'RPG', icon: <Compass className="w-5 h-5" /> },
         { id: 'storybook', label: 'Storybook', icon: <BookOpen className="w-5 h-5" /> },
         { id: 'quiz', label: 'Quiz', icon: <FileText className="w-5 h-5" /> },

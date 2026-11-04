@@ -91,6 +91,50 @@ const RPG_UNIVERSES = [
     }
 ];
 
+const buildConnectedRPGFinale = (data, topic, victoryText) => {
+    const paragraphs = [];
+    const opening = String(data?.historia_abertura || '').trim();
+    if (opening) paragraphs.push(opening);
+
+    const stages = data?.etapas || [];
+    const relics = [];
+    stages.forEach((stage, index) => {
+        const chapter = stage.titulo_capitulo || `Capítulo ${index + 1}`;
+        const location = stage.local_cena || 'o local da investigação';
+        const relic = stage.item_recompensa;
+        const enigma = stage.enigmas?.find(item => item.question || item.correct_answer);
+        const narrative = String(stage.narrativa_avanco || '').trim();
+        const clue = String(enigma?.question || '').trim();
+        const answer = String(enigma?.correct_answer || '').trim();
+        const chapterParts = [narrative || `${chapter} levou os exploradores a uma nova pista.`];
+
+        if (clue) {
+            chapterParts.push(`Em ${location}, o enigma “${clue}” revelou ${answer ? `que ${answer}` : 'uma pista essencial para a investigação'}.`);
+        } else {
+            chapterParts.push(`Em ${location}, os exploradores encontraram uma pista que ampliou o que já haviam descoberto.`);
+        }
+
+        if (relic) {
+            chapterParts.push(`A relíquia ${relic} foi incorporada à investigação e ajudou a conduzir ao capítulo seguinte.`);
+            relics.push(relic);
+        }
+        paragraphs.push(chapterParts.join(' '));
+    });
+
+    if (stages.length > 0) {
+        const relicList = relics.length > 1
+            ? `${relics.slice(0, -1).join(', ')} e ${relics[relics.length - 1]}`
+            : relics[0];
+        const topicText = topic ? `sobre ${topic}` : 'que aprenderam durante a aventura';
+        paragraphs.push(relicList
+            ? `Ao reunir ${relicList}, os exploradores perceberam como as pistas de cada capítulo se completavam. O mistério se esclareceu quando conectaram as respostas dos enigmas: o conhecimento ${topicText} era a chave que dava sentido a toda a jornada.`
+            : `Ao comparar as pistas e respostas dos capítulos, os exploradores perceberam que o conhecimento ${topicText} era a chave que dava sentido a toda a jornada.`);
+    }
+
+    if (victoryText) paragraphs.push(String(victoryText).trim());
+    return paragraphs.join('\n\n');
+};
+
 export function DetectiveRPG({ topic, context, isFullWidth }) {
     const { geminiService, apiKeyStatus, setShowSettings } = useGemini();
     const { 
@@ -148,7 +192,7 @@ export function DetectiveRPG({ topic, context, isFullWidth }) {
     const [gameStatus, setGameStatus] = useState(() => activeClassProgress?.gameStatus || savedData.gameStatus || 'setup'); // setup, loading, playing, finished
     const [universe, setUniverse] = useState(savedData.universe || 'forest');
     const [customLore, setCustomLore] = useState(savedData.customLore || '');
-    const [stageCount, setStageCount] = useState(savedData.stageCount || 4); // 3, 4 ou 5 etapas
+    const [stageCount, setStageCount] = useState(savedData.stageCount || 4);
     
     // Modo de Participação: 'class_groups' (equipes oficiais da roleta) | 'class_students' (alunos individuais) | 'custom_teams' (manual)
     const [participationMode, setParticipationMode] = useState(() => {
@@ -2014,7 +2058,12 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
             
             const maxPossiblePoints = effectiveTeams.length * totalStages * 3;
             const averageScore = maxPossiblePoints > 0 ? (totalPointsAll / maxPossiblePoints) : 1;
-            const finalStoryText = averageScore > 0.5 ? currentData?.finais?.vitoria_epica : currentData?.finais?.vitoria_com_ajuda;
+            const victoryText = averageScore > 0.5 ? currentData?.finais?.vitoria_epica : currentData?.finais?.vitoria_com_ajuda;
+            const finalStoryText = currentData?.revelacao_final || buildConnectedRPGFinale(
+                currentData,
+                activityTopic || topic,
+                victoryText
+            );
             
             const finalHistoryObj = { rounds: newHistory, winner, finalStoryText };
             setCurrentData(prev => ({ ...prev, finalHistory: finalHistoryObj }));
@@ -2150,8 +2199,8 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
         const hasNext = currentIdx !== -1 && currentIdx < etapas.length - 1;
 
         return (
-            <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto animate-fade-in no-print">
-                <div className="bg-white rounded-3xl w-[96vw] max-w-6xl p-6 sm:p-8 md:p-10 shadow-2xl border-4 border-amber-300 flex flex-col max-h-[94vh] space-y-5">
+            <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center overflow-hidden animate-fade-in no-print">
+                <div className="bg-white w-screen h-[100dvh] max-w-none max-h-none p-4 sm:p-6 md:p-8 shadow-2xl border-4 border-amber-300 flex flex-col space-y-4 sm:space-y-5">
                     {/* Cabeçalho do Modal */}
                     <div className="flex items-start justify-between gap-4 pb-4 border-b-2 border-slate-100 shrink-0">
                         <div className="flex items-center gap-4">
@@ -3334,7 +3383,10 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                 {[
                                     { stages: 3, label: '3 Capítulos', sub: '~15 min' },
                                     { stages: 4, label: '4 Capítulos', sub: '~25 min (Padrão)' },
-                                    { stages: 5, label: '5 Capítulos', sub: '~40 min (Épico)' }
+                                    { stages: 5, label: '5 Capítulos', sub: '~40 min (Épico)' },
+                                    { stages: 6, label: '6 Capítulos', sub: 'Aventura longa' },
+                                    { stages: 7, label: '7 Capítulos', sub: 'Aventura longa' },
+                                    { stages: 8, label: '8 Capítulos', sub: 'Aventura completa' }
                                 ].map(item => (
                                     <button
                                         key={item.stages}
@@ -4979,6 +5031,14 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                                             <p className="text-[11px] text-slate-500 font-medium line-clamp-1">
                                                 {etapa.titulo_capitulo}
                                             </p>
+                                            {(etapa.enigmas || []).map((enigma, answerIndex) => (
+                                                <p key={`${enigma.team || 'answer'}-${answerIndex}`} className="text-[11px] text-slate-700 leading-snug break-words">
+                                                    <span className="font-bold text-emerald-700">
+                                                        Resposta{enigma.team ? ` • ${enigma.team}` : ''}:
+                                                    </span>{' '}
+                                                    {enigma.correct_answer || enigma.resposta_correta || 'Não registrada'}
+                                                </p>
+                                            ))}
                                         </div>
                                     </button>
                                 ))}
@@ -5032,7 +5092,7 @@ Escreva uma RESOLUÇÃO PEDAGÓGICA DETALHADA PASSO A PASSO para o professor exp
                     {/* Crônica Oficial da Vitória */}
                     <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm text-left max-w-2xl mx-auto space-y-3">
                         <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                            <BookOpen className="w-5 h-5 text-emerald-600" /> Crônica Oficial da Vitória
+                            <BookOpen className="w-5 h-5 text-emerald-600" /> A História por Trás do Mistério
                         </h3>
                         <p className="text-base text-slate-700 leading-relaxed italic">
                             {currentData?.finalHistory?.finalStoryText}

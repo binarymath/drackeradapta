@@ -12,7 +12,8 @@ export const RouletteTimerBomb = ({
     viewMode: externalViewMode = null,
     onViewModeChange = null,
     isDocked = false,
-    onClose = null
+    onClose = null,
+    isStandaloneView = false
 }) => {
     // Configurações do Tempo
     const [duration, setDuration] = useState(30); // Duração total configurada (segundos)
@@ -213,6 +214,9 @@ export const RouletteTimerBomb = ({
         }
 
         if (syncData.action === 'music_ended') {
+            if (typeof syncData.duration === 'number' && syncData.duration > 0) {
+                setDuration(syncData.duration);
+            }
             setTimeLeft(0);
             triggerExplosionEffects();
             return;
@@ -801,7 +805,7 @@ export const RouletteTimerBomb = ({
                     </div>
                 )}
 
-                <div className={`relative w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-3xl p-6 sm:p-8 border-2 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col justify-between custom-scrollbar ${
+                <div className={`relative ${isStandaloneView ? 'w-[80vw] max-w-none' : 'w-full max-w-xl'} h-[calc(100dvh-2rem)] max-h-none overflow-hidden rounded-3xl p-3 sm:p-4 border-2 transition-all duration-300 backdrop-blur-xl shadow-2xl flex flex-col justify-between ${
                     isExploded 
                         ? 'bg-gradient-to-b from-red-950 via-slate-950 to-red-950 border-red-500 shadow-[0_0_80px_rgba(239,68,68,0.8)] animate-violent-shake'
                         : isCritical
@@ -809,7 +813,7 @@ export const RouletteTimerBomb = ({
                             : 'bg-slate-950/95 border-amber-500/50 shadow-[0_25px_60px_rgba(0,0,0,0.9)]'
                 }`}>
                     {/* Header */}
-                    <div className="w-full flex items-center justify-between pb-4 border-b border-white/10 shrink-0">
+                    <div className="w-full flex items-center justify-between pb-2 border-b border-white/10 shrink-0">
                         <div className="flex items-center gap-2">
                             <div className={`w-3 h-3 rounded-full ${
                                 isExploded ? 'bg-red-500 animate-ping' : isCritical ? 'bg-red-500 animate-ping' : isRunning ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'
@@ -829,15 +833,17 @@ export const RouletteTimerBomb = ({
                                 seekTarget={musicSeekTarget}
                                 isDragging={isDraggingFuse}
                             />
-                            <button
-                                type="button"
-                                onClick={() => changeViewMode('normal')}
-                                className="px-3 py-1.5 rounded-xl border border-amber-500/40 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
-                                title="Acoplar ao lado direito do card (mesma altura)"
-                            >
-                                <Minimize2 className="w-3.5 h-3.5" />
-                                <span>Acoplar ao Card</span>
-                            </button>
+                            {!isStandaloneView && (
+                                <button
+                                    type="button"
+                                    onClick={() => changeViewMode('normal')}
+                                    className="px-3 py-1.5 rounded-xl border border-amber-500/40 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+                                    title="Acoplar ao lado direito do card (mesma altura)"
+                                >
+                                    <Minimize2 className="w-3.5 h-3.5" />
+                                    <span>Acoplar ao Card</span>
+                                </button>
+                            )}
 
                             <button
                                 type="button"
@@ -874,7 +880,7 @@ export const RouletteTimerBomb = ({
                     </div>
 
                     {/* Center Giant HUD */}
-                    <div className="my-auto py-4 w-full flex flex-col items-center justify-center select-none">
+                    <div className="my-auto py-1 w-full flex flex-col items-center justify-center select-none">
                         {/* Bomba Gigante Acima da Porcentagem */}
                         <div className="relative flex items-center justify-center">
                             <div className={`transition-transform duration-300 ${
@@ -886,7 +892,7 @@ export const RouletteTimerBomb = ({
                                             ? 'scale-105 drop-shadow-[0_0_25px_rgba(245,158,11,0.7)]' 
                                             : 'scale-100 drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]'
                             }`}>
-                                <span className="text-8xl sm:text-9xl lg:text-[10rem] select-none">
+                                <span className="text-7xl sm:text-8xl select-none">
                                     {isExploded ? '💥' : '💣'}
                                 </span>
                             </div>
@@ -905,7 +911,7 @@ export const RouletteTimerBomb = ({
                                 type="button"
                                 onClick={toggleTimeDisplayType}
                                 title={timeDisplayType === 'elapsed' ? "Porcentagem decorrida (clique para ver restante)" : "Porcentagem restante (clique para ver decorrida)"}
-                                className={`mt-3 bg-black/95 border-4 px-8 sm:px-10 py-2 rounded-full font-mono font-black text-4xl sm:text-5xl lg:text-6xl shadow-[0_10px_35px_rgba(0,0,0,0.95)] tracking-wider transition-all z-20 whitespace-nowrap flex items-center justify-center select-none cursor-pointer hover:opacity-90 active:scale-98 ${
+                                className={`mt-1 bg-black/95 border-4 px-6 sm:px-8 py-1 rounded-full font-mono font-black text-3xl sm:text-4xl lg:text-5xl shadow-[0_10px_35px_rgba(0,0,0,0.95)] tracking-wider transition-all z-20 whitespace-nowrap flex items-center justify-center select-none cursor-pointer hover:opacity-90 active:scale-98 ${
                                 isCritical 
                                     ? 'border-red-500 text-red-400 drop-shadow-[0_0_25px_#ef4444] animate-pulse scale-105' 
                                     : isRunning 
@@ -917,12 +923,12 @@ export const RouletteTimerBomb = ({
                         )}
 
                         {/* Grand Nixie Clock */}
-                        <div className="mt-4 sm:mt-5 text-center w-full">
+                        <div className="mt-2 text-center w-full">
                             <button
                                 type="button"
                                 onClick={toggleTimeFormat}
                                 title={timeFormat === 'seconds' ? "Clique para alternar para Minutos e Segundos (mm:ss)" : "Clique para alternar para apenas Segundos"}
-                                className={`font-mono font-black text-6xl sm:text-7xl lg:text-8xl tracking-widest tabular-nums transition-all cursor-pointer hover:opacity-90 active:scale-98 select-none ${
+                                className={`font-mono font-black text-5xl sm:text-6xl lg:text-7xl tracking-widest tabular-nums transition-all cursor-pointer hover:opacity-90 active:scale-98 select-none ${
                                 isExploded 
                                     ? 'text-red-500 animate-pulse drop-shadow-[0_0_40px_#ef4444]' 
                                     : isCritical
@@ -934,7 +940,7 @@ export const RouletteTimerBomb = ({
                                 {renderTime(activeDisplayTime)}
                             </button>
 
-                            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
+                            <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
                                 <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border shadow-sm ${
                                     isExploded 
                                         ? 'bg-red-500/20 text-red-300 border-red-500/40 animate-bounce' 
@@ -974,7 +980,7 @@ export const RouletteTimerBomb = ({
                         </div>
 
                         {/* Burning fuse interativo */}
-                        <div className="w-full mt-5 select-none">
+                        <div className="w-full mt-2 select-none">
                             <div className="w-full flex items-end justify-between px-1 mb-1.5">
                                 <span className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1">
                                     <span>↔</span> Deslize para ajustar o tempo
