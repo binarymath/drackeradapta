@@ -417,6 +417,40 @@ export class VersionedBackupService {
                 return VersionedBackupService.consolidateClasses(list);
             };
 
+            // Formato gerado pelo download individual no painel de atividades
+            if (parsed.fileFormat === 'DRACKER_SINGLE_ACTIVITY') {
+                if (!parsed.activity || typeof parsed.activity !== 'object' || Array.isArray(parsed.activity)) {
+                    return { isValid: false, error: 'O arquivo de atividade individual está incompleto ou inválido.' };
+                }
+
+                const metadata = parsed.metadata || {};
+                const rawTab = {
+                    ...parsed.activity,
+                    title: parsed.activity.title || metadata.title,
+                    type: parsed.activity.type || metadata.type,
+                    topic: parsed.activity.topic || metadata.topic
+                };
+                const tabs = sanitizeTabList([rawTab]);
+                const classes = extractAllClasses(parsed, tabs);
+
+                return {
+                    isValid: true,
+                    isVersioned: false,
+                    isHistoryPack: false,
+                    snapshot: {
+                        versionId: `single_activity_v${parsed.formatVersion || '1.0'}`,
+                        versionTag: tabs[0].title,
+                        description: 'Atividade individual importada de arquivo JSON.',
+                        createdAt: parsed.exportedAt || metadata.createdAt || new Date().toISOString(),
+                        author: metadata.author || 'Importação Individual',
+                        stripImages: false,
+                        stats: { totalActivities: 1, sizeInKB: VersionedBackupService.calculateSizeKB(parsed) }
+                    },
+                    tabs,
+                    classes
+                };
+            }
+
             // 1. Verifica se é um Pacote de Histórico completo (.dracker-pack / .json)
             if (parsed.fileFormat === "DRACKER_HISTORY_PACK" && Array.isArray(parsed.checkpoints)) {
                 const extractedClasses = extractAllClasses(parsed, []);
